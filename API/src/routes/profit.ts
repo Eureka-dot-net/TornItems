@@ -88,6 +88,23 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       foreignStockMap.set(key, stock);
     }
 
+    // Create a lookup map for ItemsSold: key is "country:itemId", value is array of sales
+    const itemsSoldMap = new Map<string, Array<{ Amount: number; TimeStamp: string }>>();
+    const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+    for (const snapshot of marketSnapshots) {
+      if (snapshot.items_sold != null && snapshot.items_sold > 0 && 
+          new Date(snapshot.fetched_at).getTime() >= twentyFourHoursAgo) {
+        const key = `${snapshot.country}:${snapshot.itemId}`;
+        if (!itemsSoldMap.has(key)) {
+          itemsSoldMap.set(key, []);
+        }
+        itemsSoldMap.get(key)!.push({
+          Amount: snapshot.items_sold,
+          TimeStamp: snapshot.fetched_at
+        });
+      }
+    }
+
     // 🗺 Group by country (shop is informational)
     const grouped: GroupedByCountry = {};
 
@@ -126,7 +143,6 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       let sales_24h_previous: number | null = null;
       let trend_24h: number | null = null;
       let hour_velocity_24: number | null = null;
-      let ItemsSold: Array<{ Amount: number; TimeStamp: string }> = [];
       
       const snapshotKey = `${country}:${item.itemId}`;
       const latestSnapshot = snapshotMap.get(snapshotKey);
@@ -136,23 +152,10 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         sales_24h_previous = latestSnapshot.sales_24h_previous ?? null;
         trend_24h = latestSnapshot.trend_24h ?? null;
         hour_velocity_24 = latestSnapshot.hour_velocity_24 ?? null;
-        
-        // Build ItemsSold array from recent snapshots (last 24 hours)
-        const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
-        const recentSnapshots = marketSnapshots.filter(
-          (s: any) => 
-            s.country === country && 
-            s.itemId === item.itemId && 
-            new Date(s.fetched_at).getTime() >= twentyFourHoursAgo &&
-            s.items_sold != null && 
-            s.items_sold > 0
-        );
-        
-        ItemsSold = recentSnapshots.map((s: any) => ({
-          Amount: s.items_sold,
-          TimeStamp: s.fetched_at
-        }));
       }
+      
+      // Get pre-built ItemsSold array from map (O(1) lookup)
+      const ItemsSold = itemsSoldMap.get(snapshotKey) || [];
 
       if (!grouped[country]) grouped[country] = [];
 
