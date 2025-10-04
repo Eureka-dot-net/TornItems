@@ -55,7 +55,7 @@ function createLogger() {
 
   // Console transport configuration
   if (isDevelopment) {
-    loggerConfig.level = 'warning'; // Limit to warning+ in dev to reduce noise
+    loggerConfig.level = 'info'; // Set to info level for development to see more logs
     // Pretty formatting for development
     (loggerConfig.transports as winston.transport[]).push(
       new winston.transports.Console({
