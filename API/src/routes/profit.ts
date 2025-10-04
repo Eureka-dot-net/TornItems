@@ -14,9 +14,9 @@ interface CountryItem {
   profitPer1: number | null;
   shop_name: string | null;
   in_stock?: number | null;
-  sell_velocity?: number | null;
-  trend?: number | null;
-  expected_sell_time_minutes?: number | null;
+  sales_24h_current?: number | null;
+  sales_24h_previous?: number | null;
+  trend_24h?: number | null;
   hour_velocity_24?: number | null;
   ItemsSold?: Array<{ Amount: number; TimeStamp: string }>;
 }
@@ -121,10 +121,10 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         }
       }
 
-      // 📊 Fetch sell velocity, trend, and other analytics from latest market snapshot
-      let sell_velocity: number | null = null;
-      let trend: number | null = null;
-      let expected_sell_time_minutes: number | null = null;
+      // 📊 Fetch 24-hour sales metrics from latest market snapshot
+      let sales_24h_current: number | null = null;
+      let sales_24h_previous: number | null = null;
+      let trend_24h: number | null = null;
       let hour_velocity_24: number | null = null;
       let ItemsSold: Array<{ Amount: number; TimeStamp: string }> = [];
       
@@ -132,9 +132,9 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       const latestSnapshot = snapshotMap.get(snapshotKey);
       
       if (latestSnapshot) {
-        sell_velocity = latestSnapshot.sell_velocity ?? null;
-        trend = latestSnapshot.trend ?? null;
-        expected_sell_time_minutes = latestSnapshot.expected_sell_time_minutes ?? null;
+        sales_24h_current = latestSnapshot.sales_24h_current ?? null;
+        sales_24h_previous = latestSnapshot.sales_24h_previous ?? null;
+        trend_24h = latestSnapshot.trend_24h ?? null;
         hour_velocity_24 = latestSnapshot.hour_velocity_24 ?? null;
         
         // Build ItemsSold array from recent snapshots (last 24 hours)
@@ -164,9 +164,9 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         profitPer1,
         shop_name: shop,
         in_stock: inStock,
-        sell_velocity,
-        trend,
-        expected_sell_time_minutes,
+        sales_24h_current,
+        sales_24h_previous,
+        trend_24h,
         hour_velocity_24,
         ItemsSold: ItemsSold.length > 0 ? ItemsSold : undefined,
       });

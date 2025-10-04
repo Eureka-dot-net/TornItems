@@ -365,29 +365,33 @@ export async function updateTrackedItems(): Promise<void> {
   }
 }
 
-// Calculate sell velocity, trend, expected sell time, and 24-hour velocity from historical snapshots
+// Calculate 24-hour sales metrics from historical snapshots
 // Uses LISTINGS data (market sales) not in_stock (shop inventory)
-async function calculateVelocityAndTrend(
+async function calculate24HourMetrics(
   country: string,
   itemId: number,
   currentListings: { price: number; amount: number }[]
 ): Promise<{ 
   items_sold: number | null;
-  sell_velocity: number | null; 
-  trend: number | null;
-  expected_sell_time_minutes: number | null;
+  sales_24h_current: number | null;
+  sales_24h_previous: number | null;
+  trend_24h: number | null;
   hour_velocity_24: number | null;
 }> {
   try {
-    // Fetch the most recent 10 historical snapshots (excluding the current one being saved)
-    const snapshots = await MarketSnapshot.find({ country, itemId })
+    // Fetch all snapshots from the last 48 hours to calculate both current and previous 24h periods
+    const fortyEightHoursAgo = Date.now() - (48 * 60 * 60 * 1000);
+    const snapshots = await MarketSnapshot.find({ 
+      country, 
+      itemId,
+      fetched_at: { $gte: new Date(fortyEightHoursAgo) }
+    })
       .sort({ fetched_at: -1 })
-      .limit(10)
       .lean();
 
     if (snapshots.length < 1) {
       // Not enough history - this is the first snapshot
-      return { items_sold: null, sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
+      return { items_sold: null, sales_24h_current: null, sales_24h_previous: null, trend_24h: null, hour_velocity_24: null };
     }
 
     // Calculate items sold between current snapshot and most recent previous snapshot
@@ -395,105 +399,68 @@ async function calculateVelocityAndTrend(
     const itemsSold = calculateItemsSoldBetweenSnapshots(previousSnapshot.listings, currentListings);
 
     if (snapshots.length < 2) {
-      // Only one previous snapshot, can't calculate velocity yet
-      return { items_sold: itemsSold, sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
+      // Only one previous snapshot, can't calculate 24h metrics yet
+      return { items_sold: itemsSold, sales_24h_current: null, sales_24h_previous: null, trend_24h: null, hour_velocity_24: null };
     }
 
-    // Calculate total items sold across all consecutive snapshot pairs
-    let totalItemsSold = 0;
-    const validPairs: Array<{ itemsSold: number; minutesElapsed: number; }> = [];
-    
-    for (let i = 0; i < snapshots.length - 1; i++) {
-      const newer = snapshots[i];
-      const older = snapshots[i + 1];
-
-      const sold = calculateItemsSoldBetweenSnapshots(older.listings, newer.listings);
-      const timeDiffMs = new Date(newer.fetched_at).getTime() - new Date(older.fetched_at).getTime();
-      const minutesElapsed = timeDiffMs / (1000 * 60);
-
-      if (minutesElapsed > 0 && sold > 0) {
-        totalItemsSold += sold;
-        validPairs.push({ itemsSold: sold, minutesElapsed });
-      }
-    }
-
-    // Calculate overall velocity from oldest to newest snapshot
-    const oldest = snapshots[snapshots.length - 1];
-    const newest = snapshots[0];
-    const totalTimeDiffMs = new Date(newest.fetched_at).getTime() - new Date(oldest.fetched_at).getTime();
-    const totalMinutesElapsed = totalTimeDiffMs / (1000 * 60);
-
-    let avgVelocity: number | null = null;
-    if (totalMinutesElapsed > 0 && totalItemsSold > 0) {
-      avgVelocity = totalItemsSold / totalMinutesElapsed;
-    }
-
-    // Calculate velocities for each interval for trend analysis
-    const velocities: number[] = [];
-    for (const pair of validPairs) {
-      velocities.push(pair.itemsSold / pair.minutesElapsed);
-    }
-
-    // Calculate trend (rate of change of velocities)
-    let trend: number | null = null;
-    if (velocities.length >= 2) {
-      // Simple linear trend: compare recent velocities to older ones
-      const recentVelocities = velocities.slice(0, Math.ceil(velocities.length / 2));
-      const olderVelocities = velocities.slice(Math.ceil(velocities.length / 2));
-
-      const recentAvg = recentVelocities.reduce((sum, v) => sum + v, 0) / recentVelocities.length;
-      const olderAvg = olderVelocities.reduce((sum, v) => sum + v, 0) / olderVelocities.length;
-
-      // Trend: positive = accelerating, negative = cooling, ~0 = stable
-      trend = recentAvg - olderAvg;
-    }
-
-    // Calculate expected_sell_time_minutes
-    // This represents how long (in minutes) it takes to sell ONE item at the current velocity
-    let expected_sell_time_minutes: number | null = null;
-    if (avgVelocity && avgVelocity > 0) {
-      expected_sell_time_minutes = 1 / avgVelocity;
-    }
-
-    // Calculate 24_hour_velocity
-    let hour_velocity_24: number | null = null;
     const now = Date.now();
     const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
     
-    // Filter snapshots within 24 hours
-    const recent24hSnapshots = snapshots.filter(snapshot => 
+    // Calculate sales in the last 24 hours (current period)
+    const current24hSnapshots = snapshots.filter(snapshot => 
       new Date(snapshot.fetched_at).getTime() >= twentyFourHoursAgo
     );
 
-    if (recent24hSnapshots.length >= 2) {
-      // Calculate total items sold over 24 hours
-      let itemsSold24h = 0;
-      for (let i = 0; i < recent24hSnapshots.length - 1; i++) {
-        const newer = recent24hSnapshots[i];
-        const older = recent24hSnapshots[i + 1];
-        itemsSold24h += calculateItemsSoldBetweenSnapshots(older.listings, newer.listings);
+    let sales_24h_current: number | null = null;
+    if (current24hSnapshots.length >= 2) {
+      let itemsSoldCurrent = 0;
+      for (let i = 0; i < current24hSnapshots.length - 1; i++) {
+        const newer = current24hSnapshots[i];
+        const older = current24hSnapshots[i + 1];
+        itemsSoldCurrent += calculateItemsSoldBetweenSnapshots(older.listings, newer.listings);
       }
+      sales_24h_current = itemsSoldCurrent;
+    }
 
-      const oldest24h = recent24hSnapshots[recent24hSnapshots.length - 1];
-      const newest24h = recent24hSnapshots[0];
-      const timeDiff24hMs = new Date(newest24h.fetched_at).getTime() - new Date(oldest24h.fetched_at).getTime();
-      const hoursElapsed = timeDiff24hMs / (1000 * 60 * 60);
-      
-      if (hoursElapsed > 0 && itemsSold24h > 0) {
-        hour_velocity_24 = itemsSold24h / hoursElapsed; // items per hour
+    // Calculate sales in the previous 24-hour period (24h-48h ago)
+    const previous24hSnapshots = snapshots.filter(snapshot => {
+      const time = new Date(snapshot.fetched_at).getTime();
+      return time >= fortyEightHoursAgo && time < twentyFourHoursAgo;
+    });
+
+    let sales_24h_previous: number | null = null;
+    if (previous24hSnapshots.length >= 2) {
+      let itemsSoldPrevious = 0;
+      for (let i = 0; i < previous24hSnapshots.length - 1; i++) {
+        const newer = previous24hSnapshots[i];
+        const older = previous24hSnapshots[i + 1];
+        itemsSoldPrevious += calculateItemsSoldBetweenSnapshots(older.listings, newer.listings);
       }
+      sales_24h_previous = itemsSoldPrevious;
+    }
+
+    // Calculate trend_24h (percentage change from previous to current)
+    let trend_24h: number | null = null;
+    if (sales_24h_current !== null && sales_24h_previous !== null && sales_24h_previous > 0) {
+      trend_24h = (sales_24h_current - sales_24h_previous) / sales_24h_previous;
+    }
+
+    // Calculate hour_velocity_24 (sales per hour over last 24 hours)
+    let hour_velocity_24: number | null = null;
+    if (sales_24h_current !== null && sales_24h_current > 0) {
+      hour_velocity_24 = sales_24h_current / 24;
     }
 
     return { 
       items_sold: itemsSold,
-      sell_velocity: avgVelocity !== null ? Math.round(avgVelocity * 100) / 100 : null,
-      trend: trend !== null ? Math.round(trend * 100) / 100 : null,
-      expected_sell_time_minutes: expected_sell_time_minutes !== null ? Math.round(expected_sell_time_minutes * 100) / 100 : null,
+      sales_24h_current: sales_24h_current,
+      sales_24h_previous: sales_24h_previous,
+      trend_24h: trend_24h !== null ? Math.round(trend_24h * 100) / 100 : null,
       hour_velocity_24: hour_velocity_24 !== null ? Math.round(hour_velocity_24 * 100) / 100 : null,
     };
   } catch (error) {
-    logError(`Error calculating velocity/trend for item ${itemId} in ${country}`, error instanceof Error ? error : new Error(String(error)));
-    return { items_sold: null, sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
+    logError(`Error calculating 24h metrics for item ${itemId} in ${country}`, error instanceof Error ? error : new Error(String(error)));
+    return { items_sold: null, sales_24h_current: null, sales_24h_previous: null, trend_24h: null, hour_velocity_24: null };
   }
 }
 
@@ -637,8 +604,8 @@ export async function fetchMarketSnapshots(): Promise<void> {
             amount: listing.amount,
           })) ?? [];
 
-          // Calculate sell velocity, trend, expected sell time, and 24-hour velocity from historical data
-          const { items_sold, sell_velocity, trend, expected_sell_time_minutes, hour_velocity_24 } = await calculateVelocityAndTrend(country, itemId, currentListings);
+          // Calculate 24-hour sales metrics from historical data
+          const { items_sold, sales_24h_current, sales_24h_previous, trend_24h, hour_velocity_24 } = await calculate24HourMetrics(country, itemId, currentListings);
 
           // Create snapshot
           const snapshot = new MarketSnapshot({
@@ -655,9 +622,9 @@ export async function fetchMarketSnapshots(): Promise<void> {
             cache_timestamp: itemmarket.cache_timestamp ?? Date.now(),
             fetched_at: new Date(),
             items_sold,
-            sell_velocity,
-            trend,
-            expected_sell_time_minutes,
+            sales_24h_current,
+            sales_24h_previous,
+            trend_24h,
             hour_velocity_24,
           });
 
