@@ -363,11 +363,17 @@ export async function updateTrackedItems(): Promise<void> {
   }
 }
 
-// Calculate sell velocity and trend from historical snapshots
+// Calculate sell velocity, trend, expected sell time, and 24-hour velocity from historical snapshots
 async function calculateVelocityAndTrend(
   country: string,
-  itemId: number
-): Promise<{ sell_velocity: number | null; trend: number | null }> {
+  itemId: number,
+  currentStock: number | null
+): Promise<{ 
+  sell_velocity: number | null; 
+  trend: number | null;
+  expected_sell_time_minutes: number | null;
+  hour_velocity_24: number | null;
+}> {
   try {
     // Fetch the most recent 10 historical snapshots (excluding the current one being saved)
     const snapshots = await MarketSnapshot.find({ country, itemId })
@@ -377,7 +383,7 @@ async function calculateVelocityAndTrend(
 
     if (snapshots.length < 2) {
       // Not enough history
-      return { sell_velocity: null, trend: null };
+      return { sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
     }
 
     // Calculate velocities between consecutive snapshots
@@ -408,10 +414,10 @@ async function calculateVelocityAndTrend(
 
     if (velocities.length === 0) {
       // No valid velocity data
-      return { sell_velocity: null, trend: null };
+      return { sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
     }
 
-    // Calculate average sell velocity
+    // Calculate average sell velocity (units per minute)
     const avgVelocity = velocities.reduce((sum, v) => sum + v, 0) / velocities.length;
 
     // Calculate trend (rate of change of velocities)
@@ -428,13 +434,49 @@ async function calculateVelocityAndTrend(
       trend = recentAvg - olderAvg;
     }
 
+    // Calculate expected_sell_time_minutes
+    // If we have current stock and positive velocity, estimate how long until sold out
+    let expected_sell_time_minutes: number | null = null;
+    if (currentStock != null && currentStock > 0 && avgVelocity > 0) {
+      expected_sell_time_minutes = currentStock / avgVelocity;
+    }
+
+    // Calculate 24_hour_velocity
+    // Look at snapshots from the last 24 hours and calculate average velocity
+    let hour_velocity_24: number | null = null;
+    const now = Date.now();
+    const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
+    
+    // Filter snapshots within 24 hours
+    const recent24hSnapshots = snapshots.filter(snapshot => 
+      new Date(snapshot.fetched_at).getTime() >= twentyFourHoursAgo
+    );
+
+    if (recent24hSnapshots.length >= 2) {
+      // Calculate total stock change over 24 hours
+      const oldest24h = recent24hSnapshots[recent24hSnapshots.length - 1];
+      const newest24h = recent24hSnapshots[0];
+      
+      if (oldest24h.in_stock != null && newest24h.in_stock != null) {
+        const stockChange24h = oldest24h.in_stock - newest24h.in_stock;
+        const timeDiff24hMs = new Date(newest24h.fetched_at).getTime() - new Date(oldest24h.fetched_at).getTime();
+        const hoursElapsed = timeDiff24hMs / (1000 * 60 * 60);
+        
+        if (hoursElapsed > 0 && stockChange24h > 0) {
+          hour_velocity_24 = stockChange24h / hoursElapsed; // units per hour
+        }
+      }
+    }
+
     return { 
       sell_velocity: Math.round(avgVelocity * 100) / 100, // Round to 2 decimal places
-      trend: trend !== null ? Math.round(trend * 100) / 100 : null 
+      trend: trend !== null ? Math.round(trend * 100) / 100 : null,
+      expected_sell_time_minutes: expected_sell_time_minutes !== null ? Math.round(expected_sell_time_minutes * 100) / 100 : null,
+      hour_velocity_24: hour_velocity_24 !== null ? Math.round(hour_velocity_24 * 100) / 100 : null,
     };
   } catch (error) {
     logError(`Error calculating velocity/trend for item ${itemId} in ${country}`, error instanceof Error ? error : new Error(String(error)));
-    return { sell_velocity: null, trend: null };
+    return { sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
   }
 }
 
@@ -542,8 +584,8 @@ export async function fetchMarketSnapshots(): Promise<void> {
           const market = itemmarket.item?.average_price ?? item.market_price ?? 0;
           const profitPer1 = market && buy ? market - buy : 0;
 
-          // Calculate sell velocity and trend from historical data
-          const { sell_velocity, trend } = await calculateVelocityAndTrend(country, itemId);
+          // Calculate sell velocity, trend, expected sell time, and 24-hour velocity from historical data
+          const { sell_velocity, trend, expected_sell_time_minutes, hour_velocity_24 } = await calculateVelocityAndTrend(country, itemId, inStock);
 
           // Create snapshot
           const snapshot = new MarketSnapshot({
@@ -564,6 +606,8 @@ export async function fetchMarketSnapshots(): Promise<void> {
             fetched_at: new Date(),
             sell_velocity,
             trend,
+            expected_sell_time_minutes,
+            hour_velocity_24,
           });
 
           await snapshot.save();

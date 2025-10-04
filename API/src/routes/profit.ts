@@ -16,6 +16,8 @@ interface CountryItem {
   in_stock?: number | null;
   sell_velocity?: number | null;
   trend?: number | null;
+  expected_sell_time_minutes?: number | null;
+  hour_velocity_24?: number | null;
 }
 
 interface GroupedByCountry {
@@ -97,9 +99,11 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         }
       }
 
-      // 📊 Fetch sell velocity and trend from latest market snapshot
+      // 📊 Fetch sell velocity, trend, and other analytics from latest market snapshot
       let sell_velocity: number | null = null;
       let trend: number | null = null;
+      let expected_sell_time_minutes: number | null = null;
+      let hour_velocity_24: number | null = null;
       
       const latestSnapshot = await MarketSnapshot.findOne({ country, itemId: item.itemId })
         .sort({ fetched_at: -1 })
@@ -108,6 +112,8 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       if (latestSnapshot) {
         sell_velocity = latestSnapshot.sell_velocity ?? null;
         trend = latestSnapshot.trend ?? null;
+        expected_sell_time_minutes = latestSnapshot.expected_sell_time_minutes ?? null;
+        hour_velocity_24 = latestSnapshot.hour_velocity_24 ?? null;
       }
 
       if (!grouped[country]) grouped[country] = [];
@@ -122,6 +128,8 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         in_stock: inStock,
         sell_velocity,
         trend,
+        expected_sell_time_minutes,
+        hour_velocity_24,
       });
     }
 
