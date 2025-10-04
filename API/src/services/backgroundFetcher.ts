@@ -5,6 +5,8 @@ import { TornItem } from '../models/TornItem';
 import { CityShopStock } from '../models/CityShopStock';
 import { ForeignStock } from '../models/ForeignStock';
 import { ItemMarket } from '../models/ItemMarket';
+import { MarketSnapshot } from '../models/MarketSnapshot';
+import { TrackedItem } from '../models/TrackedItem';
 import { logInfo, logError } from '../utils/logger';
 
 const API_KEY = process.env.TORN_API_KEY || 'yLp4OoENbjRy30GZ';
@@ -23,11 +25,6 @@ const COUNTRY_CODE_MAP: Record<string, string> = {
   cay: 'Cayman Islands',
   swi: 'Switzerland',
 };
-
-// Selected profitable items to track market prices for
-const TRACKED_ITEMS = [
-  1, 2, 3, 4, 5, // Add actual profitable item IDs here
-];
 
 // Rate limiter: 60 requests per minute
 const limiter = new Bottleneck({
@@ -81,7 +78,7 @@ export async function fetchTornItems(): Promise<void> {
       limiter.schedule(() =>
         axios.get(`https://api.torn.com/v2/torn/items?cat=All&sort=ASC&key=${API_KEY}`)
       )
-    );
+    ) as { data: { items: any[] } };
 
     const items = response.data.items;
     if (!items?.length) {
@@ -132,7 +129,7 @@ export async function fetchCityShopStock(): Promise<void> {
       limiter.schedule(() =>
         axios.get(`https://api.torn.com/v2/torn?selections=cityshops&key=${API_KEY}`)
       )
-    );
+    ) as { data: { cityshops: any } };
 
     const cityshops = response.data.cityshops;
     if (!cityshops) {
@@ -183,7 +180,7 @@ export async function fetchForeignStock(): Promise<void> {
     
     const response = await retryWithBackoff(() =>
       axios.get('https://yata.yt/api/v1/travel/export/')
-    );
+    ) as { data: { stocks: any } };
 
     const stocks = response.data.stocks;
     if (!stocks) {
@@ -228,59 +225,273 @@ export async function fetchForeignStock(): Promise<void> {
   }
 }
 
-// Fetch and save market prices for selected items (every minute)
-export async function fetchMarketPrices(): Promise<void> {
+// Determine and update top 10 profitable items per country
+export async function updateTrackedItems(): Promise<void> {
   try {
-    logInfo(`Fetching market prices for ${TRACKED_ITEMS.length} items...`);
-    
-    const promises = TRACKED_ITEMS.map(async (itemId) => {
-      try {
-        const response = await retryWithBackoff(() =>
-          limiter.schedule(() =>
-            axios.get(`https://api.torn.com/v2/market/${itemId}/itemmarket?key=${API_KEY}`)
-          )
+    logInfo('Determining top 10 profitable items per country...');
+
+    // Fetch all items, city shop stock, and foreign stock from MongoDB
+    const [items, cityShopStock, foreignStock] = await Promise.all([
+      TornItem.find({ buy_price: { $ne: null } }).lean() as Promise<Array<{
+        itemId: number;
+        name: string;
+        description: string;
+        type: string;
+        vendor_country?: string | null;
+        vendor_name?: string | null;
+        buy_price?: number | null;
+        market_price?: number | null;
+      }>>,
+      CityShopStock.find().lean() as Promise<Array<{
+        shopId: string;
+        shopName: string;
+        itemId: string;
+        itemName: string;
+        type: string;
+        price: number;
+        in_stock: number;
+      }>>,
+      ForeignStock.find().lean() as Promise<Array<{
+        countryCode: string;
+        countryName: string;
+        itemId: number;
+        itemName: string;
+        quantity: number;
+        cost: number;
+      }>>,
+    ]);
+
+    if (!items?.length) {
+      logError('No items found in database for tracking', new Error('Empty items array'));
+      return;
+    }
+
+    // Group items by country and calculate profit
+    const groupedByCountry: Record<string, Array<{
+      itemId: number;
+      name: string;
+      type: string;
+      shopName: string;
+      buy_price: number;
+      market_price: number;
+      profitPer1: number;
+      in_stock: number | null;
+    }>> = {};
+
+    for (const item of items) {
+      const country = item.vendor_country || 'Unknown';
+      const shop = item.vendor_name || 'Unknown';
+      const buy = item.buy_price ?? 0;
+      const market = item.market_price ?? 0;
+
+      // Calculate profit
+      const profitPer1 = market && buy ? market - buy : null;
+      
+      if (profitPer1 === null || profitPer1 <= 0) continue;
+
+      // Get stock info
+      let inStock: number | null = null;
+
+      if (country === 'Torn') {
+        const match = cityShopStock.find(
+          (stock) => stock.itemName?.toLowerCase() === item.name.toLowerCase()
         );
-
-        const itemmarket = response.data.itemmarket;
-        if (!itemmarket?.listings?.length) {
-          return;
+        if (match) {
+          inStock = match.in_stock ?? null;
         }
+      } else {
+        const countryCode = Object.entries(COUNTRY_CODE_MAP).find(
+          ([, name]) => name === country
+        )?.[0];
 
-        // Compute weighted average price of cheapest 50 units
-        const listings = itemmarket.listings.sort((a: any, b: any) => a.price - b.price);
-        let totalUnits = 0;
-        let totalCost = 0;
-
-        for (const listing of listings) {
-          const unitsToTake = Math.min(listing.amount, 50 - totalUnits);
-          totalCost += listing.price * unitsToTake;
-          totalUnits += unitsToTake;
-
-          if (totalUnits >= 50) break;
+        if (countryCode) {
+          const match = foreignStock.find(
+            (stock) => 
+              stock.countryCode === countryCode &&
+              stock.itemName.toLowerCase() === item.name.toLowerCase()
+          );
+          if (match) inStock = match.quantity;
         }
-
-        const weightedAverage = totalUnits > 0 ? totalCost / totalUnits : 0;
-
-        await ItemMarket.findOneAndUpdate(
-          { itemId },
-          {
-            $set: {
-              itemId,
-              weightedAveragePrice: weightedAverage,
-              timestamp: new Date(),
-            },
-          },
-          { upsert: true }
-        );
-      } catch (error) {
-        logError(`Error fetching market price for item ${itemId}`, error instanceof Error ? error : new Error(String(error)));
       }
-    });
 
-    await Promise.all(promises);
-    logInfo('Successfully updated market prices');
+      if (!groupedByCountry[country]) groupedByCountry[country] = [];
+
+      groupedByCountry[country].push({
+        itemId: item.itemId,
+        name: item.name,
+        type: item.type,
+        shopName: shop,
+        buy_price: buy,
+        market_price: market,
+        profitPer1,
+        in_stock: inStock,
+      });
+    }
+
+    // For each country, get top 10 profitable items and update TrackedItem collection
+    for (const [country, countryItems] of Object.entries(groupedByCountry)) {
+      // Sort by profit and take top 10
+      const top10 = countryItems
+        .sort((a, b) => b.profitPer1 - a.profitPer1)
+        .slice(0, 10);
+
+      const itemIds = top10.map(item => item.itemId);
+      const itemNames = top10.map(item => item.name);
+
+      // Update tracked items for this country
+      await TrackedItem.findOneAndUpdate(
+        { country },
+        {
+          $set: {
+            country,
+            itemIds,
+            lastUpdated: new Date(),
+          },
+        },
+        { upsert: true }
+      );
+
+      logInfo(`Tracking top 10 profitable items in ${country}: [${itemNames.join(', ')}]`);
+    }
+
+    logInfo('Successfully updated tracked items for all countries');
   } catch (error) {
-    logError('Error in market prices batch', error instanceof Error ? error : new Error(String(error)));
+    logError('Error updating tracked items', error instanceof Error ? error : new Error(String(error)));
+  }
+}
+
+// Fetch and store detailed market snapshots for tracked items
+export async function fetchMarketSnapshots(): Promise<void> {
+  try {
+    logInfo('Fetching market snapshots for tracked items...');
+
+    // Get all tracked items
+    const trackedItems = await TrackedItem.find().lean() as Array<{
+      country: string;
+      itemIds: number[];
+    }>;
+
+    if (!trackedItems?.length) {
+      logInfo('No tracked items found. Run updateTrackedItems first.');
+      return;
+    }
+
+    // Get all items data for reference
+    const allItems = await TornItem.find().lean() as Array<{
+      itemId: number;
+      name: string;
+      type: string;
+      vendor_name?: string | null;
+      buy_price?: number | null;
+      market_price?: number | null;
+    }>;
+    const itemsMap = new Map(allItems.map((item: any) => [item.itemId, item]));
+
+    // Get stock data
+    const [cityShopStock, foreignStock] = await Promise.all([
+      CityShopStock.find().lean() as Promise<Array<{
+        itemName: string;
+        in_stock: number;
+      }>>,
+      ForeignStock.find().lean() as Promise<Array<{
+        countryCode: string;
+        itemName: string;
+        quantity: number;
+      }>>,
+    ]);
+
+    let totalSnapshots = 0;
+
+    // Process each country
+    for (const tracked of trackedItems) {
+      const { country, itemIds } = tracked;
+
+      logInfo(`Fetching market data for ${itemIds.length} items in ${country}...`);
+
+      // Fetch market data for each tracked item in this country
+      const snapshotPromises = itemIds.map(async (itemId: number) => {
+        try {
+          const response = await retryWithBackoff(() =>
+            limiter.schedule(() =>
+              axios.get(`https://api.torn.com/v2/market/${itemId}/itemmarket?limit=20&key=${API_KEY}`)
+            )
+          ) as { data: { itemmarket: any } };
+
+          const itemmarket = response.data.itemmarket;
+          if (!itemmarket) {
+            return null;
+          }
+
+          const item = itemsMap.get(itemId);
+          if (!item) {
+            return null;
+          }
+
+          // Get stock info
+          let inStock: number | null = null;
+
+          if (country === 'Torn') {
+            const match = cityShopStock.find(
+              (stock: any) => stock.itemName?.toLowerCase() === item.name.toLowerCase()
+            );
+            if (match) {
+              inStock = match.in_stock ?? null;
+            }
+          } else {
+            const countryCode = Object.entries(COUNTRY_CODE_MAP).find(
+              ([, name]) => name === country
+            )?.[0];
+
+            if (countryCode) {
+              const match = foreignStock.find(
+                (stock: any) => 
+                  stock.countryCode === countryCode &&
+                  stock.itemName.toLowerCase() === item.name.toLowerCase()
+              );
+              if (match) inStock = match.quantity;
+            }
+          }
+
+          const buy = item.buy_price ?? 0;
+          const market = itemmarket.item?.average_price ?? item.market_price ?? 0;
+          const profitPer1 = market && buy ? market - buy : 0;
+
+          // Create snapshot
+          const snapshot = new MarketSnapshot({
+            country,
+            itemId: itemmarket.item?.id ?? itemId,
+            name: itemmarket.item?.name ?? item.name,
+            type: itemmarket.item?.type ?? item.type,
+            shopName: item.vendor_name,
+            buy_price: buy,
+            market_price: market,
+            profitPer1,
+            in_stock: inStock,
+            listings: itemmarket.listings?.map((listing: any) => ({
+              price: listing.price,
+              amount: listing.amount,
+            })) ?? [],
+            cache_timestamp: itemmarket.cache_timestamp ?? Date.now(),
+            fetched_at: new Date(),
+          });
+
+          await snapshot.save();
+          totalSnapshots++;
+
+          return snapshot;
+        } catch (error) {
+          logError(`Error fetching market data for item ${itemId} in ${country}`, error instanceof Error ? error : new Error(String(error)));
+          return null;
+        }
+      });
+
+      await Promise.all(snapshotPromises);
+      logInfo(`Stored ${itemIds.length} listings for ${country} in MongoDB`);
+    }
+
+    logInfo(`Successfully stored ${totalSnapshots} market snapshots across all countries`);
+  } catch (error) {
+    logError('Error fetching market snapshots', error instanceof Error ? error : new Error(String(error)));
   }
 }
 
@@ -307,12 +518,22 @@ export function startScheduler(): void {
     fetchForeignStock();
   });
 
-  // Schedule market prices fetch every minute (if we have tracked items)
-  if (TRACKED_ITEMS.length > 0) {
-    cron.schedule('* * * * *', () => {
-      fetchMarketPrices();
-    });
-  }
+  // Update tracked items (top 10 per country) every 10 minutes
+  cron.schedule('*/10 * * * *', () => {
+    logInfo('Running scheduled tracked items update...');
+    updateTrackedItems();
+  });
+
+  // Run initial tracked items update after 1 minute to ensure data is available
+  setTimeout(() => {
+    updateTrackedItems();
+  }, 60000);
+
+  // Schedule market snapshots fetch every 2 minutes
+  cron.schedule('*/2 * * * *', () => {
+    logInfo('Running scheduled market snapshots fetch...');
+    fetchMarketSnapshots();
+  });
 
   logInfo('Background fetcher scheduler started successfully');
 }
