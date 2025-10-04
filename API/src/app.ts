@@ -1,16 +1,9 @@
 // app.ts
 import express from 'express';
-import dotenv from 'dotenv';
 
 import profit from './routes/profit';
 
 export const app = express();
-
-if (process.env.NODE_ENV === 'test') {
-    dotenv.config({ path: '.env.test' });
-} else {
-    dotenv.config();
-}
 
 // Configure middleware and routes immediately
 app.use(express.json());
