@@ -360,9 +360,10 @@ export async function updateTrackedItems(): Promise<void> {
   }
 }
 
-// Fetch and store detailed market snapshots for tracked items
+// Fetch and store detailed market snapshots for tracked items (self-scheduling)
 export async function fetchMarketSnapshots(): Promise<void> {
   try {
+    const startTime = Date.now();
     logInfo('Fetching market snapshots for tracked items...');
 
     // Get all tracked items
@@ -373,6 +374,10 @@ export async function fetchMarketSnapshots(): Promise<void> {
 
     if (!trackedItems?.length) {
       logInfo('No tracked items found. Run updateTrackedItems first.');
+      // Retry in 1 minute
+      setTimeout(() => {
+        fetchMarketSnapshots();
+      }, 60 * 1000);
       return;
     }
 
@@ -401,6 +406,7 @@ export async function fetchMarketSnapshots(): Promise<void> {
     ]);
 
     let totalSnapshots = 0;
+    let totalApiCalls = 0;
 
     // Process each country
     for (const tracked of trackedItems) {
@@ -416,6 +422,8 @@ export async function fetchMarketSnapshots(): Promise<void> {
               axios.get(`https://api.torn.com/v2/market/${itemId}/itemmarket?limit=20&key=${API_KEY}`)
             )
           ) as { data: { itemmarket: any } };
+
+          totalApiCalls++;
 
           const itemmarket = response.data.itemmarket;
           if (!itemmarket) {
@@ -489,9 +497,36 @@ export async function fetchMarketSnapshots(): Promise<void> {
       logInfo(`Stored ${itemIds.length} listings for ${country} in MongoDB`);
     }
 
+    const elapsed = Date.now() - startTime;
+    const elapsedSeconds = elapsed / 1000;
+    
     logInfo(`Successfully stored ${totalSnapshots} market snapshots across all countries`);
+    logInfo(`Cycle completed: ${totalApiCalls} API calls in ${elapsedSeconds.toFixed(2)} seconds`);
+    
+    // Calculate delay to respect rate limit (60 requests/minute)
+    // If we made totalApiCalls requests, we need at least (totalApiCalls / 60) minutes = (totalApiCalls * 1000) milliseconds
+    const minRequiredTime = (totalApiCalls / 60) * 60 * 1000; // milliseconds
+    const timeToWait = Math.max(0, minRequiredTime - elapsed);
+    
+    if (timeToWait > 0) {
+      logInfo(`Waiting ${(timeToWait / 1000).toFixed(2)} seconds before next cycle to respect rate limit...`);
+    } else {
+      logInfo('No wait needed, starting next cycle immediately...');
+    }
+    
+    // Self-schedule next cycle
+    setTimeout(() => {
+      fetchMarketSnapshots();
+    }, timeToWait);
+    
   } catch (error) {
     logError('Error fetching market snapshots', error instanceof Error ? error : new Error(String(error)));
+    
+    // Even on error, self-schedule to try again after 2 minutes
+    logInfo('Retrying market snapshots fetch in 2 minutes due to error...');
+    setTimeout(() => {
+      fetchMarketSnapshots();
+    }, 2 * 60 * 1000);
   }
 }
 
@@ -529,11 +564,11 @@ export function startScheduler(): void {
     updateTrackedItems();
   }, 60000);
 
-  // Schedule market snapshots fetch every 2 minutes
-  cron.schedule('*/2 * * * *', () => {
-    logInfo('Running scheduled market snapshots fetch...');
+  // Start self-scheduling market snapshots after 2 minutes (after tracked items are initialized)
+  setTimeout(() => {
+    logInfo('Starting self-scheduling market snapshots...');
     fetchMarketSnapshots();
-  });
+  }, 2 * 60 * 1000);
 
   logInfo('Background fetcher scheduler started successfully');
 }
