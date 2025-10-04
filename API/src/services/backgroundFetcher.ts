@@ -700,18 +700,21 @@ async function updateMonitorFrequency(
     );
   } else {
     // Increment frequency (max 10) - this item is quiet
-    await MonitoredItem.findOneAndUpdate(
-      { itemId, country },
-      {
-        $set: {
-          cycles_since_last_check: 0,
-          lastCheckedData: currentData,
-          lastCheckTimestamp: new Date(),
-        },
-        $min: { MonitorFrequency: 10 },  // Cap at 10
-        $inc: { MonitorFrequency: 1 },
-      }
-    );
+    const item = await MonitoredItem.findOne({ itemId, country });
+    if (item) {
+      const newFrequency = Math.min(item.MonitorFrequency + 1, 10);
+      await MonitoredItem.findOneAndUpdate(
+        { itemId, country },
+        {
+          $set: {
+            MonitorFrequency: newFrequency,
+            cycles_since_last_check: 0,
+            lastCheckedData: currentData,
+            lastCheckTimestamp: new Date(),
+          },
+        }
+      );
+    }
   }
 }
 
