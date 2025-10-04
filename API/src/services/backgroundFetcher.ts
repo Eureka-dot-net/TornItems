@@ -715,7 +715,35 @@ export function startScheduler(): void {
   logInfo(`Rate limit configured: ${RATE_LIMIT_PER_MINUTE} requests per minute`);
 
   // Fetch items immediately on startup if needed (every 24 hours)
-  fetchTornItems();
+  // Wait for this to complete before updating tracked items
+  fetchTornItems().then(() => {
+    // After items are fetched, update tracked items and start market snapshots
+    updateTrackedItems().then(() => {
+      // Start self-scheduling market snapshots immediately after tracked items are ready
+      logInfo('Tracked items initialized, starting self-scheduling market snapshots...');
+      fetchMarketSnapshots();
+    }).catch((error) => {
+      logError('Failed to initialize tracked items', error instanceof Error ? error : new Error(String(error)));
+      // Retry after 1 minute on failure
+      logInfo('Retrying tracked items initialization in 1 minute...');
+      setTimeout(() => {
+        updateTrackedItems().then(() => {
+          fetchMarketSnapshots();
+        });
+      }, 60 * 1000); // 1 minute
+    });
+  }).catch((error) => {
+    logError('Failed to fetch Torn items on startup', error instanceof Error ? error : new Error(String(error)));
+    // Retry after 1 minute on failure
+    logInfo('Retrying Torn items fetch in 1 minute...');
+    setTimeout(() => {
+      fetchTornItems().then(() => {
+        updateTrackedItems().then(() => {
+          fetchMarketSnapshots();
+        });
+      });
+    }, 60 * 1000); // 1 minute
+  });
 
   // Schedule daily item fetch at 3 AM
   cron.schedule('0 3 * * *', () => {
@@ -731,22 +759,6 @@ export function startScheduler(): void {
   // Schedule foreign stock fetch every minute
   cron.schedule('* * * * *', () => {
     fetchForeignStock();
-  });
-
-  // Update tracked items immediately on startup
-  updateTrackedItems().then(() => {
-    // Start self-scheduling market snapshots immediately after tracked items are ready
-    logInfo('Tracked items initialized, starting self-scheduling market snapshots...');
-    fetchMarketSnapshots();
-  }).catch((error) => {
-    logError('Failed to initialize tracked items', error instanceof Error ? error : new Error(String(error)));
-    // Retry after 1 minute on failure
-    logInfo('Retrying tracked items initialization in 1 minute...');
-    setTimeout(() => {
-      updateTrackedItems().then(() => {
-        fetchMarketSnapshots();
-      });
-    }, 60 * 1000); // 1 minute
   });
 
   // Schedule tracked items update every 10 minutes
