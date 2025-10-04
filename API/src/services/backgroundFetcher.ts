@@ -11,6 +11,9 @@ import { logInfo, logError } from '../utils/logger';
 
 const API_KEY = process.env.TORN_API_KEY || 'yLp4OoENbjRy30GZ';
 
+// Configurable rate limit (default 60 requests per minute, can be decreased if needed)
+const RATE_LIMIT_PER_MINUTE = parseInt(process.env.TORN_RATE_LIMIT || '60', 10);
+
 // Country code mapping
 const COUNTRY_CODE_MAP: Record<string, string> = {
   mex: 'Mexico',
@@ -26,13 +29,13 @@ const COUNTRY_CODE_MAP: Record<string, string> = {
   swi: 'Switzerland',
 };
 
-// Rate limiter: 60 requests per minute
+// Rate limiter: configurable requests per minute
 const limiter = new Bottleneck({
-  reservoir: 60,
-  reservoirRefreshAmount: 60,
+  reservoir: RATE_LIMIT_PER_MINUTE,
+  reservoirRefreshAmount: RATE_LIMIT_PER_MINUTE,
   reservoirRefreshInterval: 60 * 1000, // 1 minute
   maxConcurrent: 1,
-  minTime: 1000, // Minimum 1 second between requests
+  minTime: Math.floor(60 * 1000 / RATE_LIMIT_PER_MINUTE), // Distribute evenly across the minute
 });
 
 // Exponential backoff retry logic
@@ -503,9 +506,9 @@ export async function fetchMarketSnapshots(): Promise<void> {
     logInfo(`Successfully stored ${totalSnapshots} market snapshots across all countries`);
     logInfo(`Cycle completed: ${totalApiCalls} API calls in ${elapsedSeconds.toFixed(2)} seconds`);
     
-    // Calculate delay to respect rate limit (60 requests/minute)
-    // If we made totalApiCalls requests, we need at least (totalApiCalls / 60) minutes = (totalApiCalls * 1000) milliseconds
-    const minRequiredTime = (totalApiCalls / 60) * 60 * 1000; // milliseconds
+    // Calculate delay to respect rate limit (configurable requests/minute)
+    // If we made totalApiCalls requests, we need at least (totalApiCalls / RATE_LIMIT_PER_MINUTE) minutes
+    const minRequiredTime = (totalApiCalls / RATE_LIMIT_PER_MINUTE) * 60 * 1000; // milliseconds
     const timeToWait = Math.max(0, minRequiredTime - elapsed);
     
     if (timeToWait > 0) {
@@ -522,19 +525,20 @@ export async function fetchMarketSnapshots(): Promise<void> {
   } catch (error) {
     logError('Error fetching market snapshots', error instanceof Error ? error : new Error(String(error)));
     
-    // Even on error, self-schedule to try again after 2 minutes
-    logInfo('Retrying market snapshots fetch in 2 minutes due to error...');
+    // On error, wait 1 minute before retrying
+    logInfo('Retrying market snapshots fetch in 1 minute due to error...');
     setTimeout(() => {
       fetchMarketSnapshots();
-    }, 2 * 60 * 1000);
+    }, 60 * 1000); // 1 minute
   }
 }
 
 // Initialize and start the scheduler
 export function startScheduler(): void {
   logInfo('Starting background fetcher scheduler...');
+  logInfo(`Rate limit configured: ${RATE_LIMIT_PER_MINUTE} requests per minute`);
 
-  // Fetch items immediately on startup if needed
+  // Fetch items immediately on startup if needed (every 24 hours)
   fetchTornItems();
 
   // Schedule daily item fetch at 3 AM
@@ -553,22 +557,27 @@ export function startScheduler(): void {
     fetchForeignStock();
   });
 
-  // Update tracked items (top 10 per country) every 10 minutes
+  // Update tracked items immediately on startup
+  updateTrackedItems().then(() => {
+    // Start self-scheduling market snapshots immediately after tracked items are ready
+    logInfo('Tracked items initialized, starting self-scheduling market snapshots...');
+    fetchMarketSnapshots();
+  }).catch((error) => {
+    logError('Failed to initialize tracked items', error instanceof Error ? error : new Error(String(error)));
+    // Retry after 1 minute on failure
+    logInfo('Retrying tracked items initialization in 1 minute...');
+    setTimeout(() => {
+      updateTrackedItems().then(() => {
+        fetchMarketSnapshots();
+      });
+    }, 60 * 1000); // 1 minute
+  });
+
+  // Schedule tracked items update every 10 minutes
   cron.schedule('*/10 * * * *', () => {
     logInfo('Running scheduled tracked items update...');
     updateTrackedItems();
   });
-
-  // Run initial tracked items update after 1 minute to ensure data is available
-  setTimeout(() => {
-    updateTrackedItems();
-    
-    // Start self-scheduling market snapshots right after tracked items are initialized
-    setTimeout(() => {
-      logInfo('Starting self-scheduling market snapshots...');
-      fetchMarketSnapshots();
-    }, 5000); // 5 seconds after tracked items update completes
-  }, 60000);
 
   logInfo('Background fetcher scheduler started successfully');
 }

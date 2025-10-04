@@ -114,7 +114,12 @@ Legacy collection - use MarketSnapshot instead for detailed market data.
 ```env
 TORN_API_KEY=your_torn_api_key_here
 MONGO_URI=mongodb://localhost:27017/wasteland_rpg
+
+# Optional: Configure rate limit (default: 60 requests per minute)
+TORN_RATE_LIMIT=60
 ```
+
+The `TORN_RATE_LIMIT` variable allows you to decrease the rate limit if needed to avoid hitting Torn's API limits. The system will automatically adjust its request timing based on this value.
 
 ## Usage
 
@@ -224,8 +229,10 @@ Waiting 29.50 seconds before next cycle to respect rate limit...
 
 - The scheduler runs 24/7 in production
 - Initial item fetch happens on startup if data is older than 24 hours
-- Tracked items update 1 minute after startup, then every 10 minutes
-- Market snapshots start ~65 seconds after startup (5 seconds after tracked items initialize), then use self-scheduling with intelligent rate limiting
+- Tracked items update immediately on startup, then every 10 minutes
+- Market snapshots start immediately after tracked items initialize, then use self-scheduling with intelligent rate limiting
+- Rate limit is configurable via TORN_RATE_LIMIT environment variable (default: 60 requests per minute)
 - All timestamps use ISO 8601 format
 - Bulk operations minimize database round trips
 - Historical snapshots are never overwritten
+- Failed requests retry after 1 minute
