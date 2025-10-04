@@ -1,0 +1,830 @@
+[{
+  "_id": {
+    "$oid": "68e1319e0bc8fb5cd48279a1"
+  },
+  "country": "Torn",
+  "itemId": 463,
+  "name": "Epinephrine",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 900000,
+  "market_price": 920897,
+  "profitPer1": 20897,
+  "in_stock": null,
+  "listings": [
+    {
+      "price": 920897,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279a2"
+      }
+    },
+    {
+      "price": 983982,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279a3"
+      }
+    },
+    {
+      "price": 983987,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279a4"
+      }
+    },
+    {
+      "price": 983988,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279a5"
+      }
+    },
+    {
+      "price": 983989,
+      "amount": 15,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279a6"
+      }
+    },
+    {
+      "price": 984000,
+      "amount": 50,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279a7"
+      }
+    },
+    {
+      "price": 984069,
+      "amount": 30,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279a8"
+      }
+    },
+    {
+      "price": 986900,
+      "amount": 132,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279a9"
+      }
+    },
+    {
+      "price": 987900,
+      "amount": 15,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279aa"
+      }
+    },
+    {
+      "price": 988333,
+      "amount": 23,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279ab"
+      }
+    },
+    {
+      "price": 988370,
+      "amount": 49,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279ac"
+      }
+    },
+    {
+      "price": 995000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279ad"
+      }
+    },
+    {
+      "price": 999979,
+      "amount": 17,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279ae"
+      }
+    },
+    {
+      "price": 999999,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279af"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279b0"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279b1"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279b2"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279b3"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279b4"
+      }
+    },
+    {
+      "price": 1111111,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1319e0bc8fb5cd48279b5"
+      }
+    }
+  ],
+  "cache_timestamp": 1759588750,
+  "fetched_at": {
+    "$date": "2025-10-04T14:39:26.722Z"
+  },
+  "items_sold": null,
+  "sell_velocity": null,
+  "trend": null,
+  "expected_sell_time_minutes": null,
+  "hour_velocity_24": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e131f70bc8fb5cd4828184"
+  },
+  "country": "Torn",
+  "itemId": 463,
+  "name": "Epinephrine",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 900000,
+  "market_price": 920897,
+  "profitPer1": 20897,
+  "in_stock": null,
+  "listings": [
+    {
+      "price": 920897,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd4828185"
+      }
+    },
+    {
+      "price": 983982,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd4828186"
+      }
+    },
+    {
+      "price": 983987,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd4828187"
+      }
+    },
+    {
+      "price": 983988,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd4828188"
+      }
+    },
+    {
+      "price": 983989,
+      "amount": 15,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd4828189"
+      }
+    },
+    {
+      "price": 984000,
+      "amount": 50,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd482818a"
+      }
+    },
+    {
+      "price": 984069,
+      "amount": 30,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd482818b"
+      }
+    },
+    {
+      "price": 986900,
+      "amount": 132,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd482818c"
+      }
+    },
+    {
+      "price": 987900,
+      "amount": 15,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd482818d"
+      }
+    },
+    {
+      "price": 988333,
+      "amount": 23,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd482818e"
+      }
+    },
+    {
+      "price": 988370,
+      "amount": 49,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd482818f"
+      }
+    },
+    {
+      "price": 995000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd4828190"
+      }
+    },
+    {
+      "price": 999979,
+      "amount": 17,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd4828191"
+      }
+    },
+    {
+      "price": 999999,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd4828192"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd4828193"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd4828194"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd4828195"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd4828196"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd4828197"
+      }
+    },
+    {
+      "price": 1111111,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e131f70bc8fb5cd4828198"
+      }
+    }
+  ],
+  "cache_timestamp": 1759588840,
+  "fetched_at": {
+    "$date": "2025-10-04T14:40:55.690Z"
+  },
+  "items_sold": 0,
+  "sell_velocity": null,
+  "trend": null,
+  "expected_sell_time_minutes": null,
+  "hour_velocity_24": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e132510bc8fb5cd4828951"
+  },
+  "country": "Torn",
+  "itemId": 463,
+  "name": "Epinephrine",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 900000,
+  "market_price": 920897,
+  "profitPer1": 20897,
+  "in_stock": null,
+  "listings": [
+    {
+      "price": 920000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd4828952"
+      }
+    },
+    {
+      "price": 920897,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd4828953"
+      }
+    },
+    {
+      "price": 983982,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd4828954"
+      }
+    },
+    {
+      "price": 983987,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd4828955"
+      }
+    },
+    {
+      "price": 983988,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd4828956"
+      }
+    },
+    {
+      "price": 983989,
+      "amount": 15,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd4828957"
+      }
+    },
+    {
+      "price": 984000,
+      "amount": 50,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd4828958"
+      }
+    },
+    {
+      "price": 984069,
+      "amount": 30,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd4828959"
+      }
+    },
+    {
+      "price": 986900,
+      "amount": 132,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd482895a"
+      }
+    },
+    {
+      "price": 987900,
+      "amount": 15,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd482895b"
+      }
+    },
+    {
+      "price": 988333,
+      "amount": 23,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd482895c"
+      }
+    },
+    {
+      "price": 988370,
+      "amount": 49,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd482895d"
+      }
+    },
+    {
+      "price": 995000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd482895e"
+      }
+    },
+    {
+      "price": 999979,
+      "amount": 17,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd482895f"
+      }
+    },
+    {
+      "price": 999999,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd4828960"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd4828961"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd4828962"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd4828963"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd4828964"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132510bc8fb5cd4828965"
+      }
+    }
+  ],
+  "cache_timestamp": 1759588930,
+  "fetched_at": {
+    "$date": "2025-10-04T14:42:25.103Z"
+  },
+  "items_sold": 1,
+  "sell_velocity": null,
+  "trend": null,
+  "expected_sell_time_minutes": null,
+  "hour_velocity_24": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e132a90bc8fb5cd4829114"
+  },
+  "country": "Torn",
+  "itemId": 463,
+  "name": "Epinephrine",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 900000,
+  "market_price": 920897,
+  "profitPer1": 20897,
+  "in_stock": null,
+  "listings": [
+    {
+      "price": 920000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd4829115"
+      }
+    },
+    {
+      "price": 920897,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd4829116"
+      }
+    },
+    {
+      "price": 983982,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd4829117"
+      }
+    },
+    {
+      "price": 983987,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd4829118"
+      }
+    },
+    {
+      "price": 983988,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd4829119"
+      }
+    },
+    {
+      "price": 983989,
+      "amount": 15,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd482911a"
+      }
+    },
+    {
+      "price": 984000,
+      "amount": 50,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd482911b"
+      }
+    },
+    {
+      "price": 984069,
+      "amount": 30,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd482911c"
+      }
+    },
+    {
+      "price": 986900,
+      "amount": 132,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd482911d"
+      }
+    },
+    {
+      "price": 987900,
+      "amount": 15,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd482911e"
+      }
+    },
+    {
+      "price": 988333,
+      "amount": 23,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd482911f"
+      }
+    },
+    {
+      "price": 988370,
+      "amount": 49,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd4829120"
+      }
+    },
+    {
+      "price": 995000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd4829121"
+      }
+    },
+    {
+      "price": 999979,
+      "amount": 17,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd4829122"
+      }
+    },
+    {
+      "price": 999999,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd4829123"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd4829124"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd4829125"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd4829126"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd4829127"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e132a90bc8fb5cd4829128"
+      }
+    }
+  ],
+  "cache_timestamp": 1759589020,
+  "fetched_at": {
+    "$date": "2025-10-04T14:43:53.861Z"
+  },
+  "items_sold": 0,
+  "sell_velocity": 0.34,
+  "trend": null,
+  "expected_sell_time_minutes": 1040.56,
+  "hour_velocity_24": 20.18,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e133030bc8fb5cd48298d9"
+  },
+  "country": "Torn",
+  "itemId": 463,
+  "name": "Epinephrine",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 900000,
+  "market_price": 920897,
+  "profitPer1": 20897,
+  "in_stock": null,
+  "listings": [
+    {
+      "price": 920000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298da"
+      }
+    },
+    {
+      "price": 920897,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298db"
+      }
+    },
+    {
+      "price": 983982,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298dc"
+      }
+    },
+    {
+      "price": 983987,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298dd"
+      }
+    },
+    {
+      "price": 983988,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298de"
+      }
+    },
+    {
+      "price": 983989,
+      "amount": 15,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298df"
+      }
+    },
+    {
+      "price": 984000,
+      "amount": 50,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298e0"
+      }
+    },
+    {
+      "price": 984069,
+      "amount": 30,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298e1"
+      }
+    },
+    {
+      "price": 986900,
+      "amount": 132,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298e2"
+      }
+    },
+    {
+      "price": 987900,
+      "amount": 15,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298e3"
+      }
+    },
+    {
+      "price": 988333,
+      "amount": 23,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298e4"
+      }
+    },
+    {
+      "price": 988370,
+      "amount": 49,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298e5"
+      }
+    },
+    {
+      "price": 995000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298e6"
+      }
+    },
+    {
+      "price": 999979,
+      "amount": 17,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298e7"
+      }
+    },
+    {
+      "price": 999999,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298e8"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298e9"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298ea"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298eb"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298ec"
+      }
+    },
+    {
+      "price": 1000000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e133030bc8fb5cd48298ed"
+      }
+    }
+  ],
+  "cache_timestamp": 1759589111,
+  "fetched_at": {
+    "$date": "2025-10-04T14:45:23.647Z"
+  },
+  "items_sold": 0,
+  "sell_velocity": 0.22,
+  "trend": null,
+  "expected_sell_time_minutes": 1558.31,
+  "hour_velocity_24": 13.48,
+  "__v": 0
+}]

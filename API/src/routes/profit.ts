@@ -14,10 +14,12 @@ interface CountryItem {
   profitPer1: number | null;
   shop_name: string | null;
   in_stock?: number | null;
-  sell_velocity?: number | null;
-  trend?: number | null;
-  expected_sell_time_minutes?: number | null;
+  sales_24h_current?: number | null;
+  sales_24h_previous?: number | null;
+  trend_24h?: number | null;
   hour_velocity_24?: number | null;
+  average_price_items_sold?: number | null;
+  ItemsSold?: Array<{ Amount: number; TimeStamp: string }>;
 }
 
 interface GroupedByCountry {
@@ -43,11 +45,12 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
   try {
     console.log('Fetching profit data from MongoDB...');
 
-    // Fetch all items, city shop stock, and foreign stock from MongoDB
-    const [items, cityShopStock, foreignStock] = await Promise.all([
+    // Fetch all items, city shop stock, foreign stock, and market snapshots from MongoDB
+    const [items, cityShopStock, foreignStock, marketSnapshots] = await Promise.all([
       TornItem.find({ buy_price: { $ne: null } }).lean(),
       CityShopStock.find().lean(),
       ForeignStock.find().lean(),
+      MarketSnapshot.find().sort({ fetched_at: -1 }).lean(),
     ]);
 
     if (!items?.length) {
@@ -58,8 +61,50 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     }
 
     console.log(
-      `Retrieved ${items.length} items, ${cityShopStock.length} city shop items, and ${foreignStock.length} foreign stock items from database.`
+      `Retrieved ${items.length} items, ${cityShopStock.length} city shop items, ${foreignStock.length} foreign stock items, and ${marketSnapshots.length} market snapshots from database.`
     );
+
+    // Create a lookup map for market snapshots: key is "country:itemId", value is the latest snapshot
+    const snapshotMap = new Map<string, any>();
+    for (const snapshot of marketSnapshots) {
+      const key = `${snapshot.country}:${snapshot.itemId}`;
+      // Only keep the latest snapshot per country-item pair (already sorted by fetched_at desc)
+      if (!snapshotMap.has(key)) {
+        snapshotMap.set(key, snapshot);
+      }
+    }
+
+    // Create a lookup map for city shop stock: key is lowercase item name
+    const cityShopStockMap = new Map<string, any>();
+    for (const stock of cityShopStock) {
+      if (stock.itemName) {
+        cityShopStockMap.set(stock.itemName.toLowerCase(), stock);
+      }
+    }
+
+    // Create a lookup map for foreign stock: key is "countryCode:itemName" (lowercase)
+    const foreignStockMap = new Map<string, any>();
+    for (const stock of foreignStock) {
+      const key = `${stock.countryCode}:${stock.itemName.toLowerCase()}`;
+      foreignStockMap.set(key, stock);
+    }
+
+    // Create a lookup map for ItemsSold: key is "country:itemId", value is array of sales
+    const itemsSoldMap = new Map<string, Array<{ Amount: number; TimeStamp: string }>>();
+    const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+    for (const snapshot of marketSnapshots) {
+      if (snapshot.items_sold != null && snapshot.items_sold > 0 && 
+          new Date(snapshot.fetched_at).getTime() >= twentyFourHoursAgo) {
+        const key = `${snapshot.country}:${snapshot.itemId}`;
+        if (!itemsSoldMap.has(key)) {
+          itemsSoldMap.set(key, []);
+        }
+        itemsSoldMap.get(key)!.push({
+          Amount: snapshot.items_sold,
+          TimeStamp: snapshot.fetched_at.toISOString()
+        });
+      }
+    }
 
     // 🗺 Group by country (shop is informational)
     const grouped: GroupedByCountry = {};
@@ -77,9 +122,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       let inStock: number | null = null;
 
       if (country === 'Torn') {
-        const match = cityShopStock.find(
-          (stock) => stock.itemName?.toLowerCase() === item.name.toLowerCase()
-        );
+        const match = cityShopStockMap.get(item.name.toLowerCase());
         if (match) {
           inStock = match.in_stock ?? null;
         }
@@ -90,31 +133,36 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         )?.[0];
 
         if (countryCode) {
-          const match = foreignStock.find(
-            (stock) => 
-              stock.countryCode === countryCode &&
-              stock.itemName.toLowerCase() === item.name.toLowerCase()
-          );
+          const foreignKey = `${countryCode}:${item.name.toLowerCase()}`;
+          const match = foreignStockMap.get(foreignKey);
           if (match) inStock = match.quantity;
         }
       }
 
-      // 📊 Fetch sell velocity, trend, and other analytics from latest market snapshot
-      let sell_velocity: number | null = null;
-      let trend: number | null = null;
-      let expected_sell_time_minutes: number | null = null;
+      // 📊 Fetch 24-hour sales metrics from latest market snapshot
+      let sales_24h_current: number | null = null;
+      let sales_24h_previous: number | null = null;
+      let trend_24h: number | null = null;
       let hour_velocity_24: number | null = null;
+      let average_price_items_sold: number | null = null;
       
-      const latestSnapshot = await MarketSnapshot.findOne({ country, itemId: item.itemId })
-        .sort({ fetched_at: -1 })
-        .lean();
+      const snapshotKey = `${country}:${item.itemId}`;
+      const latestSnapshot = snapshotMap.get(snapshotKey);
       
       if (latestSnapshot) {
-        sell_velocity = latestSnapshot.sell_velocity ?? null;
-        trend = latestSnapshot.trend ?? null;
-        expected_sell_time_minutes = latestSnapshot.expected_sell_time_minutes ?? null;
+        sales_24h_current = latestSnapshot.sales_24h_current ?? null;
+        sales_24h_previous = latestSnapshot.sales_24h_previous ?? null;
+        trend_24h = latestSnapshot.trend_24h ?? null;
         hour_velocity_24 = latestSnapshot.hour_velocity_24 ?? null;
+        
+        // Calculate average price from total revenue and total items sold in 24h period
+        if (latestSnapshot.total_revenue_24h_current && latestSnapshot.sales_24h_current && latestSnapshot.sales_24h_current > 0) {
+          average_price_items_sold = Math.round(latestSnapshot.total_revenue_24h_current / latestSnapshot.sales_24h_current);
+        }
       }
+      
+      // Get pre-built ItemsSold array from map (O(1) lookup)
+      const ItemsSold = itemsSoldMap.get(snapshotKey) || [];
 
       if (!grouped[country]) grouped[country] = [];
 
@@ -126,10 +174,12 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         profitPer1,
         shop_name: shop,
         in_stock: inStock,
-        sell_velocity,
-        trend,
-        expected_sell_time_minutes,
+        sales_24h_current,
+        sales_24h_previous,
+        trend_24h,
         hour_velocity_24,
+        average_price_items_sold,
+        ItemsSold: ItemsSold.length > 0 ? ItemsSold : undefined,
       });
     }
 

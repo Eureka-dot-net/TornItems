@@ -231,7 +231,7 @@ export async function fetchForeignStock(): Promise<void> {
 // Determine and update top 10 profitable items per country
 export async function updateTrackedItems(): Promise<void> {
   try {
-    logInfo('Determining top 10 profitable items per country...');
+    logInfo('Determining top profitable items per country (Torn: 20, Others: 10)...');
 
     // Fetch all items, city shop stock, and foreign stock from MongoDB
     const [items, cityShopStock, foreignStock] = await Promise.all([
@@ -331,15 +331,17 @@ export async function updateTrackedItems(): Promise<void> {
       });
     }
 
-    // For each country, get top 10 profitable items and update TrackedItem collection
+    // For each country, get top profitable items and update TrackedItem collection
+    // Torn gets top 20, other countries get top 10
     for (const [country, countryItems] of Object.entries(groupedByCountry)) {
-      // Sort by profit and take top 10
-      const top10 = countryItems
+      // Sort by profit and take top 20 for Torn, top 10 for others
+      const topCount = country === 'Torn' ? 20 : 10;
+      const topItems = countryItems
         .sort((a, b) => b.profitPer1 - a.profitPer1)
-        .slice(0, 10);
+        .slice(0, topCount);
 
-      const itemIds = top10.map(item => item.itemId);
-      const itemNames = top10.map(item => item.name);
+      const itemIds = topItems.map(item => item.itemId);
+      const itemNames = topItems.map(item => item.name);
 
       // Update tracked items for this country
       await TrackedItem.findOneAndUpdate(
@@ -354,7 +356,7 @@ export async function updateTrackedItems(): Promise<void> {
         { upsert: true }
       );
 
-      logInfo(`Tracking top 10 profitable items in ${country}: [${itemNames.join(', ')}]`);
+      logInfo(`Tracking top ${topCount} profitable items in ${country}: [${itemNames.join(', ')}]`);
     }
 
     logInfo('Successfully updated tracked items for all countries');
@@ -363,121 +365,139 @@ export async function updateTrackedItems(): Promise<void> {
   }
 }
 
-// Calculate sell velocity, trend, expected sell time, and 24-hour velocity from historical snapshots
-async function calculateVelocityAndTrend(
+// Calculate 24-hour sales metrics from historical snapshots
+// Uses LISTINGS data (market sales) not in_stock (shop inventory)
+async function calculate24HourMetrics(
   country: string,
   itemId: number,
-  currentStock: number | null
+  currentListings: { price: number; amount: number }[]
 ): Promise<{ 
-  sell_velocity: number | null; 
-  trend: number | null;
-  expected_sell_time_minutes: number | null;
+  items_sold: number | null;
+  total_revenue_sold: number | null;
+  sales_24h_current: number | null;
+  sales_24h_previous: number | null;
+  total_revenue_24h_current: number | null;
+  trend_24h: number | null;
   hour_velocity_24: number | null;
 }> {
   try {
-    // Fetch the most recent 10 historical snapshots (excluding the current one being saved)
-    const snapshots = await MarketSnapshot.find({ country, itemId })
+    // Fetch all snapshots from the last 48 hours to calculate both current and previous 24h periods
+    const fortyEightHoursAgo = Date.now() - (48 * 60 * 60 * 1000);
+    const snapshots = await MarketSnapshot.find({ 
+      country, 
+      itemId,
+      fetched_at: { $gte: new Date(fortyEightHoursAgo) }
+    })
       .sort({ fetched_at: -1 })
-      .limit(10)
       .lean();
 
+    if (snapshots.length < 1) {
+      // Not enough history - this is the first snapshot
+      return { items_sold: null, total_revenue_sold: null, sales_24h_current: null, sales_24h_previous: null, total_revenue_24h_current: null, trend_24h: null, hour_velocity_24: null };
+    }
+
+    // Calculate items sold and revenue between current snapshot and most recent previous snapshot
+    const previousSnapshot = snapshots[0];
+    const { itemsSold, totalRevenue } = calculateItemsSoldAndRevenueBetweenSnapshots(previousSnapshot.listings, currentListings);
+
     if (snapshots.length < 2) {
-      // Not enough history
-      return { sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
+      // Only one previous snapshot, can't calculate 24h metrics yet
+      return { items_sold: itemsSold, total_revenue_sold: totalRevenue, sales_24h_current: null, sales_24h_previous: null, total_revenue_24h_current: null, trend_24h: null, hour_velocity_24: null };
     }
 
-    // Calculate velocities between consecutive snapshots
-    const velocities: number[] = [];
-
-    for (let i = 0; i < snapshots.length - 1; i++) {
-      const current = snapshots[i];
-      const previous = snapshots[i + 1];
-
-      // Skip if in_stock data is missing
-      if (current.in_stock == null || previous.in_stock == null) {
-        continue;
-      }
-
-      const stockChange = previous.in_stock - current.in_stock;
-      
-      // Only calculate velocity if stock decreased (items were sold)
-      if (stockChange > 0) {
-        const timeDiffMs = new Date(current.fetched_at).getTime() - new Date(previous.fetched_at).getTime();
-        const minutesElapsed = timeDiffMs / (1000 * 60);
-
-        if (minutesElapsed > 0) {
-          const velocity = stockChange / minutesElapsed;
-          velocities.push(velocity);
-        }
-      }
-    }
-
-    if (velocities.length === 0) {
-      // No valid velocity data
-      return { sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
-    }
-
-    // Calculate average sell velocity (units per minute)
-    const avgVelocity = velocities.reduce((sum, v) => sum + v, 0) / velocities.length;
-
-    // Calculate trend (rate of change of velocities)
-    let trend: number | null = null;
-    if (velocities.length >= 2) {
-      // Simple linear trend: compare recent velocities to older ones
-      const recentVelocities = velocities.slice(0, Math.ceil(velocities.length / 2));
-      const olderVelocities = velocities.slice(Math.ceil(velocities.length / 2));
-
-      const recentAvg = recentVelocities.reduce((sum, v) => sum + v, 0) / recentVelocities.length;
-      const olderAvg = olderVelocities.reduce((sum, v) => sum + v, 0) / olderVelocities.length;
-
-      // Trend: positive = accelerating, negative = cooling, ~0 = stable
-      trend = recentAvg - olderAvg;
-    }
-
-    // Calculate expected_sell_time_minutes
-    // If we have current stock and positive velocity, estimate how long until sold out
-    let expected_sell_time_minutes: number | null = null;
-    if (currentStock != null && currentStock > 0 && avgVelocity > 0) {
-      expected_sell_time_minutes = currentStock / avgVelocity;
-    }
-
-    // Calculate 24_hour_velocity
-    // Look at snapshots from the last 24 hours and calculate average velocity
-    let hour_velocity_24: number | null = null;
     const now = Date.now();
     const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
     
-    // Filter snapshots within 24 hours
-    const recent24hSnapshots = snapshots.filter(snapshot => 
+    // Calculate sales in the last 24 hours (current period)
+    const current24hSnapshots = snapshots.filter(snapshot => 
       new Date(snapshot.fetched_at).getTime() >= twentyFourHoursAgo
     );
 
-    if (recent24hSnapshots.length >= 2) {
-      // Calculate total stock change over 24 hours
-      const oldest24h = recent24hSnapshots[recent24hSnapshots.length - 1];
-      const newest24h = recent24hSnapshots[0];
-      
-      if (oldest24h.in_stock != null && newest24h.in_stock != null) {
-        const stockChange24h = oldest24h.in_stock - newest24h.in_stock;
-        const timeDiff24hMs = new Date(newest24h.fetched_at).getTime() - new Date(oldest24h.fetched_at).getTime();
-        const hoursElapsed = timeDiff24hMs / (1000 * 60 * 60);
-        
-        if (hoursElapsed > 0 && stockChange24h > 0) {
-          hour_velocity_24 = stockChange24h / hoursElapsed; // units per hour
-        }
-      }
+    let sales_24h_current: number | null = null;
+    let total_revenue_24h_current: number | null = null;
+    if (current24hSnapshots.length >= 1) {
+      // Calculate total items sold in 24h period by comparing oldest to newest snapshot in that period
+      const oldestIn24h = current24hSnapshots[current24hSnapshots.length - 1];
+      const newestIn24h = currentListings; // Current listings we're about to save
+      const result = calculateItemsSoldAndRevenueBetweenSnapshots(oldestIn24h.listings, newestIn24h);
+      sales_24h_current = result.itemsSold;
+      total_revenue_24h_current = result.totalRevenue;
+    }
+
+    // Calculate sales in the previous 24-hour period (24h-48h ago)
+    const previous24hSnapshots = snapshots.filter(snapshot => {
+      const time = new Date(snapshot.fetched_at).getTime();
+      return time >= fortyEightHoursAgo && time < twentyFourHoursAgo;
+    });
+
+    let sales_24h_previous: number | null = null;
+    if (previous24hSnapshots.length >= 1 && current24hSnapshots.length >= 1) {
+      // Calculate total items sold in previous 24h period
+      // Compare oldest snapshot in previous period to oldest snapshot in current period
+      const oldestInPrevious = previous24hSnapshots[previous24hSnapshots.length - 1];
+      const oldestInCurrent = current24hSnapshots[current24hSnapshots.length - 1];
+      const result = calculateItemsSoldAndRevenueBetweenSnapshots(oldestInPrevious.listings, oldestInCurrent.listings);
+      sales_24h_previous = result.itemsSold;
+    }
+
+    // Calculate trend_24h (percentage change from previous to current)
+    let trend_24h: number | null = null;
+    if (sales_24h_current !== null && sales_24h_previous !== null && sales_24h_previous > 0) {
+      trend_24h = (sales_24h_current - sales_24h_previous) / sales_24h_previous;
+    }
+
+    // Calculate hour_velocity_24 (sales per hour over last 24 hours)
+    let hour_velocity_24: number | null = null;
+    if (sales_24h_current !== null && sales_24h_current > 0) {
+      hour_velocity_24 = sales_24h_current / 24;
     }
 
     return { 
-      sell_velocity: Math.round(avgVelocity * 100) / 100, // Round to 2 decimal places
-      trend: trend !== null ? Math.round(trend * 100) / 100 : null,
-      expected_sell_time_minutes: expected_sell_time_minutes !== null ? Math.round(expected_sell_time_minutes * 100) / 100 : null,
+      items_sold: itemsSold,
+      total_revenue_sold: totalRevenue,
+      sales_24h_current: sales_24h_current,
+      sales_24h_previous: sales_24h_previous,
+      total_revenue_24h_current: total_revenue_24h_current,
+      trend_24h: trend_24h !== null ? Math.round(trend_24h * 100) / 100 : null,
       hour_velocity_24: hour_velocity_24 !== null ? Math.round(hour_velocity_24 * 100) / 100 : null,
     };
   } catch (error) {
-    logError(`Error calculating velocity/trend for item ${itemId} in ${country}`, error instanceof Error ? error : new Error(String(error)));
-    return { sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
+    logError(`Error calculating 24h metrics for item ${itemId} in ${country}`, error instanceof Error ? error : new Error(String(error)));
+    return { items_sold: null, total_revenue_sold: null, sales_24h_current: null, sales_24h_previous: null, total_revenue_24h_current: null, trend_24h: null, hour_velocity_24: null };
   }
+}
+
+// Helper function to calculate how many items were sold and total revenue between two snapshots
+// Compares listings arrays to determine what disappeared or decreased
+function calculateItemsSoldAndRevenueBetweenSnapshots(
+  olderListings: { price: number; amount: number }[],
+  newerListings: { price: number; amount: number }[]
+): { itemsSold: number; totalRevenue: number } {
+  // Create a map of price -> total amount for newer listings
+  const newerMap = new Map<number, number>();
+  for (const listing of newerListings) {
+    newerMap.set(listing.price, (newerMap.get(listing.price) || 0) + listing.amount);
+  }
+
+  // Calculate how many items from older listings are no longer available and total revenue
+  let itemsSold = 0;
+  let totalRevenue = 0;
+  const olderMap = new Map<number, number>();
+  for (const listing of olderListings) {
+    olderMap.set(listing.price, (olderMap.get(listing.price) || 0) + listing.amount);
+  }
+
+  // For each price point in older listings, see how many are missing in newer
+  for (const [price, olderAmount] of olderMap.entries()) {
+    const newerAmount = newerMap.get(price) || 0;
+    if (olderAmount > newerAmount) {
+      const soldAtThisPrice = olderAmount - newerAmount;
+      itemsSold += soldAtThisPrice;
+      totalRevenue += soldAtThisPrice * price;
+    }
+  }
+
+  return { itemsSold, totalRevenue };
 }
 
 // Fetch and store detailed market snapshots for tracked items (self-scheduling)
@@ -584,8 +604,14 @@ export async function fetchMarketSnapshots(): Promise<void> {
           const market = itemmarket.item?.average_price ?? item.market_price ?? 0;
           const profitPer1 = market && buy ? market - buy : 0;
 
-          // Calculate sell velocity, trend, expected sell time, and 24-hour velocity from historical data
-          const { sell_velocity, trend, expected_sell_time_minutes, hour_velocity_24 } = await calculateVelocityAndTrend(country, itemId, inStock);
+          // Get current listings from API
+          const currentListings = itemmarket.listings?.map((listing: any) => ({
+            price: listing.price,
+            amount: listing.amount,
+          })) ?? [];
+
+          // Calculate 24-hour sales metrics from historical data
+          const { items_sold, total_revenue_sold, sales_24h_current, sales_24h_previous, total_revenue_24h_current, trend_24h, hour_velocity_24 } = await calculate24HourMetrics(country, itemId, currentListings);
 
           // Create snapshot
           const snapshot = new MarketSnapshot({
@@ -598,15 +624,15 @@ export async function fetchMarketSnapshots(): Promise<void> {
             market_price: market,
             profitPer1,
             in_stock: inStock,
-            listings: itemmarket.listings?.map((listing: any) => ({
-              price: listing.price,
-              amount: listing.amount,
-            })) ?? [],
+            listings: currentListings,
             cache_timestamp: itemmarket.cache_timestamp ?? Date.now(),
             fetched_at: new Date(),
-            sell_velocity,
-            trend,
-            expected_sell_time_minutes,
+            items_sold,
+            total_revenue_sold,
+            sales_24h_current,
+            sales_24h_previous,
+            total_revenue_24h_current,
+            trend_24h,
             hour_velocity_24,
           });
 
@@ -663,7 +689,35 @@ export function startScheduler(): void {
   logInfo(`Rate limit configured: ${RATE_LIMIT_PER_MINUTE} requests per minute`);
 
   // Fetch items immediately on startup if needed (every 24 hours)
-  fetchTornItems();
+  // Wait for this to complete before updating tracked items
+  fetchTornItems().then(() => {
+    // After items are fetched, update tracked items and start market snapshots
+    updateTrackedItems().then(() => {
+      // Start self-scheduling market snapshots immediately after tracked items are ready
+      logInfo('Tracked items initialized, starting self-scheduling market snapshots...');
+      fetchMarketSnapshots();
+    }).catch((error) => {
+      logError('Failed to initialize tracked items', error instanceof Error ? error : new Error(String(error)));
+      // Retry after 1 minute on failure
+      logInfo('Retrying tracked items initialization in 1 minute...');
+      setTimeout(() => {
+        updateTrackedItems().then(() => {
+          fetchMarketSnapshots();
+        });
+      }, 60 * 1000); // 1 minute
+    });
+  }).catch((error) => {
+    logError('Failed to fetch Torn items on startup', error instanceof Error ? error : new Error(String(error)));
+    // Retry after 1 minute on failure
+    logInfo('Retrying Torn items fetch in 1 minute...');
+    setTimeout(() => {
+      fetchTornItems().then(() => {
+        updateTrackedItems().then(() => {
+          fetchMarketSnapshots();
+        });
+      });
+    }, 60 * 1000); // 1 minute
+  });
 
   // Schedule daily item fetch at 3 AM
   cron.schedule('0 3 * * *', () => {
@@ -679,22 +733,6 @@ export function startScheduler(): void {
   // Schedule foreign stock fetch every minute
   cron.schedule('* * * * *', () => {
     fetchForeignStock();
-  });
-
-  // Update tracked items immediately on startup
-  updateTrackedItems().then(() => {
-    // Start self-scheduling market snapshots immediately after tracked items are ready
-    logInfo('Tracked items initialized, starting self-scheduling market snapshots...');
-    fetchMarketSnapshots();
-  }).catch((error) => {
-    logError('Failed to initialize tracked items', error instanceof Error ? error : new Error(String(error)));
-    // Retry after 1 minute on failure
-    logInfo('Retrying tracked items initialization in 1 minute...');
-    setTimeout(() => {
-      updateTrackedItems().then(() => {
-        fetchMarketSnapshots();
-      });
-    }, 60 * 1000); // 1 minute
   });
 
   // Schedule tracked items update every 10 minutes

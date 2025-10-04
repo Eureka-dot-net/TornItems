@@ -13,10 +13,13 @@ export interface IMarketSnapshot extends Document {
   listings: { price: number; amount: number }[];
   cache_timestamp: number;
   fetched_at: Date;
-  sell_velocity?: number | null;
-  trend?: number | null;
-  expected_sell_time_minutes?: number | null;
-  hour_velocity_24?: number | null;
+  items_sold?: number | null;  // Number of items sold since previous snapshot (based on listings)
+  total_revenue_sold?: number | null;  // Total revenue from items sold since previous snapshot (sum of price × amount)
+  sales_24h_current?: number | null;  // Total sales in last 24 hours
+  sales_24h_previous?: number | null;  // Total sales in previous 24-hour period
+  total_revenue_24h_current?: number | null;  // Total revenue from sales in last 24 hours
+  trend_24h?: number | null;  // Percentage change between previous and current 24h periods
+  hour_velocity_24?: number | null;  // Sales per hour (sales_24h_current / 24)
 }
 
 const MarketSnapshotSchema = new Schema<IMarketSnapshot>({
@@ -35,9 +38,12 @@ const MarketSnapshotSchema = new Schema<IMarketSnapshot>({
   }],
   cache_timestamp: { type: Number, required: true },
   fetched_at: { type: Date, default: Date.now, index: true },
-  sell_velocity: { type: Number, default: null },
-  trend: { type: Number, default: null },
-  expected_sell_time_minutes: { type: Number, default: null },
+  items_sold: { type: Number, default: null },
+  total_revenue_sold: { type: Number, default: null },
+  sales_24h_current: { type: Number, default: null },
+  sales_24h_previous: { type: Number, default: null },
+  total_revenue_24h_current: { type: Number, default: null },
+  trend_24h: { type: Number, default: null },
   hour_velocity_24: { type: Number, default: null },
 });
 
