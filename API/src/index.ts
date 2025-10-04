@@ -1,6 +1,7 @@
 import { app } from './app';
 import { connectDB } from './config/db';
 import { logInfo, logError } from './utils/logger';
+import { startScheduler } from './services/backgroundFetcher';
 
 const PORT = process.env.PORT || 3000;
 
@@ -43,6 +44,9 @@ connectDB()
               environment: process.env.NODE_ENV || 'development' 
             });
         });
+        
+        // Start the background fetcher scheduler
+        startScheduler();
     })
     .catch((error) => {
         logError('Database connection failed', error);
