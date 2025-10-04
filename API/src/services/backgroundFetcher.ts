@@ -231,7 +231,7 @@ export async function fetchForeignStock(): Promise<void> {
 // Determine and update top 10 profitable items per country
 export async function updateTrackedItems(): Promise<void> {
   try {
-    logInfo('Determining top 10 profitable items per country...');
+    logInfo('Determining top profitable items per country (Torn: 20, Others: 10)...');
 
     // Fetch all items, city shop stock, and foreign stock from MongoDB
     const [items, cityShopStock, foreignStock] = await Promise.all([
@@ -331,15 +331,17 @@ export async function updateTrackedItems(): Promise<void> {
       });
     }
 
-    // For each country, get top 10 profitable items and update TrackedItem collection
+    // For each country, get top profitable items and update TrackedItem collection
+    // Torn gets top 20, other countries get top 10
     for (const [country, countryItems] of Object.entries(groupedByCountry)) {
-      // Sort by profit and take top 10
-      const top10 = countryItems
+      // Sort by profit and take top 20 for Torn, top 10 for others
+      const topCount = country === 'Torn' ? 20 : 10;
+      const topItems = countryItems
         .sort((a, b) => b.profitPer1 - a.profitPer1)
-        .slice(0, 10);
+        .slice(0, topCount);
 
-      const itemIds = top10.map(item => item.itemId);
-      const itemNames = top10.map(item => item.name);
+      const itemIds = topItems.map(item => item.itemId);
+      const itemNames = topItems.map(item => item.name);
 
       // Update tracked items for this country
       await TrackedItem.findOneAndUpdate(
@@ -354,7 +356,7 @@ export async function updateTrackedItems(): Promise<void> {
         { upsert: true }
       );
 
-      logInfo(`Tracking top 10 profitable items in ${country}: [${itemNames.join(', ')}]`);
+      logInfo(`Tracking top ${topCount} profitable items in ${country}: [${itemNames.join(', ')}]`);
     }
 
     logInfo('Successfully updated tracked items for all countries');
