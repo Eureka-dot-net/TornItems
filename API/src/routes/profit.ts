@@ -18,6 +18,7 @@ interface CountryItem {
   trend?: number | null;
   expected_sell_time_minutes?: number | null;
   hour_velocity_24?: number | null;
+  ItemsSold?: Array<{ Amount: number; TimeStamp: string }>;
 }
 
 interface GroupedByCountry {
@@ -125,6 +126,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       let trend: number | null = null;
       let expected_sell_time_minutes: number | null = null;
       let hour_velocity_24: number | null = null;
+      let ItemsSold: Array<{ Amount: number; TimeStamp: string }> = [];
       
       const snapshotKey = `${country}:${item.itemId}`;
       const latestSnapshot = snapshotMap.get(snapshotKey);
@@ -134,6 +136,22 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         trend = latestSnapshot.trend ?? null;
         expected_sell_time_minutes = latestSnapshot.expected_sell_time_minutes ?? null;
         hour_velocity_24 = latestSnapshot.hour_velocity_24 ?? null;
+        
+        // Build ItemsSold array from recent snapshots (last 24 hours)
+        const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+        const recentSnapshots = marketSnapshots.filter(
+          (s: any) => 
+            s.country === country && 
+            s.itemId === item.itemId && 
+            new Date(s.fetched_at).getTime() >= twentyFourHoursAgo &&
+            s.items_sold != null && 
+            s.items_sold > 0
+        );
+        
+        ItemsSold = recentSnapshots.map((s: any) => ({
+          Amount: s.items_sold,
+          TimeStamp: s.fetched_at
+        }));
       }
 
       if (!grouped[country]) grouped[country] = [];
@@ -150,6 +168,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         trend,
         expected_sell_time_minutes,
         hour_velocity_24,
+        ItemsSold: ItemsSold.length > 0 ? ItemsSold : undefined,
       });
     }
 
