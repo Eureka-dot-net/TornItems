@@ -1,13 +1,13 @@
 import { createTheme } from '@mui/material';
 
-export const wastelandTheme = createTheme({
+export const appTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#d32f2f', // Blood red
+      main: '#1976d2', // Blue
     },
     secondary: {
-      main: '#4caf50', // Survival green
+      main: '#4caf50', // Green
     },
     background: {
       default: '#1c2526',
@@ -30,7 +30,7 @@ export const wastelandTheme = createTheme({
       fontWeight: 700,
       color: '#ffffff',
       '@media (max-width:600px)': {
-        fontSize: '1.75rem', // Reduced from default 2.125rem
+        fontSize: '1.75rem',
         lineHeight: 1.3,
       },
     },
@@ -38,7 +38,7 @@ export const wastelandTheme = createTheme({
       fontWeight: 600,
       color: '#ffffff',
       '@media (max-width:600px)': {
-        fontSize: '1.25rem', // Reduced from default 1.5rem
+        fontSize: '1.25rem',
         lineHeight: 1.3,
       },
     },
@@ -46,25 +46,25 @@ export const wastelandTheme = createTheme({
       fontWeight: 600,
       color: '#ffffff',
       '@media (max-width:600px)': {
-        fontSize: '1.1rem', // Reduced from default 1.25rem
+        fontSize: '1.1rem',
         lineHeight: 1.3,
       },
     },
     body1: {
       '@media (max-width:600px)': {
-        fontSize: '0.875rem', // Reduced from default 1rem
+        fontSize: '0.875rem',
         lineHeight: 1.4,
       },
     },
     body2: {
       '@media (max-width:600px)': {
-        fontSize: '0.75rem', // Reduced from default 0.875rem
+        fontSize: '0.75rem',
         lineHeight: 1.4,
       },
     },
     subtitle1: {
       '@media (max-width:600px)': {
-        fontSize: '0.95rem', // Reduced from default 1rem
+        fontSize: '0.95rem',
         lineHeight: 1.4,
       },
     },
