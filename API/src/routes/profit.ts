@@ -43,11 +43,12 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
   try {
     console.log('Fetching profit data from MongoDB...');
 
-    // Fetch all items, city shop stock, and foreign stock from MongoDB
-    const [items, cityShopStock, foreignStock] = await Promise.all([
+    // Fetch all items, city shop stock, foreign stock, and market snapshots from MongoDB
+    const [items, cityShopStock, foreignStock, marketSnapshots] = await Promise.all([
       TornItem.find({ buy_price: { $ne: null } }).lean(),
       CityShopStock.find().lean(),
       ForeignStock.find().lean(),
+      MarketSnapshot.find().sort({ fetched_at: -1 }).lean(),
     ]);
 
     if (!items?.length) {
@@ -58,8 +59,18 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     }
 
     console.log(
-      `Retrieved ${items.length} items, ${cityShopStock.length} city shop items, and ${foreignStock.length} foreign stock items from database.`
+      `Retrieved ${items.length} items, ${cityShopStock.length} city shop items, ${foreignStock.length} foreign stock items, and ${marketSnapshots.length} market snapshots from database.`
     );
+
+    // Create a lookup map for market snapshots: key is "country:itemId", value is the latest snapshot
+    const snapshotMap = new Map<string, any>();
+    for (const snapshot of marketSnapshots) {
+      const key = `${snapshot.country}:${snapshot.itemId}`;
+      // Only keep the latest snapshot per country-item pair (already sorted by fetched_at desc)
+      if (!snapshotMap.has(key)) {
+        snapshotMap.set(key, snapshot);
+      }
+    }
 
     // 🗺 Group by country (shop is informational)
     const grouped: GroupedByCountry = {};
@@ -105,9 +116,8 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       let expected_sell_time_minutes: number | null = null;
       let hour_velocity_24: number | null = null;
       
-      const latestSnapshot = await MarketSnapshot.findOne({ country, itemId: item.itemId })
-        .sort({ fetched_at: -1 })
-        .lean();
+      const snapshotKey = `${country}:${item.itemId}`;
+      const latestSnapshot = snapshotMap.get(snapshotKey);
       
       if (latestSnapshot) {
         sell_velocity = latestSnapshot.sell_velocity ?? null;
