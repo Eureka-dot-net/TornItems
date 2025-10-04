@@ -366,11 +366,13 @@ export async function updateTrackedItems(): Promise<void> {
 }
 
 // Calculate sell velocity, trend, expected sell time, and 24-hour velocity from historical snapshots
+// Uses LISTINGS data (market sales) not in_stock (shop inventory)
 async function calculateVelocityAndTrend(
   country: string,
   itemId: number,
-  currentStock: number | null
+  currentListings: { price: number; amount: number }[]
 ): Promise<{ 
+  items_sold: number | null;
   sell_velocity: number | null; 
   trend: number | null;
   expected_sell_time_minutes: number | null;
@@ -383,63 +385,56 @@ async function calculateVelocityAndTrend(
       .limit(10)
       .lean();
 
+    if (snapshots.length < 1) {
+      // Not enough history - this is the first snapshot
+      return { items_sold: null, sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
+    }
+
+    // Calculate items sold between current snapshot and most recent previous snapshot
+    const previousSnapshot = snapshots[0];
+    const itemsSold = calculateItemsSoldBetweenSnapshots(previousSnapshot.listings, currentListings);
+
     if (snapshots.length < 2) {
-      // Not enough history
-      return { sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
+      // Only one previous snapshot, can't calculate velocity yet
+      return { items_sold: itemsSold, sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
     }
 
-    // Calculate overall velocity across all snapshots (not averaging individual velocities)
-    // This prevents outliers from skewing the average
-    const validSnapshots: Array<{ in_stock: number; fetched_at: Date; }> = [];
+    // Calculate total items sold across all consecutive snapshot pairs
+    let totalItemsSold = 0;
+    const validPairs: Array<{ itemsSold: number; minutesElapsed: number; }> = [];
     
-    for (const snapshot of snapshots) {
-      if (snapshot.in_stock != null) {
-        validSnapshots.push({
-          in_stock: snapshot.in_stock,
-          fetched_at: snapshot.fetched_at
-        });
-      }
-    }
+    for (let i = 0; i < snapshots.length - 1; i++) {
+      const newer = snapshots[i];
+      const older = snapshots[i + 1];
 
-    if (validSnapshots.length < 2) {
-      // Not enough valid data
-      return { sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
+      const sold = calculateItemsSoldBetweenSnapshots(older.listings, newer.listings);
+      const timeDiffMs = new Date(newer.fetched_at).getTime() - new Date(older.fetched_at).getTime();
+      const minutesElapsed = timeDiffMs / (1000 * 60);
+
+      if (minutesElapsed > 0 && sold > 0) {
+        totalItemsSold += sold;
+        validPairs.push({ itemsSold: sold, minutesElapsed });
+      }
     }
 
     // Calculate overall velocity from oldest to newest snapshot
-    const oldest = validSnapshots[validSnapshots.length - 1];
-    const newest = validSnapshots[0];
-    
-    const totalStockChange = oldest.in_stock - newest.in_stock;
+    const oldest = snapshots[snapshots.length - 1];
+    const newest = snapshots[0];
     const totalTimeDiffMs = new Date(newest.fetched_at).getTime() - new Date(oldest.fetched_at).getTime();
     const totalMinutesElapsed = totalTimeDiffMs / (1000 * 60);
 
-    let avgVelocity: number;
-    if (totalMinutesElapsed <= 0 || totalStockChange <= 0) {
-      // No time elapsed or no items sold
-      return { sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
+    let avgVelocity: number | null = null;
+    if (totalMinutesElapsed > 0 && totalItemsSold > 0) {
+      avgVelocity = totalItemsSold / totalMinutesElapsed;
     }
-    
-    avgVelocity = totalStockChange / totalMinutesElapsed;
 
-    // Also calculate velocities between consecutive snapshots for trend analysis
+    // Calculate velocities for each interval for trend analysis
     const velocities: number[] = [];
-    for (let i = 0; i < validSnapshots.length - 1; i++) {
-      const current = validSnapshots[i];
-      const previous = validSnapshots[i + 1];
-
-      const stockChange = previous.in_stock - current.in_stock;
-      const timeDiffMs = new Date(current.fetched_at).getTime() - new Date(previous.fetched_at).getTime();
-      const minutesElapsed = timeDiffMs / (1000 * 60);
-
-      if (minutesElapsed > 0 && stockChange > 0) {
-        const velocity = stockChange / minutesElapsed;
-        velocities.push(velocity);
-      }
+    for (const pair of validPairs) {
+      velocities.push(pair.itemsSold / pair.minutesElapsed);
     }
 
     // Calculate trend (rate of change of velocities)
-    // Trend is optional - only calculated if we have enough velocity samples
     let trend: number | null = null;
     if (velocities.length >= 2) {
       // Simple linear trend: compare recent velocities to older ones
@@ -454,14 +449,14 @@ async function calculateVelocityAndTrend(
     }
 
     // Calculate expected_sell_time_minutes
-    // If we have current stock and positive velocity, estimate how long until sold out
+    // Get total available amount in current listings
+    const currentTotalAmount = currentListings.reduce((sum, listing) => sum + listing.amount, 0);
     let expected_sell_time_minutes: number | null = null;
-    if (currentStock != null && currentStock > 0 && avgVelocity > 0) {
-      expected_sell_time_minutes = currentStock / avgVelocity;
+    if (currentTotalAmount > 0 && avgVelocity && avgVelocity > 0) {
+      expected_sell_time_minutes = currentTotalAmount / avgVelocity;
     }
 
     // Calculate 24_hour_velocity
-    // Look at snapshots from the last 24 hours and calculate average velocity
     let hour_velocity_24: number | null = null;
     const now = Date.now();
     const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
@@ -472,31 +467,65 @@ async function calculateVelocityAndTrend(
     );
 
     if (recent24hSnapshots.length >= 2) {
-      // Calculate total stock change over 24 hours
+      // Calculate total items sold over 24 hours
+      let itemsSold24h = 0;
+      for (let i = 0; i < recent24hSnapshots.length - 1; i++) {
+        const newer = recent24hSnapshots[i];
+        const older = recent24hSnapshots[i + 1];
+        itemsSold24h += calculateItemsSoldBetweenSnapshots(older.listings, newer.listings);
+      }
+
       const oldest24h = recent24hSnapshots[recent24hSnapshots.length - 1];
       const newest24h = recent24hSnapshots[0];
+      const timeDiff24hMs = new Date(newest24h.fetched_at).getTime() - new Date(oldest24h.fetched_at).getTime();
+      const hoursElapsed = timeDiff24hMs / (1000 * 60 * 60);
       
-      if (oldest24h.in_stock != null && newest24h.in_stock != null) {
-        const stockChange24h = oldest24h.in_stock - newest24h.in_stock;
-        const timeDiff24hMs = new Date(newest24h.fetched_at).getTime() - new Date(oldest24h.fetched_at).getTime();
-        const hoursElapsed = timeDiff24hMs / (1000 * 60 * 60);
-        
-        if (hoursElapsed > 0 && stockChange24h > 0) {
-          hour_velocity_24 = stockChange24h / hoursElapsed; // units per hour
-        }
+      if (hoursElapsed > 0 && itemsSold24h > 0) {
+        hour_velocity_24 = itemsSold24h / hoursElapsed; // items per hour
       }
     }
 
     return { 
-      sell_velocity: Math.round(avgVelocity * 100) / 100, // Round to 2 decimal places
+      items_sold: itemsSold,
+      sell_velocity: avgVelocity !== null ? Math.round(avgVelocity * 100) / 100 : null,
       trend: trend !== null ? Math.round(trend * 100) / 100 : null,
       expected_sell_time_minutes: expected_sell_time_minutes !== null ? Math.round(expected_sell_time_minutes * 100) / 100 : null,
       hour_velocity_24: hour_velocity_24 !== null ? Math.round(hour_velocity_24 * 100) / 100 : null,
     };
   } catch (error) {
     logError(`Error calculating velocity/trend for item ${itemId} in ${country}`, error instanceof Error ? error : new Error(String(error)));
-    return { sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
+    return { items_sold: null, sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
   }
+}
+
+// Helper function to calculate how many items were sold between two snapshots
+// Compares listings arrays to determine what disappeared or decreased
+function calculateItemsSoldBetweenSnapshots(
+  olderListings: { price: number; amount: number }[],
+  newerListings: { price: number; amount: number }[]
+): number {
+  // Create a map of price -> total amount for newer listings
+  const newerMap = new Map<number, number>();
+  for (const listing of newerListings) {
+    newerMap.set(listing.price, (newerMap.get(listing.price) || 0) + listing.amount);
+  }
+
+  // Calculate how many items from older listings are no longer available
+  let itemsSold = 0;
+  const olderMap = new Map<number, number>();
+  for (const listing of olderListings) {
+    olderMap.set(listing.price, (olderMap.get(listing.price) || 0) + listing.amount);
+  }
+
+  // For each price point in older listings, see how many are missing in newer
+  for (const [price, olderAmount] of olderMap.entries()) {
+    const newerAmount = newerMap.get(price) || 0;
+    if (olderAmount > newerAmount) {
+      itemsSold += (olderAmount - newerAmount);
+    }
+  }
+
+  return itemsSold;
 }
 
 // Fetch and store detailed market snapshots for tracked items (self-scheduling)
@@ -603,8 +632,14 @@ export async function fetchMarketSnapshots(): Promise<void> {
           const market = itemmarket.item?.average_price ?? item.market_price ?? 0;
           const profitPer1 = market && buy ? market - buy : 0;
 
+          // Get current listings from API
+          const currentListings = itemmarket.listings?.map((listing: any) => ({
+            price: listing.price,
+            amount: listing.amount,
+          })) ?? [];
+
           // Calculate sell velocity, trend, expected sell time, and 24-hour velocity from historical data
-          const { sell_velocity, trend, expected_sell_time_minutes, hour_velocity_24 } = await calculateVelocityAndTrend(country, itemId, inStock);
+          const { items_sold, sell_velocity, trend, expected_sell_time_minutes, hour_velocity_24 } = await calculateVelocityAndTrend(country, itemId, currentListings);
 
           // Create snapshot
           const snapshot = new MarketSnapshot({
@@ -617,12 +652,10 @@ export async function fetchMarketSnapshots(): Promise<void> {
             market_price: market,
             profitPer1,
             in_stock: inStock,
-            listings: itemmarket.listings?.map((listing: any) => ({
-              price: listing.price,
-              amount: listing.amount,
-            })) ?? [],
+            listings: currentListings,
             cache_timestamp: itemmarket.cache_timestamp ?? Date.now(),
             fetched_at: new Date(),
+            items_sold,
             sell_velocity,
             trend,
             expected_sell_time_minutes,
