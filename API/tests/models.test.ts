@@ -1,6 +1,8 @@
 import { TornItem } from '../src/models/TornItem';
 import { CityShopStock } from '../src/models/CityShopStock';
+import { CityShopStockHistory } from '../src/models/CityShopStockHistory';
 import { ForeignStock } from '../src/models/ForeignStock';
+import { ForeignStockHistory } from '../src/models/ForeignStockHistory';
 import { ItemMarket } from '../src/models/ItemMarket';
 
 describe('MongoDB Models', () => {
@@ -75,6 +77,47 @@ describe('MongoDB Models', () => {
       expect(market.weightedAveragePrice).toBe(125.50);
       
       await ItemMarket.deleteOne({ itemId: 1 });
+    });
+  });
+
+  describe('CityShopStockHistory Model', () => {
+    it('should create a CityShopStockHistory entry', async () => {
+      const history = await CityShopStockHistory.create({
+        shopId: '100',
+        shopName: 'Test Shop',
+        itemId: '1',
+        itemName: 'Test Item',
+        type: 'Weapon',
+        price: 100,
+        in_stock: 50,
+        fetched_at: new Date(),
+      });
+
+      expect(history.shopId).toBe('100');
+      expect(history.in_stock).toBe(50);
+      expect(history.fetched_at).toBeInstanceOf(Date);
+      
+      await CityShopStockHistory.deleteOne({ _id: history._id });
+    });
+  });
+
+  describe('ForeignStockHistory Model', () => {
+    it('should create a ForeignStockHistory entry', async () => {
+      const history = await ForeignStockHistory.create({
+        countryCode: 'mex',
+        countryName: 'Mexico',
+        itemId: 1,
+        itemName: 'Test Item',
+        quantity: 100,
+        cost: 500,
+        fetched_at: new Date(),
+      });
+
+      expect(history.countryCode).toBe('mex');
+      expect(history.quantity).toBe(100);
+      expect(history.fetched_at).toBeInstanceOf(Date);
+      
+      await ForeignStockHistory.deleteOne({ _id: history._id });
     });
   });
 });

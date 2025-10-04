@@ -3,8 +3,9 @@ import Bottleneck from 'bottleneck';
 import cron from 'node-cron';
 import { TornItem } from '../models/TornItem';
 import { CityShopStock } from '../models/CityShopStock';
+import { CityShopStockHistory } from '../models/CityShopStockHistory';
 import { ForeignStock } from '../models/ForeignStock';
-import { ItemMarket } from '../models/ItemMarket';
+import { ForeignStockHistory } from '../models/ForeignStockHistory';
 import { MarketSnapshot } from '../models/MarketSnapshot';
 import { TrackedItem } from '../models/TrackedItem';
 import { logInfo, logError } from '../utils/logger';
@@ -141,6 +142,8 @@ export async function fetchCityShopStock(): Promise<void> {
     }
 
     const bulkOps: any[] = [];
+    const historyDocs: any[] = [];
+    const fetchedAt = new Date();
     
     for (const [shopId, shopData] of Object.entries(cityshops) as [string, any][]) {
       if (!shopData.inventory) continue;
@@ -164,12 +167,28 @@ export async function fetchCityShopStock(): Promise<void> {
             upsert: true,
           },
         });
+
+        // Add to history
+        historyDocs.push({
+          shopId,
+          shopName: shopData.name,
+          itemId,
+          itemName: itemData.name,
+          type: itemData.type,
+          price: itemData.price,
+          in_stock: itemData.in_stock,
+          fetched_at: fetchedAt,
+        });
       }
     }
 
     if (bulkOps.length > 0) {
       await CityShopStock.bulkWrite(bulkOps);
       logInfo(`Successfully saved ${bulkOps.length} city shop items to database`);
+      
+      // Save history
+      await CityShopStockHistory.insertMany(historyDocs);
+      logInfo(`Successfully saved ${historyDocs.length} city shop stock history entries`);
     }
   } catch (error) {
     logError('Error fetching city shop stock', error instanceof Error ? error : new Error(String(error)));
@@ -192,6 +211,8 @@ export async function fetchForeignStock(): Promise<void> {
     }
 
     const bulkOps: any[] = [];
+    const historyDocs: any[] = [];
+    const fetchedAt = new Date();
     
     for (const [countryCode, countryData] of Object.entries(stocks) as [string, any][]) {
       const countryName = COUNTRY_CODE_MAP[countryCode] || countryCode;
@@ -216,12 +237,27 @@ export async function fetchForeignStock(): Promise<void> {
             upsert: true,
           },
         });
+
+        // Add to history
+        historyDocs.push({
+          countryCode,
+          countryName,
+          itemId: stock.id,
+          itemName: stock.name,
+          quantity: stock.quantity,
+          cost: stock.cost,
+          fetched_at: fetchedAt,
+        });
       }
     }
 
     if (bulkOps.length > 0) {
       await ForeignStock.bulkWrite(bulkOps);
       logInfo(`Successfully saved ${bulkOps.length} foreign stock items to database`);
+      
+      // Save history
+      await ForeignStockHistory.insertMany(historyDocs);
+      logInfo(`Successfully saved ${historyDocs.length} foreign stock history entries`);
     }
   } catch (error) {
     logError('Error fetching foreign stock', error instanceof Error ? error : new Error(String(error)));

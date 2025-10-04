@@ -54,10 +54,12 @@ Example: If 30 API calls took 20 seconds, minimum time = 30 seconds, so waits 10
 - **City Shop Stock**: Torn city shop inventory and stock levels
   - Endpoint: `https://api.torn.com/v2/torn?selections=cityshops&key=${API_KEY}`
   - Stored in `CityShopStock` collection
+  - Historical snapshots stored in `CityShopStockHistory` collection
 
 - **Foreign Travel Stock**: YATA travel stock data
   - Endpoint: `https://yata.yt/api/v1/travel/export/`
   - Stored in `ForeignStock` collection
+  - Historical snapshots stored in `ForeignStockHistory` collection
   - Maps country codes to readable names
 
 ## MongoDB Collections
@@ -98,12 +100,30 @@ Stores Torn city shop inventory:
 - `price`, `in_stock`
 - `lastUpdated`
 
+### CityShopStockHistory (NEW)
+Stores historical snapshots of Torn city shop inventory:
+- `shopId`, `shopName`
+- `itemId`, `itemName`
+- `price`, `in_stock`
+- `fetched_at`: When snapshot was taken
+
+**Purpose**: Historical data for analyzing how quickly items sell out in city shops
+
 ### ForeignStock
 Stores foreign travel shop stock:
 - `countryCode`, `countryName`
 - `itemId`, `itemName`
 - `quantity`, `cost`
 - `lastUpdated`
+
+### ForeignStockHistory (NEW)
+Stores historical snapshots of foreign travel shop stock:
+- `countryCode`, `countryName`
+- `itemId`, `itemName`
+- `quantity`, `cost`
+- `fetched_at`: When snapshot was taken
+
+**Purpose**: Historical data for analyzing how quickly items sell out in foreign travel shops
 
 ### ItemMarket (DEPRECATED)
 Legacy collection - use MarketSnapshot instead for detailed market data.
