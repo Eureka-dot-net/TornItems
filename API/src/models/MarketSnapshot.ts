@@ -13,6 +13,8 @@ export interface IMarketSnapshot extends Document {
   listings: { price: number; amount: number }[];
   cache_timestamp: number;
   fetched_at: Date;
+  sell_velocity?: number | null;
+  trend?: number | null;
 }
 
 const MarketSnapshotSchema = new Schema<IMarketSnapshot>({
@@ -31,6 +33,8 @@ const MarketSnapshotSchema = new Schema<IMarketSnapshot>({
   }],
   cache_timestamp: { type: Number, required: true },
   fetched_at: { type: Date, default: Date.now, index: true },
+  sell_velocity: { type: Number, default: null },
+  trend: { type: Number, default: null },
 });
 
 // Compound index for efficient querying
