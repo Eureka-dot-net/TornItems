@@ -412,14 +412,11 @@ async function calculate24HourMetrics(
     );
 
     let sales_24h_current: number | null = null;
-    if (current24hSnapshots.length >= 2) {
-      let itemsSoldCurrent = 0;
-      for (let i = 0; i < current24hSnapshots.length - 1; i++) {
-        const newer = current24hSnapshots[i];
-        const older = current24hSnapshots[i + 1];
-        itemsSoldCurrent += calculateItemsSoldBetweenSnapshots(older.listings, newer.listings);
-      }
-      sales_24h_current = itemsSoldCurrent;
+    if (current24hSnapshots.length >= 1) {
+      // Calculate total items sold in 24h period by comparing oldest to newest snapshot in that period
+      const oldestIn24h = current24hSnapshots[current24hSnapshots.length - 1];
+      const newestIn24h = currentListings; // Current listings we're about to save
+      sales_24h_current = calculateItemsSoldBetweenSnapshots(oldestIn24h.listings, newestIn24h);
     }
 
     // Calculate sales in the previous 24-hour period (24h-48h ago)
@@ -429,14 +426,12 @@ async function calculate24HourMetrics(
     });
 
     let sales_24h_previous: number | null = null;
-    if (previous24hSnapshots.length >= 2) {
-      let itemsSoldPrevious = 0;
-      for (let i = 0; i < previous24hSnapshots.length - 1; i++) {
-        const newer = previous24hSnapshots[i];
-        const older = previous24hSnapshots[i + 1];
-        itemsSoldPrevious += calculateItemsSoldBetweenSnapshots(older.listings, newer.listings);
-      }
-      sales_24h_previous = itemsSoldPrevious;
+    if (previous24hSnapshots.length >= 1 && current24hSnapshots.length >= 1) {
+      // Calculate total items sold in previous 24h period
+      // Compare oldest snapshot in previous period to oldest snapshot in current period
+      const oldestInPrevious = previous24hSnapshots[previous24hSnapshots.length - 1];
+      const oldestInCurrent = current24hSnapshots[current24hSnapshots.length - 1];
+      sales_24h_previous = calculateItemsSoldBetweenSnapshots(oldestInPrevious.listings, oldestInCurrent.listings);
     }
 
     // Calculate trend_24h (percentage change from previous to current)
