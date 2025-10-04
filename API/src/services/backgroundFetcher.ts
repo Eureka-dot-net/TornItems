@@ -8,12 +8,16 @@ import { ForeignStock } from '../models/ForeignStock';
 import { ForeignStockHistory } from '../models/ForeignStockHistory';
 import { MarketSnapshot } from '../models/MarketSnapshot';
 import { TrackedItem } from '../models/TrackedItem';
+import { MonitoredItem } from '../models/MonitoredItem';
 import { logInfo, logError } from '../utils/logger';
 
 const API_KEY = process.env.TORN_API_KEY || 'yLp4OoENbjRy30GZ';
 
 // Configurable rate limit (default 60 requests per minute, can be decreased if needed)
 const RATE_LIMIT_PER_MINUTE = parseInt(process.env.TORN_RATE_LIMIT || '60', 10);
+
+// Curiosity rate - percentage of budget to reserve for random checks of quiet items (default 5%)
+const CURIOSITY_RATE = parseFloat(process.env.CURIOSITY_RATE || '0.05');
 
 // Country code mapping
 const COUNTRY_CODE_MAP: Record<string, string> = {
@@ -264,10 +268,13 @@ export async function fetchForeignStock(): Promise<void> {
   }
 }
 
-// Determine and update top 10 profitable items per country
-export async function updateTrackedItems(): Promise<void> {
+/**
+ * Update monitored items - tracks ALL items with positive profit (market_price - buy_price > 0)
+ * Each item gets adaptive monitoring with MonitorFrequency field
+ */
+export async function updateMonitoredItems(): Promise<void> {
   try {
-    logInfo('Determining top profitable items per country (Torn: 20, Others: 10)...');
+    logInfo('Updating monitored items (all items with profit > 0)...');
 
     // Fetch all items, city shop stock, and foreign stock from MongoDB
     const [items, cityShopStock, foreignStock] = await Promise.all([
@@ -301,103 +308,168 @@ export async function updateTrackedItems(): Promise<void> {
     ]);
 
     if (!items?.length) {
-      logError('No items found in database for tracking', new Error('Empty items array'));
+      logError('No items found in database for monitoring', new Error('Empty items array'));
       return;
     }
 
-    // Group items by country and calculate profit
-    const groupedByCountry: Record<string, Array<{
-      itemId: number;
-      name: string;
-      type: string;
-      shopName: string;
-      buy_price: number;
-      market_price: number;
-      profitPer1: number;
-      in_stock: number | null;
-    }>> = {};
+    const bulkOps: any[] = [];
 
     for (const item of items) {
       const country = item.vendor_country || 'Unknown';
-      const shop = item.vendor_name || 'Unknown';
       const buy = item.buy_price ?? 0;
       const market = item.market_price ?? 0;
 
-      // Calculate profit
+      // Calculate profit - only monitor items with positive profit
       const profitPer1 = market && buy ? market - buy : null;
       
       if (profitPer1 === null || profitPer1 <= 0) continue;
 
-      // Get stock info
-      let inStock: number | null = null;
-
-      if (country === 'Torn') {
-        const match = cityShopStock.find(
-          (stock) => stock.itemName?.toLowerCase() === item.name.toLowerCase()
-        );
-        if (match) {
-          inStock = match.in_stock ?? null;
-        }
-      } else {
-        const countryCode = Object.entries(COUNTRY_CODE_MAP).find(
-          ([, name]) => name === country
-        )?.[0];
-
-        if (countryCode) {
-          const match = foreignStock.find(
-            (stock) => 
-              stock.countryCode === countryCode &&
-              stock.itemName.toLowerCase() === item.name.toLowerCase()
-          );
-          if (match) inStock = match.quantity;
-        }
-      }
-
-      if (!groupedByCountry[country]) groupedByCountry[country] = [];
-
-      groupedByCountry[country].push({
-        itemId: item.itemId,
-        name: item.name,
-        type: item.type,
-        shopName: shop,
-        buy_price: buy,
-        market_price: market,
-        profitPer1,
-        in_stock: inStock,
+      // Add or update this item in MonitoredItem collection
+      bulkOps.push({
+        updateOne: {
+          filter: { country, itemId: item.itemId },
+          update: {
+            $set: {
+              country,
+              itemId: item.itemId,
+              name: item.name,
+              lastUpdated: new Date(),
+            },
+            $setOnInsert: {
+              // Only set these on first insert, not on updates
+              MonitorFrequency: 1,
+              cycles_since_last_check: 0,
+              lastCheckedData: {
+                stock: null,
+                price: null,
+                sales: null,
+              },
+              lastCheckTimestamp: new Date(),
+            },
+          },
+          upsert: true,
+        },
       });
     }
 
-    // For each country, get top profitable items and update TrackedItem collection
-    // Torn gets top 20, other countries get top 10
-    for (const [country, countryItems] of Object.entries(groupedByCountry)) {
-      // Sort by profit and take top 20 for Torn, top 10 for others
-      const topCount = country === 'Torn' ? 20 : 10;
-      const topItems = countryItems
-        .sort((a, b) => b.profitPer1 - a.profitPer1)
-        .slice(0, topCount);
-
-      const itemIds = topItems.map(item => item.itemId);
-      const itemNames = topItems.map(item => item.name);
-
-      // Update tracked items for this country
-      await TrackedItem.findOneAndUpdate(
-        { country },
-        {
-          $set: {
-            country,
-            itemIds,
-            lastUpdated: new Date(),
-          },
-        },
-        { upsert: true }
-      );
-
-      logInfo(`Tracking top ${topCount} profitable items in ${country}: [${itemNames.join(', ')}]`);
+    if (bulkOps.length > 0) {
+      await MonitoredItem.bulkWrite(bulkOps);
+      logInfo(`Successfully updated ${bulkOps.length} monitored items with positive profit`);
     }
 
-    logInfo('Successfully updated tracked items for all countries');
+    // Also update the legacy TrackedItem collection for backward compatibility
+    await updateTrackedItemsLegacy(items, cityShopStock, foreignStock);
+
   } catch (error) {
-    logError('Error updating tracked items', error instanceof Error ? error : new Error(String(error)));
+    logError('Error updating monitored items', error instanceof Error ? error : new Error(String(error)));
+  }
+}
+
+/**
+ * Legacy function: Maintain TrackedItem collection for backward compatibility
+ * Keeps tracking top N profitable items per country (Torn: 20, Others: 10)
+ */
+async function updateTrackedItemsLegacy(
+  items: Array<{
+    itemId: number;
+    name: string;
+    type: string;
+    vendor_country?: string | null;
+    vendor_name?: string | null;
+    buy_price?: number | null;
+    market_price?: number | null;
+  }>,
+  cityShopStock: Array<{
+    itemName: string;
+    in_stock: number;
+  }>,
+  foreignStock: Array<{
+    countryCode: string;
+    itemName: string;
+    quantity: number;
+  }>
+): Promise<void> {
+  // Group items by country and calculate profit
+  const groupedByCountry: Record<string, Array<{
+    itemId: number;
+    name: string;
+    type: string;
+    shopName: string;
+    buy_price: number;
+    market_price: number;
+    profitPer1: number;
+    in_stock: number | null;
+  }>> = {};
+
+  for (const item of items) {
+    const country = item.vendor_country || 'Unknown';
+    const shop = item.vendor_name || 'Unknown';
+    const buy = item.buy_price ?? 0;
+    const market = item.market_price ?? 0;
+
+    const profitPer1 = market && buy ? market - buy : null;
+    
+    if (profitPer1 === null || profitPer1 <= 0) continue;
+
+    // Get stock info
+    let inStock: number | null = null;
+
+    if (country === 'Torn') {
+      const match = cityShopStock.find(
+        (stock) => stock.itemName?.toLowerCase() === item.name.toLowerCase()
+      );
+      if (match) {
+        inStock = match.in_stock ?? null;
+      }
+    } else {
+      const countryCode = Object.entries(COUNTRY_CODE_MAP).find(
+        ([, name]) => name === country
+      )?.[0];
+
+      if (countryCode) {
+        const match = foreignStock.find(
+          (stock) => 
+            stock.countryCode === countryCode &&
+            stock.itemName.toLowerCase() === item.name.toLowerCase()
+        );
+        if (match) inStock = match.quantity;
+      }
+    }
+
+    if (!groupedByCountry[country]) groupedByCountry[country] = [];
+
+    groupedByCountry[country].push({
+      itemId: item.itemId,
+      name: item.name,
+      type: item.type,
+      shopName: shop,
+      buy_price: buy,
+      market_price: market,
+      profitPer1,
+      in_stock: inStock,
+    });
+  }
+
+  // For each country, get top profitable items and update TrackedItem collection
+  for (const [country, countryItems] of Object.entries(groupedByCountry)) {
+    const topCount = country === 'Torn' ? 20 : 10;
+    const topItems = countryItems
+      .sort((a, b) => b.profitPer1 - a.profitPer1)
+      .slice(0, topCount);
+
+    const itemIds = topItems.map(item => item.itemId);
+
+    await TrackedItem.findOneAndUpdate(
+      { country },
+      {
+        $set: {
+          country,
+          itemIds,
+          lastUpdated: new Date(),
+        },
+      },
+      { upsert: true }
+    );
   }
 }
 
@@ -536,40 +608,196 @@ function calculateItemsSoldAndRevenueBetweenSnapshots(
   return { itemsSold, totalRevenue };
 }
 
-// Fetch and store detailed market snapshots for tracked items (self-scheduling)
+/**
+ * Helper: Select items that are due for monitoring
+ * Items are due when cycles_since_last_check >= MonitorFrequency
+ */
+async function selectDueItems(): Promise<any[]> {
+  const dueItems = await MonitoredItem.find({
+    $expr: { $gte: ['$cycles_since_last_check', '$MonitorFrequency'] }
+  }).lean();
+  
+  return dueItems;
+}
+
+/**
+ * Helper: Select random items for curiosity checks
+ * Picks up to 5% of budget from items with MonitorFrequency >= 5 (quiet items)
+ * @param maxCount - Maximum number of items to select for curiosity
+ */
+async function selectCuriosityItems(maxCount: number): Promise<any[]> {
+  if (maxCount <= 0) return [];
+  
+  // Find eligible items: MonitorFrequency >= 5 and not already due
+  const eligibleItems = await MonitoredItem.find({
+    MonitorFrequency: { $gte: 5 },
+    $expr: { $lt: ['$cycles_since_last_check', '$MonitorFrequency'] }
+  }).lean();
+  
+  if (eligibleItems.length === 0) return [];
+  
+  // Randomly shuffle and take up to maxCount items
+  const shuffled = eligibleItems.sort(() => Math.random() - 0.5);
+  const selected = shuffled.slice(0, maxCount);
+  
+  logInfo(`Selected ${selected.length} items for curiosity checks (out of ${eligibleItems.length} eligible)`);
+  return selected;
+}
+
+/**
+ * Helper: Detect if an item has movement (changed stock, price, or sales)
+ * Compares current data to cached lastCheckedData
+ */
+function detectMovement(
+  item: any,
+  currentData: { stock?: number | null; price?: number | null; sales?: number | null }
+): boolean {
+  const lastData = item.lastCheckedData || {};
+  
+  // Check for changes in stock
+  if (lastData.stock !== null && currentData.stock !== null && lastData.stock !== currentData.stock) {
+    return true;
+  }
+  
+  // Check for changes in price (more than 1% difference to avoid minor fluctuations)
+  if (lastData.price !== null && currentData.price !== null && 
+      currentData.price !== undefined && lastData.price !== undefined) {
+    const priceDiff = Math.abs(currentData.price - lastData.price) / lastData.price;
+    if (priceDiff > 0.01) return true;
+  }
+  
+  // Check for changes in sales
+  if (lastData.sales !== null && currentData.sales !== null && lastData.sales !== currentData.sales) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * Helper: Update MonitorFrequency based on whether movement was detected
+ * - If movement detected: reset to 1
+ * - If no movement: increment by 1 (max 10)
+ */
+async function updateMonitorFrequency(
+  itemId: number,
+  country: string,
+  hasMovement: boolean,
+  currentData: { stock?: number | null; price?: number | null; sales?: number | null }
+): Promise<void> {
+  if (hasMovement) {
+    // Reset frequency to 1 - this item is active
+    await MonitoredItem.findOneAndUpdate(
+      { itemId, country },
+      {
+        $set: {
+          MonitorFrequency: 1,
+          cycles_since_last_check: 0,
+          lastCheckedData: currentData,
+          lastCheckTimestamp: new Date(),
+        },
+      }
+    );
+  } else {
+    // Increment frequency (max 10) - this item is quiet
+    // Use aggregation pipeline to increment and cap in a single operation
+    const result = await MonitoredItem.findOneAndUpdate(
+      { itemId, country },
+      [
+        {
+          $set: {
+            MonitorFrequency: {
+              $cond: {
+                if: { $gte: ['$MonitorFrequency', 10] },
+                then: 10,
+                else: { $add: ['$MonitorFrequency', 1] }
+              }
+            },
+            cycles_since_last_check: 0,
+            lastCheckedData: currentData,
+            lastCheckTimestamp: new Date(),
+          }
+        }
+      ]
+    );
+    
+    // If item doesn't exist, log a warning (shouldn't happen)
+    if (!result) {
+      logError(`MonitoredItem not found for itemId ${itemId} in ${country}`, new Error('Item not found'));
+    }
+  }
+}
+
+/**
+ * Helper: Increment cycles_since_last_check for all monitored items
+ * Called at the start of each monitoring cycle
+ */
+async function incrementCycleCounters(): Promise<void> {
+  await MonitoredItem.updateMany(
+    {},
+    { $inc: { cycles_since_last_check: 1 } }
+  );
+}
+
+// Fetch and store detailed market snapshots for monitored items (self-scheduling with adaptive monitoring)
 export async function fetchMarketSnapshots(): Promise<void> {
   try {
     const startTime = Date.now();
-    logInfo('Fetching market snapshots for tracked items...');
+    logInfo('=== Starting adaptive monitoring cycle ===');
 
-    // Get all tracked items
-    const trackedItems = await TrackedItem.find().lean() as Array<{
-      country: string;
-      itemIds: number[];
-    }>;
+    // Step 1: Increment cycle counters for all monitored items
+    await incrementCycleCounters();
 
-    if (!trackedItems?.length) {
-      logInfo('No tracked items found. Run updateTrackedItems first.');
-      // Retry in 1 minute
+    // Step 2: Select items that are due for checking
+    const dueItems = await selectDueItems();
+    logInfo(`Found ${dueItems.length} items due for monitoring`);
+
+    // Step 3: Calculate curiosity budget (5% of rate limit)
+    const curiosityBudget = Math.floor(RATE_LIMIT_PER_MINUTE * CURIOSITY_RATE);
+    const curiosityItems = await selectCuriosityItems(curiosityBudget);
+    
+    // Step 4: Combine due items and curiosity items
+    const itemsToCheck = [...dueItems];
+    const curiosityItemIds = new Set(curiosityItems.map(item => `${item.country}:${item.itemId}`));
+    
+    // Add curiosity items that aren't already in due items
+    for (const curiosityItem of curiosityItems) {
+      const key = `${curiosityItem.country}:${curiosityItem.itemId}`;
+      if (!dueItems.some(item => `${item.country}:${item.itemId}` === key)) {
+        itemsToCheck.push(curiosityItem);
+      }
+    }
+
+    logInfo(`Total items to check: ${itemsToCheck.length} (${dueItems.length} due + ${curiosityItems.length} curiosity)`);
+
+    if (itemsToCheck.length === 0) {
+      logInfo('No items to check this cycle, scheduling next cycle...');
       setTimeout(() => {
         fetchMarketSnapshots();
-      }, 60 * 1000);
+      }, 60 * 1000); // Wait 1 minute
       return;
     }
 
-    // Get all items data for reference
-    const allItems = await TornItem.find().lean() as Array<{
-      itemId: number;
-      name: string;
-      type: string;
-      vendor_name?: string | null;
-      buy_price?: number | null;
-      market_price?: number | null;
-    }>;
-    const itemsMap = new Map(allItems.map((item: any) => [item.itemId, item]));
+    // Ensure we don't exceed rate limit
+    const maxItemsToCheck = Math.min(itemsToCheck.length, RATE_LIMIT_PER_MINUTE);
+    const selectedItems = itemsToCheck.slice(0, maxItemsToCheck);
+    
+    if (itemsToCheck.length > maxItemsToCheck) {
+      logInfo(`Rate limit protection: checking ${maxItemsToCheck} of ${itemsToCheck.length} items`);
+    }
 
-    // Get stock data
-    const [cityShopStock, foreignStock] = await Promise.all([
+    logInfo(`Starting to check ${selectedItems.length} items...`);
+
+    // Get all items data and stock data for reference
+    const [allItems, cityShopStock, foreignStock] = await Promise.all([
+      TornItem.find().lean() as Promise<Array<{
+        itemId: number;
+        name: string;
+        type: string;
+        vendor_name?: string | null;
+        buy_price?: number | null;
+        market_price?: number | null;
+      }>>,
       CityShopStock.find().lean() as Promise<Array<{
         itemName: string;
         in_stock: number;
@@ -580,121 +808,141 @@ export async function fetchMarketSnapshots(): Promise<void> {
         quantity: number;
       }>>,
     ]);
+    const itemsMap = new Map(allItems.map((item: any) => [item.itemId, item]));
 
     let totalSnapshots = 0;
     let totalApiCalls = 0;
+    let movementDetectedCount = 0;
+    let curiosityCheckedCount = 0;
 
-    // Process each country
-    for (const tracked of trackedItems) {
-      const { country, itemIds } = tracked;
+    // Process each item
+    for (const monitoredItem of selectedItems) {
+      const { country, itemId } = monitoredItem;
+      const isCuriosityCheck = curiosityItemIds.has(`${country}:${itemId}`);
+      
+      try {
+        const response = await retryWithBackoff(() =>
+          limiter.schedule(() =>
+            axios.get(`https://api.torn.com/v2/market/${itemId}/itemmarket?limit=20&key=${API_KEY}`)
+          )
+        ) as { data: { itemmarket: any } };
 
-      logInfo(`Fetching market data for ${itemIds.length} items in ${country}...`);
+        totalApiCalls++;
 
-      // Fetch market data for each tracked item in this country
-      const snapshotPromises = itemIds.map(async (itemId: number) => {
-        try {
-          const response = await retryWithBackoff(() =>
-            limiter.schedule(() =>
-              axios.get(`https://api.torn.com/v2/market/${itemId}/itemmarket?limit=20&key=${API_KEY}`)
-            )
-          ) as { data: { itemmarket: any } };
-
-          totalApiCalls++;
-
-          const itemmarket = response.data.itemmarket;
-          if (!itemmarket) {
-            return null;
-          }
-
-          const item = itemsMap.get(itemId);
-          if (!item) {
-            return null;
-          }
-
-          // Get stock info
-          let inStock: number | null = null;
-
-          if (country === 'Torn') {
-            const match = cityShopStock.find(
-              (stock: any) => stock.itemName?.toLowerCase() === item.name.toLowerCase()
-            );
-            if (match) {
-              inStock = match.in_stock ?? null;
-            }
-          } else {
-            const countryCode = Object.entries(COUNTRY_CODE_MAP).find(
-              ([, name]) => name === country
-            )?.[0];
-
-            if (countryCode) {
-              const match = foreignStock.find(
-                (stock: any) => 
-                  stock.countryCode === countryCode &&
-                  stock.itemName.toLowerCase() === item.name.toLowerCase()
-              );
-              if (match) inStock = match.quantity;
-            }
-          }
-
-          const buy = item.buy_price ?? 0;
-          const market = itemmarket.item?.average_price ?? item.market_price ?? 0;
-          const profitPer1 = market && buy ? market - buy : 0;
-
-          // Get current listings from API
-          const currentListings = itemmarket.listings?.map((listing: any) => ({
-            price: listing.price,
-            amount: listing.amount,
-          })) ?? [];
-
-          // Calculate 24-hour sales metrics from historical data
-          const { items_sold, total_revenue_sold, sales_24h_current, sales_24h_previous, total_revenue_24h_current, trend_24h, hour_velocity_24 } = await calculate24HourMetrics(country, itemId, currentListings);
-
-          // Create snapshot
-          const snapshot = new MarketSnapshot({
-            country,
-            itemId: itemmarket.item?.id ?? itemId,
-            name: itemmarket.item?.name ?? item.name,
-            type: itemmarket.item?.type ?? item.type,
-            shopName: item.vendor_name,
-            buy_price: buy,
-            market_price: market,
-            profitPer1,
-            in_stock: inStock,
-            listings: currentListings,
-            cache_timestamp: itemmarket.cache_timestamp ?? Date.now(),
-            fetched_at: new Date(),
-            items_sold,
-            total_revenue_sold,
-            sales_24h_current,
-            sales_24h_previous,
-            total_revenue_24h_current,
-            trend_24h,
-            hour_velocity_24,
-          });
-
-          await snapshot.save();
-          totalSnapshots++;
-
-          return snapshot;
-        } catch (error) {
-          logError(`Error fetching market data for item ${itemId} in ${country}`, error instanceof Error ? error : new Error(String(error)));
-          return null;
+        const itemmarket = response.data.itemmarket;
+        if (!itemmarket) {
+          continue;
         }
-      });
 
-      await Promise.all(snapshotPromises);
-      logInfo(`Stored ${itemIds.length} listings for ${country} in MongoDB`);
+        const item = itemsMap.get(itemId);
+        if (!item) {
+          continue;
+        }
+
+        // Get stock info
+        let inStock: number | null = null;
+
+        if (country === 'Torn') {
+          const match = cityShopStock.find(
+            (stock: any) => stock.itemName?.toLowerCase() === item.name.toLowerCase()
+          );
+          if (match) {
+            inStock = match.in_stock ?? null;
+          }
+        } else {
+          const countryCode = Object.entries(COUNTRY_CODE_MAP).find(
+            ([, name]) => name === country
+          )?.[0];
+
+          if (countryCode) {
+            const match = foreignStock.find(
+              (stock: any) => 
+                stock.countryCode === countryCode &&
+                stock.itemName.toLowerCase() === item.name.toLowerCase()
+            );
+            if (match) inStock = match.quantity;
+          }
+        }
+
+        const buy = item.buy_price ?? 0;
+        const market = itemmarket.item?.average_price ?? item.market_price ?? 0;
+        const profitPer1 = market && buy ? market - buy : 0;
+
+        // Get current listings from API
+        const currentListings = itemmarket.listings?.map((listing: any) => ({
+          price: listing.price,
+          amount: listing.amount,
+        })) ?? [];
+
+        // Calculate 24-hour sales metrics from historical data
+        const { items_sold, total_revenue_sold, sales_24h_current, sales_24h_previous, total_revenue_24h_current, trend_24h, hour_velocity_24 } = await calculate24HourMetrics(country, itemId, currentListings);
+
+        // Create snapshot
+        const snapshot = new MarketSnapshot({
+          country,
+          itemId: itemmarket.item?.id ?? itemId,
+          name: itemmarket.item?.name ?? item.name,
+          type: itemmarket.item?.type ?? item.type,
+          shopName: item.vendor_name,
+          buy_price: buy,
+          market_price: market,
+          profitPer1,
+          in_stock: inStock,
+          listings: currentListings,
+          cache_timestamp: itemmarket.cache_timestamp ?? Date.now(),
+          fetched_at: new Date(),
+          items_sold,
+          total_revenue_sold,
+          sales_24h_current,
+          sales_24h_previous,
+          total_revenue_24h_current,
+          trend_24h,
+          hour_velocity_24,
+        });
+
+        await snapshot.save();
+        totalSnapshots++;
+
+        // Detect movement and update MonitorFrequency
+        const currentData = {
+          stock: inStock,
+          price: market,
+          sales: items_sold,
+        };
+        
+        const hasMovement = detectMovement(monitoredItem, currentData);
+        if (hasMovement) {
+          movementDetectedCount++;
+        }
+        
+        if (isCuriosityCheck) {
+          curiosityCheckedCount++;
+        }
+        
+        // Update MonitorFrequency with error handling
+        try {
+          await updateMonitorFrequency(itemId, country, hasMovement, currentData);
+        } catch (freqError) {
+          logError(`Error updating MonitorFrequency for item ${itemId} in ${country}`, freqError instanceof Error ? freqError : new Error(String(freqError)));
+        }
+
+      } catch (error) {
+        logError(`Error fetching market data for item ${itemId} in ${country}`, error instanceof Error ? error : new Error(String(error)));
+      }
     }
+
+    logInfo(`Finished checking ${selectedItems.length} items`);
 
     const elapsed = Date.now() - startTime;
     const elapsedSeconds = elapsed / 1000;
     
-    logInfo(`Successfully stored ${totalSnapshots} market snapshots across all countries`);
+    logInfo(`Successfully stored ${totalSnapshots} market snapshots`);
+    logInfo(`Movement detected in ${movementDetectedCount} items (frequencies reset to 1)`);
+    logInfo(`Curiosity checks performed: ${curiosityCheckedCount}`);
     logInfo(`Cycle completed: ${totalApiCalls} API calls in ${elapsedSeconds.toFixed(2)} seconds`);
     
-    // Calculate delay to respect rate limit (configurable requests/minute)
-    // If we made totalApiCalls requests, we need at least (totalApiCalls / RATE_LIMIT_PER_MINUTE) minutes
-    const minRequiredTime = (totalApiCalls / RATE_LIMIT_PER_MINUTE) * 60 * 1000; // milliseconds
+    // Calculate delay to respect rate limit
+    const minRequiredTime = (totalApiCalls / RATE_LIMIT_PER_MINUTE) * 60 * 1000;
     const timeToWait = Math.max(0, minRequiredTime - elapsed);
     
     if (timeToWait > 0) {
@@ -709,13 +957,13 @@ export async function fetchMarketSnapshots(): Promise<void> {
     }, timeToWait);
     
   } catch (error) {
-    logError('Error fetching market snapshots', error instanceof Error ? error : new Error(String(error)));
+    logError('Error in adaptive monitoring cycle', error instanceof Error ? error : new Error(String(error)));
     
     // On error, wait 1 minute before retrying
     logInfo('Retrying market snapshots fetch in 1 minute due to error...');
     setTimeout(() => {
       fetchMarketSnapshots();
-    }, 60 * 1000); // 1 minute
+    }, 60 * 1000);
   }
 }
 
@@ -723,21 +971,22 @@ export async function fetchMarketSnapshots(): Promise<void> {
 export function startScheduler(): void {
   logInfo('Starting background fetcher scheduler...');
   logInfo(`Rate limit configured: ${RATE_LIMIT_PER_MINUTE} requests per minute`);
+  logInfo(`Curiosity rate: ${(CURIOSITY_RATE * 100).toFixed(0)}% (${Math.floor(RATE_LIMIT_PER_MINUTE * CURIOSITY_RATE)} requests reserved for random checks)`);
 
   // Fetch items immediately on startup if needed (every 24 hours)
-  // Wait for this to complete before updating tracked items
+  // Wait for this to complete before updating monitored items
   fetchTornItems().then(() => {
-    // After items are fetched, update tracked items and start market snapshots
-    updateTrackedItems().then(() => {
-      // Start self-scheduling market snapshots immediately after tracked items are ready
-      logInfo('Tracked items initialized, starting self-scheduling market snapshots...');
+    // After items are fetched, update monitored items and start market snapshots
+    updateMonitoredItems().then(() => {
+      // Start self-scheduling market snapshots immediately after monitored items are ready
+      logInfo('Monitored items initialized, starting adaptive monitoring system...');
       fetchMarketSnapshots();
     }).catch((error) => {
-      logError('Failed to initialize tracked items', error instanceof Error ? error : new Error(String(error)));
+      logError('Failed to initialize monitored items', error instanceof Error ? error : new Error(String(error)));
       // Retry after 1 minute on failure
-      logInfo('Retrying tracked items initialization in 1 minute...');
+      logInfo('Retrying monitored items initialization in 1 minute...');
       setTimeout(() => {
-        updateTrackedItems().then(() => {
+        updateMonitoredItems().then(() => {
           fetchMarketSnapshots();
         });
       }, 60 * 1000); // 1 minute
@@ -748,7 +997,7 @@ export function startScheduler(): void {
     logInfo('Retrying Torn items fetch in 1 minute...');
     setTimeout(() => {
       fetchTornItems().then(() => {
-        updateTrackedItems().then(() => {
+        updateMonitoredItems().then(() => {
           fetchMarketSnapshots();
         });
       });
@@ -771,10 +1020,10 @@ export function startScheduler(): void {
     fetchForeignStock();
   });
 
-  // Schedule tracked items update every 10 minutes
+  // Schedule monitored items update every 10 minutes
   cron.schedule('*/10 * * * *', () => {
-    logInfo('Running scheduled tracked items update...');
-    updateTrackedItems();
+    logInfo('Running scheduled monitored items update...');
+    updateMonitoredItems();
   });
 
   logInfo('Background fetcher scheduler started successfully');

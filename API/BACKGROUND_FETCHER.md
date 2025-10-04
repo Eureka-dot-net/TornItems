@@ -1,20 +1,41 @@
 # Background Fetcher Service
 
-This service automatically fetches and stores Torn API data into MongoDB, ensuring up-to-date information without exceeding API rate limits. It dynamically tracks the top 10 most profitable items per country and stores detailed market snapshots.
+This service automatically fetches and stores Torn API data into MongoDB, ensuring up-to-date information without exceeding API rate limits. It uses an **adaptive monitoring system** that intelligently adjusts how frequently each item is checked based on market activity.
 
 ## Features
+
+### Adaptive Item Monitoring System (NEW)
+- **Self-Adjusting Frequencies**: Items with frequent changes are checked more often, quiet items less frequently
+- **MonitorFrequency Field**: Each item has a frequency value (1-10) controlling check intervals
+- **Movement Detection**: Automatically detects changes in stock, price, or sales
+- **Curiosity Checks**: 5% of API budget reserved for randomly checking quiet items (MonitorFrequency ≥ 5)
+- **Monitors ALL Profitable Items**: Tracks every item with positive profit (market_price - buy_price > 0)
+
+#### How Adaptive Monitoring Works:
+1. **Initialization**: New items start with MonitorFrequency = 1 (check every cycle)
+2. **Cycle Counter**: Each item has `cycles_since_last_check` that increments each monitoring cycle
+3. **Due Items**: Item is checked when `cycles_since_last_check >= MonitorFrequency`
+4. **Movement Detection**: 
+   - Compares current stock, price, sales to cached values
+   - Price changes > 1% are considered movement
+5. **Frequency Adjustment**:
+   - **Movement Detected**: Reset MonitorFrequency to 1 (active item)
+   - **No Movement**: Increment MonitorFrequency by 1 (max 10, quiet item)
+6. **Curiosity Checks**: 5% of rate limit randomly checks quiet items to catch sudden activity
 
 ### Rate Limiting
 - Uses Bottleneck to enforce ≤60 requests/minute
 - Implements exponential backoff retry logic for HTTP 429 errors
 - Minimum 1 second between requests
+- Curiosity rate configurable via CURIOSITY_RATE environment variable
 
 ### Dynamic Item Tracking
-- **Automatically determines** top 10 most profitable items per country
+- **Monitors ALL items with positive profit** (not just top N)
 - No hardcoded item IDs - selections are data-driven
-- Based on profitPer1 (market_price - buy_price)
+- Based on profitPer1 (market_price - buy_price > 0)
 - Updates selections every 10 minutes
 - Tracks item availability and stock levels
+- Maintains legacy TrackedItem collection for backward compatibility (top 20 for Torn, top 10 for others)
 
 ### Scheduled Data Fetching
 
@@ -25,28 +46,37 @@ This service automatically fetches and stores Torn API data into MongoDB, ensuri
   - Stored in `TornItem` collection
 
 #### Every 10 Minutes
-- **Update Tracked Items**: Dynamically determine top 10 profitable items per country
+- **Update Monitored Items**: Track ALL items with positive profit
   - Analyzes all items and calculates profit margins
-  - Updates `TrackedItem` collection with current selections
-  - Logs tracked item names per country
+  - Adds items with profit > 0 to MonitoredItem collection
+  - New items get MonitorFrequency = 1 (check every cycle)
+  - Also updates legacy TrackedItem collection for backward compatibility
 
-#### Self-Scheduling Market Snapshots
-- **Market Snapshots**: Detailed market data for tracked items
+#### Adaptive Market Snapshots (Self-Scheduling)
+- **Market Snapshots**: Detailed market data with intelligent scheduling
   - Endpoint: `https://api.torn.com/v2/market/{itemId}/itemmarket?limit=20&key=${API_KEY}`
+  - **Adaptive Selection**: Only checks items that are due (cycles_since_last_check >= MonitorFrequency)
+  - **Curiosity Checks**: Reserves 5% of API budget for random checks of quiet items
+  - **Movement Detection**: Compares stock, price, sales to detect changes
+  - **Frequency Adjustment**: Increases frequency for quiet items, resets for active items
   - **Self-scheduling**: Runs continuously with intelligent rate limiting
-  - After each complete cycle, calculates wait time to respect 60 requests/minute limit
-  - Starts next cycle immediately if no wait needed, or after calculated delay
   - Stores complete market data including all listings
   - Historical snapshots preserved for trend analysis
   - Stored in `MarketSnapshot` collection
 
-**How Self-Scheduling Works:**
-1. Fetches market data for all tracked items across all countries
-2. Tracks total API calls made during cycle
-3. Calculates minimum time needed: `(totalApiCalls / 60) * 60 seconds`
-4. Compares with actual elapsed time
-5. Waits additional time if needed to respect rate limit
-6. Automatically starts next cycle
+**How Adaptive Scheduling Works:**
+1. Increments `cycles_since_last_check` for all monitored items
+2. Selects items where `cycles_since_last_check >= MonitorFrequency`
+3. Calculates curiosity budget (5% of 60 req/min = 3 requests)
+4. Randomly selects up to 3 quiet items (MonitorFrequency ≥ 5) for curiosity checks
+5. Fetches market data for due items + curiosity items
+6. Detects movement by comparing current data to cached data
+7. Updates MonitorFrequency:
+   - Movement detected → reset to 1
+   - No movement → increment by 1 (max 10)
+8. Calculates wait time to respect rate limit
+9. Logs monitoring statistics and frequency adjustments
+10. Automatically starts next cycle
 
 Example: If 30 API calls took 20 seconds, minimum time = 30 seconds, so waits 10 more seconds before next cycle.
 
@@ -64,7 +94,22 @@ Example: If 30 API calls took 20 seconds, minimum time = 30 seconds, so waits 10
 
 ## MongoDB Collections
 
-### MarketSnapshot (NEW)
+### MonitoredItem (NEW - Adaptive Monitoring)
+Stores ALL items with positive profit and their adaptive monitoring state:
+- `country`: Country where item is sold
+- `itemId`, `name`: Item identification
+- `MonitorFrequency`: How many cycles to wait between checks (1-10)
+- `cycles_since_last_check`: Increments each cycle, reset when checked
+- `lastCheckedData`: Cached data from last check
+  - `stock`: Last known stock level
+  - `price`: Last known market price
+  - `sales`: Last known sales count
+- `lastCheckTimestamp`: When item was last checked
+- `lastUpdated`: Last metadata update
+
+**Purpose**: Enables adaptive monitoring - active items checked frequently, quiet items less often
+
+### MarketSnapshot
 Stores complete market data snapshots:
 - `country`: Country where item is sold
 - `itemId`, `name`, `type`: Item identification
@@ -74,16 +119,19 @@ Stores complete market data snapshots:
 - `listings`: Array of market listings with `{ price, amount }`
 - `cache_timestamp`: API cache timestamp
 - `fetched_at`: When snapshot was taken
+- `items_sold`, `total_revenue_sold`: Sales since last snapshot
+- `sales_24h_current`, `sales_24h_previous`: 24-hour sales metrics
+- `trend_24h`, `hour_velocity_24`: Sales trends and velocity
 
 **Purpose**: Historical market data for analyzing which profitable items actually sell
 
-### TrackedItem (NEW)
-Stores dynamically selected items per country:
+### TrackedItem (Legacy - Backward Compatibility)
+Stores top N profitable items per country:
 - `country`: Country name
-- `itemIds`: Array of top 10 profitable item IDs
+- `itemIds`: Array of top item IDs (20 for Torn, 10 for others)
 - `lastUpdated`: Last selection update timestamp
 
-**Purpose**: Maintains list of items to monitor for each country
+**Purpose**: Maintains backward compatibility with existing APIs
 
 ### TornItem
 Stores basic item information and vendor details:
@@ -137,9 +185,14 @@ MONGO_URI=mongodb://localhost:27017/wasteland_rpg
 
 # Optional: Configure rate limit (default: 60 requests per minute)
 TORN_RATE_LIMIT=60
+
+# Optional: Configure curiosity check rate (default: 0.05 = 5%)
+CURIOSITY_RATE=0.05
 ```
 
 The `TORN_RATE_LIMIT` variable allows you to decrease the rate limit if needed to avoid hitting Torn's API limits. The system will automatically adjust its request timing based on this value.
+
+The `CURIOSITY_RATE` variable controls what percentage of the API budget is reserved for random checks of quiet items. Default is 0.05 (5%), meaning 3 out of 60 requests per minute are used for curiosity checks.
 
 ## Usage
 
@@ -154,32 +207,71 @@ startScheduler();
 
 ## Key Functions
 
-### `updateTrackedItems()`
-Dynamically determines and stores top 10 profitable items per country:
+### `updateMonitoredItems()`
+Tracks ALL items with positive profit and manages adaptive monitoring:
 1. Fetches all items from database
 2. Calculates profitPer1 for each item
-3. Groups items by country
-4. Selects top 10 by profit per country
-5. Updates TrackedItem collection
-6. Logs: "Tracking top 10 profitable items in {country}: [item names]"
+3. Adds items with profit > 0 to MonitoredItem collection
+4. New items get MonitorFrequency = 1 (check every cycle)
+5. Preserves existing MonitorFrequency for known items
+6. Also updates legacy TrackedItem collection for backward compatibility
+7. Logs: "Successfully updated {n} monitored items with positive profit"
 
 ### `fetchMarketSnapshots()`
-Collects detailed market data for tracked items with self-scheduling:
-1. Reads tracked items from TrackedItem collection
-2. Fetches market data from Torn API for each item
-3. Stores complete response including listings array
-4. Preserves historical snapshots
-5. Logs: "Stored {n} listings for {country} in MongoDB"
-6. **Calculates intelligent delay based on API calls made**
-7. **Self-schedules next cycle after appropriate wait time**
+Adaptive monitoring with intelligent scheduling and curiosity checks:
+1. Increments cycles_since_last_check for all monitored items
+2. Selects due items (cycles_since_last_check >= MonitorFrequency)
+3. Calculates curiosity budget (5% of rate limit)
+4. Randomly selects quiet items (MonitorFrequency ≥ 5) for curiosity checks
+5. Fetches market data for due items + curiosity items
+6. Stores complete response including listings array
+7. Detects movement by comparing to lastCheckedData
+8. Updates MonitorFrequency based on movement
+9. Preserves historical snapshots
+10. **Calculates intelligent delay based on API calls made**
+11. **Self-schedules next cycle after appropriate wait time**
+
+**Movement Detection:**
+- Stock changes (any difference)
+- Price changes (>1% difference)
+- Sales changes (any difference)
+
+**Frequency Adjustment:**
+- Movement detected: MonitorFrequency = 1 (check every cycle)
+- No movement: MonitorFrequency += 1 (max 10, check less often)
+
+**Curiosity Checks:**
+- 5% of API budget reserved for random checks
+- Only checks items with MonitorFrequency ≥ 5 (quiet items)
+- Helps catch sudden activity in previously quiet items
+- If movement found, resets MonitorFrequency to 1
 
 **Self-Scheduling Logic:**
 - Tracks total API calls and elapsed time
-- Ensures compliance with 60 requests/minute rate limit
-- Minimum wait = (totalApiCalls / 60) minutes
+- Ensures compliance with rate limit
+- Minimum wait = (totalApiCalls / RATE_LIMIT_PER_MINUTE) minutes
 - Adjusts for actual time taken
-- Logs wait time before next cycle
-- On error, retries after 2 minutes
+- Logs monitoring statistics and frequency adjustments
+- On error, retries after 1 minute
+
+### Helper Functions
+
+#### `selectDueItems()`
+Queries MonitoredItem collection for items where cycles_since_last_check >= MonitorFrequency
+
+#### `selectCuriosityItems(maxCount)`
+Randomly selects up to maxCount items with MonitorFrequency ≥ 5 for curiosity checks
+
+#### `detectMovement(item, currentData)`
+Compares current stock/price/sales to cached lastCheckedData to detect changes
+
+#### `updateMonitorFrequency(itemId, country, hasMovement, currentData)`
+- Movement detected: Reset to 1
+- No movement: Increment by 1 (max 10)
+- Updates lastCheckedData cache
+
+#### `incrementCycleCounters()`
+Increments cycles_since_last_check for all monitored items at start of each cycle
 
 ## API Integration
 
@@ -215,27 +307,42 @@ Returns grouped profit data by country with stock information merged from the da
 
 ## Logging Output
 
+**Startup:**
 ```
 Starting background fetcher scheduler...
+Rate limit configured: 60 requests per minute
+Curiosity rate: 5% (3 requests reserved for random checks)
 Fetching Torn items catalog...
 Successfully saved 1234 items to database
-Determining top 10 profitable items per country...
-Tracking top 10 profitable items in Mexico: [Item A, Item B, Item C, ...]
-Tracking top 10 profitable items in Canada: [Item X, Item Y, Item Z, ...]
-Starting self-scheduling market snapshots...
-Fetching market snapshots for tracked items...
-Fetching market data for 10 items in Mexico...
-Stored 10 listings for Mexico in MongoDB
-Successfully stored 120 market snapshots across all countries
-Cycle completed: 120 API calls in 125.34 seconds
+Updating monitored items (all items with profit > 0)...
+Successfully updated 450 monitored items with positive profit
+Monitored items initialized, starting adaptive monitoring system...
+```
+
+**Adaptive Monitoring Cycle:**
+```
+=== Starting adaptive monitoring cycle ===
+Found 85 items due for monitoring
+Selected 2 items for curiosity checks (out of 120 eligible)
+Total items to check: 87 (85 due + 2 curiosity)
+Successfully stored 87 market snapshots
+Movement detected in 12 items (frequencies reset to 1)
+Curiosity checks performed: 2
+Cycle completed: 87 API calls in 92.34 seconds
+Waiting 5.00 seconds before next cycle to respect rate limit...
+```
+
+**When No Items Are Due:**
+```
+=== Starting adaptive monitoring cycle ===
+Found 0 items due for monitoring
+Selected 3 items for curiosity checks (out of 200 eligible)
+Total items to check: 3 (0 due + 3 curiosity)
+Successfully stored 3 market snapshots
+Movement detected in 0 items (frequencies reset to 1)
+Curiosity checks performed: 3
+Cycle completed: 3 API calls in 3.45 seconds
 No wait needed, starting next cycle immediately...
-```
-
-Or with rate limiting:
-
-```
-Cycle completed: 120 API calls in 90.50 seconds
-Waiting 29.50 seconds before next cycle to respect rate limit...
 ```
 
 ## Error Handling
@@ -249,10 +356,14 @@ Waiting 29.50 seconds before next cycle to respect rate limit...
 
 - The scheduler runs 24/7 in production
 - Initial item fetch happens on startup if data is older than 24 hours
-- Tracked items update immediately on startup, then every 10 minutes
-- Market snapshots start immediately after tracked items initialize, then use self-scheduling with intelligent rate limiting
+- Monitored items update immediately on startup, then every 10 minutes
+- Adaptive market snapshots start immediately after monitored items initialize
 - Rate limit is configurable via TORN_RATE_LIMIT environment variable (default: 60 requests per minute)
+- Curiosity rate is configurable via CURIOSITY_RATE environment variable (default: 0.05 = 5%)
 - All timestamps use ISO 8601 format
 - Bulk operations minimize database round trips
 - Historical snapshots are never overwritten
 - Failed requests retry after 1 minute
+- Adaptive monitoring automatically balances API usage between active and quiet items
+- MonitorFrequency ranges from 1 (check every cycle) to 10 (check every 10 cycles)
+- Curiosity checks help discover sudden activity in previously quiet items
