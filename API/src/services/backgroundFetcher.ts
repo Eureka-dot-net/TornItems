@@ -388,41 +388,58 @@ async function calculateVelocityAndTrend(
       return { sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
     }
 
-    // Calculate velocities between consecutive snapshots
-    const velocities: number[] = [];
-
-    for (let i = 0; i < snapshots.length - 1; i++) {
-      const current = snapshots[i];
-      const previous = snapshots[i + 1];
-
-      // Skip if in_stock data is missing
-      if (current.in_stock == null || previous.in_stock == null) {
-        continue;
-      }
-
-      const stockChange = previous.in_stock - current.in_stock;
-      
-      // Only calculate velocity if stock decreased (items were sold)
-      if (stockChange > 0) {
-        const timeDiffMs = new Date(current.fetched_at).getTime() - new Date(previous.fetched_at).getTime();
-        const minutesElapsed = timeDiffMs / (1000 * 60);
-
-        if (minutesElapsed > 0) {
-          const velocity = stockChange / minutesElapsed;
-          velocities.push(velocity);
-        }
+    // Calculate overall velocity across all snapshots (not averaging individual velocities)
+    // This prevents outliers from skewing the average
+    const validSnapshots: Array<{ in_stock: number; fetched_at: Date; }> = [];
+    
+    for (const snapshot of snapshots) {
+      if (snapshot.in_stock != null) {
+        validSnapshots.push({
+          in_stock: snapshot.in_stock,
+          fetched_at: snapshot.fetched_at
+        });
       }
     }
 
-    if (velocities.length === 0) {
-      // No valid velocity data
+    if (validSnapshots.length < 2) {
+      // Not enough valid data
       return { sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
     }
 
-    // Calculate average sell velocity (units per minute)
-    const avgVelocity = velocities.reduce((sum, v) => sum + v, 0) / velocities.length;
+    // Calculate overall velocity from oldest to newest snapshot
+    const oldest = validSnapshots[validSnapshots.length - 1];
+    const newest = validSnapshots[0];
+    
+    const totalStockChange = oldest.in_stock - newest.in_stock;
+    const totalTimeDiffMs = new Date(newest.fetched_at).getTime() - new Date(oldest.fetched_at).getTime();
+    const totalMinutesElapsed = totalTimeDiffMs / (1000 * 60);
+
+    let avgVelocity: number;
+    if (totalMinutesElapsed <= 0 || totalStockChange <= 0) {
+      // No time elapsed or no items sold
+      return { sell_velocity: null, trend: null, expected_sell_time_minutes: null, hour_velocity_24: null };
+    }
+    
+    avgVelocity = totalStockChange / totalMinutesElapsed;
+
+    // Also calculate velocities between consecutive snapshots for trend analysis
+    const velocities: number[] = [];
+    for (let i = 0; i < validSnapshots.length - 1; i++) {
+      const current = validSnapshots[i];
+      const previous = validSnapshots[i + 1];
+
+      const stockChange = previous.in_stock - current.in_stock;
+      const timeDiffMs = new Date(current.fetched_at).getTime() - new Date(previous.fetched_at).getTime();
+      const minutesElapsed = timeDiffMs / (1000 * 60);
+
+      if (minutesElapsed > 0 && stockChange > 0) {
+        const velocity = stockChange / minutesElapsed;
+        velocities.push(velocity);
+      }
+    }
 
     // Calculate trend (rate of change of velocities)
+    // Trend is optional - only calculated if we have enough velocity samples
     let trend: number | null = null;
     if (velocities.length >= 2) {
       // Simple linear trend: compare recent velocities to older ones
