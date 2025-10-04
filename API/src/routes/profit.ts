@@ -1,49 +1,9 @@
-import axios from 'axios';
 import express, { Request, Response } from 'express';
+import { TornItem } from '../models/TornItem';
+import { CityShopStock } from '../models/CityShopStock';
+import { ForeignStock } from '../models/ForeignStock';
 
 const router = express.Router({ mergeParams: true });
-const API_KEY = (process.env.TORN_API_KEY as string) || 'yLp4OoENbjRy30GZ';
-
-// Helper to pause between requests if needed later
-const delay = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
-
-interface VendorInfo {
-  country: string;
-  name: string;
-}
-
-interface ItemValue {
-  vendor: VendorInfo | null;
-  buy_price: number | null;
-  sell_price: number | null;
-  market_price: number | null;
-}
-
-interface TornItem {
-  id: number;
-  name: string;
-  description: string;
-  type: string;
-  sub_type?: string | null;
-  is_tradable: boolean;
-  is_found_in_city: boolean;
-  value: ItemValue;
-}
-
-interface CityShopItem {
-  name: string;
-  type: string;
-  price: number;
-  in_stock: number;
-}
-
-interface CityShops {
-  [shopId: string]: {
-    name: string;
-    inventory: Record<string, CityShopItem>;
-  };
-}
 
 interface CountryItem {
   id: number;
@@ -57,24 +17,6 @@ interface CountryItem {
 
 interface GroupedByCountry {
   [country: string]: CountryItem[];
-}
-
-// YATA API types
-interface YataStock {
-  id: number;
-  name: string;
-  quantity: number;
-  cost: number;
-}
-
-interface YataCountry {
-  update: number;
-  stocks: YataStock[];
-}
-
-interface YataResponse {
-  stocks: Record<string, YataCountry>;
-  timestamp: number;
 }
 
 const COUNTRY_CODE_MAP: Record<string, string> = {
@@ -94,42 +36,34 @@ const COUNTRY_CODE_MAP: Record<string, string> = {
 // GET /profit
 router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
   try {
-    console.log('Fetching items, Torn City stock, and YATA travel stock...');
+    console.log('Fetching profit data from MongoDB...');
 
-    // ✅ Fetch all three in parallel
-    const [itemsResponse, cityshopsResponse, yataResponse] = await Promise.all([
-      axios.get<{ items: TornItem[] }>(
-        `https://api.torn.com/v2/torn/items?cat=All&sort=ASC&key=${API_KEY}`
-      ),
-      axios.get<{ cityshops: CityShops }>(
-        `https://api.torn.com/v2/torn?selections=cityshops&key=${API_KEY}`
-      ),
-      axios.get<YataResponse>('https://yata.yt/api/v1/travel/export/'),
+    // Fetch all items, city shop stock, and foreign stock from MongoDB
+    const [items, cityShopStock, foreignStock] = await Promise.all([
+      TornItem.find({ buy_price: { $ne: null } }).lean(),
+      CityShopStock.find().lean(),
+      ForeignStock.find().lean(),
     ]);
 
-    const items = itemsResponse.data.items;
-    const cityshops = cityshopsResponse.data.cityshops;
-    const yataStocks = yataResponse.data.stocks;
-
-    if (!items?.length) throw new Error('No items found in Torn v2 response.');
-    if (!cityshops) console.warn('Cityshops not found or empty.');
-    if (!yataStocks) console.warn('YATA travel stock not found or empty.');
+    if (!items?.length) {
+      res.status(503).json({ 
+        error: 'No items found in database. Background fetcher may still be initializing.' 
+      });
+      return;
+    }
 
     console.log(
-      `Fetched ${items.length} items, ${Object.keys(cityshops).length} city shops, and ${Object.keys(yataStocks).length} travel countries.`
+      `Retrieved ${items.length} items, ${cityShopStock.length} city shop items, and ${foreignStock.length} foreign stock items from database.`
     );
 
     // 🗺 Group by country (shop is informational)
     const grouped: GroupedByCountry = {};
 
     for (const item of items) {
-      const vendor = item.value.vendor;
-      if (!vendor || !item.value.buy_price) continue; // skip unpurchasable items
-
-      const country = vendor.country || 'Unknown';
-      const shop = vendor.name || 'Unknown';
-      const buy = item.value.buy_price ?? 0;
-      const market = item.value.market_price ?? 0;
+      const country = item.vendor_country || 'Unknown';
+      const shop = item.vendor_name || 'Unknown';
+      const buy = item.buy_price ?? 0;
+      const market = item.market_price ?? 0;
 
       // 💰 Profit per single item
       const profitPer1 = market && buy ? market - buy : null;
@@ -138,25 +72,23 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       let inStock: number | null = null;
 
       if (country === 'Torn') {
-        for (const shopData of Object.values(cityshops)) {
-          if (!shopData.inventory) continue;
-          const match = Object.values(shopData.inventory).find(
-            (inv) => inv.name?.toLowerCase() === item.name.toLowerCase()
-          );
-          if (match) {
-            inStock = match.in_stock ?? null;
-            break;
-          }
+        const match = cityShopStock.find(
+          (stock) => stock.itemName?.toLowerCase() === item.name.toLowerCase()
+        );
+        if (match) {
+          inStock = match.in_stock ?? null;
         }
       } else {
-        // 🌍 Check YATA travel stock
+        // 🌍 Check foreign travel stock
         const countryCode = Object.entries(COUNTRY_CODE_MAP).find(
-          ([code, name]) => name === country
+          ([, name]) => name === country
         )?.[0];
 
-        if (countryCode && yataStocks[countryCode]) {
-          const match = yataStocks[countryCode].stocks.find(
-            (s) => s.name.toLowerCase() === item.name.toLowerCase()
+        if (countryCode) {
+          const match = foreignStock.find(
+            (stock) => 
+              stock.countryCode === countryCode &&
+              stock.itemName.toLowerCase() === item.name.toLowerCase()
           );
           if (match) inStock = match.quantity;
         }
@@ -165,7 +97,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       if (!grouped[country]) grouped[country] = [];
 
       grouped[country].push({
-        id: item.id,
+        id: item.itemId,
         name: item.name,
         buy_price: buy,
         market_price: market,
@@ -175,7 +107,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       });
     }
 
-    // Sort each country’s results by profit
+    // Sort each country's results by profit
     for (const country of Object.keys(grouped)) {
       grouped[country].sort(
         (a, b) => (b.profitPer1 ?? 0) - (a.profitPer1 ?? 0)
@@ -188,15 +120,13 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       results: grouped,
     });
   } catch (err: unknown) {
-    if (axios.isAxiosError(err)) {
-      console.error('API Error:', err.message);
-    } else if (err instanceof Error) {
+    if (err instanceof Error) {
       console.error('Error:', err.message);
     } else {
       console.error('Unknown error');
     }
 
-    res.status(500).json({ error: 'Failed to fetch or process Torn data.' });
+    res.status(500).json({ error: 'Failed to fetch profit data from database.' });
   }
 });
 
