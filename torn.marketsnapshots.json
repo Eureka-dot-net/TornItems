@@ -1,0 +1,10291 @@
+[{
+  "_id": {
+    "$oid": "68e116fa90481b1efff9cc0b"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 310000,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc0c"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc0d"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc0e"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc0f"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc10"
+      }
+    },
+    {
+      "price": 339493,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc11"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc12"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc13"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc14"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc15"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc16"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc17"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc18"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc19"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc1a"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc1b"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc1c"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc1d"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc1e"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e116fa90481b1efff9cc1f"
+      }
+    }
+  ],
+  "cache_timestamp": 1759581933,
+  "fetched_at": {
+    "$date": "2025-10-04T12:45:46.340Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e1174990481b1efff9d295"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 310000,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d296"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d297"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d298"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d299"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d29a"
+      }
+    },
+    {
+      "price": 339493,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d29b"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d29c"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d29d"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d29e"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d29f"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d2a0"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d2a1"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d2a2"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d2a3"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d2a4"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d2a5"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d2a6"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d2a7"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d2a8"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e1174990481b1efff9d2a9"
+      }
+    }
+  ],
+  "cache_timestamp": 1759582023,
+  "fetched_at": {
+    "$date": "2025-10-04T12:47:05.049Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e1179890481b1efff9d921"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 310000,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d922"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d923"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d924"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d925"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d926"
+      }
+    },
+    {
+      "price": 339493,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d927"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d928"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d929"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d92a"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d92b"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d92c"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d92d"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d92e"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d92f"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d930"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d931"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d932"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d933"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d934"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e1179890481b1efff9d935"
+      }
+    }
+  ],
+  "cache_timestamp": 1759582083,
+  "fetched_at": {
+    "$date": "2025-10-04T12:48:24.833Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e117e790481b1efff9dfab"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfac"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfad"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfae"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfaf"
+      }
+    },
+    {
+      "price": 339493,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfb0"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfb1"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfb2"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfb3"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfb4"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfb5"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfb6"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfb7"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfb8"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfb9"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfba"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfbb"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfbc"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfbd"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfbe"
+      }
+    },
+    {
+      "price": 349998,
+      "amount": 81,
+      "_id": {
+        "$oid": "68e117e790481b1efff9dfbf"
+      }
+    }
+  ],
+  "cache_timestamp": 1759582178,
+  "fetched_at": {
+    "$date": "2025-10-04T12:49:43.533Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e1183690481b1efff9e646"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e647"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e648"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e649"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e64a"
+      }
+    },
+    {
+      "price": 339493,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e64b"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e64c"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e64d"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e64e"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e64f"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e650"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e651"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e652"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e653"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e654"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e655"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e656"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e657"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e658"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e659"
+      }
+    },
+    {
+      "price": 349998,
+      "amount": 81,
+      "_id": {
+        "$oid": "68e1183690481b1efff9e65a"
+      }
+    }
+  ],
+  "cache_timestamp": 1759582238,
+  "fetched_at": {
+    "$date": "2025-10-04T12:51:02.749Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e1188690481b1efff9ecd1"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ecd2"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ecd3"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ecd4"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ecd5"
+      }
+    },
+    {
+      "price": 339493,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ecd6"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ecd7"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ecd8"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ecd9"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ecda"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ecdb"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ecdc"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ecdd"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ecde"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ecdf"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ece0"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ece1"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ece2"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ece3"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ece4"
+      }
+    },
+    {
+      "price": 349998,
+      "amount": 81,
+      "_id": {
+        "$oid": "68e1188690481b1efff9ece5"
+      }
+    }
+  ],
+  "cache_timestamp": 1759582328,
+  "fetched_at": {
+    "$date": "2025-10-04T12:52:22.478Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e118d590481b1efff9f35b"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f35c"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f35d"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f35e"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f35f"
+      }
+    },
+    {
+      "price": 339493,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f360"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f361"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f362"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f363"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f364"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f365"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f366"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f367"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f368"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f369"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f36a"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f36b"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f36c"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f36d"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f36e"
+      }
+    },
+    {
+      "price": 349998,
+      "amount": 81,
+      "_id": {
+        "$oid": "68e118d590481b1efff9f36f"
+      }
+    }
+  ],
+  "cache_timestamp": 1759582419,
+  "fetched_at": {
+    "$date": "2025-10-04T12:53:41.171Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e1192c6ff68860a573ca78"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca79"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca7a"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca7b"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca7c"
+      }
+    },
+    {
+      "price": 339493,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca7d"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca7e"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca7f"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca80"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca81"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca82"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca83"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca84"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca85"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca86"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca87"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca88"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca89"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca8a"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca8b"
+      }
+    },
+    {
+      "price": 349998,
+      "amount": 81,
+      "_id": {
+        "$oid": "68e1192c6ff68860a573ca8c"
+      }
+    }
+  ],
+  "cache_timestamp": 1759582479,
+  "fetched_at": {
+    "$date": "2025-10-04T12:55:08.589Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e1197b6ff68860a573d103"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d104"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d105"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d106"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d107"
+      }
+    },
+    {
+      "price": 339493,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d108"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d109"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d10a"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d10b"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d10c"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d10d"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d10e"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d10f"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d110"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d111"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d112"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d113"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d114"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d115"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d116"
+      }
+    },
+    {
+      "price": 349998,
+      "amount": 81,
+      "_id": {
+        "$oid": "68e1197b6ff68860a573d117"
+      }
+    }
+  ],
+  "cache_timestamp": 1759582569,
+  "fetched_at": {
+    "$date": "2025-10-04T12:56:27.296Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e119c96ff68860a573d78d"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d78e"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d78f"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d790"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d791"
+      }
+    },
+    {
+      "price": 339493,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d792"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d793"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d794"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d795"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d796"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d797"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d798"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d799"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d79a"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d79b"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d79c"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d79d"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d79e"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d79f"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d7a0"
+      }
+    },
+    {
+      "price": 349998,
+      "amount": 81,
+      "_id": {
+        "$oid": "68e119c96ff68860a573d7a1"
+      }
+    }
+  ],
+  "cache_timestamp": 1759582659,
+  "fetched_at": {
+    "$date": "2025-10-04T12:57:45.976Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e11a186ff68860a573de18"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de19"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de1a"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de1b"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de1c"
+      }
+    },
+    {
+      "price": 339493,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de1d"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de1e"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de1f"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de20"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de21"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de22"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de23"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de24"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de25"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de26"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de27"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de28"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de29"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de2a"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de2b"
+      }
+    },
+    {
+      "price": 349998,
+      "amount": 81,
+      "_id": {
+        "$oid": "68e11a186ff68860a573de2c"
+      }
+    }
+  ],
+  "cache_timestamp": 1759582719,
+  "fetched_at": {
+    "$date": "2025-10-04T12:59:04.730Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e11a686ff68860a573e4b3"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4b4"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4b5"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4b6"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4b7"
+      }
+    },
+    {
+      "price": 339493,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4b8"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4b9"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4ba"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4bb"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4bc"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4bd"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4be"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4bf"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4c0"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4c1"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4c2"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4c3"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4c4"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4c5"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4c6"
+      }
+    },
+    {
+      "price": 349998,
+      "amount": 81,
+      "_id": {
+        "$oid": "68e11a686ff68860a573e4c7"
+      }
+    }
+  ],
+  "cache_timestamp": 1759582814,
+  "fetched_at": {
+    "$date": "2025-10-04T13:00:24.329Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e11ab76ff68860a573eb3d"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb3e"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb3f"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb40"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb41"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb42"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb43"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb44"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb45"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb46"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb47"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb48"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb49"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb4a"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb4b"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb4c"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb4d"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb4e"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb4f"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb50"
+      }
+    },
+    {
+      "price": 349998,
+      "amount": 81,
+      "_id": {
+        "$oid": "68e11ab76ff68860a573eb51"
+      }
+    }
+  ],
+  "cache_timestamp": 1759582874,
+  "fetched_at": {
+    "$date": "2025-10-04T13:01:43.012Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e11b056ff68860a573f1c7"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1c8"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1c9"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1ca"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1cb"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1cc"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1cd"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1ce"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1cf"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1d0"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1d1"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1d2"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1d3"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1d4"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1d5"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1d6"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1d7"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1d8"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1d9"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1da"
+      }
+    },
+    {
+      "price": 349998,
+      "amount": 81,
+      "_id": {
+        "$oid": "68e11b056ff68860a573f1db"
+      }
+    }
+  ],
+  "cache_timestamp": 1759582964,
+  "fetched_at": {
+    "$date": "2025-10-04T13:03:01.660Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e11d08e97e1fafc98e7195"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e7196"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e7197"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e7198"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e7199"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e719a"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e719b"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e719c"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e719d"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e719e"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e719f"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e71a0"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e71a1"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e71a2"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e71a3"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e71a4"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e71a5"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e71a6"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e71a7"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e71a8"
+      }
+    },
+    {
+      "price": 349998,
+      "amount": 81,
+      "_id": {
+        "$oid": "68e11d08e97e1fafc98e71a9"
+      }
+    }
+  ],
+  "cache_timestamp": 1759583476,
+  "fetched_at": {
+    "$date": "2025-10-04T13:11:36.323Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e11d57e97e1fafc98e781f"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e7820"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e7821"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e7822"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e7823"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e7824"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e7825"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e7826"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e7827"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e7828"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e7829"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e782a"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e782b"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e782c"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e782d"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e782e"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e782f"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e7830"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e7831"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e7832"
+      }
+    },
+    {
+      "price": 349998,
+      "amount": 81,
+      "_id": {
+        "$oid": "68e11d57e97e1fafc98e7833"
+      }
+    }
+  ],
+  "cache_timestamp": 1759583566,
+  "fetched_at": {
+    "$date": "2025-10-04T13:12:55.045Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e11dc233f3ef6a461cbe18"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe19"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe1a"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe1b"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe1c"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe1d"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe1e"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe1f"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe20"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe21"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe22"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe23"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe24"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe25"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe26"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe27"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe28"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe29"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe2a"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe2b"
+      }
+    },
+    {
+      "price": 349998,
+      "amount": 81,
+      "_id": {
+        "$oid": "68e11dc233f3ef6a461cbe2c"
+      }
+    }
+  ],
+  "cache_timestamp": 1759583656,
+  "fetched_at": {
+    "$date": "2025-10-04T13:14:42.459Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e11e1133f3ef6a461cc68a"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 101,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc68b"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc68c"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc68d"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc68e"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc68f"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc690"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc691"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc692"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc693"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc694"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc695"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc696"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc697"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc698"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc699"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc69a"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc69b"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc69c"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc69d"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e11e1133f3ef6a461cc69e"
+      }
+    }
+  ],
+  "cache_timestamp": 1759583751,
+  "fetched_at": {
+    "$date": "2025-10-04T13:16:01.067Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e11e6033f3ef6a461ccd1f"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd20"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd21"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd22"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd23"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd24"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd25"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd26"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd27"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd28"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd29"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd2a"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd2b"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd2c"
+      }
+    },
+    {
+      "price": 342000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd2d"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd2e"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd2f"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd30"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd31"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd32"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e11e6033f3ef6a461ccd33"
+      }
+    }
+  ],
+  "cache_timestamp": 1759583811,
+  "fetched_at": {
+    "$date": "2025-10-04T13:17:20.825Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e11eaf33f3ef6a461cd3a9"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3aa"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3ab"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3ac"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3ad"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3ae"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3af"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3b0"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3b1"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3b2"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3b3"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3b4"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3b5"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3b6"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3b7"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3b8"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3b9"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3ba"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3bb"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3bc"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e11eaf33f3ef6a461cd3bd"
+      }
+    }
+  ],
+  "cache_timestamp": 1759583901,
+  "fetched_at": {
+    "$date": "2025-10-04T13:18:39.469Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e11efe33f3ef6a461cda33"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda34"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda35"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda36"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda37"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda38"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda39"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda3a"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda3b"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda3c"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda3d"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda3e"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda3f"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda40"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda41"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda42"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda43"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda44"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda45"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda46"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e11efe33f3ef6a461cda47"
+      }
+    }
+  ],
+  "cache_timestamp": 1759583991,
+  "fetched_at": {
+    "$date": "2025-10-04T13:19:58.139Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e11f4d33f3ef6a461ce0cf"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0d0"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0d1"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0d2"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0d3"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0d4"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0d5"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0d6"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0d7"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0d8"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0d9"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0da"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0db"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0dc"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0dd"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0de"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0df"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0e0"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0e1"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0e2"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e11f4d33f3ef6a461ce0e3"
+      }
+    }
+  ],
+  "cache_timestamp": 1759584052,
+  "fetched_at": {
+    "$date": "2025-10-04T13:21:17.800Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e11f9c33f3ef6a461ce759"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce75a"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce75b"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce75c"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce75d"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce75e"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce75f"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce760"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce761"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce762"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce763"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce764"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce765"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce766"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce767"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce768"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce769"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce76a"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce76b"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce76c"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e11f9c33f3ef6a461ce76d"
+      }
+    }
+  ],
+  "cache_timestamp": 1759584142,
+  "fetched_at": {
+    "$date": "2025-10-04T13:22:36.465Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e11fd3c16cfd74fb5a59dd"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59de"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59df"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59e0"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59e1"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59e2"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59e3"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59e4"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59e5"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59e6"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59e7"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59e8"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59e9"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59ea"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59eb"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59ec"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59ed"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59ee"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59ef"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59f0"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e11fd3c16cfd74fb5a59f1"
+      }
+    }
+  ],
+  "cache_timestamp": 1759584202,
+  "fetched_at": {
+    "$date": "2025-10-04T13:23:31.925Z"
+  },
+  "sell_velocity": 0.75,
+  "trend": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12022c16cfd74fb5a60b4"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60b5"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60b6"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60b7"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60b8"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60b9"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60ba"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60bb"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60bc"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60bd"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60be"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60bf"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60c0"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60c1"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60c2"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60c3"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60c4"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60c5"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60c6"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60c7"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e12022c16cfd74fb5a60c8"
+      }
+    }
+  ],
+  "cache_timestamp": 1759584262,
+  "fetched_at": {
+    "$date": "2025-10-04T13:24:50.718Z"
+  },
+  "sell_velocity": 0.75,
+  "trend": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12074c16cfd74fb5a678d"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a678e"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a678f"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a6790"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a6791"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a6792"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a6793"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a6794"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a6795"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a6796"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a6797"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a6798"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a6799"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a679a"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a679b"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a679c"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a679d"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a679e"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a679f"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a67a0"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e12074c16cfd74fb5a67a1"
+      }
+    }
+  ],
+  "cache_timestamp": 1759584353,
+  "fetched_at": {
+    "$date": "2025-10-04T13:26:12.409Z"
+  },
+  "sell_velocity": 0.75,
+  "trend": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e120c3c16cfd74fb5a6e64"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e65"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e66"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e67"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e68"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e69"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e6a"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e6b"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e6c"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e6d"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e6e"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e6f"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e70"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e71"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e72"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e73"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e74"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e75"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e76"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e77"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e120c3c16cfd74fb5a6e78"
+      }
+    }
+  ],
+  "cache_timestamp": 1759584443,
+  "fetched_at": {
+    "$date": "2025-10-04T13:27:31.188Z"
+  },
+  "sell_velocity": 0.75,
+  "trend": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12111c16cfd74fb5a753b"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a753c"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a753d"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a753e"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a753f"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a7540"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a7541"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a7542"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a7543"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a7544"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a7545"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a7546"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a7547"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a7548"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a7549"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a754a"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a754b"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a754c"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a754d"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a754e"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e12111c16cfd74fb5a754f"
+      }
+    }
+  ],
+  "cache_timestamp": 1759584503,
+  "fetched_at": {
+    "$date": "2025-10-04T13:28:49.892Z"
+  },
+  "sell_velocity": 0.75,
+  "trend": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12161c16cfd74fb5a7d3f"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d40"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d41"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d42"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d43"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d44"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d45"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d46"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d47"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d48"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d49"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d4a"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d4b"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d4c"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d4d"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d4e"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d4f"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d50"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d51"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d52"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e12161c16cfd74fb5a7d53"
+      }
+    }
+  ],
+  "cache_timestamp": 1759584593,
+  "fetched_at": {
+    "$date": "2025-10-04T13:30:09.526Z"
+  },
+  "sell_velocity": null,
+  "trend": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e121c341bed700f9b713cc"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713cd"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713ce"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713cf"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713d0"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713d1"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713d2"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713d3"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713d4"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713d5"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713d6"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713d7"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713d8"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713d9"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713da"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713db"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713dc"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713dd"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713de"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713df"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e121c341bed700f9b713e0"
+      }
+    }
+  ],
+  "cache_timestamp": 1759584683,
+  "fetched_at": {
+    "$date": "2025-10-04T13:31:47.187Z"
+  },
+  "sell_velocity": null,
+  "trend": null,
+  "expected_sell_time_minutes": null,
+  "hour_velocity_24": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e1221241bed700f9b71bc5"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bc6"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bc7"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bc8"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bc9"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bca"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bcb"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bcc"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bcd"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bce"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bcf"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bd0"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bd1"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bd2"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bd3"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bd4"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bd5"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bd6"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bd7"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bd8"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e1221241bed700f9b71bd9"
+      }
+    }
+  ],
+  "cache_timestamp": 1759584778,
+  "fetched_at": {
+    "$date": "2025-10-04T13:33:06.266Z"
+  },
+  "sell_velocity": null,
+  "trend": null,
+  "expected_sell_time_minutes": null,
+  "hour_velocity_24": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e1224ed0005166e7849f32"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f33"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f34"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f35"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f36"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f37"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f38"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f39"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f3a"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f3b"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f3c"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f3d"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f3e"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f3f"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f40"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f41"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f42"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f43"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f44"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f45"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e1224ed0005166e7849f46"
+      }
+    }
+  ],
+  "cache_timestamp": 1759584838,
+  "fetched_at": {
+    "$date": "2025-10-04T13:34:06.304Z"
+  },
+  "sell_velocity": null,
+  "trend": null,
+  "expected_sell_time_minutes": null,
+  "hour_velocity_24": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e1229cd0005166e784a6fc"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a6fd"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a6fe"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a6ff"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a700"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a701"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a702"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a703"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a704"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a705"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a706"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a707"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a708"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a709"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a70a"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a70b"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a70c"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a70d"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a70e"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a70f"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e1229cd0005166e784a710"
+      }
+    }
+  ],
+  "cache_timestamp": 1759584898,
+  "fetched_at": {
+    "$date": "2025-10-04T13:35:24.943Z"
+  },
+  "sell_velocity": null,
+  "trend": null,
+  "expected_sell_time_minutes": null,
+  "hour_velocity_24": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e122ebd0005166e784add3"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e122ebd0005166e784add4"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e122ebd0005166e784add5"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e122ebd0005166e784add6"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e122ebd0005166e784add7"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e122ebd0005166e784add8"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e122ebd0005166e784add9"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e122ebd0005166e784adda"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e122ebd0005166e784addb"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e122ebd0005166e784addc"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e122ebd0005166e784addd"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e122ebd0005166e784adde"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e122ebd0005166e784addf"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e122ebd0005166e784ade0"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e122ebd0005166e784ade1"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e122ebd0005166e784ade2"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e122ebd0005166e784ade3"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e122ebd0005166e784ade4"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e122ebd0005166e784ade5"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e122ebd0005166e784ade6"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e122ebd0005166e784ade7"
+      }
+    }
+  ],
+  "cache_timestamp": 1759584989,
+  "fetched_at": {
+    "$date": "2025-10-04T13:36:43.799Z"
+  },
+  "sell_velocity": null,
+  "trend": null,
+  "expected_sell_time_minutes": null,
+  "hour_velocity_24": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e1233bd0005166e784b4ab"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4ac"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4ad"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4ae"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4af"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4b0"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4b1"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4b2"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4b3"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4b4"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4b5"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4b6"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4b7"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4b8"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4b9"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4ba"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4bb"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4bc"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4bd"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4be"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e1233bd0005166e784b4bf"
+      }
+    }
+  ],
+  "cache_timestamp": 1759585079,
+  "fetched_at": {
+    "$date": "2025-10-04T13:38:03.038Z"
+  },
+  "sell_velocity": null,
+  "trend": null,
+  "expected_sell_time_minutes": null,
+  "hour_velocity_24": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e1238ad0005166e784bb82"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb83"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb84"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb85"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb86"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb87"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb88"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb89"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb8a"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb8b"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb8c"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb8d"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb8e"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb8f"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb90"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb91"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb92"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb93"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb94"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb95"
+      }
+    },
+    {
+      "price": 349900,
+      "amount": 205,
+      "_id": {
+        "$oid": "68e1238ad0005166e784bb96"
+      }
+    }
+  ],
+  "cache_timestamp": 1759585139,
+  "fetched_at": {
+    "$date": "2025-10-04T13:39:22.792Z"
+  },
+  "sell_velocity": null,
+  "trend": null,
+  "expected_sell_time_minutes": null,
+  "hour_velocity_24": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e123d9d0005166e784c269"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c26a"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c26b"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c26c"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c26d"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c26e"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c26f"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c270"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c271"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c272"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c273"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c274"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c275"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c276"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c277"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c278"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c279"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c27a"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c27b"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c27c"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e123d9d0005166e784c27d"
+      }
+    }
+  ],
+  "cache_timestamp": 1759585229,
+  "fetched_at": {
+    "$date": "2025-10-04T13:40:41.478Z"
+  },
+  "sell_velocity": null,
+  "trend": null,
+  "expected_sell_time_minutes": null,
+  "hour_velocity_24": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12428d0005166e784c940"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12428d0005166e784c941"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12428d0005166e784c942"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12428d0005166e784c943"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12428d0005166e784c944"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12428d0005166e784c945"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12428d0005166e784c946"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12428d0005166e784c947"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12428d0005166e784c948"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12428d0005166e784c949"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12428d0005166e784c94a"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12428d0005166e784c94b"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12428d0005166e784c94c"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12428d0005166e784c94d"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12428d0005166e784c94e"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12428d0005166e784c94f"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12428d0005166e784c950"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12428d0005166e784c951"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12428d0005166e784c952"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12428d0005166e784c953"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e12428d0005166e784c954"
+      }
+    }
+  ],
+  "cache_timestamp": 1759585319,
+  "fetched_at": {
+    "$date": "2025-10-04T13:42:00.270Z"
+  },
+  "sell_velocity": null,
+  "trend": null,
+  "expected_sell_time_minutes": null,
+  "hour_velocity_24": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12477d0005166e784d019"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12477d0005166e784d01a"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12477d0005166e784d01b"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12477d0005166e784d01c"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12477d0005166e784d01d"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12477d0005166e784d01e"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12477d0005166e784d01f"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12477d0005166e784d020"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12477d0005166e784d021"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12477d0005166e784d022"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12477d0005166e784d023"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12477d0005166e784d024"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12477d0005166e784d025"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12477d0005166e784d026"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12477d0005166e784d027"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12477d0005166e784d028"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12477d0005166e784d029"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12477d0005166e784d02a"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12477d0005166e784d02b"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12477d0005166e784d02c"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e12477d0005166e784d02d"
+      }
+    }
+  ],
+  "cache_timestamp": 1759585384,
+  "fetched_at": {
+    "$date": "2025-10-04T13:43:19.988Z"
+  },
+  "sell_velocity": null,
+  "trend": null,
+  "expected_sell_time_minutes": null,
+  "hour_velocity_24": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e124c6d0005166e784d6f0"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d6f1"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d6f2"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d6f3"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d6f4"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d6f5"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d6f6"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d6f7"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d6f8"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d6f9"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d6fa"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d6fb"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d6fc"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d6fd"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d6fe"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d6ff"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d700"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d701"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d702"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d703"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e124c6d0005166e784d704"
+      }
+    }
+  ],
+  "cache_timestamp": 1759585474,
+  "fetched_at": {
+    "$date": "2025-10-04T13:44:38.780Z"
+  },
+  "sell_velocity": null,
+  "trend": null,
+  "expected_sell_time_minutes": null,
+  "hour_velocity_24": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12508e639cdf163402219"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 100,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12508e639cdf16340221a"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12508e639cdf16340221b"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12508e639cdf16340221c"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12508e639cdf16340221d"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12508e639cdf16340221e"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12508e639cdf16340221f"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12508e639cdf163402220"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12508e639cdf163402221"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12508e639cdf163402222"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12508e639cdf163402223"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12508e639cdf163402224"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12508e639cdf163402225"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12508e639cdf163402226"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12508e639cdf163402227"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12508e639cdf163402228"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12508e639cdf163402229"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12508e639cdf16340222a"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12508e639cdf16340222b"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12508e639cdf16340222c"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12508e639cdf16340222d"
+      }
+    }
+  ],
+  "cache_timestamp": 1759585534,
+  "fetched_at": {
+    "$date": "2025-10-04T13:45:44.572Z"
+  },
+  "sell_velocity": null,
+  "trend": null,
+  "expected_sell_time_minutes": null,
+  "hour_velocity_24": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12557e639cdf1634028f5"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 50,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12557e639cdf1634028f6"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12557e639cdf1634028f7"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12557e639cdf1634028f8"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12557e639cdf1634028f9"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12557e639cdf1634028fa"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12557e639cdf1634028fb"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12557e639cdf1634028fc"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12557e639cdf1634028fd"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12557e639cdf1634028fe"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12557e639cdf1634028ff"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12557e639cdf163402900"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12557e639cdf163402901"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12557e639cdf163402902"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12557e639cdf163402903"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12557e639cdf163402904"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12557e639cdf163402905"
+      }
+    },
+    {
+      "price": 343999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12557e639cdf163402906"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12557e639cdf163402907"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12557e639cdf163402908"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12557e639cdf163402909"
+      }
+    }
+  ],
+  "cache_timestamp": 1759585594,
+  "fetched_at": {
+    "$date": "2025-10-04T13:47:03.167Z"
+  },
+  "sell_velocity": null,
+  "trend": null,
+  "expected_sell_time_minutes": null,
+  "hour_velocity_24": null,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e125a8e639cdf163402fcd"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 50,
+  "listings": [
+    {
+      "price": 313638,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fce"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fcf"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fd0"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fd1"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fd2"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fd3"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fd4"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fd5"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fd6"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fd7"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fd8"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fd9"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fda"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fdb"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fdc"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fdd"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fde"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fdf"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fe0"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e125a8e639cdf163402fe1"
+      }
+    }
+  ],
+  "cache_timestamp": 1759585685,
+  "fetched_at": {
+    "$date": "2025-10-04T13:48:24.053Z"
+  },
+  "sell_velocity": 38.17,
+  "trend": null,
+  "expected_sell_time_minutes": 1.31,
+  "hour_velocity_24": 257.8,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e125f7e639cdf1634036a3"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 50,
+  "listings": [
+    {
+      "price": 313638,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036a4"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036a5"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036a6"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036a7"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036a8"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036a9"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036aa"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036ab"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036ac"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036ad"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036ae"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036af"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036b0"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036b1"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036b2"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036b3"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036b4"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036b5"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036b6"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e125f7e639cdf1634036b7"
+      }
+    }
+  ],
+  "cache_timestamp": 1759585775,
+  "fetched_at": {
+    "$date": "2025-10-04T13:49:43.621Z"
+  },
+  "sell_velocity": 38.17,
+  "trend": null,
+  "expected_sell_time_minutes": 1.31,
+  "hour_velocity_24": 257.05,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12646e639cdf163403d89"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 50,
+  "listings": [
+    {
+      "price": 313638,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d8a"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d8b"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d8c"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d8d"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d8e"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d8f"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d90"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d91"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d92"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d93"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d94"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d95"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d96"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d97"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d98"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d99"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d9a"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d9b"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d9c"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12646e639cdf163403d9d"
+      }
+    }
+  ],
+  "cache_timestamp": 1759585835,
+  "fetched_at": {
+    "$date": "2025-10-04T13:51:02.654Z"
+  },
+  "sell_velocity": 38.17,
+  "trend": null,
+  "expected_sell_time_minutes": 1.31,
+  "hour_velocity_24": 256.93,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12696e639cdf16340445f"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 50,
+  "listings": [
+    {
+      "price": 313638,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12696e639cdf163404460"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12696e639cdf163404461"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12696e639cdf163404462"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12696e639cdf163404463"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12696e639cdf163404464"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12696e639cdf163404465"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12696e639cdf163404466"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12696e639cdf163404467"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12696e639cdf163404468"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12696e639cdf163404469"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12696e639cdf16340446a"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12696e639cdf16340446b"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12696e639cdf16340446c"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12696e639cdf16340446d"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12696e639cdf16340446e"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12696e639cdf16340446f"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12696e639cdf163404470"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12696e639cdf163404471"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12696e639cdf163404472"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12696e639cdf163404473"
+      }
+    }
+  ],
+  "cache_timestamp": 1759585930,
+  "fetched_at": {
+    "$date": "2025-10-04T13:52:22.387Z"
+  },
+  "sell_velocity": 38.17,
+  "trend": null,
+  "expected_sell_time_minutes": 1.31,
+  "hour_velocity_24": 257.19,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e126e5e639cdf163404b34"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 50,
+  "listings": [
+    {
+      "price": 313638,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b35"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b36"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b37"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b38"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b39"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b3a"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b3b"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b3c"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b3d"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b3e"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b3f"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b40"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b41"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b42"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b43"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b44"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b45"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b46"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b47"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e126e5e639cdf163404b48"
+      }
+    }
+  ],
+  "cache_timestamp": 1759586020,
+  "fetched_at": {
+    "$date": "2025-10-04T13:53:41.106Z"
+  },
+  "sell_velocity": 38.17,
+  "trend": null,
+  "expected_sell_time_minutes": 1.31,
+  "hour_velocity_24": 256.81,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12733e639cdf163405209"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 50,
+  "listings": [
+    {
+      "price": 313638,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12733e639cdf16340520a"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12733e639cdf16340520b"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12733e639cdf16340520c"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12733e639cdf16340520d"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12733e639cdf16340520e"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12733e639cdf16340520f"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12733e639cdf163405210"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12733e639cdf163405211"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12733e639cdf163405212"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12733e639cdf163405213"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12733e639cdf163405214"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12733e639cdf163405215"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12733e639cdf163405216"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12733e639cdf163405217"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12733e639cdf163405218"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12733e639cdf163405219"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12733e639cdf16340521a"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12733e639cdf16340521b"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12733e639cdf16340521c"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12733e639cdf16340521d"
+      }
+    }
+  ],
+  "cache_timestamp": 1759586080,
+  "fetched_at": {
+    "$date": "2025-10-04T13:54:59.811Z"
+  },
+  "sell_velocity": 38.17,
+  "trend": null,
+  "expected_sell_time_minutes": 1.31,
+  "hour_velocity_24": 256.84,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12792dbaef056f6892f02"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 50,
+  "listings": [
+    {
+      "price": 313638,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f03"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f04"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f05"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f06"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f07"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f08"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f09"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f0a"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f0b"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f0c"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f0d"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f0e"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f0f"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f10"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f11"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f12"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f13"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f14"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f15"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12792dbaef056f6892f16"
+      }
+    }
+  ],
+  "cache_timestamp": 1759586170,
+  "fetched_at": {
+    "$date": "2025-10-04T13:56:34.396Z"
+  },
+  "sell_velocity": 38.17,
+  "trend": null,
+  "expected_sell_time_minutes": 1.31,
+  "hour_velocity_24": 257.21,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e127ebdbaef056f68936c5"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 30,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936c6"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936c7"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936c8"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936c9"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936ca"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936cb"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936cc"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936cd"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936ce"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936cf"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936d0"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936d1"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936d2"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936d3"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936d4"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936d5"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936d6"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936d7"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936d8"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e127ebdbaef056f68936d9"
+      }
+    }
+  ],
+  "cache_timestamp": 1759586265,
+  "fetched_at": {
+    "$date": "2025-10-04T13:58:03.166Z"
+  },
+  "sell_velocity": 38.17,
+  "trend": null,
+  "expected_sell_time_minutes": 0.79,
+  "hour_velocity_24": 251.53,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12844dbaef056f6893e86"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 30,
+  "listings": [
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e87"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e88"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e89"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e8a"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e8b"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e8c"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e8d"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e8e"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e8f"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e90"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e91"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e92"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e93"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e94"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e95"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e96"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e97"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e98"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e99"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e12844dbaef056f6893e9a"
+      }
+    }
+  ],
+  "cache_timestamp": 1759586355,
+  "fetched_at": {
+    "$date": "2025-10-04T13:59:32.900Z"
+  },
+  "sell_velocity": 25.84,
+  "trend": -24.65,
+  "expected_sell_time_minutes": 1.16,
+  "hour_velocity_24": 341.19,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e1289ddbaef056f6894652"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 30,
+  "listings": [
+    {
+      "price": 313600,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1289ddbaef056f6894653"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1289ddbaef056f6894654"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1289ddbaef056f6894655"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1289ddbaef056f6894656"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e1289ddbaef056f6894657"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1289ddbaef056f6894658"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e1289ddbaef056f6894659"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e1289ddbaef056f689465a"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e1289ddbaef056f689465b"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e1289ddbaef056f689465c"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1289ddbaef056f689465d"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1289ddbaef056f689465e"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1289ddbaef056f689465f"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1289ddbaef056f6894660"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e1289ddbaef056f6894661"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e1289ddbaef056f6894662"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e1289ddbaef056f6894663"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e1289ddbaef056f6894664"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e1289ddbaef056f6894665"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e1289ddbaef056f6894666"
+      }
+    }
+  ],
+  "cache_timestamp": 1759586445,
+  "fetched_at": {
+    "$date": "2025-10-04T14:01:01.718Z"
+  },
+  "sell_velocity": 13.52,
+  "trend": null,
+  "expected_sell_time_minutes": 2.22,
+  "hour_velocity_24": 96.03,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e128f7dbaef056f6894e16"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 30,
+  "listings": [
+    {
+      "price": 313600,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e17"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e18"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e19"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e1a"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e1b"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e1c"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e1d"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e1e"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e1f"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e20"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e21"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e22"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e23"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e24"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e25"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e26"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e27"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e28"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e29"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e128f7dbaef056f6894e2a"
+      }
+    }
+  ],
+  "cache_timestamp": 1759586536,
+  "fetched_at": {
+    "$date": "2025-10-04T14:02:31.452Z"
+  },
+  "sell_velocity": 13.52,
+  "trend": null,
+  "expected_sell_time_minutes": 2.22,
+  "hour_velocity_24": 95.03,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12950dbaef056f68955d2"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 15,
+  "listings": [
+    {
+      "price": 313600,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955d3"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955d4"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955d5"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955d6"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955d7"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955d8"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955d9"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955da"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955db"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955dc"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955dd"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955de"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955df"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955e0"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955e1"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955e2"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955e3"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955e4"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955e5"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e12950dbaef056f68955e6"
+      }
+    }
+  ],
+  "cache_timestamp": 1759586626,
+  "fetched_at": {
+    "$date": "2025-10-04T14:04:00.233Z"
+  },
+  "sell_velocity": 13.52,
+  "trend": null,
+  "expected_sell_time_minutes": 1.11,
+  "hour_velocity_24": 93.77,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e129a9dbaef056f6895d92"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 14,
+  "listings": [
+    {
+      "price": 313600,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895d93"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895d94"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895d95"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895d96"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895d97"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895d98"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895d99"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895d9a"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895d9b"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895d9c"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895d9d"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895d9e"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895d9f"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895da0"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895da1"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895da2"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895da3"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895da4"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895da5"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e129a9dbaef056f6895da6"
+      }
+    }
+  ],
+  "cache_timestamp": 1759586716,
+  "fetched_at": {
+    "$date": "2025-10-04T14:05:29.902Z"
+  },
+  "sell_velocity": 11.83,
+  "trend": -3.38,
+  "expected_sell_time_minutes": 1.18,
+  "hour_velocity_24": 162.04,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12a02dbaef056f689654d"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 13,
+  "listings": [
+    {
+      "price": 313600,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12a02dbaef056f689654e"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12a02dbaef056f689654f"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12a02dbaef056f6896550"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12a02dbaef056f6896551"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12a02dbaef056f6896552"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12a02dbaef056f6896553"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12a02dbaef056f6896554"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12a02dbaef056f6896555"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12a02dbaef056f6896556"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12a02dbaef056f6896557"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12a02dbaef056f6896558"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12a02dbaef056f6896559"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12a02dbaef056f689655a"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12a02dbaef056f689655b"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12a02dbaef056f689655c"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12a02dbaef056f689655d"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12a02dbaef056f689655e"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12a02dbaef056f689655f"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12a02dbaef056f6896560"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e12a02dbaef056f6896561"
+      }
+    }
+  ],
+  "cache_timestamp": 1759586806,
+  "fetched_at": {
+    "$date": "2025-10-04T14:06:58.956Z"
+  },
+  "sell_velocity": 8.11,
+  "trend": -8.11,
+  "expected_sell_time_minutes": 1.6,
+  "hour_velocity_24": 164.57,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12a5cdbaef056f6896d0a"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 13,
+  "listings": [
+    {
+      "price": 313600,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d0b"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d0c"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d0d"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d0e"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d0f"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d10"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d11"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d12"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d13"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d14"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d15"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d16"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d17"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d18"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d19"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d1a"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d1b"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d1c"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d1d"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e12a5cdbaef056f6896d1e"
+      }
+    }
+  ],
+  "cache_timestamp": 1759586897,
+  "fetched_at": {
+    "$date": "2025-10-04T14:08:28.629Z"
+  },
+  "sell_velocity": 6.25,
+  "trend": -11.16,
+  "expected_sell_time_minutes": 2.08,
+  "hour_velocity_24": 166.95,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12ab5dbaef056f68974c5"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 13,
+  "listings": [
+    {
+      "price": 313600,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974c6"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974c7"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974c8"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974c9"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974ca"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974cb"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974cc"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974cd"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974ce"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974cf"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974d0"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974d1"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974d2"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974d3"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974d4"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974d5"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974d6"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974d7"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974d8"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e12ab5dbaef056f68974d9"
+      }
+    }
+  ],
+  "cache_timestamp": 1759586987,
+  "fetched_at": {
+    "$date": "2025-10-04T14:09:57.321Z"
+  },
+  "sell_velocity": 6.25,
+  "trend": -11.16,
+  "expected_sell_time_minutes": 2.08,
+  "hour_velocity_24": 164.68,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12b0fdbaef056f6897c92"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 13,
+  "listings": [
+    {
+      "price": 313600,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897c93"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897c94"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897c95"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897c96"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897c97"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897c98"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897c99"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897c9a"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897c9b"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897c9c"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897c9d"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897c9e"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897c9f"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897ca0"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897ca1"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897ca2"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897ca3"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897ca4"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897ca5"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e12b0fdbaef056f6897ca6"
+      }
+    }
+  ],
+  "cache_timestamp": 1759587077,
+  "fetched_at": {
+    "$date": "2025-10-04T14:11:27.123Z"
+  },
+  "sell_velocity": 6.25,
+  "trend": -11.16,
+  "expected_sell_time_minutes": 2.08,
+  "hour_velocity_24": 165.89,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12b61469c659e052bc70c"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 13,
+  "listings": [
+    {
+      "price": 313600,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc70d"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc70e"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc70f"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc710"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc711"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc712"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc713"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc714"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc715"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc716"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc717"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc718"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc719"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc71a"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc71b"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc71c"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc71d"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc71e"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc71f"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e12b61469c659e052bc720"
+      }
+    }
+  ],
+  "cache_timestamp": 1759587168,
+  "fetched_at": {
+    "$date": "2025-10-04T14:12:49.615Z"
+  },
+  "sell_velocity": 1.27,
+  "trend": -9.47,
+  "expected_sell_time_minutes": 10.25,
+  "hour_velocity_24": 76.12,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12bbb469c659e052bceca"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 13,
+  "listings": [
+    {
+      "price": 313600,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bcecb"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bcecc"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bcecd"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bcece"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bcecf"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bced0"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bced1"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bced2"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bced3"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bced4"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bced5"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bced6"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bced7"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bced8"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bced9"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bceda"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bcedb"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bcedc"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bcedd"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e12bbb469c659e052bcede"
+      }
+    }
+  ],
+  "cache_timestamp": 1759587258,
+  "fetched_at": {
+    "$date": "2025-10-04T14:14:19.258Z"
+  },
+  "sell_velocity": 1.28,
+  "trend": -9.47,
+  "expected_sell_time_minutes": 10.15,
+  "hour_velocity_24": 76.82,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12c14469c659e052bd686"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 13,
+  "listings": [
+    {
+      "price": 313600,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd687"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd688"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd689"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd68a"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd68b"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd68c"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd68d"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd68e"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd68f"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd690"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd691"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd692"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd693"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd694"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd695"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd696"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd697"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd698"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd699"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e12c14469c659e052bd69a"
+      }
+    }
+  ],
+  "cache_timestamp": 1759587318,
+  "fetched_at": {
+    "$date": "2025-10-04T14:15:48.063Z"
+  },
+  "sell_velocity": 1.28,
+  "trend": -9.47,
+  "expected_sell_time_minutes": 10.16,
+  "hour_velocity_24": 76.74,
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68e12c6d469c659e052bde44"
+  },
+  "country": "Torn",
+  "itemId": 464,
+  "name": "Melatonin",
+  "type": "Temporary",
+  "shopName": "the Pharmacy",
+  "buy_price": 300000,
+  "market_price": 313639,
+  "profitPer1": 13639,
+  "in_stock": 13,
+  "listings": [
+    {
+      "price": 313600,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde45"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde46"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde47"
+      }
+    },
+    {
+      "price": 313639,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde48"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 5,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde49"
+      }
+    },
+    {
+      "price": 325999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde4a"
+      }
+    },
+    {
+      "price": 339000,
+      "amount": 4,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde4b"
+      }
+    },
+    {
+      "price": 339443,
+      "amount": 39,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde4c"
+      }
+    },
+    {
+      "price": 339444,
+      "amount": 10,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde4d"
+      }
+    },
+    {
+      "price": 339494,
+      "amount": 20,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde4e"
+      }
+    },
+    {
+      "price": 339495,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde4f"
+      }
+    },
+    {
+      "price": 339496,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde50"
+      }
+    },
+    {
+      "price": 339500,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde51"
+      }
+    },
+    {
+      "price": 340000,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde52"
+      }
+    },
+    {
+      "price": 341998,
+      "amount": 2,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde53"
+      }
+    },
+    {
+      "price": 341999,
+      "amount": 1,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde54"
+      }
+    },
+    {
+      "price": 344000,
+      "amount": 73,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde55"
+      }
+    },
+    {
+      "price": 344999,
+      "amount": 40,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde56"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 4768,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde57"
+      }
+    },
+    {
+      "price": 345000,
+      "amount": 3,
+      "_id": {
+        "$oid": "68e12c6d469c659e052bde58"
+      }
+    }
+  ],
+  "cache_timestamp": 1759587408,
+  "fetched_at": {
+    "$date": "2025-10-04T14:17:17.700Z"
+  },
+  "sell_velocity": 1.28,
+  "trend": -9.47,
+  "expected_sell_time_minutes": 10.15,
+  "hour_velocity_24": 76.83,
+  "__v": 0
+}]
