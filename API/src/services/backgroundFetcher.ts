@@ -562,13 +562,13 @@ export function startScheduler(): void {
   // Run initial tracked items update after 1 minute to ensure data is available
   setTimeout(() => {
     updateTrackedItems();
+    
+    // Start self-scheduling market snapshots right after tracked items are initialized
+    setTimeout(() => {
+      logInfo('Starting self-scheduling market snapshots...');
+      fetchMarketSnapshots();
+    }, 5000); // 5 seconds after tracked items update completes
   }, 60000);
-
-  // Start self-scheduling market snapshots after 2 minutes (after tracked items are initialized)
-  setTimeout(() => {
-    logInfo('Starting self-scheduling market snapshots...');
-    fetchMarketSnapshots();
-  }, 2 * 60 * 1000);
 
   logInfo('Background fetcher scheduler started successfully');
 }

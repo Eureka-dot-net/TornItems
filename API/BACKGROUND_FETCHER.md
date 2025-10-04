@@ -225,7 +225,7 @@ Waiting 29.50 seconds before next cycle to respect rate limit...
 - The scheduler runs 24/7 in production
 - Initial item fetch happens on startup if data is older than 24 hours
 - Tracked items update 1 minute after startup, then every 10 minutes
-- Market snapshots use self-scheduling with intelligent rate limiting
+- Market snapshots start ~65 seconds after startup (5 seconds after tracked items initialize), then use self-scheduling with intelligent rate limiting
 - All timestamps use ISO 8601 format
 - Bulk operations minimize database round trips
 - Historical snapshots are never overwritten
