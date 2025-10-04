@@ -700,20 +700,30 @@ async function updateMonitorFrequency(
     );
   } else {
     // Increment frequency (max 10) - this item is quiet
-    const item = await MonitoredItem.findOne({ itemId, country });
-    if (item) {
-      const newFrequency = Math.min(item.MonitorFrequency + 1, 10);
-      await MonitoredItem.findOneAndUpdate(
-        { itemId, country },
+    // Use aggregation pipeline to increment and cap in a single operation
+    const result = await MonitoredItem.findOneAndUpdate(
+      { itemId, country },
+      [
         {
           $set: {
-            MonitorFrequency: newFrequency,
+            MonitorFrequency: {
+              $cond: {
+                if: { $gte: ['$MonitorFrequency', 10] },
+                then: 10,
+                else: { $add: ['$MonitorFrequency', 1] }
+              }
+            },
             cycles_since_last_check: 0,
             lastCheckedData: currentData,
             lastCheckTimestamp: new Date(),
-          },
+          }
         }
-      );
+      ]
+    );
+    
+    // If item doesn't exist, log a warning (shouldn't happen)
+    if (!result) {
+      logError(`MonitoredItem not found for itemId ${itemId} in ${country}`, new Error('Item not found'));
     }
   }
 }
@@ -775,6 +785,8 @@ export async function fetchMarketSnapshots(): Promise<void> {
     if (itemsToCheck.length > maxItemsToCheck) {
       logInfo(`Rate limit protection: checking ${maxItemsToCheck} of ${itemsToCheck.length} items`);
     }
+
+    logInfo(`Starting to check ${selectedItems.length} items...`);
 
     // Get all items data and stock data for reference
     const [allItems, cityShopStock, foreignStock] = await Promise.all([
@@ -907,12 +919,19 @@ export async function fetchMarketSnapshots(): Promise<void> {
           curiosityCheckedCount++;
         }
         
-        await updateMonitorFrequency(itemId, country, hasMovement, currentData);
+        // Update MonitorFrequency with error handling
+        try {
+          await updateMonitorFrequency(itemId, country, hasMovement, currentData);
+        } catch (freqError) {
+          logError(`Error updating MonitorFrequency for item ${itemId} in ${country}`, freqError instanceof Error ? freqError : new Error(String(freqError)));
+        }
 
       } catch (error) {
         logError(`Error fetching market data for item ${itemId} in ${country}`, error instanceof Error ? error : new Error(String(error)));
       }
     }
+
+    logInfo(`Finished checking ${selectedItems.length} items`);
 
     const elapsed = Date.now() - startTime;
     const elapsedSeconds = elapsed / 1000;
