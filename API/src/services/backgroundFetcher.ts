@@ -449,11 +449,10 @@ async function calculateVelocityAndTrend(
     }
 
     // Calculate expected_sell_time_minutes
-    // Get total available amount in current listings
-    const currentTotalAmount = currentListings.reduce((sum, listing) => sum + listing.amount, 0);
+    // This represents how long (in minutes) it takes to sell ONE item at the current velocity
     let expected_sell_time_minutes: number | null = null;
-    if (currentTotalAmount > 0 && avgVelocity && avgVelocity > 0) {
-      expected_sell_time_minutes = currentTotalAmount / avgVelocity;
+    if (avgVelocity && avgVelocity > 0) {
+      expected_sell_time_minutes = 1 / avgVelocity;
     }
 
     // Calculate 24_hour_velocity
