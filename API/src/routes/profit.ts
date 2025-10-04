@@ -101,7 +101,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         }
         itemsSoldMap.get(key)!.push({
           Amount: snapshot.items_sold,
-          TimeStamp: snapshot.fetched_at
+          TimeStamp: snapshot.fetched_at.toISOString()
         });
       }
     }
