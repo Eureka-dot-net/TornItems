@@ -18,6 +18,7 @@ interface CountryItem {
   sales_24h_previous?: number | null;
   trend_24h?: number | null;
   hour_velocity_24?: number | null;
+  average_price_items_sold?: number | null;
   ItemsSold?: Array<{ Amount: number; TimeStamp: string }>;
 }
 
@@ -143,6 +144,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       let sales_24h_previous: number | null = null;
       let trend_24h: number | null = null;
       let hour_velocity_24: number | null = null;
+      let average_price_items_sold: number | null = null;
       
       const snapshotKey = `${country}:${item.itemId}`;
       const latestSnapshot = snapshotMap.get(snapshotKey);
@@ -152,6 +154,11 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         sales_24h_previous = latestSnapshot.sales_24h_previous ?? null;
         trend_24h = latestSnapshot.trend_24h ?? null;
         hour_velocity_24 = latestSnapshot.hour_velocity_24 ?? null;
+        
+        // Calculate average price from total revenue and total items sold in 24h period
+        if (latestSnapshot.total_revenue_24h_current && latestSnapshot.sales_24h_current && latestSnapshot.sales_24h_current > 0) {
+          average_price_items_sold = Math.round(latestSnapshot.total_revenue_24h_current / latestSnapshot.sales_24h_current);
+        }
       }
       
       // Get pre-built ItemsSold array from map (O(1) lookup)
@@ -171,6 +178,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         sales_24h_previous,
         trend_24h,
         hour_velocity_24,
+        average_price_items_sold,
         ItemsSold: ItemsSold.length > 0 ? ItemsSold : undefined,
       });
     }

@@ -373,8 +373,10 @@ async function calculate24HourMetrics(
   currentListings: { price: number; amount: number }[]
 ): Promise<{ 
   items_sold: number | null;
+  total_revenue_sold: number | null;
   sales_24h_current: number | null;
   sales_24h_previous: number | null;
+  total_revenue_24h_current: number | null;
   trend_24h: number | null;
   hour_velocity_24: number | null;
 }> {
@@ -391,16 +393,16 @@ async function calculate24HourMetrics(
 
     if (snapshots.length < 1) {
       // Not enough history - this is the first snapshot
-      return { items_sold: null, sales_24h_current: null, sales_24h_previous: null, trend_24h: null, hour_velocity_24: null };
+      return { items_sold: null, total_revenue_sold: null, sales_24h_current: null, sales_24h_previous: null, total_revenue_24h_current: null, trend_24h: null, hour_velocity_24: null };
     }
 
-    // Calculate items sold between current snapshot and most recent previous snapshot
+    // Calculate items sold and revenue between current snapshot and most recent previous snapshot
     const previousSnapshot = snapshots[0];
-    const itemsSold = calculateItemsSoldBetweenSnapshots(previousSnapshot.listings, currentListings);
+    const { itemsSold, totalRevenue } = calculateItemsSoldAndRevenueBetweenSnapshots(previousSnapshot.listings, currentListings);
 
     if (snapshots.length < 2) {
       // Only one previous snapshot, can't calculate 24h metrics yet
-      return { items_sold: itemsSold, sales_24h_current: null, sales_24h_previous: null, trend_24h: null, hour_velocity_24: null };
+      return { items_sold: itemsSold, total_revenue_sold: totalRevenue, sales_24h_current: null, sales_24h_previous: null, total_revenue_24h_current: null, trend_24h: null, hour_velocity_24: null };
     }
 
     const now = Date.now();
@@ -412,11 +414,14 @@ async function calculate24HourMetrics(
     );
 
     let sales_24h_current: number | null = null;
+    let total_revenue_24h_current: number | null = null;
     if (current24hSnapshots.length >= 1) {
       // Calculate total items sold in 24h period by comparing oldest to newest snapshot in that period
       const oldestIn24h = current24hSnapshots[current24hSnapshots.length - 1];
       const newestIn24h = currentListings; // Current listings we're about to save
-      sales_24h_current = calculateItemsSoldBetweenSnapshots(oldestIn24h.listings, newestIn24h);
+      const result = calculateItemsSoldAndRevenueBetweenSnapshots(oldestIn24h.listings, newestIn24h);
+      sales_24h_current = result.itemsSold;
+      total_revenue_24h_current = result.totalRevenue;
     }
 
     // Calculate sales in the previous 24-hour period (24h-48h ago)
@@ -431,7 +436,8 @@ async function calculate24HourMetrics(
       // Compare oldest snapshot in previous period to oldest snapshot in current period
       const oldestInPrevious = previous24hSnapshots[previous24hSnapshots.length - 1];
       const oldestInCurrent = current24hSnapshots[current24hSnapshots.length - 1];
-      sales_24h_previous = calculateItemsSoldBetweenSnapshots(oldestInPrevious.listings, oldestInCurrent.listings);
+      const result = calculateItemsSoldAndRevenueBetweenSnapshots(oldestInPrevious.listings, oldestInCurrent.listings);
+      sales_24h_previous = result.itemsSold;
     }
 
     // Calculate trend_24h (percentage change from previous to current)
@@ -448,31 +454,34 @@ async function calculate24HourMetrics(
 
     return { 
       items_sold: itemsSold,
+      total_revenue_sold: totalRevenue,
       sales_24h_current: sales_24h_current,
       sales_24h_previous: sales_24h_previous,
+      total_revenue_24h_current: total_revenue_24h_current,
       trend_24h: trend_24h !== null ? Math.round(trend_24h * 100) / 100 : null,
       hour_velocity_24: hour_velocity_24 !== null ? Math.round(hour_velocity_24 * 100) / 100 : null,
     };
   } catch (error) {
     logError(`Error calculating 24h metrics for item ${itemId} in ${country}`, error instanceof Error ? error : new Error(String(error)));
-    return { items_sold: null, sales_24h_current: null, sales_24h_previous: null, trend_24h: null, hour_velocity_24: null };
+    return { items_sold: null, total_revenue_sold: null, sales_24h_current: null, sales_24h_previous: null, total_revenue_24h_current: null, trend_24h: null, hour_velocity_24: null };
   }
 }
 
-// Helper function to calculate how many items were sold between two snapshots
+// Helper function to calculate how many items were sold and total revenue between two snapshots
 // Compares listings arrays to determine what disappeared or decreased
-function calculateItemsSoldBetweenSnapshots(
+function calculateItemsSoldAndRevenueBetweenSnapshots(
   olderListings: { price: number; amount: number }[],
   newerListings: { price: number; amount: number }[]
-): number {
+): { itemsSold: number; totalRevenue: number } {
   // Create a map of price -> total amount for newer listings
   const newerMap = new Map<number, number>();
   for (const listing of newerListings) {
     newerMap.set(listing.price, (newerMap.get(listing.price) || 0) + listing.amount);
   }
 
-  // Calculate how many items from older listings are no longer available
+  // Calculate how many items from older listings are no longer available and total revenue
   let itemsSold = 0;
+  let totalRevenue = 0;
   const olderMap = new Map<number, number>();
   for (const listing of olderListings) {
     olderMap.set(listing.price, (olderMap.get(listing.price) || 0) + listing.amount);
@@ -482,11 +491,13 @@ function calculateItemsSoldBetweenSnapshots(
   for (const [price, olderAmount] of olderMap.entries()) {
     const newerAmount = newerMap.get(price) || 0;
     if (olderAmount > newerAmount) {
-      itemsSold += (olderAmount - newerAmount);
+      const soldAtThisPrice = olderAmount - newerAmount;
+      itemsSold += soldAtThisPrice;
+      totalRevenue += soldAtThisPrice * price;
     }
   }
 
-  return itemsSold;
+  return { itemsSold, totalRevenue };
 }
 
 // Fetch and store detailed market snapshots for tracked items (self-scheduling)
@@ -600,7 +611,7 @@ export async function fetchMarketSnapshots(): Promise<void> {
           })) ?? [];
 
           // Calculate 24-hour sales metrics from historical data
-          const { items_sold, sales_24h_current, sales_24h_previous, trend_24h, hour_velocity_24 } = await calculate24HourMetrics(country, itemId, currentListings);
+          const { items_sold, total_revenue_sold, sales_24h_current, sales_24h_previous, total_revenue_24h_current, trend_24h, hour_velocity_24 } = await calculate24HourMetrics(country, itemId, currentListings);
 
           // Create snapshot
           const snapshot = new MarketSnapshot({
@@ -617,8 +628,10 @@ export async function fetchMarketSnapshots(): Promise<void> {
             cache_timestamp: itemmarket.cache_timestamp ?? Date.now(),
             fetched_at: new Date(),
             items_sold,
+            total_revenue_sold,
             sales_24h_current,
             sales_24h_previous,
+            total_revenue_24h_current,
             trend_24h,
             hour_velocity_24,
           });
