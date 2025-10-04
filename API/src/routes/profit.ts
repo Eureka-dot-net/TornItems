@@ -72,6 +72,21 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       }
     }
 
+    // Create a lookup map for city shop stock: key is lowercase item name
+    const cityShopStockMap = new Map<string, any>();
+    for (const stock of cityShopStock) {
+      if (stock.itemName) {
+        cityShopStockMap.set(stock.itemName.toLowerCase(), stock);
+      }
+    }
+
+    // Create a lookup map for foreign stock: key is "countryCode:itemName" (lowercase)
+    const foreignStockMap = new Map<string, any>();
+    for (const stock of foreignStock) {
+      const key = `${stock.countryCode}:${stock.itemName.toLowerCase()}`;
+      foreignStockMap.set(key, stock);
+    }
+
     // 🗺 Group by country (shop is informational)
     const grouped: GroupedByCountry = {};
 
@@ -88,9 +103,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       let inStock: number | null = null;
 
       if (country === 'Torn') {
-        const match = cityShopStock.find(
-          (stock) => stock.itemName?.toLowerCase() === item.name.toLowerCase()
-        );
+        const match = cityShopStockMap.get(item.name.toLowerCase());
         if (match) {
           inStock = match.in_stock ?? null;
         }
@@ -101,11 +114,8 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         )?.[0];
 
         if (countryCode) {
-          const match = foreignStock.find(
-            (stock) => 
-              stock.countryCode === countryCode &&
-              stock.itemName.toLowerCase() === item.name.toLowerCase()
-          );
+          const foreignKey = `${countryCode}:${item.name.toLowerCase()}`;
+          const match = foreignStockMap.get(foreignKey);
           if (match) inStock = match.quantity;
         }
       }
