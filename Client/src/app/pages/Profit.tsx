@@ -1,11 +1,51 @@
-import { Box, Typography, CircularProgress, Alert, Tabs, Tab, Paper } from '@mui/material';
-import { useState } from 'react';
+import { Box, Typography, CircularProgress, Alert, Tabs, Tab, Paper, Grid, TableSortLabel } from '@mui/material';
+import { useState, useMemo } from 'react';
 import { useProfit } from '../../lib/hooks/useProfit';
-import { DataGrid, type GridColDef } from '@mui/x-data-grid';
+import type { CountryItem } from '../../lib/types/profit';
+
+type SortField = 'name' | 'shop_name' | 'buy_price' | 'average_price_items_sold' | 'sold_profit' | 'sales_24h_current';
+type SortOrder = 'asc' | 'desc';
 
 export default function Profit() {
     const { profitData, profitLoading, profitError } = useProfit();
     const [selectedCountry, setSelectedCountry] = useState<string>('Torn');
+    const [sortField, setSortField] = useState<SortField>('sold_profit');
+    const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+
+    const rawData = useMemo(() => 
+        profitData?.results?.[selectedCountry] || [], 
+        [profitData, selectedCountry]
+    );
+    
+    const countries = profitData?.results ? Object.keys(profitData.results).sort() : [];
+
+    // Sort the data based on current sort field and order
+    const sortedData = useMemo(() => {
+        const data = [...rawData];
+        data.sort((a, b) => {
+            const aValue = a[sortField];
+            const bValue = b[sortField];
+            
+            // Handle null/undefined values
+            if (aValue === null || aValue === undefined) return 1;
+            if (bValue === null || bValue === undefined) return -1;
+            
+            // For strings, use locale compare
+            if (typeof aValue === 'string' && typeof bValue === 'string') {
+                return sortOrder === 'asc' 
+                    ? aValue.localeCompare(bValue)
+                    : bValue.localeCompare(aValue);
+            }
+            
+            // For numbers
+            if (typeof aValue === 'number' && typeof bValue === 'number') {
+                return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+            }
+            
+            return 0;
+        });
+        return data;
+    }, [rawData, sortField, sortOrder]);
 
     if (profitLoading) {
         return (
@@ -33,87 +73,25 @@ export default function Profit() {
         );
     }
 
-    const countries = Object.keys(profitData.results).sort();
-    const currentData = profitData.results[selectedCountry] || [];
-
-    const columns: GridColDef[] = [
-        { field: 'id', headerName: 'ID', width: 70 },
-        { field: 'name', headerName: 'Name', width: 200 },
-        { 
-            field: 'buy_price', 
-            headerName: 'Buy Price', 
-            width: 120,
-            type: 'number',
-            valueFormatter: (value: number | null) => value ? `$${value.toLocaleString()}` : '-'
-        },
-        { 
-            field: 'market_price', 
-            headerName: 'Market Price', 
-            width: 130,
-            type: 'number',
-            valueFormatter: (value: number | null) => value ? `$${value.toLocaleString()}` : '-'
-        },
-        { 
-            field: 'profitPer1', 
-            headerName: 'Profit Per 1', 
-            width: 130,
-            type: 'number',
-            valueFormatter: (value: number | null) => value ? `$${value.toLocaleString()}` : '-'
-        },
-        { field: 'shop_name', headerName: 'Shop', width: 200 },
-        { 
-            field: 'in_stock', 
-            headerName: 'In Stock', 
-            width: 100,
-            type: 'number',
-            valueFormatter: (value: number | null | undefined) => value !== null && value !== undefined ? value.toLocaleString() : '-'
-        },
-        { 
-            field: 'sales_24h_current', 
-            headerName: '24h Sales', 
-            width: 110,
-            type: 'number',
-            valueFormatter: (value: number | null | undefined) => value !== null && value !== undefined ? value.toLocaleString() : '-'
-        },
-        { 
-            field: 'hour_velocity_24', 
-            headerName: 'Sales/Hour', 
-            width: 120,
-            type: 'number',
-            valueFormatter: (value: number | null | undefined) => value !== null && value !== undefined ? value.toFixed(2) : '-'
-        },
-        { 
-            field: 'average_price_items_sold', 
-            headerName: 'Avg Sold Price', 
-            width: 140,
-            type: 'number',
-            valueFormatter: (value: number | null) => value ? `$${value.toLocaleString()}` : '-'
-        },
-        { 
-            field: 'estimated_market_value_profit', 
-            headerName: 'Est. Profit', 
-            width: 130,
-            type: 'number',
-            valueFormatter: (value: number | null) => value ? `$${value.toLocaleString()}` : '-'
-        },
-        { 
-            field: 'lowest_50_profit', 
-            headerName: 'Low 50 Profit', 
-            width: 140,
-            type: 'number',
-            valueFormatter: (value: number | null) => value ? `$${value.toLocaleString()}` : '-'
-        },
-        { 
-            field: 'sold_profit', 
-            headerName: 'Sold Profit', 
-            width: 130,
-            type: 'number',
-            valueFormatter: (value: number | null) => value ? `$${value.toLocaleString()}` : '-'
-        },
-    ];
-
     const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
         setSelectedCountry(newValue);
+    };
+
+    const handleSort = (field: SortField) => {
+        if (sortField === field) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortField(field);
+            setSortOrder('desc');
+        }
+    };
+
+    const formatCurrency = (value: number | null | undefined) => {
+        return value !== null && value !== undefined ? `$${value.toLocaleString()}` : '-';
+    };
+
+    const formatNumber = (value: number | null | undefined) => {
+        return value !== null && value !== undefined ? value.toLocaleString() : '-';
     };
 
     return (
@@ -143,19 +121,116 @@ export default function Profit() {
                 </Tabs>
             </Paper>
 
-            <Box sx={{ mt: 3, height: 600, width: '100%' }}>
-                <DataGrid
-                    rows={currentData}
-                    columns={columns}
-                    initialState={{
-                        pagination: {
-                            paginationModel: { pageSize: 25, page: 0 },
-                        },
-                    }}
-                    pageSizeOptions={[10, 25, 50, 100]}
-                    disableRowSelectionOnClick
-                />
-            </Box>
+            <Paper sx={{ mt: 3, p: 2 }}>
+                {/* Header Row */}
+                <Grid container spacing={2} sx={{ 
+                    mb: 2, 
+                    pb: 2, 
+                    borderBottom: '2px solid #555',
+                    fontWeight: 'bold'
+                }}>
+                    <Grid size={{ xs: 12, sm: 3 }}>
+                        <TableSortLabel
+                            active={sortField === 'name'}
+                            direction={sortField === 'name' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('name')}
+                        >
+                            Name
+                        </TableSortLabel>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 2 }}>
+                        <TableSortLabel
+                            active={sortField === 'shop_name'}
+                            direction={sortField === 'shop_name' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('shop_name')}
+                        >
+                            Shop
+                        </TableSortLabel>
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 1.5 }}>
+                        <TableSortLabel
+                            active={sortField === 'buy_price'}
+                            direction={sortField === 'buy_price' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('buy_price')}
+                        >
+                            Buy Price
+                        </TableSortLabel>
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 1.5 }}>
+                        <TableSortLabel
+                            active={sortField === 'average_price_items_sold'}
+                            direction={sortField === 'average_price_items_sold' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('average_price_items_sold')}
+                        >
+                            Avg Sold
+                        </TableSortLabel>
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 2 }}>
+                        <TableSortLabel
+                            active={sortField === 'sold_profit'}
+                            direction={sortField === 'sold_profit' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('sold_profit')}
+                        >
+                            Sold Profit
+                        </TableSortLabel>
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 2 }}>
+                        <TableSortLabel
+                            active={sortField === 'sales_24h_current'}
+                            direction={sortField === 'sales_24h_current' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('sales_24h_current')}
+                        >
+                            24h Sales
+                        </TableSortLabel>
+                    </Grid>
+                </Grid>
+
+                {/* Data Rows */}
+                <Box sx={{ maxHeight: '600px', overflow: 'auto' }}>
+                    {sortedData.map((item: CountryItem) => (
+                        <Grid 
+                            container 
+                            spacing={2} 
+                            key={item.id}
+                            sx={{ 
+                                py: 1.5,
+                                borderBottom: '1px solid #333',
+                                '&:hover': {
+                                    backgroundColor: 'rgba(255, 255, 255, 0.05)'
+                                }
+                            }}
+                        >
+                            <Grid size={{ xs: 12, sm: 3 }}>
+                                <Typography variant="body2">{item.name}</Typography>
+                            </Grid>
+                            <Grid size={{ xs: 12, sm: 2 }}>
+                                <Typography variant="body2">{item.shop_name || '-'}</Typography>
+                            </Grid>
+                            <Grid size={{ xs: 6, sm: 1.5 }}>
+                                <Typography variant="body2">{formatCurrency(item.buy_price)}</Typography>
+                            </Grid>
+                            <Grid size={{ xs: 6, sm: 1.5 }}>
+                                <Typography variant="body2">{formatCurrency(item.average_price_items_sold)}</Typography>
+                            </Grid>
+                            <Grid size={{ xs: 6, sm: 2 }}>
+                                <Typography variant="body2" sx={{ color: (item.sold_profit ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
+                                    {formatCurrency(item.sold_profit)}
+                                </Typography>
+                            </Grid>
+                            <Grid size={{ xs: 6, sm: 2 }}>
+                                <Typography variant="body2">{formatNumber(item.sales_24h_current)}</Typography>
+                            </Grid>
+                        </Grid>
+                    ))}
+                    {sortedData.length === 0 && (
+                        <Box sx={{ p: 3, textAlign: 'center' }}>
+                            <Typography variant="body1" color="text.secondary">
+                                No data available for {selectedCountry}
+                            </Typography>
+                        </Box>
+                    )}
+                </Box>
+            </Paper>
         </Box>
     );
 }
