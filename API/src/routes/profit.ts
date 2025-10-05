@@ -151,7 +151,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         }
       }
 
-      // 📊 Fetch 24-hour sales metrics from latest market snapshot
+      // 📊 Fetch 24-hour sales metrics
       let sales_24h_current: number | null = null;
       let sales_24h_previous: number | null = null;
       let trend_24h: number | null = null;
@@ -161,23 +161,18 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       const snapshotKey = `${country}:${item.itemId}`;
       const latestSnapshot = snapshotMap.get(snapshotKey);
       
+      // Get historical metrics from snapshot (not current sales data)
       if (latestSnapshot) {
-        sales_24h_current = latestSnapshot.sales_24h_current ?? null;
         sales_24h_previous = latestSnapshot.sales_24h_previous ?? null;
         trend_24h = latestSnapshot.trend_24h ?? null;
         hour_velocity_24 = latestSnapshot.hour_velocity_24 ?? null;
-        
-        // Calculate average price from total revenue and total items sold in 24h period
-        if (latestSnapshot.total_revenue_24h_current && latestSnapshot.sales_24h_current && latestSnapshot.sales_24h_current > 0) {
-          average_price_items_sold = Math.round(latestSnapshot.total_revenue_24h_current / latestSnapshot.sales_24h_current);
-        }
       }
       
       // Get pre-built ItemsSold array from map (O(1) lookup)
       const ItemsSold = itemsSoldMap.get(snapshotKey) || [];
       
-      // Calculate sales metrics directly from ItemsSold if available (more accurate for recent data)
-      // This handles the case where we have sales_by_price data but sales_24h_current is 0 or null
+      // Calculate sales metrics directly from ItemsSold (source of truth for current sales)
+      // If ItemsSold is empty, it means no items were sold in the last 24h
       if (ItemsSold.length > 0) {
         // Calculate total items sold and revenue from ItemsSold array
         let totalItemsSold = 0;
@@ -188,7 +183,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
           totalRevenue += sale.Amount * sale.Price;
         }
         
-        // Override sales_24h_current if we calculated from ItemsSold
+        // Set sales_24h_current and average_price_items_sold from actual sales data
         if (totalItemsSold > 0) {
           sales_24h_current = totalItemsSold;
           average_price_items_sold = Math.round(totalRevenue / totalItemsSold);
