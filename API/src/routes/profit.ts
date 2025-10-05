@@ -96,26 +96,24 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     }
 
     // Create a lookup map for ItemsSold: key is "country:itemId", value is array of sales
-    // Only build this map if includeItemsSold flag is enabled (for performance)
+    // Always build this map since we need it to calculate sold_profit
     const itemsSoldMap = new Map<string, Array<{ Amount: number; TimeStamp: string; Price: number }>>();
-    if (includeItemsSold) {
-      const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
-      for (const snapshot of marketSnapshots) {
-        // Check if this snapshot has sales_by_price data and is within 24 hours
-        if (snapshot.sales_by_price && snapshot.sales_by_price.length > 0 && 
-            new Date(snapshot.fetched_at).getTime() >= twentyFourHoursAgo) {
-          const key = `${snapshot.country}:${snapshot.itemId}`;
-          if (!itemsSoldMap.has(key)) {
-            itemsSoldMap.set(key, []);
-          }
-          // Add each price point as a separate entry
-          for (const sale of snapshot.sales_by_price) {
-            itemsSoldMap.get(key)!.push({
-              Amount: sale.amount,
-              TimeStamp: snapshot.fetched_at.toISOString(),
-              Price: sale.price
-            });
-          }
+    const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+    for (const snapshot of marketSnapshots) {
+      // Check if this snapshot has sales_by_price data and is within 24 hours
+      if (snapshot.sales_by_price && snapshot.sales_by_price.length > 0 && 
+          new Date(snapshot.fetched_at).getTime() >= twentyFourHoursAgo) {
+        const key = `${snapshot.country}:${snapshot.itemId}`;
+        if (!itemsSoldMap.has(key)) {
+          itemsSoldMap.set(key, []);
+        }
+        // Add each price point as a separate entry
+        for (const sale of snapshot.sales_by_price) {
+          itemsSoldMap.get(key)!.push({
+            Amount: sale.amount,
+            TimeStamp: snapshot.fetched_at.toISOString(),
+            Price: sale.price
+          });
         }
       }
     }
@@ -153,7 +151,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         }
       }
 
-      // 📊 Fetch 24-hour sales metrics from latest market snapshot
+      // 📊 Fetch 24-hour sales metrics
       let sales_24h_current: number | null = null;
       let sales_24h_previous: number | null = null;
       let trend_24h: number | null = null;
@@ -163,20 +161,34 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       const snapshotKey = `${country}:${item.itemId}`;
       const latestSnapshot = snapshotMap.get(snapshotKey);
       
+      // Get historical metrics from snapshot (not current sales data)
       if (latestSnapshot) {
-        sales_24h_current = latestSnapshot.sales_24h_current ?? null;
         sales_24h_previous = latestSnapshot.sales_24h_previous ?? null;
         trend_24h = latestSnapshot.trend_24h ?? null;
         hour_velocity_24 = latestSnapshot.hour_velocity_24 ?? null;
-        
-        // Calculate average price from total revenue and total items sold in 24h period
-        if (latestSnapshot.total_revenue_24h_current && latestSnapshot.sales_24h_current && latestSnapshot.sales_24h_current > 0) {
-          average_price_items_sold = Math.round(latestSnapshot.total_revenue_24h_current / latestSnapshot.sales_24h_current);
-        }
       }
       
       // Get pre-built ItemsSold array from map (O(1) lookup)
       const ItemsSold = itemsSoldMap.get(snapshotKey) || [];
+      
+      // Calculate sales metrics directly from ItemsSold (source of truth for current sales)
+      // If ItemsSold is empty, it means no items were sold in the last 24h
+      if (ItemsSold.length > 0) {
+        // Calculate total items sold and revenue from ItemsSold array
+        let totalItemsSold = 0;
+        let totalRevenue = 0;
+        
+        for (const sale of ItemsSold) {
+          totalItemsSold += sale.Amount;
+          totalRevenue += sale.Amount * sale.Price;
+        }
+        
+        // Set sales_24h_current and average_price_items_sold from actual sales data
+        if (totalItemsSold > 0) {
+          sales_24h_current = totalItemsSold;
+          average_price_items_sold = Math.round(totalRevenue / totalItemsSold);
+        }
+      }
 
       // 💵 Calculate the three new profit fields
       // 1. estimated_market_value_profit = market_price - buy_price
@@ -205,7 +217,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       }
 
       // 3. sold_profit = average_price_items_sold - buy_price
-      const sold_profit = average_price_items_sold && buy ? average_price_items_sold - buy : null;
+      const sold_profit = average_price_items_sold !== null ? average_price_items_sold - buy : null;
 
       if (!grouped[country]) grouped[country] = [];
 
