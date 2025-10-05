@@ -27,6 +27,14 @@ describe('Stock Calculations', () => {
       const change = calculate7DayPercentChange(current, past);
       expect(change.toFixed(2)).toBe('-0.09');
     });
+
+    it('calculates percent change correctly for Performance Ribaldry case', () => {
+      const current = 602.69;
+      const past = 603.9;
+      const change = calculate7DayPercentChange(current, past);
+      expect(change.toFixed(2)).toBe('-0.20');
+      // This should be displayed as -0.20% on the frontend, NOT -20%
+    });
   });
 
   describe('calculateVolatilityPercent', () => {

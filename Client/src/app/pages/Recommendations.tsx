@@ -82,7 +82,7 @@ export default function Recommendations() {
 
     const formatPercent = (value: number | null | undefined) => {
         if (value === null || value === undefined) return '-';
-        const formatted = (value * 100).toFixed(2);
+        const formatted = value.toFixed(2);
         return value >= 0 ? `+${formatted}%` : `${formatted}%`;
     };
 
