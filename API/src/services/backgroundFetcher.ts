@@ -334,12 +334,12 @@ async function trackShopItemState(
       }
     }
     
-    // Detect restock: previous stock = 0 → current stock > 0
-    if (previousStock === 0 && currentStock > 0) {
+    // Detect restock: current stock > previous stock (stock increased)
+    if (currentStock > previousStock) {
       updateData.lastRestockTime = fetchedAt;
       
-      // Calculate cycles skipped if we have a sellout time
-      if (previousState.lastSelloutTime) {
+      // Calculate cycles skipped if we have a sellout time (only applicable when restocking from 0)
+      if (previousStock === 0 && previousState.lastSelloutTime) {
         const expectedRestockTime = roundUpToNextQuarterHour(previousState.lastSelloutTime);
         const timeSinceSellout = minutesBetween(expectedRestockTime, fetchedAt);
         const cyclesSkipped = Math.max(0, Math.round(timeSinceSellout / 15));
@@ -364,6 +364,9 @@ async function trackShopItemState(
         });
         
         logInfo(`[Restock] ${itemName} restocked after skipping ${cyclesSkipped} cycles (last sellout ${lastRestockTimeStr}, new restock ${newRestockTimeStr})`);
+      } else {
+        // Restock while still having stock
+        logInfo(`[Restock] ${itemName} restocked (stock increased from ${previousStock} to ${currentStock})`);
       }
     }
     
