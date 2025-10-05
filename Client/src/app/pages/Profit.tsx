@@ -112,26 +112,27 @@ export default function Profit() {
         if (!isoString) return '-';
         const date = new Date(isoString);
         const now = new Date();
-        
-        // Get start of today and tomorrow for comparison
+
+        // Start of today and tomorrow for comparison
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const tomorrowStart = new Date(todayStart);
         tomorrowStart.setDate(tomorrowStart.getDate() + 1);
         const dayAfterStart = new Date(tomorrowStart);
         dayAfterStart.setDate(dayAfterStart.getDate() + 1);
-        
-        // Format just the time
+
+        // Format time in 24-hour format
         const timeStr = date.toLocaleString(undefined, {
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
+            hour12: false,       // ← key change: forces 24-hour format
         });
-        
-        // Check if it's tomorrow
+
+        // If it's tomorrow
         if (date >= tomorrowStart && date < dayAfterStart) {
             return `+1d ${timeStr}`;
         }
-        
-        // If it's today or in the past (shouldn't happen with API fix), just show time
+
+        // Otherwise (today / past)
         return timeStr;
     };
 
