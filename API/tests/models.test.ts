@@ -4,6 +4,7 @@ import { CityShopStockHistory } from '../src/models/CityShopStockHistory';
 import { ForeignStock } from '../src/models/ForeignStock';
 import { ForeignStockHistory } from '../src/models/ForeignStockHistory';
 import { ItemMarket } from '../src/models/ItemMarket';
+import { MarketHistory } from '../src/models/MarketHistory';
 
 describe('MongoDB Models', () => {
   describe('TornItem Model', () => {
@@ -118,6 +119,64 @@ describe('MongoDB Models', () => {
       expect(history.fetched_at).toBeInstanceOf(Date);
       
       await ForeignStockHistory.deleteOne({ _id: history._id });
+    });
+  });
+
+  describe('MarketHistory Model', () => {
+    it('should create a MarketHistory entry', async () => {
+      const history = await MarketHistory.create({
+        id: 1,
+        name: 'Test Item',
+        date: '2025-01-05',
+        buy_price: 100,
+        market_price: 150,
+        profitPer1: 50,
+        shop_name: 'Test Shop',
+        in_stock: 10,
+        sales_24h_current: 5,
+        sales_24h_previous: 3,
+        trend_24h: 0.67,
+        hour_velocity_24: 0.21,
+        average_price_items_sold: 145,
+        estimated_market_value_profit: 50,
+        lowest_50_profit: 45,
+        sold_profit: 45,
+      });
+
+      expect(history.id).toBe(1);
+      expect(history.name).toBe('Test Item');
+      expect(history.date).toBe('2025-01-05');
+      expect(history.profitPer1).toBe(50);
+      
+      await MarketHistory.deleteOne({ id: 1, date: '2025-01-05' });
+    });
+
+    it('should enforce unique constraint on id and date', async () => {
+      const data = {
+        id: 2,
+        name: 'Test Item 2',
+        date: '2025-01-05',
+        buy_price: 100,
+        market_price: 150,
+        profitPer1: 50,
+        shop_name: 'Test Shop',
+        in_stock: 10,
+        sales_24h_current: 5,
+        sales_24h_previous: 3,
+        trend_24h: 0.67,
+        hour_velocity_24: 0.21,
+        average_price_items_sold: 145,
+        estimated_market_value_profit: 50,
+        lowest_50_profit: 45,
+        sold_profit: 45,
+      };
+
+      await MarketHistory.create(data);
+
+      // Try to create another record with same id and date
+      await expect(MarketHistory.create(data)).rejects.toThrow();
+      
+      await MarketHistory.deleteOne({ id: 2, date: '2025-01-05' });
     });
   });
 });
