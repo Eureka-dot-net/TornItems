@@ -6,6 +6,7 @@ import { ForeignStockHistory } from '../src/models/ForeignStockHistory';
 import { ItemMarket } from '../src/models/ItemMarket';
 import { MarketHistory } from '../src/models/MarketHistory';
 import { StockPriceSnapshot } from '../src/models/StockPriceSnapshot';
+import { UserStockHoldingSnapshot } from '../src/models/UserStockHoldingSnapshot';
 
 describe('MongoDB Models', () => {
   describe('TornItem Model', () => {
@@ -210,6 +211,53 @@ describe('MongoDB Models', () => {
       );
       
       expect(hasCompoundIndex || indexes['ticker_1_timestamp_-1']).toBeTruthy();
+    });
+  });
+
+  describe('UserStockHoldingSnapshot Model', () => {
+    it('should create a UserStockHoldingSnapshot entry', async () => {
+      const snapshot = await UserStockHoldingSnapshot.create({
+        stock_id: 25,
+        total_shares: 1061192,
+        avg_buy_price: 103.44,
+        transaction_count: 2,
+        timestamp: new Date(),
+      });
+
+      expect(snapshot.stock_id).toBe(25);
+      expect(snapshot.total_shares).toBe(1061192);
+      expect(snapshot.avg_buy_price).toBe(103.44);
+      expect(snapshot.transaction_count).toBe(2);
+      expect(snapshot.timestamp).toBeInstanceOf(Date);
+      
+      await UserStockHoldingSnapshot.deleteOne({ _id: snapshot._id });
+    });
+
+    it('should allow null avg_buy_price', async () => {
+      const snapshot = await UserStockHoldingSnapshot.create({
+        stock_id: 2,
+        total_shares: 0,
+        avg_buy_price: null,
+        transaction_count: 0,
+        timestamp: new Date(),
+      });
+
+      expect(snapshot.stock_id).toBe(2);
+      expect(snapshot.avg_buy_price).toBeNull();
+      
+      await UserStockHoldingSnapshot.deleteOne({ _id: snapshot._id });
+    });
+
+    it('should have compound index on stock_id and timestamp', async () => {
+      const indexes = await UserStockHoldingSnapshot.collection.getIndexes();
+      
+      // Check if compound index exists
+      const hasCompoundIndex = Object.keys(indexes).some(key => 
+        indexes[key].some((field: any) => field[0] === 'stock_id' && field[1] === 1) &&
+        indexes[key].some((field: any) => field[0] === 'timestamp' && field[1] === -1)
+      );
+      
+      expect(hasCompoundIndex || indexes['stock_id_1_timestamp_-1']).toBeTruthy();
     });
   });
 });

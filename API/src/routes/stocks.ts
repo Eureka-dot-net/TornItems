@@ -1,11 +1,8 @@
 import express, { Request, Response } from 'express';
-import axios from 'axios';
 import { StockPriceSnapshot } from '../models/StockPriceSnapshot';
 import { UserStockHoldingSnapshot } from '../models/UserStockHoldingSnapshot';
 
 const router = express.Router({ mergeParams: true });
-
-const TORN_API_KEY = process.env.TORN_API_KEY || 'yLp4OoENbjRy30GZ';
 
 // Helper function to calculate standard deviation
 function calculateStdDev(values: number[]): number {
