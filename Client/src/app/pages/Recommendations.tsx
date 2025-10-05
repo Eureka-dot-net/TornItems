@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { useStockRecommendations } from '../../lib/hooks/useStockRecommendations';
 import type { StockRecommendation } from '../../lib/types/stockRecommendations';
 
-type SortField = 'ticker' | 'name' | 'price' | 'change_7d_pct' | 'volatility_7d_pct' | 'score' | 'sell_score' | 'recommendation' | 'owned_shares';
+type SortField = 'ticker' | 'name' | 'price' | 'change_7d_pct' | 'volatility_7d_pct' | 'score' | 'sell_score' | 'recommendation' | 'owned_shares' | 'unrealized_profit_value' | 'unrealized_profit_pct';
 type SortOrder = 'asc' | 'desc';
 
 export default function Recommendations() {
@@ -129,7 +129,7 @@ export default function Recommendations() {
                     borderBottom: '2px solid #555',
                     fontWeight: 'bold'
                 }}>
-                    <Grid size={{ xs: 6, sm: 1 }}>
+                    <Grid size={{ xs: 6, sm: 0.8 }}>
                         <TableSortLabel
                             active={sortField === 'ticker'}
                             direction={sortField === 'ticker' ? sortOrder : 'asc'}
@@ -138,7 +138,7 @@ export default function Recommendations() {
                             Ticker
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 2 }}>
+                    <Grid size={{ xs: 6, sm: 1.5 }}>
                         <TableSortLabel
                             active={sortField === 'name'}
                             direction={sortField === 'name' ? sortOrder : 'asc'}
@@ -147,7 +147,7 @@ export default function Recommendations() {
                             Name
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 1.2 }}>
+                    <Grid size={{ xs: 6, sm: 1 }}>
                         <TableSortLabel
                             active={sortField === 'price'}
                             direction={sortField === 'price' ? sortOrder : 'asc'}
@@ -156,25 +156,25 @@ export default function Recommendations() {
                             Price
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 1.2 }}>
+                    <Grid size={{ xs: 6, sm: 1 }}>
                         <TableSortLabel
                             active={sortField === 'change_7d_pct'}
                             direction={sortField === 'change_7d_pct' ? sortOrder : 'asc'}
                             onClick={() => handleSort('change_7d_pct')}
                         >
-                            7d Change
+                            7d Chg
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 1.2 }}>
+                    <Grid size={{ xs: 6, sm: 0.8 }}>
                         <TableSortLabel
                             active={sortField === 'volatility_7d_pct'}
                             direction={sortField === 'volatility_7d_pct' ? sortOrder : 'asc'}
                             onClick={() => handleSort('volatility_7d_pct')}
                         >
-                            Volatility
+                            Vol
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 1 }}>
+                    <Grid size={{ xs: 6, sm: 0.8 }}>
                         <TableSortLabel
                             active={sortField === 'score'}
                             direction={sortField === 'score' ? sortOrder : 'asc'}
@@ -183,16 +183,16 @@ export default function Recommendations() {
                             Score
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 1.5 }}>
+                    <Grid size={{ xs: 6, sm: 1.2 }}>
                         <TableSortLabel
                             active={sortField === 'recommendation'}
                             direction={sortField === 'recommendation' ? sortOrder : 'asc'}
                             onClick={() => handleSort('recommendation')}
                         >
-                            Recommendation
+                            Rec
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 1.2 }}>
+                    <Grid size={{ xs: 6, sm: 0.8 }}>
                         <TableSortLabel
                             active={sortField === 'owned_shares'}
                             direction={sortField === 'owned_shares' ? sortOrder : 'asc'}
@@ -201,7 +201,25 @@ export default function Recommendations() {
                             Owned
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 12, sm: 1.7 }}>
+                    <Grid size={{ xs: 6, sm: 1.3 }}>
+                        <TableSortLabel
+                            active={sortField === 'unrealized_profit_value'}
+                            direction={sortField === 'unrealized_profit_value' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('unrealized_profit_value')}
+                        >
+                            Profit $
+                        </TableSortLabel>
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 1 }}>
+                        <TableSortLabel
+                            active={sortField === 'unrealized_profit_pct'}
+                            direction={sortField === 'unrealized_profit_pct' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('unrealized_profit_pct')}
+                        >
+                            Profit %
+                        </TableSortLabel>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 1.8 }}>
                         <Typography variant="body2">Action</Typography>
                     </Grid>
                 </Grid>
@@ -221,16 +239,16 @@ export default function Recommendations() {
                                 }
                             }}
                         >
-                            <Grid size={{ xs: 6, sm: 1 }}>
+                            <Grid size={{ xs: 6, sm: 0.8 }}>
                                 <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{stock.ticker}</Typography>
                             </Grid>
-                            <Grid size={{ xs: 6, sm: 2 }}>
+                            <Grid size={{ xs: 6, sm: 1.5 }}>
                                 <Typography variant="body2">{stock.name}</Typography>
                             </Grid>
-                            <Grid size={{ xs: 6, sm: 1.2 }}>
+                            <Grid size={{ xs: 6, sm: 1 }}>
                                 <Typography variant="body2">{formatCurrency(stock.price)}</Typography>
                             </Grid>
-                            <Grid size={{ xs: 6, sm: 1.2 }}>
+                            <Grid size={{ xs: 6, sm: 1 }}>
                                 <Typography 
                                     variant="body2" 
                                     sx={{ 
@@ -243,7 +261,7 @@ export default function Recommendations() {
                             <Grid size={{ xs: 6, sm: 1.2 }}>
                                 <Typography variant="body2">{formatNumber(stock.volatility_7d_pct)}</Typography>
                             </Grid>
-                            <Grid size={{ xs: 6, sm: 1 }}>
+                            <Grid size={{ xs: 6, sm: 0.8 }}>
                                 <Typography 
                                     variant="body2"
                                     sx={{ 
@@ -254,7 +272,7 @@ export default function Recommendations() {
                                     {formatNumber(stock.score)}
                                 </Typography>
                             </Grid>
-                            <Grid size={{ xs: 6, sm: 1.5 }}>
+                            <Grid size={{ xs: 6, sm: 1.2 }}>
                                 <Chip 
                                     label={stock.recommendation} 
                                     color={getRecommendationColor(stock.recommendation)}
@@ -262,10 +280,32 @@ export default function Recommendations() {
                                     sx={{ fontSize: '0.75rem' }}
                                 />
                             </Grid>
-                            <Grid size={{ xs: 6, sm: 1.2 }}>
+                            <Grid size={{ xs: 6, sm: 0.8 }}>
                                 <Typography variant="body2">{stock.owned_shares}</Typography>
                             </Grid>
-                            <Grid size={{ xs: 12, sm: 1.7 }}>
+                            <Grid size={{ xs: 6, sm: 1.3 }}>
+                                <Typography 
+                                    variant="body2"
+                                    sx={{ 
+                                        color: stock.unrealized_profit_value && stock.unrealized_profit_value > 0 ? '#4caf50' : stock.unrealized_profit_value && stock.unrealized_profit_value < 0 ? '#f44336' : 'inherit',
+                                        fontWeight: stock.unrealized_profit_value !== null ? 'bold' : 'normal'
+                                    }}
+                                >
+                                    {stock.unrealized_profit_value !== null ? formatCurrency(stock.unrealized_profit_value) : '-'}
+                                </Typography>
+                            </Grid>
+                            <Grid size={{ xs: 6, sm: 1 }}>
+                                <Typography 
+                                    variant="body2"
+                                    sx={{ 
+                                        color: stock.unrealized_profit_pct && stock.unrealized_profit_pct > 0 ? '#4caf50' : stock.unrealized_profit_pct && stock.unrealized_profit_pct < 0 ? '#f44336' : 'inherit',
+                                        fontWeight: stock.unrealized_profit_pct !== null ? 'bold' : 'normal'
+                                    }}
+                                >
+                                    {stock.unrealized_profit_pct !== null ? `${stock.unrealized_profit_pct > 0 ? '+' : ''}${stock.unrealized_profit_pct.toFixed(2)}%` : '-'}
+                                </Typography>
+                            </Grid>
+                            <Grid size={{ xs: 12, sm: 1.8 }}>
                                 <Link 
                                     href={getTornStockUrl(stock.stock_id)} 
                                     target="_blank" 
