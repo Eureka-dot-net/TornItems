@@ -9,6 +9,9 @@ export interface StockRecommendation {
   sell_score: number | null;
   recommendation: string;
   owned_shares: number;
+  avg_buy_price: number | null;
+  unrealized_profit_value: number | null;
+  unrealized_profit_pct: number | null;
   can_sell: boolean;
 }
 

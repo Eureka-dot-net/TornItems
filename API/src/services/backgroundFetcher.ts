@@ -10,6 +10,7 @@ import { MarketSnapshot } from '../models/MarketSnapshot';
 import { MonitoredItem } from '../models/MonitoredItem';
 import { ShopItemState } from '../models/ShopItemState';
 import { StockPriceSnapshot } from '../models/StockPriceSnapshot';
+import { UserStockHoldingSnapshot } from '../models/UserStockHoldingSnapshot';
 import { logInfo, logError } from '../utils/logger';
 import { aggregateMarketHistory } from '../jobs/aggregateMarketHistory';
 import { roundUpToNextQuarterHour, minutesBetween } from '../utils/dateHelpers';
@@ -1192,6 +1193,63 @@ export async function fetchMarketSnapshots(): Promise<void> {
   }
 }
 
+// Fetch and save user stock holdings
+async function fetchUserStockHoldings(): Promise<void> {
+  try {
+    logInfo('Fetching user stock holdings...');
+    
+    const response = await retryWithBackoff(() =>
+      limiter.schedule(() =>
+        axios.get(`https://api.torn.com/v2/user?selections=stocks&key=${API_KEY}`)
+      )
+    ) as { data: { stocks: any } };
+
+    const stocks = response.data?.stocks;
+    if (!stocks) {
+      logInfo('No stocks data returned from Torn API - user may not own any stocks');
+      return;
+    }
+
+    const bulkOps: any[] = [];
+    const timestamp = new Date();
+    
+    for (const [stockId, stockData] of Object.entries(stocks) as [string, any][]) {
+      const totalShares = stockData.total_shares || 0;
+      const transactions = stockData.transactions || {};
+      
+      // Calculate weighted average buy price
+      let avgBuyPrice: number | null = null;
+      if (totalShares > 0 && Object.keys(transactions).length > 0) {
+        let weightedSum = 0;
+        for (const transaction of Object.values(transactions) as any[]) {
+          const shares = transaction.shares || 0;
+          const boughtPrice = transaction.bought_price || 0;
+          weightedSum += shares * boughtPrice;
+        }
+        avgBuyPrice = weightedSum / totalShares;
+      }
+      
+      bulkOps.push({
+        stock_id: parseInt(stockId, 10),
+        total_shares: totalShares,
+        avg_buy_price: avgBuyPrice,
+        transaction_count: Object.keys(transactions).length,
+        timestamp: timestamp,
+      });
+    }
+
+    if (bulkOps.length > 0) {
+      await UserStockHoldingSnapshot.insertMany(bulkOps);
+      logInfo(`Successfully saved ${bulkOps.length} user stock holding snapshots to database`);
+    } else {
+      logInfo('No user stock holdings to save');
+    }
+  } catch (error) {
+    logError('Error fetching user stock holdings', error instanceof Error ? error : new Error(String(error)));
+    // Don't throw - just log warning and continue
+  }
+}
+
 // Fetch and save stock prices (every 30 minutes)
 export async function fetchStockPrices(): Promise<void> {
   try {
@@ -1228,6 +1286,9 @@ export async function fetchStockPrices(): Promise<void> {
     } else {
       logInfo('No stocks to save');
     }
+    
+    // After saving stock prices, fetch and record user holdings
+    await fetchUserStockHoldings();
   } catch (error) {
     logError('Error fetching stock prices', error instanceof Error ? error : new Error(String(error)));
   }
