@@ -9,6 +9,7 @@ import { ForeignStockHistory } from '../models/ForeignStockHistory';
 import { MarketSnapshot } from '../models/MarketSnapshot';
 import { MonitoredItem } from '../models/MonitoredItem';
 import { logInfo, logError } from '../utils/logger';
+import { aggregateMarketHistory } from '../jobs/aggregateMarketHistory';
 
 const API_KEY = process.env.TORN_API_KEY || 'yLp4OoENbjRy30GZ';
 
@@ -919,6 +920,13 @@ export function startScheduler(): void {
   cron.schedule('*/10 * * * *', () => {
     logInfo('Running scheduled monitored items update...');
     updateMonitoredItems();
+  });
+
+  // Schedule market history aggregation (default: daily at midnight UTC)
+  const historyAggregationCron = process.env.HISTORY_AGGREGATION_CRON || '0 0 * * *';
+  cron.schedule(historyAggregationCron, () => {
+    logInfo('Running scheduled market history aggregation...');
+    aggregateMarketHistory();
   });
 
   logInfo('Background fetcher scheduler started successfully');
