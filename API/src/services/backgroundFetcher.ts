@@ -272,6 +272,71 @@ export async function fetchCityShopStock(): Promise<void> {
 }
 
 /**
+ * Calculate restock metrics from history over the last 24 hours
+ * Returns the number of restocks and cycles skipped
+ */
+async function calculate24HourRestockMetrics(
+  shopId: string,
+  itemId: string,
+  currentTime: Date
+): Promise<{ restocksLast24h: number; cyclesSkipped24h: number }> {
+  try {
+    const twentyFourHoursAgo = new Date(currentTime.getTime() - 24 * 60 * 60 * 1000);
+    
+    // Check if this is a city shop or foreign shop (country code)
+    const isForeignShop = Object.keys(COUNTRY_CODE_MAP).includes(shopId);
+    
+    let history: any[] = [];
+    
+    if (isForeignShop) {
+      // Query foreign stock history
+      history = await ForeignStockHistory.find({
+        countryCode: shopId,
+        itemId: parseInt(itemId),
+        fetched_at: { $gte: twentyFourHoursAgo, $lte: currentTime }
+      })
+        .sort({ fetched_at: 1 })
+        .lean();
+    } else {
+      // Query city shop stock history
+      history = await CityShopStockHistory.find({
+        shopId,
+        itemId,
+        fetched_at: { $gte: twentyFourHoursAgo, $lte: currentTime }
+      })
+        .sort({ fetched_at: 1 })
+        .lean();
+    }
+    
+    if (history.length < 2) {
+      // Not enough data to calculate
+      return { restocksLast24h: 0, cyclesSkipped24h: 0 };
+    }
+    
+    // Count restocks (stock increases)
+    let restockCount = 0;
+    for (let i = 1; i < history.length; i++) {
+      const currentStock = isForeignShop ? history[i].quantity : history[i].in_stock;
+      const previousStock = isForeignShop ? history[i - 1].quantity : history[i - 1].in_stock;
+      
+      if (currentStock > previousStock) {
+        restockCount++;
+      }
+    }
+    
+    // Calculate total 15-minute cycles in 24 hours = 96 cycles
+    // Cycles skipped = total cycles - actual restocks
+    const totalCycles = 96;
+    const cyclesSkipped = Math.max(0, totalCycles - restockCount);
+    
+    return { restocksLast24h: restockCount, cyclesSkipped24h: cyclesSkipped };
+  } catch (error) {
+    logError(`Error calculating 24h restock metrics for ${shopId}:${itemId}`, error instanceof Error ? error : new Error(String(error)));
+    return { restocksLast24h: 0, cyclesSkipped24h: 0 };
+  }
+}
+
+/**
  * Track shop item state transitions (sellout and restock)
  * This function detects when items sell out or restock and calculates relevant metrics
  */
@@ -336,7 +401,13 @@ async function trackShopItemState(
     
     // Detect restock: current stock > previous stock (stock increased)
     if (currentStock > previousStock) {
-      // Calculate cycles skipped since last restock (if we have a previous restock time)
+      // Calculate 24-hour restock metrics from history
+      const { restocksLast24h, cyclesSkipped24h } = await calculate24HourRestockMetrics(shopId, itemId, fetchedAt);
+      
+      updateData.restocksLast24h = restocksLast24h;
+      updateData.cyclesSkipped24h = cyclesSkipped24h;
+      
+      // Also calculate cycles since last restock for immediate context
       if (previousState.lastRestockTime) {
         const expectedRestockTime = roundUpToNextQuarterHour(previousState.lastRestockTime);
         const timeSinceLastRestock = minutesBetween(expectedRestockTime, fetchedAt);
@@ -361,10 +432,10 @@ async function trackShopItemState(
           minute: '2-digit' 
         });
         
-        logInfo(`[Restock] ${itemName} restocked after skipping ${cyclesSkipped} cycles (last restock ${lastRestockTimeStr}, new restock ${newRestockTimeStr})`);
+        logInfo(`[Restock] ${itemName} restocked after skipping ${cyclesSkipped} cycles (last restock ${lastRestockTimeStr}, new restock ${newRestockTimeStr}). 24h stats: ${restocksLast24h} restocks, ${cyclesSkipped24h} cycles skipped`);
       } else {
         // First restock we've seen for this item
-        logInfo(`[Restock] ${itemName} restocked (stock increased from ${previousStock} to ${currentStock})`);
+        logInfo(`[Restock] ${itemName} restocked (stock increased from ${previousStock} to ${currentStock}). 24h stats: ${restocksLast24h} restocks, ${cyclesSkipped24h} cycles skipped`);
       }
       
       updateData.lastRestockTime = fetchedAt;

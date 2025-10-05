@@ -14,7 +14,9 @@ export interface IShopItemState extends Document {
   lastRestockTime?: Date;
   lastSelloutTime?: Date;
   selloutDurationMinutes?: number;
-  cyclesSkipped?: number;
+  cyclesSkipped?: number;  // Cycles skipped in last 24 hours
+  cyclesSkipped24h?: number;  // Total cycles skipped in last 24 hours (for prediction)
+  restocksLast24h?: number;  // Number of restocks in last 24 hours
   averageSelloutMinutes?: number;
   averageCyclesSkipped?: number;
 }
@@ -34,6 +36,8 @@ const ShopItemStateSchema = new Schema<IShopItemState>({
   lastSelloutTime: { type: Date },
   selloutDurationMinutes: { type: Number },
   cyclesSkipped: { type: Number },
+  cyclesSkipped24h: { type: Number },  // Total cycles skipped in last 24 hours
+  restocksLast24h: { type: Number },  // Number of restocks in last 24 hours
   averageSelloutMinutes: { type: Number },
   averageCyclesSkipped: { type: Number },
 });
