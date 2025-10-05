@@ -49,8 +49,9 @@ export function calculateScores(
   change_7d_pct: number, 
   volatility_7d_pct: number
 ): { score: number; sell_score: number } {
-  // Guard against zero or very small volatility
-  const vol = Math.max(volatility_7d_pct, 0.0001);
+  // Guard against zero or very small volatility to prevent extreme scores
+  // Minimum volatility of 1% ensures reasonable score ranges
+  const vol = Math.max(volatility_7d_pct, 1.0);
   
   const score = -change_7d_pct / vol;
   const sell_score = -score;
