@@ -94,6 +94,25 @@ export default function Profit() {
         return value !== null && value !== undefined ? value.toLocaleString() : '-';
     };
 
+    const formatDuration = (minutes: number | null | undefined) => {
+        if (minutes === null || minutes === undefined) return '-';
+        if (minutes < 60) return `${minutes}m`;
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    };
+
+    const formatDateTime = (isoString: string | null | undefined) => {
+        if (!isoString) return '-';
+        const date = new Date(isoString);
+        return date.toLocaleString(undefined, { 
+            month: 'short', 
+            day: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+    };
+
     return (
         <Box sx={{ width: '100%', p: 3 }}>
             <Typography variant="h4" gutterBottom>
@@ -129,7 +148,7 @@ export default function Profit() {
                     borderBottom: '2px solid #555',
                     fontWeight: 'bold'
                 }}>
-                    <Grid size={{ xs: 12, sm: 3 }}>
+                    <Grid size={{ xs: 12, sm: 2.5 }}>
                         <TableSortLabel
                             active={sortField === 'name'}
                             direction={sortField === 'name' ? sortOrder : 'asc'}
@@ -138,7 +157,7 @@ export default function Profit() {
                             Name
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 12, sm: 2 }}>
+                    <Grid size={{ xs: 12, sm: 1.5 }}>
                         <TableSortLabel
                             active={sortField === 'shop_name'}
                             direction={sortField === 'shop_name' ? sortOrder : 'asc'}
@@ -147,7 +166,7 @@ export default function Profit() {
                             Shop
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 1.5 }}>
+                    <Grid size={{ xs: 6, sm: 1.2 }}>
                         <TableSortLabel
                             active={sortField === 'buy_price'}
                             direction={sortField === 'buy_price' ? sortOrder : 'asc'}
@@ -156,7 +175,7 @@ export default function Profit() {
                             Buy Price
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 1.5 }}>
+                    <Grid size={{ xs: 6, sm: 1.2 }}>
                         <TableSortLabel
                             active={sortField === 'average_price_items_sold'}
                             direction={sortField === 'average_price_items_sold' ? sortOrder : 'asc'}
@@ -165,7 +184,7 @@ export default function Profit() {
                             Avg Sold
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 2 }}>
+                    <Grid size={{ xs: 6, sm: 1.3 }}>
                         <TableSortLabel
                             active={sortField === 'sold_profit'}
                             direction={sortField === 'sold_profit' ? sortOrder : 'asc'}
@@ -174,7 +193,7 @@ export default function Profit() {
                             Sold Profit
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 2 }}>
+                    <Grid size={{ xs: 6, sm: 1.3 }}>
                         <TableSortLabel
                             active={sortField === 'sales_24h_current'}
                             direction={sortField === 'sales_24h_current' ? sortOrder : 'asc'}
@@ -182,6 +201,12 @@ export default function Profit() {
                         >
                             24h Sales
                         </TableSortLabel>
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 1.5 }}>
+                        <Typography variant="body2">Sellout Duration</Typography>
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 1.5 }}>
+                        <Typography variant="body2">Next Restock</Typography>
                     </Grid>
                 </Grid>
 
@@ -200,25 +225,31 @@ export default function Profit() {
                                 }
                             }}
                         >
-                            <Grid size={{ xs: 12, sm: 3 }}>
+                            <Grid size={{ xs: 12, sm: 2.5 }}>
                                 <Typography variant="body2">{item.name}</Typography>
                             </Grid>
-                            <Grid size={{ xs: 12, sm: 2 }}>
+                            <Grid size={{ xs: 12, sm: 1.5 }}>
                                 <Typography variant="body2">{item.shop_name || '-'}</Typography>
                             </Grid>
-                            <Grid size={{ xs: 6, sm: 1.5 }}>
+                            <Grid size={{ xs: 6, sm: 1.2 }}>
                                 <Typography variant="body2">{formatCurrency(item.buy_price)}</Typography>
                             </Grid>
-                            <Grid size={{ xs: 6, sm: 1.5 }}>
+                            <Grid size={{ xs: 6, sm: 1.2 }}>
                                 <Typography variant="body2">{formatCurrency(item.average_price_items_sold)}</Typography>
                             </Grid>
-                            <Grid size={{ xs: 6, sm: 2 }}>
+                            <Grid size={{ xs: 6, sm: 1.3 }}>
                                 <Typography variant="body2" sx={{ color: (item.sold_profit ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
                                     {formatCurrency(item.sold_profit)}
                                 </Typography>
                             </Grid>
-                            <Grid size={{ xs: 6, sm: 2 }}>
+                            <Grid size={{ xs: 6, sm: 1.3 }}>
                                 <Typography variant="body2">{formatNumber(item.sales_24h_current)}</Typography>
+                            </Grid>
+                            <Grid size={{ xs: 6, sm: 1.5 }}>
+                                <Typography variant="body2">{formatDuration(item.sellout_duration_minutes)}</Typography>
+                            </Grid>
+                            <Grid size={{ xs: 6, sm: 1.5 }}>
+                                <Typography variant="body2">{formatDateTime(item.next_estimated_restock_time)}</Typography>
                             </Grid>
                         </Grid>
                     ))}

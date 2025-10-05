@@ -21,6 +21,8 @@ export interface CountryItem {
   estimated_market_value_profit: number | null;
   lowest_50_profit: number | null;
   sold_profit: number | null;
+  sellout_duration_minutes?: number | null;
+  next_estimated_restock_time?: string | null;
 }
 
 export interface GroupedByCountry {
