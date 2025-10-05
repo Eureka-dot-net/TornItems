@@ -28,39 +28,44 @@ router.get('/stocks/recommendations', async (_req: Request, res: Response): Prom
   try {
     console.log('Fetching stock recommendations...');
 
-    // Get all distinct tickers
-    const distinctTickers = await StockPriceSnapshot.distinct('ticker');
-    
-    if (!distinctTickers || distinctTickers.length === 0) {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // Use aggregation to get all data efficiently
+    const stockData = await StockPriceSnapshot.aggregate([
+      {
+        $match: {
+          timestamp: { $gte: sevenDaysAgo }
+        }
+      },
+      {
+        $sort: { ticker: 1, timestamp: -1 }
+      },
+      {
+        $group: {
+          _id: '$ticker',
+          name: { $first: '$name' },
+          currentPrice: { $first: '$price' },
+          oldestPrice: { $last: '$price' },
+          prices: { $push: '$price' }
+        }
+      }
+    ]);
+
+    if (!stockData || stockData.length === 0) {
       res.status(503).json({ 
         error: 'No stock data found. Background fetcher may still be initializing.' 
       });
       return;
     }
 
-    console.log(`Processing ${distinctTickers.length} stocks...`);
+    console.log(`Processing ${stockData.length} stocks...`);
 
-    const recommendations = [];
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-    for (const ticker of distinctTickers) {
-      // Get all price snapshots for this ticker from the last 7 days
-      const snapshots = await StockPriceSnapshot.find({
-        ticker: ticker,
-        timestamp: { $gte: sevenDaysAgo }
-      }).sort({ timestamp: -1 }).lean();
-
-      if (snapshots.length === 0) continue;
-
-      // Latest price and name
-      const latestSnapshot = snapshots[0];
-      const currentPrice = latestSnapshot.price;
-      const name = latestSnapshot.name;
-
-      // Find the price 7 days ago (or closest to it)
-      const oldestSnapshot = snapshots[snapshots.length - 1];
-      const weekAgoPrice = oldestSnapshot.price;
+    const recommendations = stockData.map((stock: any) => {
+      const ticker = stock._id;
+      const name = stock.name;
+      const currentPrice = stock.currentPrice;
+      const weekAgoPrice = stock.oldestPrice;
 
       // Calculate 7-day change percentage
       let change_7d: number | null = null;
@@ -69,8 +74,7 @@ router.get('/stocks/recommendations', async (_req: Request, res: Response): Prom
       }
 
       // Calculate volatility (standard deviation of prices over last 7 days)
-      const prices = snapshots.map(s => s.price);
-      const volatility = calculateStdDev(prices);
+      const volatility = calculateStdDev(stock.prices);
 
       // Calculate scores
       let score: number | null = null;
@@ -83,7 +87,7 @@ router.get('/stocks/recommendations', async (_req: Request, res: Response): Prom
         recommendation = getRecommendation(score);
       }
 
-      recommendations.push({
+      return {
         ticker,
         name,
         price: currentPrice,
@@ -92,8 +96,8 @@ router.get('/stocks/recommendations', async (_req: Request, res: Response): Prom
         score: score !== null ? parseFloat(score.toFixed(2)) : null,
         sell_score: sell_score !== null ? parseFloat(sell_score.toFixed(2)) : null,
         recommendation
-      });
-    }
+      };
+    });
 
     // Sort by score descending (best buys first)
     recommendations.sort((a, b) => {

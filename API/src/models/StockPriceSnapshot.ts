@@ -8,10 +8,10 @@ export interface IStockPriceSnapshot extends Document {
 }
 
 const StockPriceSnapshotSchema = new Schema<IStockPriceSnapshot>({
-  ticker: { type: String, required: true, index: true },
+  ticker: { type: String, required: true },
   name: { type: String, required: true },
   price: { type: Number, required: true },
-  timestamp: { type: Date, required: true, default: Date.now, index: true },
+  timestamp: { type: Date, required: true, default: Date.now },
 });
 
 // Compound index on { ticker, timestamp } to avoid duplicates and optimize queries
