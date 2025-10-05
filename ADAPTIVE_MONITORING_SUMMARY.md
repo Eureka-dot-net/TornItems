@@ -15,7 +15,7 @@ New MongoDB collection tracking ALL profitable items with these fields:
 ### 2. Updated Background Fetcher (`API/src/services/backgroundFetcher.ts`)
 
 #### New Functions:
-- **`updateMonitoredItems()`**: Replaces `updateTrackedItems()`, now monitors ALL items with profit > 0
+- **`updateMonitoredItems()`**: Monitors ALL items with profit > 0
 - **`incrementCycleCounters()`**: Increments cycles_since_last_check for all items at cycle start
 - **`selectDueItems()`**: Queries items where cycles_since_last_check >= MonitorFrequency
 - **`selectCuriosityItems(maxCount)`**: Randomly picks quiet items (MonitorFrequency ≥ 5) for random checks
@@ -23,7 +23,7 @@ New MongoDB collection tracking ALL profitable items with these fields:
 - **`updateMonitorFrequency(itemId, country, hasMovement, currentData)`**: Adjusts frequency based on movement
 
 #### Refactored `fetchMarketSnapshots()`:
-Now uses adaptive monitoring instead of checking all tracked items every cycle:
+Now uses adaptive monitoring instead of checking all items every cycle:
 1. Increment cycle counters for all monitored items
 2. Select items that are due (cycles_since_last_check >= MonitorFrequency)
 3. Reserve 5% of API budget for curiosity checks
@@ -54,10 +54,10 @@ New environment variable:
 CURIOSITY_RATE=0.05  # 5% of API budget for random checks
 ```
 
-### 6. Backward Compatibility
-- Legacy `TrackedItem` collection still maintained (top 20 for Torn, top 10 for others)
+### 6. Smart Monitoring
+- MonitoredItem collection tracks ALL profitable items
 - Existing APIs continue to work unchanged
-- `updateMonitoredItems()` calls `updateTrackedItemsLegacy()` internally
+- `updateMonitoredItems()` analyzes all items with positive profit
 
 ## Benefits
 

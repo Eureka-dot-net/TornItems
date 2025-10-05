@@ -192,10 +192,10 @@ if (priceDiff > 0.01) return true;  // Change 0.01 to 0.05 for 5%
 - Old: All items checked every cycle
 - New: Smart scheduling based on activity
 
-### Backward Compatibility
-- TrackedItem collection still maintained
+### MonitoredItem System
+- MonitoredItem collection tracks all profitable items
 - Existing APIs continue to work
-- Can run both systems in parallel during migration
+- Smart adaptive monitoring based on market activity
 
 ## Performance Expectations
 
