@@ -1,7 +1,39 @@
 import express, { Request, Response } from 'express';
+import axios from 'axios';
 import { StockPriceSnapshot } from '../models/StockPriceSnapshot';
 
 const router = express.Router({ mergeParams: true });
+
+const TORN_API_KEY = process.env.TORN_API_KEY || 'yLp4OoENbjRy30GZ';
+
+// Helper function to fetch user's stock holdings from Torn v2 API
+async function fetchUserStocks(): Promise<Record<number, { total_shares: number }>> {
+  try {
+    const response = await axios.get(
+      `https://api.torn.com/v2/user?selections=stocks&key=${TORN_API_KEY}`
+    );
+    
+    const stocks = response.data?.stocks;
+    if (!stocks) {
+      console.warn('No stocks data returned from Torn API');
+      return {};
+    }
+
+    // Parse into simple lookup map: { stock_id: { total_shares } }
+    const holdings: Record<number, { total_shares: number }> = {};
+    for (const [stockId, stockData] of Object.entries(stocks) as [string, any][]) {
+      holdings[parseInt(stockId, 10)] = {
+        total_shares: stockData.total_shares || 0
+      };
+    }
+    
+    return holdings;
+  } catch (error) {
+    console.error('Error fetching user stocks:', error instanceof Error ? error.message : String(error));
+    // Return empty object on error - stocks will show 0 shares
+    return {};
+  }
+}
 
 // Helper function to calculate standard deviation
 function calculateStdDev(values: number[]): number {
@@ -31,6 +63,9 @@ router.get('/stocks/recommendations', async (_req: Request, res: Response): Prom
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
+    // Fetch user's stock holdings from Torn v2 API
+    const holdings = await fetchUserStocks();
+
     // Use aggregation to get all data efficiently
     const stockData = await StockPriceSnapshot.aggregate([
       {
@@ -44,6 +79,7 @@ router.get('/stocks/recommendations', async (_req: Request, res: Response): Prom
       {
         $group: {
           _id: '$ticker',
+          stock_id: { $first: '$stock_id' },
           name: { $first: '$name' },
           currentPrice: { $first: '$price' },
           oldestPrice: { $last: '$price' },
@@ -63,6 +99,7 @@ router.get('/stocks/recommendations', async (_req: Request, res: Response): Prom
 
     const recommendations = stockData.map((stock: any) => {
       const ticker = stock._id;
+      const stockId = stock.stock_id;
       const name = stock.name;
       const currentPrice = stock.currentPrice;
       const weekAgoPrice = stock.oldestPrice;
@@ -87,7 +124,11 @@ router.get('/stocks/recommendations', async (_req: Request, res: Response): Prom
         recommendation = getRecommendation(score);
       }
 
+      // Get ownership data
+      const ownedShares = holdings[stockId]?.total_shares ?? 0;
+
       return {
+        stock_id: stockId,
         ticker,
         name,
         price: currentPrice,
@@ -95,7 +136,9 @@ router.get('/stocks/recommendations', async (_req: Request, res: Response): Prom
         volatility: parseFloat(volatility.toFixed(2)),
         score: score !== null ? parseFloat(score.toFixed(2)) : null,
         sell_score: sell_score !== null ? parseFloat(sell_score.toFixed(2)) : null,
-        recommendation
+        recommendation,
+        owned_shares: ownedShares,
+        can_sell: ownedShares > 0
       };
     });
 

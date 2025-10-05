@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IStockPriceSnapshot extends Document {
+  stock_id: number;
   ticker: string;
   name: string;
   price: number;
@@ -8,6 +9,7 @@ export interface IStockPriceSnapshot extends Document {
 }
 
 const StockPriceSnapshotSchema = new Schema<IStockPriceSnapshot>({
+  stock_id: { type: Number, required: true },
   ticker: { type: String, required: true },
   name: { type: String, required: true },
   price: { type: Number, required: true },
