@@ -118,9 +118,9 @@ const match = cityShopStockMap.get(item.name.toLowerCase());
 - `fetchTornItems()` - async ✓
 - `fetchCityShopStock()` - async ✓
 - `fetchForeignStock()` - async ✓
-- `updateTrackedItems()` - async ✓
+- `updateMonitoredItems()` - async ✓
 - `fetchMarketSnapshots()` - async ✓
-- `calculateVelocityAndTrend()` - async ✓
+- `calculate24HourMetrics()` - async ✓
 
 ✅ **API endpoint only fetches from database**
 - No external API calls in `/api/profit`

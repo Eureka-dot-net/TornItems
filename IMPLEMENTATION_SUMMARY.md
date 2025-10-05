@@ -91,9 +91,10 @@ MONGO_URI=mongodb://localhost:27017/wasteland_rpg
 ```
 
 ### Customizable Settings
-- **TRACKED_ITEMS**: Array of item IDs to track for market prices
+- **MonitoredItem system**: Tracks all profitable items with adaptive monitoring
 - **Schedule timings**: Can be adjusted in cron expressions
 - **Rate limits**: Configurable via Bottleneck settings
+- **Curiosity rate**: Configurable via CURIOSITY_RATE environment variable
 
 ## Benefits
 
@@ -162,7 +163,7 @@ Test infrastructure created in `tests/` directory:
 
 ## Next Steps (Optional Enhancements)
 
-1. **Add more tracked items**: Update TRACKED_ITEMS array
+1. **Expand monitoring**: Add more items to MonitoredItem collection
 2. **Implement webhooks**: Notify on price changes
 3. **Add analytics**: Track fetch success rates
 4. **Dashboard**: Real-time status monitoring
@@ -212,7 +213,8 @@ The background fetcher is fully implemented and ready for deployment. It will au
 1. Fetch Torn items once daily (or on startup if stale)
 2. Update city shop stock every minute
 3. Update foreign stock every minute
-4. Update market prices every minute (for tracked items)
-5. Serve all data from MongoDB via the /profit endpoint
+4. Update monitored items every 10 minutes
+5. Use adaptive monitoring to fetch market snapshots efficiently
+6. Serve all data from MongoDB via the /profit endpoint
 
 The implementation follows best practices for production systems including rate limiting, error handling, logging, and efficient database operations.

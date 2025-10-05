@@ -7,7 +7,6 @@ import { CityShopStockHistory } from '../models/CityShopStockHistory';
 import { ForeignStock } from '../models/ForeignStock';
 import { ForeignStockHistory } from '../models/ForeignStockHistory';
 import { MarketSnapshot } from '../models/MarketSnapshot';
-import { TrackedItem } from '../models/TrackedItem';
 import { MonitoredItem } from '../models/MonitoredItem';
 import { logInfo, logError } from '../utils/logger';
 
@@ -276,36 +275,17 @@ export async function updateMonitoredItems(): Promise<void> {
   try {
     logInfo('Updating monitored items (all items with profit > 0)...');
 
-    // Fetch all items, city shop stock, and foreign stock from MongoDB
-    const [items, cityShopStock, foreignStock] = await Promise.all([
-      TornItem.find({ buy_price: { $ne: null } }).lean() as Promise<Array<{
-        itemId: number;
-        name: string;
-        description: string;
-        type: string;
-        vendor_country?: string | null;
-        vendor_name?: string | null;
-        buy_price?: number | null;
-        market_price?: number | null;
-      }>>,
-      CityShopStock.find().lean() as Promise<Array<{
-        shopId: string;
-        shopName: string;
-        itemId: string;
-        itemName: string;
-        type: string;
-        price: number;
-        in_stock: number;
-      }>>,
-      ForeignStock.find().lean() as Promise<Array<{
-        countryCode: string;
-        countryName: string;
-        itemId: number;
-        itemName: string;
-        quantity: number;
-        cost: number;
-      }>>,
-    ]);
+    // Fetch all items from MongoDB
+    const items = await TornItem.find({ buy_price: { $ne: null } }).lean() as Array<{
+      itemId: number;
+      name: string;
+      description: string;
+      type: string;
+      vendor_country?: string | null;
+      vendor_name?: string | null;
+      buy_price?: number | null;
+      market_price?: number | null;
+    }>;
 
     if (!items?.length) {
       logError('No items found in database for monitoring', new Error('Empty items array'));
@@ -357,119 +337,8 @@ export async function updateMonitoredItems(): Promise<void> {
       logInfo(`Successfully updated ${bulkOps.length} monitored items with positive profit`);
     }
 
-    // Also update the legacy TrackedItem collection for backward compatibility
-    await updateTrackedItemsLegacy(items, cityShopStock, foreignStock);
-
   } catch (error) {
     logError('Error updating monitored items', error instanceof Error ? error : new Error(String(error)));
-  }
-}
-
-/**
- * Legacy function: Maintain TrackedItem collection for backward compatibility
- * Keeps tracking top N profitable items per country (Torn: 20, Others: 10)
- */
-async function updateTrackedItemsLegacy(
-  items: Array<{
-    itemId: number;
-    name: string;
-    type: string;
-    vendor_country?: string | null;
-    vendor_name?: string | null;
-    buy_price?: number | null;
-    market_price?: number | null;
-  }>,
-  cityShopStock: Array<{
-    itemName: string;
-    in_stock: number;
-  }>,
-  foreignStock: Array<{
-    countryCode: string;
-    itemName: string;
-    quantity: number;
-  }>
-): Promise<void> {
-  // Group items by country and calculate profit
-  const groupedByCountry: Record<string, Array<{
-    itemId: number;
-    name: string;
-    type: string;
-    shopName: string;
-    buy_price: number;
-    market_price: number;
-    profitPer1: number;
-    in_stock: number | null;
-  }>> = {};
-
-  for (const item of items) {
-    const country = item.vendor_country || 'Unknown';
-    const shop = item.vendor_name || 'Unknown';
-    const buy = item.buy_price ?? 0;
-    const market = item.market_price ?? 0;
-
-    const profitPer1 = market && buy ? market - buy : null;
-    
-    if (profitPer1 === null || profitPer1 <= 0) continue;
-
-    // Get stock info
-    let inStock: number | null = null;
-
-    if (country === 'Torn') {
-      const match = cityShopStock.find(
-        (stock) => stock.itemName?.toLowerCase() === item.name.toLowerCase()
-      );
-      if (match) {
-        inStock = match.in_stock ?? null;
-      }
-    } else {
-      const countryCode = Object.entries(COUNTRY_CODE_MAP).find(
-        ([, name]) => name === country
-      )?.[0];
-
-      if (countryCode) {
-        const match = foreignStock.find(
-          (stock) => 
-            stock.countryCode === countryCode &&
-            stock.itemName.toLowerCase() === item.name.toLowerCase()
-        );
-        if (match) inStock = match.quantity;
-      }
-    }
-
-    if (!groupedByCountry[country]) groupedByCountry[country] = [];
-
-    groupedByCountry[country].push({
-      itemId: item.itemId,
-      name: item.name,
-      type: item.type,
-      shopName: shop,
-      buy_price: buy,
-      market_price: market,
-      profitPer1,
-      in_stock: inStock,
-    });
-  }
-
-  // For each country, get top profitable items and update TrackedItem collection
-  for (const [country, countryItems] of Object.entries(groupedByCountry)) {
-    const topCount = country === 'Torn' ? 20 : 10;
-    const topItems = countryItems
-      .sort((a, b) => b.profitPer1 - a.profitPer1)
-      .slice(0, topCount);
-
-    const itemIds = topItems.map(item => item.itemId);
-
-    await TrackedItem.findOneAndUpdate(
-      { country },
-      {
-        $set: {
-          country,
-          itemIds,
-          lastUpdated: new Date(),
-        },
-      },
-      { upsert: true }
-    );
   }
 }
 

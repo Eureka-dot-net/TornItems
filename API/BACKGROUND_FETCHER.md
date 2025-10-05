@@ -35,7 +35,6 @@ This service automatically fetches and stores Torn API data into MongoDB, ensuri
 - Based on profitPer1 (market_price - buy_price > 0)
 - Updates selections every 10 minutes
 - Tracks item availability and stock levels
-- Maintains legacy TrackedItem collection for backward compatibility (top 20 for Torn, top 10 for others)
 
 ### Scheduled Data Fetching
 
@@ -50,7 +49,6 @@ This service automatically fetches and stores Torn API data into MongoDB, ensuri
   - Analyzes all items and calculates profit margins
   - Adds items with profit > 0 to MonitoredItem collection
   - New items get MonitorFrequency = 1 (check every cycle)
-  - Also updates legacy TrackedItem collection for backward compatibility
 
 #### Adaptive Market Snapshots (Self-Scheduling)
 - **Market Snapshots**: Detailed market data with intelligent scheduling
@@ -124,14 +122,6 @@ Stores complete market data snapshots:
 - `trend_24h`, `hour_velocity_24`: Sales trends and velocity
 
 **Purpose**: Historical market data for analyzing which profitable items actually sell
-
-### TrackedItem (Legacy - Backward Compatibility)
-Stores top N profitable items per country:
-- `country`: Country name
-- `itemIds`: Array of top item IDs (20 for Torn, 10 for others)
-- `lastUpdated`: Last selection update timestamp
-
-**Purpose**: Maintains backward compatibility with existing APIs
 
 ### TornItem
 Stores basic item information and vendor details:
@@ -214,8 +204,7 @@ Tracks ALL items with positive profit and manages adaptive monitoring:
 3. Adds items with profit > 0 to MonitoredItem collection
 4. New items get MonitorFrequency = 1 (check every cycle)
 5. Preserves existing MonitorFrequency for known items
-6. Also updates legacy TrackedItem collection for backward compatibility
-7. Logs: "Successfully updated {n} monitored items with positive profit"
+6. Logs: "Successfully updated {n} monitored items with positive profit"
 
 ### `fetchMarketSnapshots()`
 Adaptive monitoring with intelligent scheduling and curiosity checks:
