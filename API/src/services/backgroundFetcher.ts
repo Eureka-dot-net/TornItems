@@ -9,6 +9,7 @@ import { ForeignStockHistory } from '../models/ForeignStockHistory';
 import { MarketSnapshot } from '../models/MarketSnapshot';
 import { MonitoredItem } from '../models/MonitoredItem';
 import { ShopItemState } from '../models/ShopItemState';
+import { StockPriceSnapshot } from '../models/StockPriceSnapshot';
 import { logInfo, logError } from '../utils/logger';
 import { aggregateMarketHistory } from '../jobs/aggregateMarketHistory';
 import { roundUpToNextQuarterHour, minutesBetween } from '../utils/dateHelpers';
@@ -1191,6 +1192,46 @@ export async function fetchMarketSnapshots(): Promise<void> {
   }
 }
 
+// Fetch and save stock prices (every 30 minutes)
+export async function fetchStockPrices(): Promise<void> {
+  try {
+    logInfo('Fetching stock prices...');
+    
+    const response = await retryWithBackoff(() =>
+      limiter.schedule(() =>
+        axios.get(`https://api.torn.com/v2/torn?selections=stocks&key=${API_KEY}`)
+      )
+    ) as { data: { stocks: any } };
+
+    const stocks = response.data.stocks;
+    if (!stocks) {
+      logError('Stocks not found or empty', new Error('Empty stocks response'));
+      return;
+    }
+
+    const bulkOps: any[] = [];
+    const timestamp = new Date();
+    
+    for (const [, stockData] of Object.entries(stocks) as [string, any][]) {
+      bulkOps.push({
+        ticker: stockData.acronym,
+        name: stockData.name,
+        price: stockData.current_price,
+        timestamp: timestamp,
+      });
+    }
+
+    if (bulkOps.length > 0) {
+      await StockPriceSnapshot.insertMany(bulkOps);
+      logInfo(`Successfully saved ${bulkOps.length} stock price snapshots to database`);
+    } else {
+      logInfo('No stocks to save');
+    }
+  } catch (error) {
+    logError('Error fetching stock prices', error instanceof Error ? error : new Error(String(error)));
+  }
+}
+
 // Initialize and start the scheduler
 export function startScheduler(): void {
   logInfo('Starting background fetcher scheduler...');
@@ -1255,6 +1296,17 @@ export function startScheduler(): void {
   cron.schedule(historyAggregationCron, () => {
     logInfo('Running scheduled market history aggregation...');
     aggregateMarketHistory();
+  });
+
+  // Schedule stock price fetch every 30 minutes
+  cron.schedule('*/30 * * * *', () => {
+    logInfo('Running scheduled stock price fetch...');
+    fetchStockPrices();
+  });
+
+  // Fetch stock prices immediately on startup
+  fetchStockPrices().catch((error) => {
+    logError('Failed to fetch stock prices on startup', error instanceof Error ? error : new Error(String(error)));
   });
 
   logInfo('Background fetcher scheduler started successfully');

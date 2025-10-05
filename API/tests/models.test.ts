@@ -5,6 +5,7 @@ import { ForeignStock } from '../src/models/ForeignStock';
 import { ForeignStockHistory } from '../src/models/ForeignStockHistory';
 import { ItemMarket } from '../src/models/ItemMarket';
 import { MarketHistory } from '../src/models/MarketHistory';
+import { StockPriceSnapshot } from '../src/models/StockPriceSnapshot';
 
 describe('MongoDB Models', () => {
   describe('TornItem Model', () => {
@@ -177,6 +178,36 @@ describe('MongoDB Models', () => {
       await expect(MarketHistory.create(data)).rejects.toThrow();
       
       await MarketHistory.deleteOne({ id: 2, date: '2025-01-05' });
+    });
+  });
+
+  describe('StockPriceSnapshot Model', () => {
+    it('should create a StockPriceSnapshot entry', async () => {
+      const snapshot = await StockPriceSnapshot.create({
+        ticker: 'TSB',
+        name: 'Torn & Shanghai Banking',
+        price: 1139.91,
+        timestamp: new Date(),
+      });
+
+      expect(snapshot.ticker).toBe('TSB');
+      expect(snapshot.name).toBe('Torn & Shanghai Banking');
+      expect(snapshot.price).toBe(1139.91);
+      expect(snapshot.timestamp).toBeInstanceOf(Date);
+      
+      await StockPriceSnapshot.deleteOne({ _id: snapshot._id });
+    });
+
+    it('should have compound index on ticker and timestamp', async () => {
+      const indexes = await StockPriceSnapshot.collection.getIndexes();
+      
+      // Check if compound index exists
+      const hasCompoundIndex = Object.keys(indexes).some(key => 
+        indexes[key].some((field: any) => field[0] === 'ticker' && field[1] === 1) &&
+        indexes[key].some((field: any) => field[0] === 'timestamp' && field[1] === -1)
+      );
+      
+      expect(hasCompoundIndex || indexes['ticker_1_timestamp_-1']).toBeTruthy();
     });
   });
 });
