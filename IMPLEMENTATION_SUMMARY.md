@@ -90,11 +90,46 @@ TORN_API_KEY=your_torn_api_key_here
 MONGO_URI=mongodb://localhost:27017/wasteland_rpg
 ```
 
+### Optional Environment Variables
+```env
+# Include ItemsSold data in API responses (default: false)
+# Set to true to return the ItemsSold array for debugging purposes
+INCLUDE_ITEMS_SOLD=false
+
+# Curiosity Rate for adaptive monitoring (default: 0.05 = 5%)
+CURIOSITY_RATE=0.05
+
+# Torn API Rate Limit (requests per minute, default: 60)
+TORN_RATE_LIMIT=60
+```
+
 ### Customizable Settings
 - **MonitoredItem system**: Tracks all profitable items with adaptive monitoring
 - **Schedule timings**: Can be adjusted in cron expressions
 - **Rate limits**: Configurable via Bottleneck settings
 - **Curiosity rate**: Configurable via CURIOSITY_RATE environment variable
+- **ItemsSold inclusion**: Configurable via INCLUDE_ITEMS_SOLD environment variable (default: false)
+  - When set to `true`, the `/profit` endpoint will include an `ItemsSold` array for each item containing recent sales data
+  - This is useful for debugging and real-time sales analysis
+  - Example response when enabled:
+    ```json
+    {
+      "id": 814,
+      "name": "Tyrosine",
+      "buy_price": 600000,
+      "market_price": 624366,
+      "ItemsSold": [
+        {
+          "Amount": 20,
+          "TimeStamp": "2025-10-05T05:56:23.666Z"
+        },
+        {
+          "Amount": 20,
+          "TimeStamp": "2025-10-05T05:33:49.795Z"
+        }
+      ]
+    }
+    ```
 
 ## Benefits
 

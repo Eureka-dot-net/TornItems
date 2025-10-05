@@ -48,6 +48,9 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
   try {
     console.log('Fetching profit data from MongoDB...');
 
+    // Check if ItemsSold should be included in the response (for debugging)
+    const includeItemsSold = process.env.INCLUDE_ITEMS_SOLD === 'true';
+
     // Fetch all items, city shop stock, foreign stock, and market snapshots from MongoDB
     const [items, cityShopStock, foreignStock, marketSnapshots] = await Promise.all([
       TornItem.find({ buy_price: { $ne: null } }).lean(),
@@ -93,19 +96,22 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     }
 
     // Create a lookup map for ItemsSold: key is "country:itemId", value is array of sales
+    // Only build this map if includeItemsSold flag is enabled (for performance)
     const itemsSoldMap = new Map<string, Array<{ Amount: number; TimeStamp: string }>>();
-    const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
-    for (const snapshot of marketSnapshots) {
-      if (snapshot.items_sold != null && snapshot.items_sold > 0 && 
-          new Date(snapshot.fetched_at).getTime() >= twentyFourHoursAgo) {
-        const key = `${snapshot.country}:${snapshot.itemId}`;
-        if (!itemsSoldMap.has(key)) {
-          itemsSoldMap.set(key, []);
+    if (includeItemsSold) {
+      const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+      for (const snapshot of marketSnapshots) {
+        if (snapshot.items_sold != null && snapshot.items_sold > 0 && 
+            new Date(snapshot.fetched_at).getTime() >= twentyFourHoursAgo) {
+          const key = `${snapshot.country}:${snapshot.itemId}`;
+          if (!itemsSoldMap.has(key)) {
+            itemsSoldMap.set(key, []);
+          }
+          itemsSoldMap.get(key)!.push({
+            Amount: snapshot.items_sold,
+            TimeStamp: snapshot.fetched_at.toISOString()
+          });
         }
-        itemsSoldMap.get(key)!.push({
-          Amount: snapshot.items_sold,
-          TimeStamp: snapshot.fetched_at.toISOString()
-        });
       }
     }
 
@@ -198,7 +204,8 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
 
       if (!grouped[country]) grouped[country] = [];
 
-      grouped[country].push({
+      // Build the country item object
+      const countryItem: CountryItem = {
         id: item.itemId,
         name: item.name,
         buy_price: buy,
@@ -211,11 +218,17 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         trend_24h,
         hour_velocity_24,
         average_price_items_sold,
-        ItemsSold: ItemsSold.length > 0 ? ItemsSold : undefined,
         estimated_market_value_profit,
         lowest_50_profit,
         sold_profit,
-      });
+      };
+
+      // Conditionally add ItemsSold if flag is enabled
+      if (includeItemsSold && ItemsSold.length > 0) {
+        countryItem.ItemsSold = ItemsSold;
+      }
+
+      grouped[country].push(countryItem);
     }
 
     // Sort each country's results by the new profit priorities:
