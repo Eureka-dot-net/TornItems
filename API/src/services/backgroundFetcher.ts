@@ -470,7 +470,8 @@ function calculateItemsSoldAndRevenueBetweenSnapshots(
   }
 
   // Get sorted list of prices from NEWER listings (cheapest first)
-  // We only count as sold if it matches the cheapest price available NOW
+  // We count items as sold if their price is <= the cheapest price available NOW
+  // This handles cases where all items at the cheapest price were sold out
   const sortedNewerPrices = Array.from(newerMap.keys()).sort((a, b) => a - b);
   const cheapestCurrentPrice = sortedNewerPrices[0];
   
@@ -483,14 +484,15 @@ function calculateItemsSoldAndRevenueBetweenSnapshots(
     if (olderAmount > newerAmount) {
       const removedAmount = olderAmount - newerAmount;
       
-      // Only count as sold if it matches the cheapest price in the NEWER listings
-      // This ensures we only count actual sales, not delistings
-      if (price === cheapestCurrentPrice) {
+      // Count as sold if price is less than or equal to the cheapest current price
+      // If there are no newer listings (all sold out), cheapestCurrentPrice will be undefined
+      // In that case, count all removed items as sold
+      if (cheapestCurrentPrice === undefined || price <= cheapestCurrentPrice) {
         itemsSold += removedAmount;
         totalRevenue += removedAmount * price;
         salesByPrice.push({ price, amount: removedAmount });
       } else {
-        // Items removed from non-cheapest prices are considered delisted
+        // Items removed from prices higher than the cheapest current price are considered delisted
         hasDelisted = true;
       }
     }
