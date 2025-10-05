@@ -282,10 +282,23 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
           
           // Add estimated wait time: (cycles_skipped + 1) * 15 minutes
           const estimatedWaitMinutes = (cyclesSkippedCount + 1) * 15;
-          const estimatedTime = new Date(lastRestock.getTime() + estimatedWaitMinutes * 60 * 1000);
+          let estimatedTime = new Date(lastRestock.getTime() + estimatedWaitMinutes * 60 * 1000);
           
           // Round to next quarter hour
-          const nextRestock = roundUpToNextQuarterHour(estimatedTime);
+          let nextRestock = roundUpToNextQuarterHour(estimatedTime);
+          
+          // If the calculated time is in the past, advance it to the next future restock cycle
+          const now = new Date();
+          if (nextRestock < now) {
+            // Calculate how many 15-minute cycles have passed since the estimated time
+            const minutesSinceEstimate = (now.getTime() - nextRestock.getTime()) / (60 * 1000);
+            const cyclesPassed = Math.ceil(minutesSinceEstimate / 15);
+            
+            // Advance to the next restock cycle in the future
+            nextRestock = new Date(nextRestock.getTime() + cyclesPassed * 15 * 60 * 1000);
+            nextRestock = roundUpToNextQuarterHour(nextRestock);
+          }
+          
           next_estimated_restock_time = nextRestock.toISOString();
         }
       }
