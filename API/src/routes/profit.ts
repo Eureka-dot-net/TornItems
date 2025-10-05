@@ -3,6 +3,8 @@ import { TornItem } from '../models/TornItem';
 import { CityShopStock } from '../models/CityShopStock';
 import { ForeignStock } from '../models/ForeignStock';
 import { MarketSnapshot } from '../models/MarketSnapshot';
+import { ShopItemState } from '../models/ShopItemState';
+import { roundUpToNextQuarterHour } from '../utils/dateHelpers';
 
 const router = express.Router({ mergeParams: true });
 
@@ -23,6 +25,10 @@ interface CountryItem {
   estimated_market_value_profit: number | null;
   lowest_50_profit: number | null;
   sold_profit: number | null;
+  sellout_duration_minutes?: number | null;
+  cycles_skipped?: number | null;
+  last_restock_time?: string | null;
+  next_estimated_restock_time?: string | null;
 }
 
 interface GroupedByCountry {
@@ -52,11 +58,12 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     const includeItemsSold = process.env.INCLUDE_ITEMS_SOLD === 'true';
 
     // Fetch all items, city shop stock, foreign stock, and market snapshots from MongoDB
-    const [items, cityShopStock, foreignStock, marketSnapshots] = await Promise.all([
+    const [items, cityShopStock, foreignStock, marketSnapshots, shopItemStates] = await Promise.all([
       TornItem.find({ buy_price: { $ne: null } }).lean(),
       CityShopStock.find().lean(),
       ForeignStock.find().lean(),
       MarketSnapshot.find().sort({ fetched_at: -1 }).lean(),
+      ShopItemState.find().lean(),
     ]);
 
     if (!items?.length) {
@@ -67,7 +74,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     }
 
     console.log(
-      `Retrieved ${items.length} items, ${cityShopStock.length} city shop items, ${foreignStock.length} foreign stock items, and ${marketSnapshots.length} market snapshots from database.`
+      `Retrieved ${items.length} items, ${cityShopStock.length} city shop items, ${foreignStock.length} foreign stock items, ${marketSnapshots.length} market snapshots, and ${shopItemStates.length} shop item states from database.`
     );
 
     // Create a lookup map for market snapshots: key is "country:itemId", value is the latest snapshot
@@ -78,6 +85,13 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       if (!snapshotMap.has(key)) {
         snapshotMap.set(key, snapshot);
       }
+    }
+
+    // Create a lookup map for shop item states: key is "itemId" (for Torn city shops)
+    const shopItemStateMap = new Map<string, any>();
+    for (const state of shopItemStates) {
+      const key = state.itemId;
+      shopItemStateMap.set(key, state);
     }
 
     // Create a lookup map for city shop stock: key is lowercase item name
@@ -219,6 +233,37 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       // 3. sold_profit = average_price_items_sold - buy_price
       const sold_profit = average_price_items_sold !== null ? average_price_items_sold - buy : null;
 
+      // 📦 Fetch shop item state data for restock timing (only for Torn city shops)
+      let sellout_duration_minutes: number | null = null;
+      let cycles_skipped: number | null = null;
+      let last_restock_time: string | null = null;
+      let next_estimated_restock_time: string | null = null;
+      
+      if (country === 'Torn') {
+        const shopItemState = shopItemStateMap.get(String(item.itemId));
+        if (shopItemState) {
+          sellout_duration_minutes = shopItemState.selloutDurationMinutes ?? null;
+          cycles_skipped = shopItemState.cyclesSkipped ?? null;
+          
+          if (shopItemState.lastRestockTime) {
+            last_restock_time = shopItemState.lastRestockTime.toISOString();
+            
+            // Calculate next estimated restock time
+            // Start from last restock time, add (cyclesSkipped + 1) * 15 minutes
+            const lastRestock = new Date(shopItemState.lastRestockTime);
+            const cyclesSkippedCount = shopItemState.cyclesSkipped ?? 0;
+            
+            // Add estimated wait time: (cycles_skipped + 1) * 15 minutes
+            const estimatedWaitMinutes = (cyclesSkippedCount + 1) * 15;
+            const estimatedTime = new Date(lastRestock.getTime() + estimatedWaitMinutes * 60 * 1000);
+            
+            // Round to next quarter hour
+            const nextRestock = roundUpToNextQuarterHour(estimatedTime);
+            next_estimated_restock_time = nextRestock.toISOString();
+          }
+        }
+      }
+
       if (!grouped[country]) grouped[country] = [];
 
       // Build the country item object
@@ -238,6 +283,10 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         estimated_market_value_profit,
         lowest_50_profit,
         sold_profit,
+        sellout_duration_minutes,
+        cycles_skipped,
+        last_restock_time,
+        next_estimated_restock_time,
       };
 
       // Conditionally add ItemsSold if flag is enabled
