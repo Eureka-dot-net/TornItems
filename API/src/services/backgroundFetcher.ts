@@ -8,8 +8,10 @@ import { ForeignStock } from '../models/ForeignStock';
 import { ForeignStockHistory } from '../models/ForeignStockHistory';
 import { MarketSnapshot } from '../models/MarketSnapshot';
 import { MonitoredItem } from '../models/MonitoredItem';
+import { ShopItemState } from '../models/ShopItemState';
 import { logInfo, logError } from '../utils/logger';
 import { aggregateMarketHistory } from '../jobs/aggregateMarketHistory';
+import { roundUpToNextQuarterHour, minutesBetween } from '../utils/dateHelpers';
 
 const API_KEY = process.env.TORN_API_KEY || 'yLp4OoENbjRy30GZ';
 
@@ -183,6 +185,18 @@ export async function fetchCityShopStock(): Promise<void> {
           in_stock: itemData.in_stock,
           fetched_at: fetchedAt,
         });
+        
+        // Track shop item state transitions
+        await trackShopItemState(
+          shopId,
+          shopData.name,
+          itemId,
+          itemData.name,
+          itemData.type,
+          itemData.price,
+          itemData.in_stock,
+          fetchedAt
+        );
       }
     }
 
@@ -196,6 +210,117 @@ export async function fetchCityShopStock(): Promise<void> {
     }
   } catch (error) {
     logError('Error fetching city shop stock', error instanceof Error ? error : new Error(String(error)));
+  }
+}
+
+/**
+ * Track shop item state transitions (sellout and restock)
+ * This function detects when items sell out or restock and calculates relevant metrics
+ */
+async function trackShopItemState(
+  shopId: string,
+  shopName: string,
+  itemId: string,
+  itemName: string,
+  type: string,
+  price: number,
+  currentStock: number,
+  fetchedAt: Date
+): Promise<void> {
+  try {
+    // Retrieve previous state for this shop item
+    const previousState = await ShopItemState.findOne({ shopId, itemId });
+    
+    // Prepare the base update object
+    const updateData: any = {
+      shopId,
+      shopName,
+      itemId,
+      itemName,
+      type,
+      price,
+      in_stock: currentStock,
+      lastUpdated: fetchedAt,
+    };
+    
+    if (!previousState) {
+      // First time seeing this item - initialize with current stock
+      if (currentStock > 0) {
+        updateData.lastRestockTime = fetchedAt;
+      }
+      
+      await ShopItemState.create(updateData);
+      return;
+    }
+    
+    const previousStock = previousState.in_stock;
+    
+    // Detect sellout: previous stock > 0 → current stock = 0
+    if (previousStock > 0 && currentStock === 0) {
+      updateData.lastSelloutTime = fetchedAt;
+      
+      // Calculate sellout duration if we have a restock time
+      if (previousState.lastRestockTime) {
+        const selloutDuration = minutesBetween(previousState.lastRestockTime, fetchedAt);
+        updateData.selloutDurationMinutes = Math.round(selloutDuration * 100) / 100;
+        
+        // Update rolling average for sellout duration (optional)
+        if (previousState.averageSelloutMinutes !== undefined && previousState.averageSelloutMinutes !== null) {
+          updateData.averageSelloutMinutes = 
+            Math.round(((previousState.averageSelloutMinutes + selloutDuration) / 2) * 100) / 100;
+        } else {
+          updateData.averageSelloutMinutes = selloutDuration;
+        }
+        
+        logInfo(`[Sellout] ${itemName} sold out in ${selloutDuration.toFixed(1)} min`);
+      }
+    }
+    
+    // Detect restock: previous stock = 0 → current stock > 0
+    if (previousStock === 0 && currentStock > 0) {
+      updateData.lastRestockTime = fetchedAt;
+      
+      // Calculate cycles skipped if we have a sellout time
+      if (previousState.lastSelloutTime) {
+        const expectedRestockTime = roundUpToNextQuarterHour(previousState.lastSelloutTime);
+        const timeSinceSellout = minutesBetween(expectedRestockTime, fetchedAt);
+        const cyclesSkipped = Math.max(0, Math.round(timeSinceSellout / 15));
+        
+        updateData.cyclesSkipped = cyclesSkipped;
+        
+        // Update rolling average for cycles skipped (optional)
+        if (previousState.averageCyclesSkipped !== undefined && previousState.averageCyclesSkipped !== null) {
+          updateData.averageCyclesSkipped = 
+            Math.round(((previousState.averageCyclesSkipped + cyclesSkipped) / 2) * 100) / 100;
+        } else {
+          updateData.averageCyclesSkipped = cyclesSkipped;
+        }
+        
+        const lastRestockTimeStr = previousState.lastSelloutTime.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+        const newRestockTimeStr = fetchedAt.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+        
+        logInfo(`[Restock] ${itemName} restocked after skipping ${cyclesSkipped} cycles (last sellout ${lastRestockTimeStr}, new restock ${newRestockTimeStr})`);
+      }
+    }
+    
+    // Update the state
+    await ShopItemState.updateOne(
+      { shopId, itemId },
+      { $set: updateData },
+      { upsert: true }
+    );
+    
+  } catch (error) {
+    logError(
+      `Error tracking shop item state for ${itemName} (shop: ${shopId}, item: ${itemId})`,
+      error instanceof Error ? error : new Error(String(error))
+    );
   }
 }
 
@@ -252,6 +377,18 @@ export async function fetchForeignStock(): Promise<void> {
           cost: stock.cost,
           fetched_at: fetchedAt,
         });
+        
+        // Track foreign stock item state transitions
+        await trackShopItemState(
+          countryCode,          // Use countryCode as shopId
+          countryName,          // Use countryName as shopName
+          String(stock.id),     // itemId as string
+          stock.name,           // itemName
+          'Foreign',            // type
+          stock.cost,           // price
+          stock.quantity,       // in_stock (quantity for foreign)
+          fetchedAt
+        );
       }
     }
 
