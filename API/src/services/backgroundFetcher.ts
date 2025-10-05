@@ -208,8 +208,10 @@ export async function fetchCityShopStock(): Promise<void> {
 
     // Handle items that are now out of stock (not in API response but were tracked before)
     // The API doesn't return items with 0 stock, so we need to detect sellouts manually
+    // Get all city shop items (exclude foreign shops which use country codes as shopId)
     const previouslyTrackedItems = await ShopItemState.find({
-      in_stock: { $gt: 0 }
+      in_stock: { $gt: 0 },
+      shopId: { $nin: Object.keys(COUNTRY_CODE_MAP) }
     }).lean();
     
     for (const previousItem of previouslyTrackedItems) {
