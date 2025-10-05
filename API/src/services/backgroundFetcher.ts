@@ -151,10 +151,16 @@ export async function fetchCityShopStock(): Promise<void> {
     const historyDocs: any[] = [];
     const fetchedAt = new Date();
     
+    // Track which (shopId, itemId) pairs are present in the current API response
+    const currentInventoryKeys = new Set<string>();
+    
     for (const [shopId, shopData] of Object.entries(cityshops) as [string, any][]) {
       if (!shopData.inventory) continue;
       
       for (const [itemId, itemData] of Object.entries(shopData.inventory) as [string, any][]) {
+        const inventoryKey = `${shopId}:${itemId}`;
+        currentInventoryKeys.add(inventoryKey);
+        
         bulkOps.push({
           updateOne: {
             filter: { shopId, itemId },
@@ -200,6 +206,58 @@ export async function fetchCityShopStock(): Promise<void> {
       }
     }
 
+    // Handle items that are now out of stock (not in API response but were tracked before)
+    // The API doesn't return items with 0 stock, so we need to detect sellouts manually
+    // Get all city shop items (exclude foreign shops which use country codes as shopId)
+    const previouslyTrackedItems = await ShopItemState.find({
+      in_stock: { $gt: 0 },
+      shopId: { $nin: Object.keys(COUNTRY_CODE_MAP) }
+    }).lean();
+    
+    for (const previousItem of previouslyTrackedItems) {
+      const inventoryKey = `${previousItem.shopId}:${previousItem.itemId}`;
+      
+      // If this item was in stock before but is not in the current API response, it's now out of stock
+      if (!currentInventoryKeys.has(inventoryKey)) {
+        // Update CityShopStock to reflect 0 stock
+        bulkOps.push({
+          updateOne: {
+            filter: { shopId: previousItem.shopId, itemId: previousItem.itemId },
+            update: {
+              $set: {
+                in_stock: 0,
+                lastUpdated: fetchedAt,
+              },
+            },
+          },
+        });
+        
+        // Add to history with 0 stock
+        historyDocs.push({
+          shopId: previousItem.shopId,
+          shopName: previousItem.shopName,
+          itemId: previousItem.itemId,
+          itemName: previousItem.itemName,
+          type: previousItem.type,
+          price: previousItem.price,
+          in_stock: 0,
+          fetched_at: fetchedAt,
+        });
+        
+        // Track the sellout transition
+        await trackShopItemState(
+          previousItem.shopId,
+          previousItem.shopName,
+          previousItem.itemId,
+          previousItem.itemName,
+          previousItem.type,
+          previousItem.price,
+          0,  // Current stock is 0
+          fetchedAt
+        );
+      }
+    }
+
     if (bulkOps.length > 0) {
       await CityShopStock.bulkWrite(bulkOps);
       logInfo(`Successfully saved ${bulkOps.length} city shop items to database`);
@@ -210,6 +268,71 @@ export async function fetchCityShopStock(): Promise<void> {
     }
   } catch (error) {
     logError('Error fetching city shop stock', error instanceof Error ? error : new Error(String(error)));
+  }
+}
+
+/**
+ * Calculate restock metrics from history over the last 24 hours
+ * Returns the number of restocks and cycles skipped
+ */
+async function calculate24HourRestockMetrics(
+  shopId: string,
+  itemId: string,
+  currentTime: Date
+): Promise<{ restocksLast24h: number; cyclesSkipped24h: number }> {
+  try {
+    const twentyFourHoursAgo = new Date(currentTime.getTime() - 24 * 60 * 60 * 1000);
+    
+    // Check if this is a city shop or foreign shop (country code)
+    const isForeignShop = Object.keys(COUNTRY_CODE_MAP).includes(shopId);
+    
+    let history: any[] = [];
+    
+    if (isForeignShop) {
+      // Query foreign stock history
+      history = await ForeignStockHistory.find({
+        countryCode: shopId,
+        itemId: parseInt(itemId),
+        fetched_at: { $gte: twentyFourHoursAgo, $lte: currentTime }
+      })
+        .sort({ fetched_at: 1 })
+        .lean();
+    } else {
+      // Query city shop stock history
+      history = await CityShopStockHistory.find({
+        shopId,
+        itemId,
+        fetched_at: { $gte: twentyFourHoursAgo, $lte: currentTime }
+      })
+        .sort({ fetched_at: 1 })
+        .lean();
+    }
+    
+    if (history.length < 2) {
+      // Not enough data to calculate
+      return { restocksLast24h: 0, cyclesSkipped24h: 0 };
+    }
+    
+    // Count restocks (stock increases)
+    let restockCount = 0;
+    for (let i = 1; i < history.length; i++) {
+      const currentStock = isForeignShop ? history[i].quantity : history[i].in_stock;
+      const previousStock = isForeignShop ? history[i - 1].quantity : history[i - 1].in_stock;
+      
+      if (currentStock > previousStock) {
+        restockCount++;
+      }
+    }
+    
+    // Calculate total 15-minute cycles in 24 hours = 96 cycles
+    // Cycles skipped = total cycles - actual restocks
+    const totalCycles = 96;
+    const cyclesSkipped = Math.max(0, totalCycles - restockCount);
+    
+    return { restocksLast24h: restockCount, cyclesSkipped24h: cyclesSkipped };
+  } catch (error) {
+    logError(`Error calculating 24h restock metrics for ${shopId}:${itemId}`, error instanceof Error ? error : new Error(String(error)));
+    return { restocksLast24h: 0, cyclesSkipped24h: 0 };
   }
 }
 
@@ -276,15 +399,19 @@ async function trackShopItemState(
       }
     }
     
-    // Detect restock: previous stock = 0 → current stock > 0
-    if (previousStock === 0 && currentStock > 0) {
-      updateData.lastRestockTime = fetchedAt;
+    // Detect restock: current stock > previous stock (stock increased)
+    if (currentStock > previousStock) {
+      // Calculate 24-hour restock metrics from history
+      const { restocksLast24h, cyclesSkipped24h } = await calculate24HourRestockMetrics(shopId, itemId, fetchedAt);
       
-      // Calculate cycles skipped if we have a sellout time
-      if (previousState.lastSelloutTime) {
-        const expectedRestockTime = roundUpToNextQuarterHour(previousState.lastSelloutTime);
-        const timeSinceSellout = minutesBetween(expectedRestockTime, fetchedAt);
-        const cyclesSkipped = Math.max(0, Math.round(timeSinceSellout / 15));
+      updateData.restocksLast24h = restocksLast24h;
+      updateData.cyclesSkipped24h = cyclesSkipped24h;
+      
+      // Also calculate cycles since last restock for immediate context
+      if (previousState.lastRestockTime) {
+        const expectedRestockTime = roundUpToNextQuarterHour(previousState.lastRestockTime);
+        const timeSinceLastRestock = minutesBetween(expectedRestockTime, fetchedAt);
+        const cyclesSkipped = Math.max(0, Math.round(timeSinceLastRestock / 15));
         
         updateData.cyclesSkipped = cyclesSkipped;
         
@@ -296,7 +423,7 @@ async function trackShopItemState(
           updateData.averageCyclesSkipped = cyclesSkipped;
         }
         
-        const lastRestockTimeStr = previousState.lastSelloutTime.toLocaleTimeString('en-US', { 
+        const lastRestockTimeStr = previousState.lastRestockTime.toLocaleTimeString('en-US', { 
           hour: '2-digit', 
           minute: '2-digit' 
         });
@@ -305,8 +432,13 @@ async function trackShopItemState(
           minute: '2-digit' 
         });
         
-        logInfo(`[Restock] ${itemName} restocked after skipping ${cyclesSkipped} cycles (last sellout ${lastRestockTimeStr}, new restock ${newRestockTimeStr})`);
+        logInfo(`[Restock] ${itemName} restocked after skipping ${cyclesSkipped} cycles (last restock ${lastRestockTimeStr}, new restock ${newRestockTimeStr}). 24h stats: ${restocksLast24h} restocks, ${cyclesSkipped24h} cycles skipped`);
+      } else {
+        // First restock we've seen for this item
+        logInfo(`[Restock] ${itemName} restocked (stock increased from ${previousStock} to ${currentStock}). 24h stats: ${restocksLast24h} restocks, ${cyclesSkipped24h} cycles skipped`);
       }
+      
+      updateData.lastRestockTime = fetchedAt;
     }
     
     // Update the state
@@ -343,12 +475,18 @@ export async function fetchForeignStock(): Promise<void> {
     const historyDocs: any[] = [];
     const fetchedAt = new Date();
     
+    // Track which (countryCode, itemId) pairs are present in the current API response
+    const currentInventoryKeys = new Set<string>();
+    
     for (const [countryCode, countryData] of Object.entries(stocks) as [string, any][]) {
       const countryName = COUNTRY_CODE_MAP[countryCode] || countryCode;
       
       if (!countryData.stocks) continue;
       
       for (const stock of countryData.stocks) {
+        const inventoryKey = `${countryCode}:${stock.id}`;
+        currentInventoryKeys.add(inventoryKey);
+        
         bulkOps.push({
           updateOne: {
             filter: { countryCode, itemId: stock.id },
@@ -387,6 +525,56 @@ export async function fetchForeignStock(): Promise<void> {
           'Foreign',            // type
           stock.cost,           // price
           stock.quantity,       // in_stock (quantity for foreign)
+          fetchedAt
+        );
+      }
+    }
+
+    // Handle items that are now out of stock (not in API response but were tracked before)
+    // Similar to city shops, foreign stocks may not return items with 0 quantity
+    const previouslyTrackedItems = await ShopItemState.find({
+      shopId: { $in: Object.keys(COUNTRY_CODE_MAP) },
+      in_stock: { $gt: 0 }
+    }).lean();
+    
+    for (const previousItem of previouslyTrackedItems) {
+      const inventoryKey = `${previousItem.shopId}:${previousItem.itemId}`;
+      
+      // If this item was in stock before but is not in the current API response, it's now out of stock
+      if (!currentInventoryKeys.has(inventoryKey)) {
+        // Update ForeignStock to reflect 0 quantity
+        bulkOps.push({
+          updateOne: {
+            filter: { countryCode: previousItem.shopId, itemId: previousItem.itemId },
+            update: {
+              $set: {
+                quantity: 0,
+                lastUpdated: fetchedAt,
+              },
+            },
+          },
+        });
+        
+        // Add to history with 0 quantity
+        historyDocs.push({
+          countryCode: previousItem.shopId,
+          countryName: previousItem.shopName,
+          itemId: previousItem.itemId,
+          itemName: previousItem.itemName,
+          quantity: 0,
+          cost: previousItem.price,
+          fetched_at: fetchedAt,
+        });
+        
+        // Track the sellout transition
+        await trackShopItemState(
+          previousItem.shopId,
+          previousItem.shopName,
+          previousItem.itemId,
+          previousItem.itemName,
+          previousItem.type,
+          previousItem.price,
+          0,  // Current stock is 0
           fetchedAt
         );
       }
