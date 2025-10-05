@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "../layout/App";
 import UnderConstruction from "../layout/UnderConstruction";
 import Profit from "../pages/Profit";
+import Recommendations from "../pages/Recommendations";
 
 const router = createBrowserRouter([
     {
@@ -10,6 +11,7 @@ const router = createBrowserRouter([
             // All routes show the maintenance page
             { path: "/", element: <UnderConstruction /> },
             { path: "/profit", element: <Profit /> },
+            { path: "/recommendations", element: <Recommendations /> },
             { path: "*", element: <UnderConstruction /> },
         ],
     },
