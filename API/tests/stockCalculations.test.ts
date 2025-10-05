@@ -35,6 +35,21 @@ describe('Stock Calculations', () => {
       expect(change.toFixed(2)).toBe('-0.20');
       // This should be displayed as -0.20% on the frontend, NOT -20%
     });
+
+    it('prevents extreme scores for low-volatility stocks', () => {
+      const current = 602.69;
+      const past = 603.9;
+      const change = calculate7DayPercentChange(current, past);
+      const lowVolatility = 0.03; // 0.03% - very low volatility
+      
+      const { score } = calculateScores(change, lowVolatility);
+      const recommendation = getRecommendation(score);
+      
+      // With minimum volatility guard of 1.0%, score should be around 0.20
+      // This should give HOLD, not STRONG_BUY
+      expect(score).toBeLessThan(1); // Should not reach BUY threshold
+      expect(recommendation).toBe('HOLD');
+    });
   });
 
   describe('calculateVolatilityPercent', () => {
@@ -75,10 +90,11 @@ describe('Stock Calculations', () => {
       const change = 5.0;
       const vol = 0;
       const { score, sell_score } = calculateScores(change, vol);
-      // Should not throw error, uses minimum volatility
+      // Should not throw error, uses minimum volatility (1.0%)
       expect(score).toBeDefined();
       expect(sell_score).toBeDefined();
-      expect(Math.abs(score)).toBeGreaterThan(0);
+      expect(score).toBeCloseTo(-5.0, 1); // -5.0 / 1.0 = -5.0
+      expect(sell_score).toBeCloseTo(5.0, 1);
     });
 
     it('calculates strong buy signal for large negative change', () => {
