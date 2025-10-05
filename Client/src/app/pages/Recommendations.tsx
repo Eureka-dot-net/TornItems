@@ -299,10 +299,10 @@ export default function Recommendations() {
                                     variant="body2"
                                     sx={{ 
                                         color: stock.unrealized_profit_pct && stock.unrealized_profit_pct > 0 ? '#4caf50' : stock.unrealized_profit_pct && stock.unrealized_profit_pct < 0 ? '#f44336' : 'inherit',
-                                        fontWeight: stock.unrealized_profit_pct !== null ? 'bold' : 'normal'
+                                        fontWeight: stock.unrealized_profit_pct !== null && stock.unrealized_profit_pct !== undefined ? 'bold' : 'normal'
                                     }}
                                 >
-                                    {stock.unrealized_profit_pct !== null ? `${stock.unrealized_profit_pct > 0 ? '+' : ''}${stock.unrealized_profit_pct.toFixed(2)}%` : '-'}
+                                    {formatPercent(stock.unrealized_profit_pct)}
                                 </Typography>
                             </Grid>
                             <Grid size={{ xs: 12, sm: 1.8 }}>
