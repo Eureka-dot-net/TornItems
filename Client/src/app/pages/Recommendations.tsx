@@ -14,7 +14,7 @@ export default function Recommendations() {
     // Sort the data based on current sort field and order
     const sortedData = useMemo(() => {
         if (!recommendationsData) return [];
-        
+
         const data = [...recommendationsData];
         data.sort((a, b) => {
             const aValue = a[sortField];
@@ -76,12 +76,12 @@ export default function Recommendations() {
         }
     };
 
-     const formatCurrency = (value: number) => {
+    const formatCurrency = (value: number) => {
         return value.toLocaleString('en-US', {
             style: 'currency',
             currency: 'USD',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
         });
     };
 
@@ -254,9 +254,9 @@ export default function Recommendations() {
                                 <Typography variant="body2">{formatCurrency(stock.price)}</Typography>
                             </Grid>
                             <Grid size={{ xs: 6, sm: 1 }}>
-                                <Typography 
-                                    variant="body2" 
-                                    sx={{ 
+                                <Typography
+                                    variant="body2"
+                                    sx={{
                                         color: stock.change_7d_pct && stock.change_7d_pct > 0 ? '#f44336' : stock.change_7d_pct && stock.change_7d_pct < 0 ? '#4caf50' : 'inherit'
                                     }}
                                 >
@@ -267,9 +267,9 @@ export default function Recommendations() {
                                 <Typography variant="body2">{formatNumber(stock.volatility_7d_pct)}</Typography>
                             </Grid>
                             <Grid size={{ xs: 6, sm: 0.8 }}>
-                                <Typography 
+                                <Typography
                                     variant="body2"
-                                    sx={{ 
+                                    sx={{
                                         color: stock.score && stock.score > 0 ? '#4caf50' : stock.score && stock.score < 0 ? '#f44336' : 'inherit',
                                         fontWeight: 'bold'
                                     }}
@@ -278,8 +278,8 @@ export default function Recommendations() {
                                 </Typography>
                             </Grid>
                             <Grid size={{ xs: 6, sm: 1.2 }}>
-                                <Chip 
-                                    label={stock.recommendation} 
+                                <Chip
+                                    label={stock.recommendation}
                                     color={getRecommendationColor(stock.recommendation)}
                                     size="small"
                                     sx={{ fontSize: '0.75rem' }}
@@ -289,9 +289,9 @@ export default function Recommendations() {
                                 <Typography variant="body2">{stock.owned_shares}</Typography>
                             </Grid>
                             <Grid size={{ xs: 6, sm: 1.3 }}>
-                                <Typography 
+                                <Typography
                                     variant="body2"
-                                    sx={{ 
+                                    sx={{
                                         color: stock.unrealized_profit_value && stock.unrealized_profit_value > 0 ? '#4caf50' : stock.unrealized_profit_value && stock.unrealized_profit_value < 0 ? '#f44336' : 'inherit',
                                         fontWeight: stock.unrealized_profit_value !== null ? 'bold' : 'normal'
                                     }}
@@ -300,9 +300,9 @@ export default function Recommendations() {
                                 </Typography>
                             </Grid>
                             <Grid size={{ xs: 6, sm: 1 }}>
-                                <Typography 
+                                <Typography
                                     variant="body2"
-                                    sx={{ 
+                                    sx={{
                                         color: stock.unrealized_profit_pct && stock.unrealized_profit_pct > 0 ? '#4caf50' : stock.unrealized_profit_pct && stock.unrealized_profit_pct < 0 ? '#f44336' : 'inherit',
                                         fontWeight: stock.unrealized_profit_pct !== null && stock.unrealized_profit_pct !== undefined ? 'bold' : 'normal'
                                     }}
@@ -311,9 +311,9 @@ export default function Recommendations() {
                                 </Typography>
                             </Grid>
                             <Grid size={{ xs: 12, sm: 1.8 }}>
-                                <Link 
-                                    href={getTornStockUrl(stock.stock_id)} 
-                                    target="_blank" 
+                                <Link
+                                    href={getTornStockUrl(stock.stock_id)}
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     sx={{ fontSize: '0.875rem' }}
                                 >
