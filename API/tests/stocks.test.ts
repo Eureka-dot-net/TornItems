@@ -65,8 +65,8 @@ describe('Stocks API', () => {
       expect(fhg.ticker).toBe('FHG');
       expect(fhg.name).toBe('Feathery Hotels Group');
       expect(fhg.price).toBe(1499.22);
-      expect(fhg.change_7d).toBeLessThan(0); // Negative change
-      expect(fhg.volatility).toBeGreaterThan(0);
+      expect(fhg.change_7d_pct).toBeLessThan(0); // Negative change
+      expect(fhg.volatility_7d_pct).toBeGreaterThan(0);
       expect(fhg.score).toBeGreaterThan(0); // Positive score for declining stock
       expect(fhg.sell_score).toBeLessThan(0); // Negative sell score
       expect(['STRONG_BUY', 'BUY']).toContain(fhg.recommendation);
@@ -80,8 +80,8 @@ describe('Stocks API', () => {
       expect(sys.ticker).toBe('SYS');
       expect(sys.name).toBe('Syscore');
       expect(sys.price).toBe(2334.98);
-      expect(sys.change_7d).toBeGreaterThan(0); // Positive change
-      expect(sys.volatility).toBeGreaterThan(0);
+      expect(sys.change_7d_pct).toBeGreaterThan(0); // Positive change
+      expect(sys.volatility_7d_pct).toBeGreaterThan(0);
       expect(sys.score).toBeLessThan(0); // Negative score for rising stock
       expect(sys.sell_score).toBeGreaterThan(0); // Positive sell score
       expect(['SELL', 'STRONG_SELL']).toContain(sys.recommendation);
@@ -137,7 +137,7 @@ describe('Stocks API', () => {
       const stock = response.body[0];
       expect(stock.stock_id).toBe(5);
       expect(stock.ticker).toBe('NEW');
-      expect(stock.change_7d).toBe(0); // No change if same price 7 days ago
+      expect(stock.change_7d_pct).toBe(0); // No change if same price 7 days ago
       expect(stock.recommendation).toBe('HOLD'); // Should be HOLD with score=null or 0
       expect(stock.owned_shares).toBe(0);
       expect(stock.can_sell).toBe(false);

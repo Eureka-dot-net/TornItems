@@ -1,6 +1,12 @@
 import express, { Request, Response } from 'express';
 import axios from 'axios';
 import { StockPriceSnapshot } from '../models/StockPriceSnapshot';
+import { 
+  calculate7DayPercentChange, 
+  calculateVolatilityPercent, 
+  calculateScores,
+  getRecommendation 
+} from '../utils/stockMath';
 
 const router = express.Router({ mergeParams: true });
 
@@ -33,26 +39,6 @@ async function fetchUserStocks(): Promise<Record<number, { total_shares: number 
     // Return empty object on error - stocks will show 0 shares
     return {};
   }
-}
-
-// Helper function to calculate standard deviation
-function calculateStdDev(values: number[]): number {
-  if (values.length === 0) return 0;
-  
-  const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-  const squaredDiffs = values.map(val => Math.pow(val - mean, 2));
-  const variance = squaredDiffs.reduce((sum, val) => sum + val, 0) / values.length;
-  
-  return Math.sqrt(variance);
-}
-
-// Helper function to determine recommendation based on score
-function getRecommendation(score: number): string {
-  if (score >= 3) return 'STRONG_BUY';
-  if (score >= 1) return 'BUY';
-  if (score > -1) return 'HOLD';
-  if (score > -3) return 'SELL';
-  return 'STRONG_SELL';
 }
 
 // GET /stocks/recommendations
@@ -105,22 +91,23 @@ router.get('/stocks/recommendations', async (_req: Request, res: Response): Prom
       const weekAgoPrice = stock.oldestPrice;
 
       // Calculate 7-day change percentage
-      let change_7d: number | null = null;
+      let change_7d_pct: number | null = null;
       if (weekAgoPrice && weekAgoPrice > 0) {
-        change_7d = ((currentPrice - weekAgoPrice) / weekAgoPrice) * 100;
+        change_7d_pct = calculate7DayPercentChange(currentPrice, weekAgoPrice);
       }
 
-      // Calculate volatility (standard deviation of prices over last 7 days)
-      const volatility = calculateStdDev(stock.prices);
+      // Calculate volatility as percentage (standard deviation of daily returns)
+      const volatility_7d_pct = calculateVolatilityPercent(stock.prices);
 
       // Calculate scores
       let score: number | null = null;
       let sell_score: number | null = null;
       let recommendation = 'HOLD';
 
-      if (change_7d !== null && volatility > 0) {
-        score = -change_7d / volatility;
-        sell_score = change_7d / volatility;
+      if (change_7d_pct !== null) {
+        const scores = calculateScores(change_7d_pct, volatility_7d_pct);
+        score = scores.score;
+        sell_score = scores.sell_score;
         recommendation = getRecommendation(score);
       }
 
@@ -132,8 +119,8 @@ router.get('/stocks/recommendations', async (_req: Request, res: Response): Prom
         ticker,
         name,
         price: currentPrice,
-        change_7d: change_7d !== null ? parseFloat(change_7d.toFixed(2)) : null,
-        volatility: parseFloat(volatility.toFixed(2)),
+        change_7d_pct: change_7d_pct !== null ? parseFloat(change_7d_pct.toFixed(2)) : null,
+        volatility_7d_pct: parseFloat(volatility_7d_pct.toFixed(2)),
         score: score !== null ? parseFloat(score.toFixed(2)) : null,
         sell_score: sell_score !== null ? parseFloat(sell_score.toFixed(2)) : null,
         recommendation,
