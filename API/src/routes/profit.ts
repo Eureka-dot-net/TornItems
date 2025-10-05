@@ -87,11 +87,19 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       }
     }
 
-    // Create a lookup map for shop item states: key is "itemId" (for Torn city shops)
+    // Create a lookup map for shop item states: key is "shopId:itemId" 
+    // For Torn shops, we store by itemId only for backward compatibility
+    // For foreign shops, we use "countryCode:itemId"
     const shopItemStateMap = new Map<string, any>();
     for (const state of shopItemStates) {
-      const key = state.itemId;
+      // Store with composite key "shopId:itemId" for all items
+      const key = `${state.shopId}:${state.itemId}`;
       shopItemStateMap.set(key, state);
+      
+      // Also store Torn items by itemId alone for backward compatibility
+      if (state.shopName === 'Torn' || !state.shopId.includes('_')) {
+        shopItemStateMap.set(state.itemId, state);
+      }
     }
 
     // Create a lookup map for city shop stock: key is lowercase item name
@@ -233,34 +241,49 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       // 3. sold_profit = average_price_items_sold - buy_price
       const sold_profit = average_price_items_sold !== null ? average_price_items_sold - buy : null;
 
-      // 📦 Fetch shop item state data for restock timing (only for Torn city shops)
+      // 📦 Fetch shop item state data for restock timing (for both Torn and foreign shops)
       let sellout_duration_minutes: number | null = null;
       let cycles_skipped: number | null = null;
       let last_restock_time: string | null = null;
       let next_estimated_restock_time: string | null = null;
       
+      // Determine the lookup key based on country
+      let shopItemState = null;
       if (country === 'Torn') {
-        const shopItemState = shopItemStateMap.get(String(item.itemId));
-        if (shopItemState) {
-          sellout_duration_minutes = shopItemState.selloutDurationMinutes ?? null;
-          cycles_skipped = shopItemState.cyclesSkipped ?? null;
+        // For Torn items, try itemId lookup first
+        shopItemState = shopItemStateMap.get(String(item.itemId));
+      } else {
+        // For foreign items, use countryCode:itemId lookup
+        const countryCode = Object.entries(COUNTRY_CODE_MAP).find(
+          ([, name]) => name === country
+        )?.[0];
+        
+        if (countryCode) {
+          const stateKey = `${countryCode}:${item.itemId}`;
+          shopItemState = shopItemStateMap.get(stateKey);
+        }
+      }
+      
+      // If we found state data, populate the fields
+      if (shopItemState) {
+        sellout_duration_minutes = shopItemState.selloutDurationMinutes ?? null;
+        cycles_skipped = shopItemState.cyclesSkipped ?? null;
+        
+        if (shopItemState.lastRestockTime) {
+          last_restock_time = shopItemState.lastRestockTime.toISOString();
           
-          if (shopItemState.lastRestockTime) {
-            last_restock_time = shopItemState.lastRestockTime.toISOString();
-            
-            // Calculate next estimated restock time
-            // Start from last restock time, add (cyclesSkipped + 1) * 15 minutes
-            const lastRestock = new Date(shopItemState.lastRestockTime);
-            const cyclesSkippedCount = shopItemState.cyclesSkipped ?? 0;
-            
-            // Add estimated wait time: (cycles_skipped + 1) * 15 minutes
-            const estimatedWaitMinutes = (cyclesSkippedCount + 1) * 15;
-            const estimatedTime = new Date(lastRestock.getTime() + estimatedWaitMinutes * 60 * 1000);
-            
-            // Round to next quarter hour
-            const nextRestock = roundUpToNextQuarterHour(estimatedTime);
-            next_estimated_restock_time = nextRestock.toISOString();
-          }
+          // Calculate next estimated restock time
+          // Start from last restock time, add (cyclesSkipped + 1) * 15 minutes
+          const lastRestock = new Date(shopItemState.lastRestockTime);
+          const cyclesSkippedCount = shopItemState.cyclesSkipped ?? 0;
+          
+          // Add estimated wait time: (cycles_skipped + 1) * 15 minutes
+          const estimatedWaitMinutes = (cyclesSkippedCount + 1) * 15;
+          const estimatedTime = new Date(lastRestock.getTime() + estimatedWaitMinutes * 60 * 1000);
+          
+          // Round to next quarter hour
+          const nextRestock = roundUpToNextQuarterHour(estimatedTime);
+          next_estimated_restock_time = nextRestock.toISOString();
         }
       }
 

@@ -377,6 +377,18 @@ export async function fetchForeignStock(): Promise<void> {
           cost: stock.cost,
           fetched_at: fetchedAt,
         });
+        
+        // Track foreign stock item state transitions
+        await trackShopItemState(
+          countryCode,          // Use countryCode as shopId
+          countryName,          // Use countryName as shopName
+          String(stock.id),     // itemId as string
+          stock.name,           // itemName
+          'Foreign',            // type
+          stock.cost,           // price
+          stock.quantity,       // in_stock (quantity for foreign)
+          fetchedAt
+        );
       }
     }
 
