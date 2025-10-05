@@ -15,5 +15,7 @@ module.exports = {
   // Increased timeout to allow for database connection
   testTimeout: 20000,
   // Detect open handles to help debug hanging
-  detectOpenHandles: true
+  detectOpenHandles: true,
+  // Allow tests that don't need setup to skip it
+  testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
 };

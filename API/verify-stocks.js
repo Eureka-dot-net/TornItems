@@ -96,14 +96,25 @@ async function testRecommendations() {
   console.log(`\nFound ${stockData.length} stocks with 7-day history:`);
   
   for (const stock of stockData) {
-    const change_7d = ((stock.currentPrice - stock.oldestPrice) / stock.oldestPrice) * 100;
+    const change_7d_pct = ((stock.currentPrice / stock.oldestPrice) - 1) * 100;
     
-    // Calculate standard deviation
-    const mean = stock.prices.reduce((a, b) => a + b, 0) / stock.prices.length;
-    const variance = stock.prices.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / stock.prices.length;
-    const volatility = Math.sqrt(variance);
+    // Calculate volatility as percentage (standard deviation of daily returns)
+    const returns = [];
+    for (let i = 1; i < stock.prices.length; i++) {
+      const dailyReturn = ((stock.prices[i] / stock.prices[i - 1]) - 1) * 100;
+      returns.push(dailyReturn);
+    }
     
-    const score = -change_7d / volatility;
+    let volatility_7d_pct = 0;
+    if (returns.length > 0) {
+      const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
+      const variance = returns.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / returns.length;
+      volatility_7d_pct = Math.sqrt(variance);
+    }
+    
+    // Guard against zero volatility
+    const vol = Math.max(volatility_7d_pct, 0.0001);
+    const score = -change_7d_pct / vol;
     
     let recommendation = 'HOLD';
     if (score >= 3) recommendation = 'STRONG_BUY';
@@ -115,8 +126,8 @@ async function testRecommendations() {
     console.log(`\n${stock._id} (${stock.name}):`);
     console.log(`  Current: $${stock.currentPrice.toFixed(2)}`);
     console.log(`  7d ago:  $${stock.oldestPrice.toFixed(2)}`);
-    console.log(`  Change:  ${change_7d.toFixed(2)}%`);
-    console.log(`  Volatility: ${volatility.toFixed(2)}`);
+    console.log(`  Change:  ${change_7d_pct.toFixed(2)}%`);
+    console.log(`  Volatility: ${volatility_7d_pct.toFixed(2)}%`);
     console.log(`  Score:   ${score.toFixed(2)}`);
     console.log(`  Recommendation: ${recommendation}`);
   }

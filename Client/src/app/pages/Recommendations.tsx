@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { useStockRecommendations } from '../../lib/hooks/useStockRecommendations';
 import type { StockRecommendation } from '../../lib/types/stockRecommendations';
 
-type SortField = 'ticker' | 'name' | 'price' | 'change_7d' | 'volatility' | 'score' | 'sell_score' | 'recommendation' | 'owned_shares';
+type SortField = 'ticker' | 'name' | 'price' | 'change_7d_pct' | 'volatility_7d_pct' | 'score' | 'sell_score' | 'recommendation' | 'owned_shares';
 type SortOrder = 'asc' | 'desc';
 
 export default function Recommendations() {
@@ -158,18 +158,18 @@ export default function Recommendations() {
                     </Grid>
                     <Grid size={{ xs: 6, sm: 1.2 }}>
                         <TableSortLabel
-                            active={sortField === 'change_7d'}
-                            direction={sortField === 'change_7d' ? sortOrder : 'asc'}
-                            onClick={() => handleSort('change_7d')}
+                            active={sortField === 'change_7d_pct'}
+                            direction={sortField === 'change_7d_pct' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('change_7d_pct')}
                         >
                             7d Change
                         </TableSortLabel>
                     </Grid>
                     <Grid size={{ xs: 6, sm: 1.2 }}>
                         <TableSortLabel
-                            active={sortField === 'volatility'}
-                            direction={sortField === 'volatility' ? sortOrder : 'asc'}
-                            onClick={() => handleSort('volatility')}
+                            active={sortField === 'volatility_7d_pct'}
+                            direction={sortField === 'volatility_7d_pct' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('volatility_7d_pct')}
                         >
                             Volatility
                         </TableSortLabel>
@@ -234,14 +234,14 @@ export default function Recommendations() {
                                 <Typography 
                                     variant="body2" 
                                     sx={{ 
-                                        color: stock.change_7d && stock.change_7d > 0 ? '#f44336' : stock.change_7d && stock.change_7d < 0 ? '#4caf50' : 'inherit'
+                                        color: stock.change_7d_pct && stock.change_7d_pct > 0 ? '#f44336' : stock.change_7d_pct && stock.change_7d_pct < 0 ? '#4caf50' : 'inherit'
                                     }}
                                 >
-                                    {formatPercent(stock.change_7d)}
+                                    {formatPercent(stock.change_7d_pct)}
                                 </Typography>
                             </Grid>
                             <Grid size={{ xs: 6, sm: 1.2 }}>
-                                <Typography variant="body2">{formatNumber(stock.volatility)}</Typography>
+                                <Typography variant="body2">{formatNumber(stock.volatility_7d_pct)}</Typography>
                             </Grid>
                             <Grid size={{ xs: 6, sm: 1 }}>
                                 <Typography 
