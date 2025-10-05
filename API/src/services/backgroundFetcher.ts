@@ -352,6 +352,7 @@ async function calculate24HourMetrics(
   items_sold: number | null;
   total_revenue_sold: number | null;
   sales_by_price: { price: number; amount: number }[];
+  has_delisted: boolean;
   sales_24h_current: number | null;
   sales_24h_previous: number | null;
   total_revenue_24h_current: number | null;
@@ -371,16 +372,16 @@ async function calculate24HourMetrics(
 
     if (snapshots.length < 1) {
       // Not enough history - this is the first snapshot
-      return { items_sold: null, total_revenue_sold: null, sales_by_price: [], sales_24h_current: null, sales_24h_previous: null, total_revenue_24h_current: null, trend_24h: null, hour_velocity_24: null };
+      return { items_sold: null, total_revenue_sold: null, sales_by_price: [], has_delisted: false, sales_24h_current: null, sales_24h_previous: null, total_revenue_24h_current: null, trend_24h: null, hour_velocity_24: null };
     }
 
     // Calculate items sold and revenue between current snapshot and most recent previous snapshot
     const previousSnapshot = snapshots[0];
-    const { itemsSold, totalRevenue, salesByPrice } = calculateItemsSoldAndRevenueBetweenSnapshots(previousSnapshot.listings, currentListings);
+    const { itemsSold, totalRevenue, salesByPrice, hasDelisted } = calculateItemsSoldAndRevenueBetweenSnapshots(previousSnapshot.listings, currentListings);
 
     if (snapshots.length < 2) {
       // Only one previous snapshot, can't calculate 24h metrics yet
-      return { items_sold: itemsSold, total_revenue_sold: totalRevenue, sales_by_price: salesByPrice, sales_24h_current: null, sales_24h_previous: null, total_revenue_24h_current: null, trend_24h: null, hour_velocity_24: null };
+      return { items_sold: itemsSold, total_revenue_sold: totalRevenue, sales_by_price: salesByPrice, has_delisted: hasDelisted, sales_24h_current: null, sales_24h_previous: null, total_revenue_24h_current: null, trend_24h: null, hour_velocity_24: null };
     }
 
     const now = Date.now();
@@ -434,6 +435,7 @@ async function calculate24HourMetrics(
       items_sold: itemsSold,
       total_revenue_sold: totalRevenue,
       sales_by_price: salesByPrice,
+      has_delisted: hasDelisted,
       sales_24h_current: sales_24h_current,
       sales_24h_previous: sales_24h_previous,
       total_revenue_24h_current: total_revenue_24h_current,
@@ -442,7 +444,7 @@ async function calculate24HourMetrics(
     };
   } catch (error) {
     logError(`Error calculating 24h metrics for item ${itemId} in ${country}`, error instanceof Error ? error : new Error(String(error)));
-    return { items_sold: null, total_revenue_sold: null, sales_by_price: [], sales_24h_current: null, sales_24h_previous: null, total_revenue_24h_current: null, trend_24h: null, hour_velocity_24: null };
+    return { items_sold: null, total_revenue_sold: null, sales_by_price: [], has_delisted: false, sales_24h_current: null, sales_24h_previous: null, total_revenue_24h_current: null, trend_24h: null, hour_velocity_24: null };
   }
 }
 
@@ -451,7 +453,7 @@ async function calculate24HourMetrics(
 function calculateItemsSoldAndRevenueBetweenSnapshots(
   olderListings: { price: number; amount: number }[],
   newerListings: { price: number; amount: number }[]
-): { itemsSold: number; totalRevenue: number; salesByPrice: { price: number; amount: number }[] } {
+): { itemsSold: number; totalRevenue: number; salesByPrice: { price: number; amount: number }[]; hasDelisted: boolean } {
   // Create a map of price -> total amount for newer listings
   const newerMap = new Map<number, number>();
   for (const listing of newerListings) {
@@ -467,30 +469,34 @@ function calculateItemsSoldAndRevenueBetweenSnapshots(
     olderMap.set(listing.price, (olderMap.get(listing.price) || 0) + listing.amount);
   }
 
-  // Get sorted list of prices from older listings (cheapest first)
-  const sortedOlderPrices = Array.from(olderMap.keys()).sort((a, b) => a - b);
+  // Get sorted list of prices from NEWER listings (cheapest first)
+  // We only count as sold if it matches the cheapest price available NOW
+  const sortedNewerPrices = Array.from(newerMap.keys()).sort((a, b) => a - b);
+  const cheapestCurrentPrice = sortedNewerPrices[0];
   
-  // Only consider the cheapest and second cheapest prices as likely to have been sold
-  // Items removed from other price points are more likely to have been delisted, not sold
-  const cheapestPrice = sortedOlderPrices[0];
-  const secondCheapestPrice = sortedOlderPrices[1];
+  // Track if any items were delisted (removed from market at any price)
+  let hasDelisted = false;
 
   // For each price point in older listings, see how many are missing in newer
   for (const [price, olderAmount] of olderMap.entries()) {
     const newerAmount = newerMap.get(price) || 0;
     if (olderAmount > newerAmount) {
-      // Only count as sold if it's the cheapest or second cheapest price
-      if (price === cheapestPrice || price === secondCheapestPrice) {
-        const soldAtThisPrice = olderAmount - newerAmount;
-        itemsSold += soldAtThisPrice;
-        totalRevenue += soldAtThisPrice * price;
-        salesByPrice.push({ price, amount: soldAtThisPrice });
+      const removedAmount = olderAmount - newerAmount;
+      
+      // Only count as sold if it matches the cheapest price in the NEWER listings
+      // This ensures we only count actual sales, not delistings
+      if (price === cheapestCurrentPrice) {
+        itemsSold += removedAmount;
+        totalRevenue += removedAmount * price;
+        salesByPrice.push({ price, amount: removedAmount });
+      } else {
+        // Items removed from non-cheapest prices are considered delisted
+        hasDelisted = true;
       }
-      // Items at other price points that disappeared are ignored (likely delisted, not sold)
     }
   }
 
-  return { itemsSold, totalRevenue, salesByPrice };
+  return { itemsSold, totalRevenue, salesByPrice, hasDelisted };
 }
 
 /**
@@ -760,7 +766,7 @@ export async function fetchMarketSnapshots(): Promise<void> {
         })) ?? [];
 
         // Calculate 24-hour sales metrics from historical data
-        const { items_sold, total_revenue_sold, sales_by_price, sales_24h_current, sales_24h_previous, total_revenue_24h_current, trend_24h, hour_velocity_24 } = await calculate24HourMetrics(country, itemId, currentListings);
+        const { items_sold, total_revenue_sold, sales_by_price, has_delisted, sales_24h_current, sales_24h_previous, total_revenue_24h_current, trend_24h, hour_velocity_24 } = await calculate24HourMetrics(country, itemId, currentListings);
 
         // Create snapshot
         const snapshot = new MarketSnapshot({
@@ -796,7 +802,8 @@ export async function fetchMarketSnapshots(): Promise<void> {
           sales: items_sold,
         };
         
-        const hasMovement = detectMovement(monitoredItem, currentData);
+        // Check for movement: either detected by data changes OR items were delisted
+        const hasMovement = detectMovement(monitoredItem, currentData) || has_delisted;
         if (hasMovement) {
           movementDetectedCount++;
         }
