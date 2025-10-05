@@ -871,15 +871,15 @@ export async function fetchMarketSnapshots(): Promise<void> {
         }
 
         // Get stock info
+        // If an item is not found in stock data, it means it's out of stock (0)
+        // The API doesn't return items with 0 stock
         let inStock: number | null = null;
 
         if (country === 'Torn') {
           const match = cityShopStock.find(
             (stock: any) => stock.itemName?.toLowerCase() === item.name.toLowerCase()
           );
-          if (match) {
-            inStock = match.in_stock ?? null;
-          }
+          inStock = match ? (match.in_stock ?? 0) : 0;
         } else {
           const countryCode = Object.entries(COUNTRY_CODE_MAP).find(
             ([, name]) => name === country
@@ -891,7 +891,10 @@ export async function fetchMarketSnapshots(): Promise<void> {
                 stock.countryCode === countryCode &&
                 stock.itemName.toLowerCase() === item.name.toLowerCase()
             );
-            if (match) inStock = match.quantity;
+            inStock = match ? (match.quantity ?? 0) : 0;
+          } else {
+            // If we can't determine country code, default to 0
+            inStock = 0;
           }
         }
 
