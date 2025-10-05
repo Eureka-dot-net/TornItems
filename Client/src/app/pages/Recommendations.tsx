@@ -76,8 +76,13 @@ export default function Recommendations() {
         }
     };
 
-    const formatCurrency = (value: number | null | undefined) => {
-        return value !== null && value !== undefined ? `$${value.toFixed(2)}` : '-';
+     const formatCurrency = (value: number) => {
+        return value.toLocaleString('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        });
     };
 
     const formatPercent = (value: number | null | undefined) => {
