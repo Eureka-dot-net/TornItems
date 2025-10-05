@@ -1,27 +1,6 @@
 import express, { Request, Response } from 'express';
 import { StockPriceSnapshot } from '../models/StockPriceSnapshot';
 import { UserStockHoldingSnapshot } from '../models/UserStockHoldingSnapshot';
-
-const router = express.Router({ mergeParams: true });
-
-// Helper function to calculate standard deviation
-function calculateStdDev(values: number[]): number {
-  if (values.length === 0) return 0;
-  
-  const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-  const squaredDiffs = values.map(val => Math.pow(val - mean, 2));
-  const variance = squaredDiffs.reduce((sum, val) => sum + val, 0) / values.length;
-  
-  return Math.sqrt(variance);
-}
-
-// Helper function to determine recommendation based on score
-function getRecommendation(score: number): string {
-  if (score >= 3) return 'STRONG_BUY';
-  if (score >= 1) return 'BUY';
-  if (score > -1) return 'HOLD';
-  if (score > -3) return 'SELL';
-  return 'STRONG_SELL';
 import { 
   calculate7DayPercentChange, 
   calculateVolatilityPercent, 
@@ -30,37 +9,6 @@ import {
 } from '../utils/stockMath';
 
 const router = express.Router({ mergeParams: true });
-
-const TORN_API_KEY = process.env.TORN_API_KEY || 'yLp4OoENbjRy30GZ';
-
-// Helper function to fetch user's stock holdings from Torn v2 API
-async function fetchUserStocks(): Promise<Record<number, { total_shares: number }>> {
-  try {
-    const response = await axios.get(
-      `https://api.torn.com/v2/user?selections=stocks&key=${TORN_API_KEY}`
-    );
-    
-    const stocks = response.data?.stocks;
-    if (!stocks) {
-      console.warn('No stocks data returned from Torn API');
-      return {};
-    }
-
-    // Parse into simple lookup map: { stock_id: { total_shares } }
-    const holdings: Record<number, { total_shares: number }> = {};
-    for (const [stockId, stockData] of Object.entries(stocks) as [string, any][]) {
-      holdings[parseInt(stockId, 10)] = {
-        total_shares: stockData.total_shares || 0
-      };
-    }
-    
-    return holdings;
-  } catch (error) {
-    console.error('Error fetching user stocks:', error instanceof Error ? error.message : String(error));
-    // Return empty object on error - stocks will show 0 shares
-    return {};
-  }
-}
 
 // GET /stocks/recommendations
 router.get('/stocks/recommendations', async (_req: Request, res: Response): Promise<void> => {
