@@ -101,13 +101,17 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     if (includeItemsSold) {
       const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
       for (const snapshot of marketSnapshots) {
-        // Check if this snapshot has sales_by_price data and is within 24 hours
-        if (snapshot.sales_by_price && snapshot.sales_by_price.length > 0 && 
-            new Date(snapshot.fetched_at).getTime() >= twentyFourHoursAgo) {
-          const key = `${snapshot.country}:${snapshot.itemId}`;
-          if (!itemsSoldMap.has(key)) {
-            itemsSoldMap.set(key, []);
-          }
+        if (new Date(snapshot.fetched_at).getTime() < twentyFourHoursAgo) {
+          continue; // Skip snapshots older than 24 hours
+        }
+
+        const key = `${snapshot.country}:${snapshot.itemId}`;
+        if (!itemsSoldMap.has(key)) {
+          itemsSoldMap.set(key, []);
+        }
+
+        // Prefer sales_by_price if available (new format with actual prices)
+        if (snapshot.sales_by_price && snapshot.sales_by_price.length > 0) {
           // Add each price point as a separate entry
           for (const sale of snapshot.sales_by_price) {
             itemsSoldMap.get(key)!.push({
@@ -116,6 +120,17 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
               Price: sale.price
             });
           }
+        } else if (snapshot.items_sold != null && snapshot.items_sold > 0) {
+          // Fallback for old snapshots: calculate average price from total revenue
+          let averagePrice = 0;
+          if (snapshot.total_revenue_sold != null && snapshot.items_sold > 0) {
+            averagePrice = Math.round(snapshot.total_revenue_sold / snapshot.items_sold);
+          }
+          itemsSoldMap.get(key)!.push({
+            Amount: snapshot.items_sold,
+            TimeStamp: snapshot.fetched_at.toISOString(),
+            Price: averagePrice
+          });
         }
       }
     }
