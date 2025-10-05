@@ -184,12 +184,14 @@ describe('MongoDB Models', () => {
   describe('StockPriceSnapshot Model', () => {
     it('should create a StockPriceSnapshot entry', async () => {
       const snapshot = await StockPriceSnapshot.create({
+        stock_id: 1,
         ticker: 'TSB',
         name: 'Torn & Shanghai Banking',
         price: 1139.91,
         timestamp: new Date(),
       });
 
+      expect(snapshot.stock_id).toBe(1);
       expect(snapshot.ticker).toBe('TSB');
       expect(snapshot.name).toBe('Torn & Shanghai Banking');
       expect(snapshot.price).toBe(1139.91);

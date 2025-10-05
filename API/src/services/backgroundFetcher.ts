@@ -1212,8 +1212,9 @@ export async function fetchStockPrices(): Promise<void> {
     const bulkOps: any[] = [];
     const timestamp = new Date();
     
-    for (const [, stockData] of Object.entries(stocks) as [string, any][]) {
+    for (const [stockId, stockData] of Object.entries(stocks) as [string, any][]) {
       bulkOps.push({
+        stock_id: parseInt(stockId, 10),
         ticker: stockData.acronym,
         name: stockData.name,
         price: stockData.current_price,
