@@ -44,8 +44,6 @@ export async function updateMonitoredItems() {
 
 Only consider backward compatibility if:
 1. The user explicitly mentions it in their request
-2. There are active external integrations or APIs that depend on it
-3. You find evidence of production usage (not just theoretical usage)
 
 If unsure, ASK the user instead of assuming compatibility is needed.
 
