@@ -336,13 +336,11 @@ async function trackShopItemState(
     
     // Detect restock: current stock > previous stock (stock increased)
     if (currentStock > previousStock) {
-      updateData.lastRestockTime = fetchedAt;
-      
-      // Calculate cycles skipped if we have a sellout time (only applicable when restocking from 0)
-      if (previousStock === 0 && previousState.lastSelloutTime) {
-        const expectedRestockTime = roundUpToNextQuarterHour(previousState.lastSelloutTime);
-        const timeSinceSellout = minutesBetween(expectedRestockTime, fetchedAt);
-        const cyclesSkipped = Math.max(0, Math.round(timeSinceSellout / 15));
+      // Calculate cycles skipped since last restock (if we have a previous restock time)
+      if (previousState.lastRestockTime) {
+        const expectedRestockTime = roundUpToNextQuarterHour(previousState.lastRestockTime);
+        const timeSinceLastRestock = minutesBetween(expectedRestockTime, fetchedAt);
+        const cyclesSkipped = Math.max(0, Math.round(timeSinceLastRestock / 15));
         
         updateData.cyclesSkipped = cyclesSkipped;
         
@@ -354,7 +352,7 @@ async function trackShopItemState(
           updateData.averageCyclesSkipped = cyclesSkipped;
         }
         
-        const lastRestockTimeStr = previousState.lastSelloutTime.toLocaleTimeString('en-US', { 
+        const lastRestockTimeStr = previousState.lastRestockTime.toLocaleTimeString('en-US', { 
           hour: '2-digit', 
           minute: '2-digit' 
         });
@@ -363,11 +361,13 @@ async function trackShopItemState(
           minute: '2-digit' 
         });
         
-        logInfo(`[Restock] ${itemName} restocked after skipping ${cyclesSkipped} cycles (last sellout ${lastRestockTimeStr}, new restock ${newRestockTimeStr})`);
+        logInfo(`[Restock] ${itemName} restocked after skipping ${cyclesSkipped} cycles (last restock ${lastRestockTimeStr}, new restock ${newRestockTimeStr})`);
       } else {
-        // Restock while still having stock
+        // First restock we've seen for this item
         logInfo(`[Restock] ${itemName} restocked (stock increased from ${previousStock} to ${currentStock})`);
       }
+      
+      updateData.lastRestockTime = fetchedAt;
     }
     
     // Update the state
