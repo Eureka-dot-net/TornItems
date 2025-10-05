@@ -20,6 +20,9 @@ interface CountryItem {
   hour_velocity_24?: number | null;
   average_price_items_sold?: number | null;
   ItemsSold?: Array<{ Amount: number; TimeStamp: string }>;
+  estimated_market_value_profit: number | null;
+  lowest_50_profit: number | null;
+  sold_profit: number | null;
 }
 
 interface GroupedByCountry {
@@ -164,6 +167,35 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       // Get pre-built ItemsSold array from map (O(1) lookup)
       const ItemsSold = itemsSoldMap.get(snapshotKey) || [];
 
+      // 💵 Calculate the three new profit fields
+      // 1. estimated_market_value_profit = market_price - buy_price
+      const estimated_market_value_profit = market && buy ? market - buy : null;
+
+      // 2. lowest_50_profit = (average of lowest 50 listings) - buy_price
+      let lowest_50_profit: number | null = null;
+      if (latestSnapshot && latestSnapshot.listings && latestSnapshot.listings.length > 0 && buy) {
+        // Sort listings by price ascending
+        const sortedListings = [...latestSnapshot.listings].sort((a, b) => a.price - b.price);
+        
+        // Calculate the average of the lowest 50 items (or fewer if less than 50 available)
+        let totalPrice = 0;
+        let count = 0;
+        for (const listing of sortedListings) {
+          const itemsToTake = Math.min(listing.amount, 50 - count);
+          totalPrice += listing.price * itemsToTake;
+          count += itemsToTake;
+          if (count >= 50) break;
+        }
+        
+        if (count > 0) {
+          const averageLowest50 = Math.round(totalPrice / count);
+          lowest_50_profit = averageLowest50 - buy;
+        }
+      }
+
+      // 3. sold_profit = average_price_items_sold - buy_price
+      const sold_profit = average_price_items_sold && buy ? average_price_items_sold - buy : null;
+
       if (!grouped[country]) grouped[country] = [];
 
       grouped[country].push({
@@ -180,14 +212,39 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         hour_velocity_24,
         average_price_items_sold,
         ItemsSold: ItemsSold.length > 0 ? ItemsSold : undefined,
+        estimated_market_value_profit,
+        lowest_50_profit,
+        sold_profit,
       });
     }
 
-    // Sort each country's results by profit
+    // Sort each country's results by the new profit priorities:
+    // 1. sold_profit desc (items with sold_profit come first)
+    // 2. lowest_50_profit desc
+    // 3. estimated_market_value_profit desc
     for (const country of Object.keys(grouped)) {
-      grouped[country].sort(
-        (a, b) => (b.profitPer1 ?? 0) - (a.profitPer1 ?? 0)
-      );
+      grouped[country].sort((a, b) => {
+        // First priority: sold_profit (desc)
+        // Items with sold_profit should always come before those without
+        const aSoldProfit = a.sold_profit ?? null;
+        const bSoldProfit = b.sold_profit ?? null;
+        
+        if (aSoldProfit !== null && bSoldProfit === null) return -1;
+        if (aSoldProfit === null && bSoldProfit !== null) return 1;
+        if (aSoldProfit !== null && bSoldProfit !== null) {
+          if (aSoldProfit !== bSoldProfit) return bSoldProfit - aSoldProfit;
+        }
+        
+        // Second priority: lowest_50_profit (desc)
+        const aLowest50 = a.lowest_50_profit ?? 0;
+        const bLowest50 = b.lowest_50_profit ?? 0;
+        if (aLowest50 !== bLowest50) return bLowest50 - aLowest50;
+        
+        // Third priority: estimated_market_value_profit (desc)
+        const aEstimated = a.estimated_market_value_profit ?? 0;
+        const bEstimated = b.estimated_market_value_profit ?? 0;
+        return bEstimated - aEstimated;
+      });
     }
 
     res.json({
