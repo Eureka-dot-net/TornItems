@@ -15,6 +15,7 @@ export interface IMarketSnapshot extends Document {
   fetched_at: Date;
   items_sold?: number | null;  // Number of items sold since previous snapshot (based on listings)
   total_revenue_sold?: number | null;  // Total revenue from items sold since previous snapshot (sum of price × amount)
+  sales_by_price?: { price: number; amount: number }[];  // Detailed breakdown of items sold at each price point
   sales_24h_current?: number | null;  // Total sales in last 24 hours
   sales_24h_previous?: number | null;  // Total sales in previous 24-hour period
   total_revenue_24h_current?: number | null;  // Total revenue from sales in last 24 hours
@@ -40,6 +41,10 @@ const MarketSnapshotSchema = new Schema<IMarketSnapshot>({
   fetched_at: { type: Date, default: Date.now, index: true },
   items_sold: { type: Number, default: null },
   total_revenue_sold: { type: Number, default: null },
+  sales_by_price: [{ 
+    price: { type: Number, required: true }, 
+    amount: { type: Number, required: true } 
+  }],
   sales_24h_current: { type: Number, default: null },
   sales_24h_previous: { type: Number, default: null },
   total_revenue_24h_current: { type: Number, default: null },

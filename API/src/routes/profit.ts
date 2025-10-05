@@ -19,7 +19,7 @@ interface CountryItem {
   trend_24h?: number | null;
   hour_velocity_24?: number | null;
   average_price_items_sold?: number | null;
-  ItemsSold?: Array<{ Amount: number; TimeStamp: string; Price: number | null }>;
+  ItemsSold?: Array<{ Amount: number; TimeStamp: string; Price: number }>;
   estimated_market_value_profit: number | null;
   lowest_50_profit: number | null;
   sold_profit: number | null;
@@ -97,26 +97,25 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
 
     // Create a lookup map for ItemsSold: key is "country:itemId", value is array of sales
     // Only build this map if includeItemsSold flag is enabled (for performance)
-    const itemsSoldMap = new Map<string, Array<{ Amount: number; TimeStamp: string; Price: number | null }>>();
+    const itemsSoldMap = new Map<string, Array<{ Amount: number; TimeStamp: string; Price: number }>>();
     if (includeItemsSold) {
       const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
       for (const snapshot of marketSnapshots) {
-        if (snapshot.items_sold != null && snapshot.items_sold > 0 && 
+        // Check if this snapshot has sales_by_price data and is within 24 hours
+        if (snapshot.sales_by_price && snapshot.sales_by_price.length > 0 && 
             new Date(snapshot.fetched_at).getTime() >= twentyFourHoursAgo) {
           const key = `${snapshot.country}:${snapshot.itemId}`;
           if (!itemsSoldMap.has(key)) {
             itemsSoldMap.set(key, []);
           }
-          // Calculate average price from total revenue and items sold
-          let averagePrice: number | null = null;
-          if (snapshot.total_revenue_sold != null && snapshot.items_sold > 0) {
-            averagePrice = Math.round(snapshot.total_revenue_sold / snapshot.items_sold);
+          // Add each price point as a separate entry
+          for (const sale of snapshot.sales_by_price) {
+            itemsSoldMap.get(key)!.push({
+              Amount: sale.amount,
+              TimeStamp: snapshot.fetched_at.toISOString(),
+              Price: sale.price
+            });
           }
-          itemsSoldMap.get(key)!.push({
-            Amount: snapshot.items_sold,
-            TimeStamp: snapshot.fetched_at.toISOString(),
-            Price: averagePrice
-          });
         }
       }
     }
