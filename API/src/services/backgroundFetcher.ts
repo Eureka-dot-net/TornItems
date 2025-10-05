@@ -151,10 +151,16 @@ export async function fetchCityShopStock(): Promise<void> {
     const historyDocs: any[] = [];
     const fetchedAt = new Date();
     
+    // Track which (shopId, itemId) pairs are present in the current API response
+    const currentInventoryKeys = new Set<string>();
+    
     for (const [shopId, shopData] of Object.entries(cityshops) as [string, any][]) {
       if (!shopData.inventory) continue;
       
       for (const [itemId, itemData] of Object.entries(shopData.inventory) as [string, any][]) {
+        const inventoryKey = `${shopId}:${itemId}`;
+        currentInventoryKeys.add(inventoryKey);
+        
         bulkOps.push({
           updateOne: {
             filter: { shopId, itemId },
@@ -195,6 +201,56 @@ export async function fetchCityShopStock(): Promise<void> {
           itemData.type,
           itemData.price,
           itemData.in_stock,
+          fetchedAt
+        );
+      }
+    }
+
+    // Handle items that are now out of stock (not in API response but were tracked before)
+    // The API doesn't return items with 0 stock, so we need to detect sellouts manually
+    const previouslyTrackedItems = await ShopItemState.find({
+      in_stock: { $gt: 0 }
+    }).lean();
+    
+    for (const previousItem of previouslyTrackedItems) {
+      const inventoryKey = `${previousItem.shopId}:${previousItem.itemId}`;
+      
+      // If this item was in stock before but is not in the current API response, it's now out of stock
+      if (!currentInventoryKeys.has(inventoryKey)) {
+        // Update CityShopStock to reflect 0 stock
+        bulkOps.push({
+          updateOne: {
+            filter: { shopId: previousItem.shopId, itemId: previousItem.itemId },
+            update: {
+              $set: {
+                in_stock: 0,
+                lastUpdated: fetchedAt,
+              },
+            },
+          },
+        });
+        
+        // Add to history with 0 stock
+        historyDocs.push({
+          shopId: previousItem.shopId,
+          shopName: previousItem.shopName,
+          itemId: previousItem.itemId,
+          itemName: previousItem.itemName,
+          type: previousItem.type,
+          price: previousItem.price,
+          in_stock: 0,
+          fetched_at: fetchedAt,
+        });
+        
+        // Track the sellout transition
+        await trackShopItemState(
+          previousItem.shopId,
+          previousItem.shopName,
+          previousItem.itemId,
+          previousItem.itemName,
+          previousItem.type,
+          previousItem.price,
+          0,  // Current stock is 0
           fetchedAt
         );
       }
@@ -343,12 +399,18 @@ export async function fetchForeignStock(): Promise<void> {
     const historyDocs: any[] = [];
     const fetchedAt = new Date();
     
+    // Track which (countryCode, itemId) pairs are present in the current API response
+    const currentInventoryKeys = new Set<string>();
+    
     for (const [countryCode, countryData] of Object.entries(stocks) as [string, any][]) {
       const countryName = COUNTRY_CODE_MAP[countryCode] || countryCode;
       
       if (!countryData.stocks) continue;
       
       for (const stock of countryData.stocks) {
+        const inventoryKey = `${countryCode}:${stock.id}`;
+        currentInventoryKeys.add(inventoryKey);
+        
         bulkOps.push({
           updateOne: {
             filter: { countryCode, itemId: stock.id },
@@ -387,6 +449,56 @@ export async function fetchForeignStock(): Promise<void> {
           'Foreign',            // type
           stock.cost,           // price
           stock.quantity,       // in_stock (quantity for foreign)
+          fetchedAt
+        );
+      }
+    }
+
+    // Handle items that are now out of stock (not in API response but were tracked before)
+    // Similar to city shops, foreign stocks may not return items with 0 quantity
+    const previouslyTrackedItems = await ShopItemState.find({
+      shopId: { $in: Object.keys(COUNTRY_CODE_MAP) },
+      in_stock: { $gt: 0 }
+    }).lean();
+    
+    for (const previousItem of previouslyTrackedItems) {
+      const inventoryKey = `${previousItem.shopId}:${previousItem.itemId}`;
+      
+      // If this item was in stock before but is not in the current API response, it's now out of stock
+      if (!currentInventoryKeys.has(inventoryKey)) {
+        // Update ForeignStock to reflect 0 quantity
+        bulkOps.push({
+          updateOne: {
+            filter: { countryCode: previousItem.shopId, itemId: previousItem.itemId },
+            update: {
+              $set: {
+                quantity: 0,
+                lastUpdated: fetchedAt,
+              },
+            },
+          },
+        });
+        
+        // Add to history with 0 quantity
+        historyDocs.push({
+          countryCode: previousItem.shopId,
+          countryName: previousItem.shopName,
+          itemId: previousItem.itemId,
+          itemName: previousItem.itemName,
+          quantity: 0,
+          cost: previousItem.price,
+          fetched_at: fetchedAt,
+        });
+        
+        // Track the sellout transition
+        await trackShopItemState(
+          previousItem.shopId,
+          previousItem.shopName,
+          previousItem.itemId,
+          previousItem.itemName,
+          previousItem.type,
+          previousItem.price,
+          0,  // Current stock is 0
           fetchedAt
         );
       }
