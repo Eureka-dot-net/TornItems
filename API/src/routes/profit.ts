@@ -222,7 +222,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       }
 
       // 3. sold_profit = average_price_items_sold - buy_price
-      const sold_profit = average_price_items_sold && buy ? average_price_items_sold - buy : null;
+      const sold_profit = average_price_items_sold !== null ? average_price_items_sold - buy : null;
 
       if (!grouped[country]) grouped[country] = [];
 
