@@ -153,13 +153,13 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       const profitPer1 = market && buy ? market - buy : null;
 
       // 🏙 Merge Torn City stock info if available
+      // If an item is not found in stock data, it means it's out of stock (0)
+      // The API doesn't return items with 0 stock
       let inStock: number | null = null;
 
       if (country === 'Torn') {
         const match = cityShopStockMap.get(item.name.toLowerCase());
-        if (match) {
-          inStock = match.in_stock ?? null;
-        }
+        inStock = match ? (match.in_stock ?? 0) : 0;
       } else {
         // 🌍 Check foreign travel stock
         const countryCode = Object.entries(COUNTRY_CODE_MAP).find(
@@ -169,7 +169,10 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         if (countryCode) {
           const foreignKey = `${countryCode}:${item.name.toLowerCase()}`;
           const match = foreignStockMap.get(foreignKey);
-          if (match) inStock = match.quantity;
+          inStock = match ? (match.quantity ?? 0) : 0;
+        } else {
+          // If we can't determine country code, default to 0
+          inStock = 0;
         }
       }
 
