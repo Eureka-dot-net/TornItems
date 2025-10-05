@@ -3,8 +3,8 @@ export interface StockRecommendation {
   ticker: string;
   name: string;
   price: number;
-  change_7d: number | null;
-  volatility: number;
+  change_7d_pct: number | null;
+  volatility_7d_pct: number;
   score: number | null;
   sell_score: number | null;
   recommendation: string;
