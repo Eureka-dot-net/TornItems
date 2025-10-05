@@ -467,14 +467,26 @@ function calculateItemsSoldAndRevenueBetweenSnapshots(
     olderMap.set(listing.price, (olderMap.get(listing.price) || 0) + listing.amount);
   }
 
+  // Get sorted list of prices from older listings (cheapest first)
+  const sortedOlderPrices = Array.from(olderMap.keys()).sort((a, b) => a - b);
+  
+  // Only consider the cheapest and second cheapest prices as likely to have been sold
+  // Items removed from other price points are more likely to have been delisted, not sold
+  const cheapestPrice = sortedOlderPrices[0];
+  const secondCheapestPrice = sortedOlderPrices[1];
+
   // For each price point in older listings, see how many are missing in newer
   for (const [price, olderAmount] of olderMap.entries()) {
     const newerAmount = newerMap.get(price) || 0;
     if (olderAmount > newerAmount) {
-      const soldAtThisPrice = olderAmount - newerAmount;
-      itemsSold += soldAtThisPrice;
-      totalRevenue += soldAtThisPrice * price;
-      salesByPrice.push({ price, amount: soldAtThisPrice });
+      // Only count as sold if it's the cheapest or second cheapest price
+      if (price === cheapestPrice || price === secondCheapestPrice) {
+        const soldAtThisPrice = olderAmount - newerAmount;
+        itemsSold += soldAtThisPrice;
+        totalRevenue += soldAtThisPrice * price;
+        salesByPrice.push({ price, amount: soldAtThisPrice });
+      }
+      // Items at other price points that disappeared are ignored (likely delisted, not sold)
     }
   }
 
