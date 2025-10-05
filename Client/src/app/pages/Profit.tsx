@@ -12,11 +12,11 @@ export default function Profit() {
     const [sortField, setSortField] = useState<SortField>('sold_profit');
     const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
-    const rawData = useMemo(() => 
-        profitData?.results?.[selectedCountry] || [], 
+    const rawData = useMemo(() =>
+        profitData?.results?.[selectedCountry] || [],
         [profitData, selectedCountry]
     );
-    
+
     const countries = profitData?.results ? Object.keys(profitData.results).sort() : [];
 
     // Sort the data based on current sort field and order
@@ -25,23 +25,23 @@ export default function Profit() {
         data.sort((a, b) => {
             const aValue = a[sortField];
             const bValue = b[sortField];
-            
+
             // Handle null/undefined values
             if (aValue === null || aValue === undefined) return 1;
             if (bValue === null || bValue === undefined) return -1;
-            
+
             // For strings, use locale compare
             if (typeof aValue === 'string' && typeof bValue === 'string') {
-                return sortOrder === 'asc' 
+                return sortOrder === 'asc'
                     ? aValue.localeCompare(bValue)
                     : bValue.localeCompare(aValue);
             }
-            
+
             // For numbers
             if (typeof aValue === 'number' && typeof bValue === 'number') {
                 return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
             }
-            
+
             return 0;
         });
         return data;
@@ -95,21 +95,27 @@ export default function Profit() {
     };
 
     const formatDuration = (minutes: number | null | undefined) => {
-        if (minutes === null || minutes === undefined) return '-';
-        if (minutes < 60) return `${minutes}m`;
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
+        if (minutes == null) return '-';
+
+        // Round to two decimal places
+        const rounded = Math.round(minutes * 100) / 100;
+
+        if (rounded < 60) return `${rounded}m`;
+
+        const hours = Math.floor(rounded / 60);
+        const mins = +(rounded % 60).toFixed(2); // keep two decimals
+
         return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
     };
 
     const formatDateTime = (isoString: string | null | undefined) => {
         if (!isoString) return '-';
         const date = new Date(isoString);
-        return date.toLocaleString(undefined, { 
-            month: 'short', 
-            day: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit' 
+        return date.toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
     };
 
@@ -118,7 +124,7 @@ export default function Profit() {
             <Typography variant="h4" gutterBottom>
                 Profit Analysis
             </Typography>
-            
+
             <Typography variant="body1" gutterBottom>
                 Total Items: {profitData.count} | Countries: {profitData.countries}
             </Typography>
@@ -131,10 +137,10 @@ export default function Profit() {
                     scrollButtons="auto"
                 >
                     {countries.map((country) => (
-                        <Tab 
-                            key={country} 
-                            label={`${country} (${profitData.results[country].length})`} 
-                            value={country} 
+                        <Tab
+                            key={country}
+                            label={`${country} (${profitData.results[country].length})`}
+                            value={country}
                         />
                     ))}
                 </Tabs>
@@ -142,9 +148,9 @@ export default function Profit() {
 
             <Paper sx={{ mt: 3, p: 2 }}>
                 {/* Header Row */}
-                <Grid container spacing={2} sx={{ 
-                    mb: 2, 
-                    pb: 2, 
+                <Grid container spacing={2} sx={{
+                    mb: 2,
+                    pb: 2,
                     borderBottom: '2px solid #555',
                     fontWeight: 'bold'
                 }}>
@@ -213,11 +219,11 @@ export default function Profit() {
                 {/* Data Rows */}
                 <Box sx={{ maxHeight: '600px', overflow: 'auto' }}>
                     {sortedData.map((item: CountryItem) => (
-                        <Grid 
-                            container 
-                            spacing={2} 
+                        <Grid
+                            container
+                            spacing={2}
                             key={item.id}
-                            sx={{ 
+                            sx={{
                                 py: 1.5,
                                 borderBottom: '1px solid #333',
                                 '&:hover': {
