@@ -15,6 +15,7 @@ interface CountryItem {
   market_price: number | null;
   profitPer1: number | null;
   shop_name: string | null;
+  shop_url_name?: string | null;
   in_stock?: number | null;
   sales_24h_current?: number | null;
   sales_24h_previous?: number | null;
@@ -47,6 +48,22 @@ const COUNTRY_CODE_MAP: Record<string, string> = {
   sou: 'South Africa',
   cay: 'Cayman Islands',
   swi: 'Switzerland',
+};
+
+const TORN_SHOP_MAP: Record<string, string> = {
+  "101": "candy",
+  "102": "candy",
+  "103": "bitsnbobs",
+  "104": "jewelry",
+  "105": "super",
+  "106": "cyberforce",
+  "107": "docks",
+  "108": "postoffice",
+  "109": "pawnshop",
+  "110": "pharmacy",
+  "111": "sports",
+  "112": "recyclingcenter",
+  "113": "printstore",
 };
 
 // GET /profit
@@ -254,6 +271,15 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
 
       if (!grouped[country]) grouped[country] = [];
 
+      // Determine shop_url_name for Torn shops using shopId
+      let shop_url_name: string | null = null;
+      if (country === 'Torn') {
+        const match = cityShopStockMap.get(item.name.toLowerCase());
+        if (match && match.shopId) {
+          shop_url_name = TORN_SHOP_MAP[match.shopId] ?? null;
+        }
+      }
+
       // Build the country item object
       const countryItem: CountryItem = {
         id: item.itemId,
@@ -262,6 +288,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         market_price: market,
         profitPer1,
         shop_name: shop,
+        shop_url_name,
         in_stock: inStock,
         sales_24h_current,
         sales_24h_previous,

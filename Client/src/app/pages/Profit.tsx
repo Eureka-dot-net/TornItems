@@ -1,4 +1,4 @@
-import { Box, Typography, CircularProgress, Alert, Tabs, Tab, Paper, Grid, TableSortLabel } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, Tabs, Tab, Paper, Grid, TableSortLabel, Link } from '@mui/material';
 import { useState, useMemo } from 'react';
 import { useProfit } from '../../lib/hooks/useProfit';
 import type { CountryItem } from '../../lib/types/profit';
@@ -136,6 +136,13 @@ export default function Profit() {
         return timeStr;
     };
 
+    const buildTornShopUrl = (item: CountryItem) => {
+        if (!item.shop_url_name) return null;
+        
+        // Build the URL with step, itemid, and buyamount parameters
+        return `https://www.torn.com/shops.php?step=${item.shop_url_name}&itemid=${item.id}&buyamount=100`;
+    };
+
     return (
         <Box sx={{ width: '100%', p: 3 }}>
             <Typography variant="h4" gutterBottom>
@@ -249,7 +256,24 @@ export default function Profit() {
                             }}
                         >
                             <Grid size={{ xs: 12, sm: 2.5 }}>
-                                <Typography variant="body2">{item.name}</Typography>
+                                {item.shop_url_name ? (
+                                    <Link 
+                                        href={buildTornShopUrl(item) || undefined}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        sx={{ 
+                                            textDecoration: 'none',
+                                            color: 'primary.main',
+                                            '&:hover': {
+                                                textDecoration: 'underline'
+                                            }
+                                        }}
+                                    >
+                                        <Typography variant="body2">{item.name}</Typography>
+                                    </Link>
+                                ) : (
+                                    <Typography variant="body2">{item.name}</Typography>
+                                )}
                             </Grid>
                             <Grid size={{ xs: 12, sm: 1.5 }}>
                                 <Typography variant="body2">{item.shop_name || '-'}</Typography>
