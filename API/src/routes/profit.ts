@@ -149,8 +149,12 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       const buy = item.buy_price ?? 0;
       const market = item.market_price ?? 0;
 
-      // 💰 Profit per single item
-      const profitPer1 = market && buy ? market - buy : null;
+      // 💰 Apply 5% sales tax (deducted from market price)
+      const SALES_TAX_RATE = 0.05;
+      const marketAfterTax = market * (1 - SALES_TAX_RATE);
+
+      // 💰 Profit per single item (after sales tax)
+      const profitPer1 = market && buy ? marketAfterTax - buy : null;
 
       // 🏙 Merge Torn City stock info if available
       // If an item is not found in stock data, it means it's out of stock (0)
@@ -216,10 +220,10 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       }
 
       // 💵 Calculate the three new profit fields
-      // 1. estimated_market_value_profit = market_price - buy_price
-      const estimated_market_value_profit = market && buy ? market - buy : null;
+      // 1. estimated_market_value_profit = (market_price * 0.95) - buy_price (after 5% sales tax)
+      const estimated_market_value_profit = market && buy ? marketAfterTax - buy : null;
 
-      // 2. lowest_50_profit = (average of lowest 50 listings) - buy_price
+      // 2. lowest_50_profit = (average of lowest 50 listings * 0.95) - buy_price (after 5% sales tax)
       let lowest_50_profit: number | null = null;
       if (latestSnapshot && latestSnapshot.listings && latestSnapshot.listings.length > 0 && buy) {
         // Sort listings by price ascending
@@ -237,12 +241,15 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         
         if (count > 0) {
           const averageLowest50 = Math.round(totalPrice / count);
-          lowest_50_profit = averageLowest50 - buy;
+          const averageLowest50AfterTax = averageLowest50 * (1 - SALES_TAX_RATE);
+          lowest_50_profit = averageLowest50AfterTax - buy;
         }
       }
 
-      // 3. sold_profit = average_price_items_sold - buy_price
-      const sold_profit = average_price_items_sold !== null ? average_price_items_sold - buy : null;
+      // 3. sold_profit = (average_price_items_sold * 0.95) - buy_price (after 5% sales tax)
+      const sold_profit = average_price_items_sold !== null 
+        ? (average_price_items_sold * (1 - SALES_TAX_RATE)) - buy 
+        : null;
 
       // 📦 Fetch shop item state data for restock timing (for both Torn and foreign shops)
       let sellout_duration_minutes: number | null = null;
