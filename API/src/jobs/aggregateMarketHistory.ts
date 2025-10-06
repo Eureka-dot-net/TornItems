@@ -169,19 +169,12 @@ export async function aggregateMarketHistory(): Promise<void> {
           hour_velocity_24 = latestSnapshot.hour_velocity_24 ?? 0;
         }
 
-        // Calculate average_price_items_sold from sales_by_price data
-        let totalRevenue = 0;
-        let totalItemsSold = 0;
-        for (const snapshot of itemSnapshots) {
-          if (snapshot.sales_by_price && snapshot.sales_by_price.length > 0) {
-            for (const sale of snapshot.sales_by_price) {
-              totalItemsSold += sale.amount;
-              totalRevenue += sale.amount * sale.price;
-            }
-          }
-        }
-        if (totalItemsSold > 0) {
-          average_price_items_sold = Math.round(totalRevenue / totalItemsSold);
+        // Calculate average_price_items_sold from 24-hour metrics in the latest snapshot
+        // Use total_revenue_24h_current and sales_24h_current from the latest snapshot
+        // These already represent the full 24-hour period without double-counting
+        if (latestSnapshot && latestSnapshot.total_revenue_24h_current !== null && 
+            latestSnapshot.sales_24h_current !== null && latestSnapshot.sales_24h_current > 0) {
+          average_price_items_sold = Math.round(latestSnapshot.total_revenue_24h_current / latestSnapshot.sales_24h_current);
         }
 
         // Calculate profit metrics (after 5% sales tax)
