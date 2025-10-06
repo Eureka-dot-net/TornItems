@@ -139,11 +139,8 @@ export default function Profit() {
     const buildTornShopUrl = (item: CountryItem) => {
         if (!item.shop_url_name) return null;
         
-        // URL encode the item name
-        const encodedItemName = encodeURIComponent(item.name);
-        
-        // Build the URL with step, item, and amount parameters
-        return `https://www.torn.com/shops.php?step=${item.shop_url_name}&item=${encodedItemName}&amount=100`;
+        // Build the URL with step, itemid, and buyamount parameters
+        return `https://www.torn.com/shops.php?step=${item.shop_url_name}&itemid=${item.id}&buyamount=100`;
     };
 
     return (
