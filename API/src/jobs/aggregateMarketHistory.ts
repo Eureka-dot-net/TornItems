@@ -26,6 +26,7 @@ const COUNTRY_CODE_MAP: Record<string, string> = {
 };
 
 interface AggregatedItemData {
+  country: string;
   id: number;
   name: string;
   date: string;
@@ -45,8 +46,8 @@ interface AggregatedItemData {
 }
 
 /**
- * Aggregates MarketSnapshot data for the past 24 hours into daily summary records
- * This job should run once per day at midnight UTC
+ * Aggregates MarketSnapshot data for the past 24 hours into summary records
+ * This job runs hourly by default (configurable via HISTORY_AGGREGATION_CRON)
  */
 export async function aggregateMarketHistory(): Promise<void> {
   const startTime = Date.now();
@@ -211,6 +212,7 @@ export async function aggregateMarketHistory(): Promise<void> {
           : 0;
 
         aggregatedData.push({
+          country,
           id: itemId,
           name: item.name,
           date: currentDate,
@@ -242,7 +244,7 @@ export async function aggregateMarketHistory(): Promise<void> {
       
       const bulkOps = aggregatedData.map(data => ({
         updateOne: {
-          filter: { id: data.id, date: data.date },
+          filter: { country: data.country, id: data.id, date: data.date },
           update: { $set: data },
           upsert: true,
         },
@@ -470,18 +472,16 @@ async function cleanupOldData(currentDate: string): Promise<void> {
   
   try {
     // Calculate cutoff dates
-    const fourteenDaysAgo = new Date(currentDate);
-    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-
     const fortyEightHoursAgo = new Date(currentDate);
     fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
 
-    // Delete old MarketSnapshots (older than 14 days)
+    // Delete old MarketSnapshots (older than 48 hours)
+    // We only need 48 hours for profit calculations (24h current + 24h previous for trends)
     const marketSnapshotResult = await MarketSnapshot.deleteMany({
-      fetched_at: { $lt: fourteenDaysAgo }
+      fetched_at: { $lt: fortyEightHoursAgo }
     });
 
-    logInfo(`Deleted ${marketSnapshotResult.deletedCount} old MarketSnapshot records (>14 days)`);
+    logInfo(`Deleted ${marketSnapshotResult.deletedCount} old MarketSnapshot records (>48 hours)`);
 
     // Delete old CityShopStockHistory (older than 48 hours)
     const cityStockResult = await CityShopStockHistory.deleteMany({

@@ -6,9 +6,9 @@ This directory contains scheduled jobs that run automatically via the background
 
 ### 1. Market History Aggregation (`aggregateMarketHistory.ts`)
 
-Processes MarketSnapshot data to create daily summary records.
+Processes MarketSnapshot data to create summary records.
 
-**Schedule:** Daily at midnight UTC (configurable via `HISTORY_AGGREGATION_CRON`)
+**Schedule:** Hourly (configurable via `HISTORY_AGGREGATION_CRON`)
 
 **Purpose:** Reduces data volume while preserving key metrics over time
 
@@ -45,7 +45,7 @@ The `aggregateMarketHistory` job processes MarketSnapshot data to create daily s
 ## How It Works
 
 ### Schedule
-- **Default**: Runs daily at midnight UTC (`0 0 * * *`)
+- **Default**: Runs hourly (`0 * * * *`)
 - **Configurable**: Set `HISTORY_AGGREGATION_CRON` environment variable
 
 ### Data Processing
@@ -105,12 +105,13 @@ Each job run logs:
 ### Environment Variables
 ```bash
 # Schedule for history aggregation (cron format)
-# Default: 0 0 * * * (midnight UTC daily)
-HISTORY_AGGREGATION_CRON=0 0 * * *
+# Default: 0 * * * * (hourly)
+HISTORY_AGGREGATION_CRON=0 * * * *
 ```
 
 ### Example Cron Schedules
-- `0 0 * * *` - Daily at midnight UTC (default)
+- `0 * * * *` - Hourly (default)
+- `0 0 * * *` - Daily at midnight UTC
 - `0 2 * * *` - Daily at 2 AM UTC
 - `0 */6 * * *` - Every 6 hours
 - `0 0 * * 0` - Weekly on Sunday at midnight UTC

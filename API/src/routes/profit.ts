@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import { TornItem } from '../models/TornItem';
 import { CityShopStock } from '../models/CityShopStock';
 import { ForeignStock } from '../models/ForeignStock';
-import { MarketSnapshot } from '../models/MarketSnapshot';
+import { MarketHistory } from '../models/MarketHistory';
 import { ShopItemState } from '../models/ShopItemState';
 import { roundUpToNextQuarterHour } from '../utils/dateHelpers';
 
@@ -57,12 +57,24 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     // Check if ItemsSold should be included in the response (for debugging)
     const includeItemsSold = process.env.INCLUDE_ITEMS_SOLD === 'true';
 
-    // Fetch all items, city shop stock, foreign stock, and market snapshots from MongoDB
-    const [items, cityShopStock, foreignStock, marketSnapshots, shopItemStates] = await Promise.all([
+    // Get today's date for fetching the latest aggregated data
+    const today = new Date().toISOString().split('T')[0];
+
+    // Fetch aggregated market history data (latest available, typically today or yesterday)
+    // Get the most recent date available in MarketHistory
+    const latestHistoryDate = await MarketHistory.findOne()
+      .sort({ date: -1 })
+      .select('date')
+      .lean();
+
+    const dateToFetch = latestHistoryDate?.date || today;
+
+    // Fetch all items, city shop stock, foreign stock, market history, and shop item states
+    const [items, cityShopStock, foreignStock, marketHistory, shopItemStates] = await Promise.all([
       TornItem.find({ buy_price: { $ne: null } }).lean(),
       CityShopStock.find().lean(),
       ForeignStock.find().lean(),
-      MarketSnapshot.find().sort({ fetched_at: -1 }).lean(),
+      MarketHistory.find({ date: dateToFetch }).lean(),
       ShopItemState.find().lean(),
     ]);
 
@@ -74,17 +86,14 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     }
 
     console.log(
-      `Retrieved ${items.length} items, ${cityShopStock.length} city shop items, ${foreignStock.length} foreign stock items, ${marketSnapshots.length} market snapshots, and ${shopItemStates.length} shop item states from database.`
+      `Retrieved ${items.length} items, ${cityShopStock.length} city shop items, ${foreignStock.length} foreign stock items, ${marketHistory.length} market history records (date: ${dateToFetch}), and ${shopItemStates.length} shop item states from database.`
     );
 
-    // Create a lookup map for market snapshots: key is "country:itemId", value is the latest snapshot
-    const snapshotMap = new Map<string, any>();
-    for (const snapshot of marketSnapshots) {
-      const key = `${snapshot.country}:${snapshot.itemId}`;
-      // Only keep the latest snapshot per country-item pair (already sorted by fetched_at desc)
-      if (!snapshotMap.has(key)) {
-        snapshotMap.set(key, snapshot);
-      }
+    // Create a lookup map for market history: key is "country:itemId", value is the history record
+    const historyMap = new Map<string, any>();
+    for (const record of marketHistory) {
+      const key = `${record.country}:${record.id}`;
+      historyMap.set(key, record);
     }
 
     // Create a lookup map for shop item states: key is "shopId:itemId" 
@@ -115,29 +124,6 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     for (const stock of foreignStock) {
       const key = `${stock.countryCode}:${stock.itemName.toLowerCase()}`;
       foreignStockMap.set(key, stock);
-    }
-
-    // Create a lookup map for ItemsSold: key is "country:itemId", value is array of sales
-    // Always build this map since we need it to calculate sold_profit
-    const itemsSoldMap = new Map<string, Array<{ Amount: number; TimeStamp: string; Price: number }>>();
-    const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
-    for (const snapshot of marketSnapshots) {
-      // Check if this snapshot has sales_by_price data and is within 24 hours
-      if (snapshot.sales_by_price && snapshot.sales_by_price.length > 0 && 
-          new Date(snapshot.fetched_at).getTime() >= twentyFourHoursAgo) {
-        const key = `${snapshot.country}:${snapshot.itemId}`;
-        if (!itemsSoldMap.has(key)) {
-          itemsSoldMap.set(key, []);
-        }
-        // Add each price point as a separate entry
-        for (const sale of snapshot.sales_by_price) {
-          itemsSoldMap.get(key)!.push({
-            Amount: sale.amount,
-            TimeStamp: snapshot.fetched_at.toISOString(),
-            Price: sale.price
-          });
-        }
-      }
     }
 
     // 🗺 Group by country (shop is informational)
@@ -180,76 +166,32 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         }
       }
 
-      // 📊 Fetch 24-hour sales metrics
+      // 📊 Use pre-calculated 24-hour sales metrics from the latest snapshot
       let sales_24h_current: number | null = null;
       let sales_24h_previous: number | null = null;
       let trend_24h: number | null = null;
       let hour_velocity_24: number | null = null;
       let average_price_items_sold: number | null = null;
       
-      const snapshotKey = `${country}:${item.itemId}`;
-      const latestSnapshot = snapshotMap.get(snapshotKey);
+      const historyKey = `${country}:${item.itemId}`;
+      const historyRecord = historyMap.get(historyKey);
       
-      // Get historical metrics from snapshot (not current sales data)
-      if (latestSnapshot) {
-        sales_24h_previous = latestSnapshot.sales_24h_previous ?? null;
-        trend_24h = latestSnapshot.trend_24h ?? null;
-        hour_velocity_24 = latestSnapshot.hour_velocity_24 ?? null;
-      }
-      
-      // Get pre-built ItemsSold array from map (O(1) lookup)
-      const ItemsSold = itemsSoldMap.get(snapshotKey) || [];
-      
-      // Calculate sales metrics directly from ItemsSold (source of truth for current sales)
-      // If ItemsSold is empty, it means no items were sold in the last 24h
-      if (ItemsSold.length > 0) {
-        // Calculate total items sold and revenue from ItemsSold array
-        let totalItemsSold = 0;
-        let totalRevenue = 0;
-        
-        for (const sale of ItemsSold) {
-          totalItemsSold += sale.Amount;
-          totalRevenue += sale.Amount * sale.Price;
-        }
-        
-        // Set sales_24h_current and average_price_items_sold from actual sales data
-        if (totalItemsSold > 0) {
-          sales_24h_current = totalItemsSold;
-          average_price_items_sold = Math.round(totalRevenue / totalItemsSold);
-        }
+      // Use pre-calculated metrics from MarketHistory
+      if (historyRecord) {
+        sales_24h_current = historyRecord.sales_24h_current ?? null;
+        sales_24h_previous = historyRecord.sales_24h_previous ?? null;
+        trend_24h = historyRecord.trend_24h ?? null;
+        hour_velocity_24 = historyRecord.hour_velocity_24 ?? null;
+        average_price_items_sold = historyRecord.average_price_items_sold ?? null;
       }
 
-      // 💵 Calculate the three new profit fields
-      // 1. estimated_market_value_profit = (market_price * 0.95) - buy_price (after 5% sales tax)
-      const estimated_market_value_profit = market && buy ? marketAfterTax - buy : null;
+      // Build ItemsSold array for debugging if requested (not available from aggregated data)
+      const ItemsSold: Array<{ Amount: number; TimeStamp: string; Price: number }> = [];
 
-      // 2. lowest_50_profit = (average of lowest 50 listings * 0.95) - buy_price (after 5% sales tax)
-      let lowest_50_profit: number | null = null;
-      if (latestSnapshot && latestSnapshot.listings && latestSnapshot.listings.length > 0 && buy) {
-        // Sort listings by price ascending
-        const sortedListings = [...latestSnapshot.listings].sort((a, b) => a.price - b.price);
-        
-        // Calculate the average of the lowest 50 items (or fewer if less than 50 available)
-        let totalPrice = 0;
-        let count = 0;
-        for (const listing of sortedListings) {
-          const itemsToTake = Math.min(listing.amount, 50 - count);
-          totalPrice += listing.price * itemsToTake;
-          count += itemsToTake;
-          if (count >= 50) break;
-        }
-        
-        if (count > 0) {
-          const averageLowest50 = Math.round(totalPrice / count);
-          const averageLowest50AfterTax = averageLowest50 * (1 - SALES_TAX_RATE);
-          lowest_50_profit = averageLowest50AfterTax - buy;
-        }
-      }
-
-      // 3. sold_profit = (average_price_items_sold * 0.95) - buy_price (after 5% sales tax)
-      const sold_profit = average_price_items_sold !== null 
-        ? (average_price_items_sold * (1 - SALES_TAX_RATE)) - buy 
-        : null;
+      // 💵 Use pre-calculated profit fields from MarketHistory
+      const estimated_market_value_profit = historyRecord?.estimated_market_value_profit ?? (market && buy ? marketAfterTax - buy : null);
+      const lowest_50_profit = historyRecord?.lowest_50_profit ?? null;
+      const sold_profit = historyRecord?.sold_profit ?? null;
 
       // 📦 Fetch shop item state data for restock timing (for both Torn and foreign shops)
       let sellout_duration_minutes: number | null = null;
