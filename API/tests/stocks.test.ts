@@ -1,17 +1,20 @@
 import request from 'supertest';
 import { app } from '../src/app';
 import { StockPriceSnapshot } from '../src/models/StockPriceSnapshot';
+import { UserStockHoldingSnapshot } from '../src/models/UserStockHoldingSnapshot';
 
 describe('Stocks API', () => {
   describe('GET /api/stocks/recommendations', () => {
     beforeEach(async () => {
       // Clean up test data
       await StockPriceSnapshot.deleteMany({});
+      await UserStockHoldingSnapshot.deleteMany({});
     });
 
     afterEach(async () => {
       // Clean up test data
       await StockPriceSnapshot.deleteMany({});
+      await UserStockHoldingSnapshot.deleteMany({});
     });
 
     it('should return 503 when no stock data exists', async () => {
@@ -141,6 +144,50 @@ describe('Stocks API', () => {
       expect(stock.recommendation).toBe('HOLD'); // Should be HOLD with score=null or 0
       expect(stock.owned_shares).toBe(0);
       expect(stock.can_sell).toBe(false);
+    });
+
+    it('should show 0 shares for stocks that have been sold', async () => {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+
+      // Create stock price data
+      await StockPriceSnapshot.insertMany([
+        { stock_id: 5, ticker: 'NEW', name: 'Newsies', price: 500.00, timestamp: now },
+        { stock_id: 5, ticker: 'NEW', name: 'Newsies', price: 500.00, timestamp: sevenDaysAgo },
+      ]);
+
+      // Create holdings snapshot showing the user previously owned this stock
+      await UserStockHoldingSnapshot.create({
+        stock_id: 5,
+        total_shares: 1000,
+        avg_buy_price: 450.00,
+        transaction_count: 1,
+        timestamp: oneHourAgo
+      });
+
+      // Create a more recent snapshot showing the stock was sold (0 shares)
+      await UserStockHoldingSnapshot.create({
+        stock_id: 5,
+        total_shares: 0,
+        avg_buy_price: null,
+        transaction_count: 0,
+        timestamp: now
+      });
+
+      const response = await request(app)
+        .get('/api/stocks/recommendations')
+        .expect(200);
+
+      expect(response.body.length).toBe(1);
+      
+      const stock = response.body[0];
+      expect(stock.stock_id).toBe(5);
+      expect(stock.ticker).toBe('NEW');
+      expect(stock.owned_shares).toBe(0); // Should show 0 shares (most recent snapshot)
+      expect(stock.can_sell).toBe(false);
+      expect(stock.unrealized_profit_value).toBeNull(); // No profit since 0 shares
+      expect(stock.unrealized_profit_pct).toBeNull();
     });
   });
 });

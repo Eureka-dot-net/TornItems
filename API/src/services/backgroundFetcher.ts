@@ -1209,37 +1209,75 @@ async function fetchUserStockHoldings(): Promise<void> {
     ) as { data: { stocks: any } };
 
     const stocks = response.data?.stocks;
-    if (!stocks) {
-      logInfo('No stocks data returned from Torn API - user may not own any stocks');
-      return;
-    }
-
     const bulkOps: any[] = [];
     const timestamp = new Date();
     
-    for (const [stockId, stockData] of Object.entries(stocks) as [string, any][]) {
-      const totalShares = stockData.total_shares || 0;
-      const transactions = stockData.transactions || {};
-      
-      // Calculate weighted average buy price
-      let avgBuyPrice: number | null = null;
-      if (totalShares > 0 && Object.keys(transactions).length > 0) {
-        let weightedSum = 0;
-        for (const transaction of Object.values(transactions) as any[]) {
-          const shares = transaction.shares || 0;
-          const boughtPrice = transaction.bought_price || 0;
-          weightedSum += shares * boughtPrice;
+    // Track which stock IDs are present in the current API response
+    const currentStockIds = new Set<number>();
+    
+    if (stocks) {
+      for (const [stockId, stockData] of Object.entries(stocks) as [string, any][]) {
+        const stockIdNum = parseInt(stockId, 10);
+        currentStockIds.add(stockIdNum);
+        
+        const totalShares = stockData.total_shares || 0;
+        const transactions = stockData.transactions || {};
+        
+        // Calculate weighted average buy price
+        let avgBuyPrice: number | null = null;
+        if (totalShares > 0 && Object.keys(transactions).length > 0) {
+          let weightedSum = 0;
+          for (const transaction of Object.values(transactions) as any[]) {
+            const shares = transaction.shares || 0;
+            const boughtPrice = transaction.bought_price || 0;
+            weightedSum += shares * boughtPrice;
+          }
+          avgBuyPrice = weightedSum / totalShares;
         }
-        avgBuyPrice = weightedSum / totalShares;
+        
+        bulkOps.push({
+          stock_id: stockIdNum,
+          total_shares: totalShares,
+          avg_buy_price: avgBuyPrice,
+          transaction_count: Object.keys(transactions).length,
+          timestamp: timestamp,
+        });
       }
-      
-      bulkOps.push({
-        stock_id: parseInt(stockId, 10),
-        total_shares: totalShares,
-        avg_buy_price: avgBuyPrice,
-        transaction_count: Object.keys(transactions).length,
-        timestamp: timestamp,
-      });
+    }
+    
+    // Find stocks that were previously owned (total_shares > 0) but are not in the current API response
+    // This means the user has sold all their shares
+    const previouslyOwnedStocks = await UserStockHoldingSnapshot.aggregate([
+      {
+        $match: {
+          total_shares: { $gt: 0 }
+        }
+      },
+      {
+        $sort: { stock_id: 1, timestamp: -1 }
+      },
+      {
+        $group: {
+          _id: '$stock_id',
+          total_shares: { $first: '$total_shares' },
+          timestamp: { $first: '$timestamp' }
+        }
+      }
+    ]);
+    
+    // For stocks that were previously owned but are not in the current response, create 0-share snapshots
+    for (const previousStock of previouslyOwnedStocks) {
+      const stockId = previousStock._id;
+      if (!currentStockIds.has(stockId)) {
+        logInfo(`Stock ${stockId} no longer owned, creating 0-share snapshot`);
+        bulkOps.push({
+          stock_id: stockId,
+          total_shares: 0,
+          avg_buy_price: null,
+          transaction_count: 0,
+          timestamp: timestamp,
+        });
+      }
     }
 
     if (bulkOps.length > 0) {
