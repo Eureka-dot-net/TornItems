@@ -54,13 +54,17 @@ The `aggregateMarketHistory` job processes MarketSnapshot data to create daily s
 3. For each group:
    - Fetches item details from TornItem collection
    - Retrieves current stock information (city shops or foreign travel)
+   - **Aggregates sales data**: Sums all `sales_by_price` entries from all snapshots in the group
+     - Each snapshot's `sales_by_price` contains items sold since the previous snapshot (incremental data)
+     - Summing across all snapshots gives total 24-hour sales and revenue
+     - Used to calculate both `sales_24h_current` and `average_price_items_sold`
    - Calculates aggregated metrics:
      - Average buy/market prices
      - Profit calculations (estimated_market_value_profit, lowest_50_profit, sold_profit)
-     - Sales metrics (sales_24h_current, sales_24h_previous, trend_24h, hour_velocity_24)
-     - Average price of items sold
+     - Sales metrics (sales_24h_current from sales_by_price, sales_24h_previous/trend_24h/hour_velocity_24 from latest snapshot)
+     - Average price of items sold (from sales_by_price)
 4. Upserts results into MarketHistory collection
-   - Uses `{ id, date }` as unique key
+   - Uses `{ country, id, date }` as unique key
    - Updates existing record if one exists for the same item and date
 
 ### Fields Aggregated
@@ -75,11 +79,11 @@ The `aggregateMarketHistory` job processes MarketSnapshot data to create daily s
 | `profitPer1` | Calculated | market_price - buy_price |
 | `shop_name` | TornItem.vendor_name | Direct value |
 | `in_stock` | CityShopStock or ForeignStock | Latest available stock |
-| `sales_24h_current` | Latest MarketSnapshot | From snapshot data |
-| `sales_24h_previous` | Latest MarketSnapshot | From snapshot data |
-| `trend_24h` | Latest MarketSnapshot | Percentage change |
-| `hour_velocity_24` | Latest MarketSnapshot | Sales per hour |
-| `average_price_items_sold` | Aggregated from sales_by_price | Total revenue / total items sold |
+| `sales_24h_current` | Aggregated from sales_by_price | Sum of all sales_by_price amounts from all snapshots in 24h window |
+| `sales_24h_previous` | Latest MarketSnapshot | From snapshot's pre-calculated value |
+| `trend_24h` | Latest MarketSnapshot | From snapshot's pre-calculated value |
+| `hour_velocity_24` | Latest MarketSnapshot | From snapshot's pre-calculated value |
+| `average_price_items_sold` | Aggregated from sales_by_price | Total revenue / total items sold from all snapshots in 24h window |
 | `estimated_market_value_profit` | Calculated | market_price - buy_price |
 | `lowest_50_profit` | Calculated from listings | Avg of lowest 50 listings - buy_price |
 | `sold_profit` | Calculated | average_price_items_sold - buy_price |
