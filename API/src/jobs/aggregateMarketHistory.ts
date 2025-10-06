@@ -3,6 +3,12 @@ import { MarketHistory } from '../models/MarketHistory';
 import { TornItem } from '../models/TornItem';
 import { CityShopStock } from '../models/CityShopStock';
 import { ForeignStock } from '../models/ForeignStock';
+import { CityShopStockHistory } from '../models/CityShopStockHistory';
+import { ForeignStockHistory } from '../models/ForeignStockHistory';
+import { StockPriceSnapshot } from '../models/StockPriceSnapshot';
+import { StockMarketHistory } from '../models/StockMarketHistory';
+import { ShopItemState } from '../models/ShopItemState';
+import { ShopItemStockHistory } from '../models/ShopItemStockHistory';
 import { logInfo, logError } from '../utils/logger';
 
 const COUNTRY_CODE_MAP: Record<string, string> = {
@@ -118,7 +124,11 @@ export async function aggregateMarketHistory(): Promise<void> {
         // Calculate averages for numeric fields
         const avgBuyPrice = item.buy_price ?? 0;
         const avgMarketPrice = item.market_price ?? 0;
-        const avgProfitPer1 = avgMarketPrice - avgBuyPrice;
+        
+        // Apply 5% sales tax (deducted from market price)
+        const SALES_TAX_RATE = 0.05;
+        const avgMarketPriceAfterTax = avgMarketPrice * (1 - SALES_TAX_RATE);
+        const avgProfitPer1 = avgMarketPriceAfterTax - avgBuyPrice;
 
         // Get shop name
         const shop_name = item.vendor_name || 'Unknown';
@@ -173,10 +183,10 @@ export async function aggregateMarketHistory(): Promise<void> {
           average_price_items_sold = Math.round(totalRevenue / totalItemsSold);
         }
 
-        // Calculate profit metrics
-        const estimated_market_value_profit = avgMarketPrice - avgBuyPrice;
+        // Calculate profit metrics (after 5% sales tax)
+        const estimated_market_value_profit = avgMarketPriceAfterTax - avgBuyPrice;
 
-        // Calculate lowest_50_profit from latest snapshot
+        // Calculate lowest_50_profit from latest snapshot (after 5% sales tax)
         let lowest_50_profit = 0;
         if (latestSnapshot && latestSnapshot.listings && latestSnapshot.listings.length > 0) {
           const sortedListings = [...latestSnapshot.listings].sort((a, b) => a.price - b.price);
@@ -190,13 +200,14 @@ export async function aggregateMarketHistory(): Promise<void> {
           }
           if (count > 0) {
             const averageLowest50 = Math.round(totalPrice / count);
-            lowest_50_profit = averageLowest50 - avgBuyPrice;
+            const averageLowest50AfterTax = averageLowest50 * (1 - SALES_TAX_RATE);
+            lowest_50_profit = averageLowest50AfterTax - avgBuyPrice;
           }
         }
 
-        // Calculate sold_profit
+        // Calculate sold_profit (after 5% sales tax)
         const sold_profit = average_price_items_sold > 0 
-          ? average_price_items_sold - avgBuyPrice 
+          ? (average_price_items_sold * (1 - SALES_TAX_RATE)) - avgBuyPrice 
           : 0;
 
         aggregatedData.push({
@@ -251,8 +262,248 @@ export async function aggregateMarketHistory(): Promise<void> {
       date: currentDate,
     });
 
+    // Now aggregate stock market history
+    await aggregateStockMarketHistory(currentDate);
+    
+    // Aggregate shop item stock history
+    await aggregateShopItemStockHistory(currentDate);
+    
+    // Clean up old transactional data
+    await cleanupOldData(currentDate);
+
   } catch (error) {
     logError('MarketHistory aggregation job failed', error instanceof Error ? error : new Error(String(error)));
     throw error;
+  }
+}
+
+/**
+ * Aggregates stock market price data for each day
+ * Calculates opening, closing, lowest, highest prices and daily volatility
+ */
+async function aggregateStockMarketHistory(currentDate: string): Promise<void> {
+  logInfo('=== Starting Stock Market History aggregation ===');
+  
+  try {
+    // Get all unique tickers
+    const uniqueStocks = await StockPriceSnapshot.aggregate([
+      {
+        $group: {
+          _id: '$ticker',
+          name: { $first: '$name' }
+        }
+      }
+    ]);
+
+    logInfo(`Found ${uniqueStocks.length} unique stocks to process`);
+
+    const stockHistoryData = [];
+
+    for (const stock of uniqueStocks) {
+      const ticker = stock._id;
+      const name = stock.name;
+
+      // Find all snapshots for this stock that don't have history yet
+      // Get the earliest date we have data for
+      const oldestSnapshot = await StockPriceSnapshot.findOne({ ticker })
+        .sort({ timestamp: 1 })
+        .lean();
+
+      if (!oldestSnapshot) continue;
+
+      const startDate = new Date(oldestSnapshot.timestamp);
+      startDate.setHours(0, 0, 0, 0);
+
+      const endDate = new Date(currentDate);
+      endDate.setHours(23, 59, 59, 999);
+
+      // Process each day
+      let currentDay = new Date(startDate);
+      while (currentDay <= endDate) {
+        const dayStart = new Date(currentDay);
+        dayStart.setHours(0, 0, 0, 0);
+        
+        const dayEnd = new Date(currentDay);
+        dayEnd.setHours(23, 59, 59, 999);
+
+        const dateStr = dayStart.toISOString().split('T')[0];
+
+        // Check if we already have history for this date
+        const existingHistory = await StockMarketHistory.findOne({ ticker, date: dateStr });
+        if (existingHistory) {
+          currentDay.setDate(currentDay.getDate() + 1);
+          continue;
+        }
+
+        // Get all snapshots for this day, sorted by timestamp
+        const dailySnapshots = await StockPriceSnapshot.find({
+          ticker,
+          timestamp: { $gte: dayStart, $lte: dayEnd }
+        }).sort({ timestamp: 1 }).lean();
+
+        if (dailySnapshots.length === 0) {
+          currentDay.setDate(currentDay.getDate() + 1);
+          continue;
+        }
+
+        const prices = dailySnapshots.map(s => s.price);
+        const opening_price = prices[0];
+        const closing_price = prices[prices.length - 1];
+        const lowest_price = Math.min(...prices);
+        const highest_price = Math.max(...prices);
+        
+        // Calculate daily volatility as percentage difference between high and low
+        const daily_volatility = highest_price > 0 
+          ? ((highest_price - lowest_price) / lowest_price) * 100 
+          : 0;
+
+        stockHistoryData.push({
+          ticker,
+          name,
+          date: dateStr,
+          opening_price,
+          closing_price,
+          lowest_price,
+          highest_price,
+          daily_volatility: parseFloat(daily_volatility.toFixed(2))
+        });
+
+        currentDay.setDate(currentDay.getDate() + 1);
+      }
+    }
+
+    // Bulk upsert stock market history
+    if (stockHistoryData.length > 0) {
+      logInfo(`Upserting ${stockHistoryData.length} stock market history records`);
+      
+      const bulkOps = stockHistoryData.map(data => ({
+        updateOne: {
+          filter: { ticker: data.ticker, date: data.date },
+          update: { $set: data },
+          upsert: true,
+        },
+      }));
+
+      await StockMarketHistory.bulkWrite(bulkOps);
+    }
+
+    logInfo('=== Stock Market History aggregation completed ===', {
+      recordsProcessed: stockHistoryData.length
+    });
+
+  } catch (error) {
+    logError('Stock Market History aggregation failed', error instanceof Error ? error : new Error(String(error)));
+  }
+}
+
+/**
+ * Aggregates shop item stock data (average sold out duration and cycles skipped)
+ */
+async function aggregateShopItemStockHistory(currentDate: string): Promise<void> {
+  logInfo('=== Starting Shop Item Stock History aggregation ===');
+  
+  try {
+    // Get all shop item states with tracking data
+    const shopItemStates = await ShopItemState.find({
+      $or: [
+        { averageSelloutMinutes: { $exists: true, $ne: null } },
+        { averageCyclesSkipped: { $exists: true, $ne: null } }
+      ]
+    }).lean();
+
+    logInfo(`Found ${shopItemStates.length} shop items with tracking data`);
+
+    const shopHistoryData = [];
+
+    for (const itemState of shopItemStates) {
+      // Check if we already have history for this date
+      const existingHistory = await ShopItemStockHistory.findOne({
+        shopId: itemState.shopId,
+        itemId: itemState.itemId,
+        date: currentDate
+      });
+
+      if (existingHistory) continue;
+
+      shopHistoryData.push({
+        shopId: itemState.shopId,
+        shopName: itemState.shopName,
+        itemId: itemState.itemId,
+        itemName: itemState.itemName,
+        date: currentDate,
+        average_sellout_duration_minutes: itemState.averageSelloutMinutes || 0,
+        cycles_skipped: itemState.averageCyclesSkipped || 0
+      });
+    }
+
+    // Bulk upsert shop item stock history
+    if (shopHistoryData.length > 0) {
+      logInfo(`Upserting ${shopHistoryData.length} shop item stock history records`);
+      
+      const bulkOps = shopHistoryData.map(data => ({
+        updateOne: {
+          filter: { shopId: data.shopId, itemId: data.itemId, date: data.date },
+          update: { $set: data },
+          upsert: true,
+        },
+      }));
+
+      await ShopItemStockHistory.bulkWrite(bulkOps);
+    }
+
+    logInfo('=== Shop Item Stock History aggregation completed ===', {
+      recordsProcessed: shopHistoryData.length
+    });
+
+  } catch (error) {
+    logError('Shop Item Stock History aggregation failed', error instanceof Error ? error : new Error(String(error)));
+  }
+}
+
+/**
+ * Cleans up old transactional data
+ * - MarketSnapshots older than 14 days
+ * - CityShopStockHistory and ForeignStockHistory older than 48 hours
+ */
+async function cleanupOldData(currentDate: string): Promise<void> {
+  logInfo('=== Starting cleanup of old transactional data ===');
+  
+  try {
+    // Calculate cutoff dates
+    const fourteenDaysAgo = new Date(currentDate);
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+    const fortyEightHoursAgo = new Date(currentDate);
+    fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
+
+    // Delete old MarketSnapshots (older than 14 days)
+    const marketSnapshotResult = await MarketSnapshot.deleteMany({
+      fetched_at: { $lt: fourteenDaysAgo }
+    });
+
+    logInfo(`Deleted ${marketSnapshotResult.deletedCount} old MarketSnapshot records (>14 days)`);
+
+    // Delete old CityShopStockHistory (older than 48 hours)
+    const cityStockResult = await CityShopStockHistory.deleteMany({
+      fetched_at: { $lt: fortyEightHoursAgo }
+    });
+
+    logInfo(`Deleted ${cityStockResult.deletedCount} old CityShopStockHistory records (>48 hours)`);
+
+    // Delete old ForeignStockHistory (older than 48 hours)
+    const foreignStockResult = await ForeignStockHistory.deleteMany({
+      fetched_at: { $lt: fortyEightHoursAgo }
+    });
+
+    logInfo(`Deleted ${foreignStockResult.deletedCount} old ForeignStockHistory records (>48 hours)`);
+
+    logInfo('=== Cleanup of old transactional data completed ===', {
+      marketSnapshotsDeleted: marketSnapshotResult.deletedCount,
+      cityStockHistoryDeleted: cityStockResult.deletedCount,
+      foreignStockHistoryDeleted: foreignStockResult.deletedCount
+    });
+
+  } catch (error) {
+    logError('Cleanup of old data failed', error instanceof Error ? error : new Error(String(error)));
   }
 }
