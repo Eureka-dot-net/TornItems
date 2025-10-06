@@ -13,6 +13,7 @@ import { StockPriceSnapshot } from '../models/StockPriceSnapshot';
 import { UserStockHoldingSnapshot } from '../models/UserStockHoldingSnapshot';
 import { logInfo, logError } from '../utils/logger';
 import { aggregateMarketHistory } from '../jobs/aggregateMarketHistory';
+import { monitorMarketPrices } from '../jobs/monitorMarketPrices';
 import { roundUpToNextQuarterHour, minutesBetween } from '../utils/dateHelpers';
 
 const API_KEY = process.env.TORN_API_KEY || 'yLp4OoENbjRy30GZ';
@@ -1369,6 +1370,19 @@ export function startScheduler(): void {
   // Fetch stock prices immediately on startup
   fetchStockPrices().catch((error) => {
     logError('Failed to fetch stock prices on startup', error instanceof Error ? error : new Error(String(error)));
+  });
+
+  // Schedule market price monitoring every 30 seconds
+  // This monitors watchlist items for price alerts
+  cron.schedule('*/30 * * * * *', () => {
+    monitorMarketPrices().catch((error) => {
+      logError('Error in market price monitoring', error instanceof Error ? error : new Error(String(error)));
+    });
+  });
+
+  // Run market price monitoring immediately on startup
+  monitorMarketPrices().catch((error) => {
+    logError('Failed to run market price monitoring on startup', error instanceof Error ? error : new Error(String(error)));
   });
 
   logInfo('Background fetcher scheduler started successfully');
