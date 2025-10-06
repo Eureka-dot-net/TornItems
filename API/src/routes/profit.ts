@@ -57,18 +57,32 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     // Check if ItemsSold should be included in the response (for debugging)
     const includeItemsSold = process.env.INCLUDE_ITEMS_SOLD === 'true';
 
-    // Only fetch market snapshots from the last 48 hours to improve performance
-    // We need 48 hours to calculate 24h trends properly
-    const fortyEightHoursAgo = new Date(Date.now() - (48 * 60 * 60 * 1000));
+    // Fetch latest MarketSnapshot for each country-item combination using aggregation
+    // This is much more efficient than fetching 48 hours of data
+    const latestSnapshots = await MarketSnapshot.aggregate([
+      {
+        $sort: { fetched_at: -1 }
+      },
+      {
+        $group: {
+          _id: { country: '$country', itemId: '$itemId' },
+          latestSnapshot: { $first: '$$ROOT' }
+        }
+      },
+      {
+        $replaceRoot: { newRoot: '$latestSnapshot' }
+      }
+    ]);
 
-    // Fetch all items, city shop stock, foreign stock, and market snapshots from MongoDB
-    const [items, cityShopStock, foreignStock, marketSnapshots, shopItemStates] = await Promise.all([
+    // Fetch all items, city shop stock, foreign stock, and shop item states from MongoDB
+    const [items, cityShopStock, foreignStock, shopItemStates] = await Promise.all([
       TornItem.find({ buy_price: { $ne: null } }).lean(),
       CityShopStock.find().lean(),
       ForeignStock.find().lean(),
-      MarketSnapshot.find({ fetched_at: { $gte: fortyEightHoursAgo } }).sort({ fetched_at: -1 }).lean(),
       ShopItemState.find().lean(),
     ]);
+
+    const marketSnapshots = latestSnapshots;
 
     if (!items?.length) {
       res.status(503).json({ 
@@ -121,29 +135,6 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       foreignStockMap.set(key, stock);
     }
 
-    // Create a lookup map for ItemsSold: key is "country:itemId", value is array of sales
-    // Always build this map since we need it to calculate sold_profit
-    const itemsSoldMap = new Map<string, Array<{ Amount: number; TimeStamp: string; Price: number }>>();
-    const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
-    for (const snapshot of marketSnapshots) {
-      // Check if this snapshot has sales_by_price data and is within 24 hours
-      if (snapshot.sales_by_price && snapshot.sales_by_price.length > 0 && 
-          new Date(snapshot.fetched_at).getTime() >= twentyFourHoursAgo) {
-        const key = `${snapshot.country}:${snapshot.itemId}`;
-        if (!itemsSoldMap.has(key)) {
-          itemsSoldMap.set(key, []);
-        }
-        // Add each price point as a separate entry
-        for (const sale of snapshot.sales_by_price) {
-          itemsSoldMap.get(key)!.push({
-            Amount: sale.amount,
-            TimeStamp: snapshot.fetched_at.toISOString(),
-            Price: sale.price
-          });
-        }
-      }
-    }
-
     // 🗺 Group by country (shop is informational)
     const grouped: GroupedByCountry = {};
 
@@ -184,7 +175,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         }
       }
 
-      // 📊 Fetch 24-hour sales metrics
+      // 📊 Use pre-calculated 24-hour sales metrics from the latest snapshot
       let sales_24h_current: number | null = null;
       let sales_24h_previous: number | null = null;
       let trend_24h: number | null = null;
@@ -194,32 +185,36 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       const snapshotKey = `${country}:${item.itemId}`;
       const latestSnapshot = snapshotMap.get(snapshotKey);
       
-      // Get historical metrics from snapshot (not current sales data)
+      // Use pre-calculated metrics from the latest snapshot
       if (latestSnapshot) {
+        sales_24h_current = latestSnapshot.sales_24h_current ?? null;
         sales_24h_previous = latestSnapshot.sales_24h_previous ?? null;
         trend_24h = latestSnapshot.trend_24h ?? null;
         hour_velocity_24 = latestSnapshot.hour_velocity_24 ?? null;
-      }
-      
-      // Get pre-built ItemsSold array from map (O(1) lookup)
-      const ItemsSold = itemsSoldMap.get(snapshotKey) || [];
-      
-      // Calculate sales metrics directly from ItemsSold (source of truth for current sales)
-      // If ItemsSold is empty, it means no items were sold in the last 24h
-      if (ItemsSold.length > 0) {
-        // Calculate total items sold and revenue from ItemsSold array
-        let totalItemsSold = 0;
-        let totalRevenue = 0;
         
-        for (const sale of ItemsSold) {
-          totalItemsSold += sale.Amount;
-          totalRevenue += sale.Amount * sale.Price;
+        // Calculate average_price_items_sold from sales_by_price if available
+        if (latestSnapshot.sales_by_price && latestSnapshot.sales_by_price.length > 0) {
+          let totalRevenue = 0;
+          let totalItems = 0;
+          for (const sale of latestSnapshot.sales_by_price) {
+            totalRevenue += sale.price * sale.amount;
+            totalItems += sale.amount;
+          }
+          if (totalItems > 0) {
+            average_price_items_sold = Math.round(totalRevenue / totalItems);
+          }
         }
-        
-        // Set sales_24h_current and average_price_items_sold from actual sales data
-        if (totalItemsSold > 0) {
-          sales_24h_current = totalItemsSold;
-          average_price_items_sold = Math.round(totalRevenue / totalItemsSold);
+      }
+
+      // Build ItemsSold array for debugging if requested
+      const ItemsSold: Array<{ Amount: number; TimeStamp: string; Price: number }> = [];
+      if (includeItemsSold && latestSnapshot && latestSnapshot.sales_by_price) {
+        for (const sale of latestSnapshot.sales_by_price) {
+          ItemsSold.push({
+            Amount: sale.amount,
+            TimeStamp: latestSnapshot.fetched_at.toISOString(),
+            Price: sale.price
+          });
         }
       }
 
