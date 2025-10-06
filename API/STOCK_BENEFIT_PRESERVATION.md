@@ -110,15 +110,21 @@ const affordableStocks = recommendations.filter(stock => {
   
   // NEW: Check benefit preservation
   if (stock.benefit && stock.benefit.requirement > 0) {
-    // Calculate how many shares would be sold
-    const adjustedPrice = Math.max(stock.price - 0.1, 0.01);
-    const sharesToSell = Math.ceil(requiredAmount / adjustedPrice);
-    const sharesAfterSale = stock.owned_shares - sharesToSell;
+    // Only protect the benefit if we currently have it
+    const currentlyHasBenefit = stock.owned_shares >= stock.benefit.requirement;
     
-    // Exclude if would drop below requirement
-    if (sharesAfterSale < stock.benefit.requirement) {
-      return false;  // Skip this stock!
+    if (currentlyHasBenefit) {
+      // Calculate how many shares would be sold
+      const adjustedPrice = Math.max(stock.price - 0.1, 0.01);
+      const sharesToSell = Math.ceil(requiredAmount / adjustedPrice);
+      const sharesAfterSale = stock.owned_shares - sharesToSell;
+      
+      // Exclude if would drop below requirement
+      if (sharesAfterSale < stock.benefit.requirement) {
+        return false;  // Skip this stock!
+      }
     }
+    // If we don't currently have the benefit, we can sell freely
   }
   
   return true;
@@ -171,12 +177,34 @@ const affordableStocks = recommendations.filter(stock => {
 - Recommends TSB instead (safe to sell ✅)
 - User keeps their WLT benefit
 
+### Example 4: No Benefit to Lose ✅ (NEW)
+
+**Setup:**
+- Need: $100,000,000 for a cheap item
+- WLT shares owned: 5,000,000
+- WLT price: $775.38
+- Benefit requirement: 9,000,000 shares
+
+**Calculation:**
+- User currently has: 5,000,000 shares
+- Benefit requirement: 9,000,000 shares
+- Currently has benefit? **NO** (5M < 9M)
+- Shares to sell: $100,000,000 / $775.28 ≈ 129,000 shares
+- Shares after sale: 5,000,000 - 129,000 = **4,871,000 shares**
+
+**Result:**
+- User doesn't currently have the benefit (5M < 9M requirement)
+- Since there's no benefit to lose, WLT can be recommended
+- **WLT is allowed to be sold freely** ✅
+
+This ensures users who are building up to a benefit (but haven't reached it yet) can still sell their shares when needed.
+
 ## Testing
 
-The test suite includes 4 new scenarios:
+The test suite includes 5 scenarios:
 
 1. **Reject stock when benefit would be lost**
-   - Verifies stock is excluded when selling drops below requirement
+   - Verifies stock is excluded when selling drops below requirement AND user currently has benefit
 
 2. **Accept stock when benefit is safe**
    - Verifies stock is recommended when enough shares remain
@@ -186,6 +214,9 @@ The test suite includes 4 new scenarios:
 
 4. **Skip to next best when primary unsafe**
    - Verifies fallback to lower-scored stock when top choice risky
+
+5. **Allow selling when user doesn't have benefit** (NEW)
+   - Verifies stock can be sold freely if user doesn't currently meet benefit requirement
 
 Run tests:
 ```bash

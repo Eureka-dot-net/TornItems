@@ -461,6 +461,53 @@ describe('Stock Sell Helper', () => {
       expect(result?.stock_id).toBe(2);
       expect(result?.ticker).toBe('TST2');
     });
+
+    it('should allow selling stock with benefit if user does not currently have the benefit', async () => {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      // Stock with benefit requiring 9,000,000 shares
+      await StockPriceSnapshot.create({
+        stock_id: 30,
+        ticker: 'WLT',
+        name: 'Wind Lines Travel',
+        price: 775.38,
+        benefit: {
+          type: 'passive',
+          frequency: 7,
+          requirement: 9000000,
+          description: 'Private jet access'
+        },
+        timestamp: now
+      });
+
+      await StockPriceSnapshot.create({
+        stock_id: 30,
+        ticker: 'WLT',
+        name: 'Wind Lines Travel',
+        price: 770,
+        timestamp: sevenDaysAgo
+      });
+
+      // User owns 5,000,000 shares - BELOW the requirement (doesn't have benefit)
+      await UserStockHoldingSnapshot.create({
+        stock_id: 30,
+        total_shares: 5000000,
+        avg_buy_price: 750,
+        transaction_count: 1,
+        timestamp: now
+      });
+
+      // Need $100,000,000, which would require ~129,000 shares
+      // After selling, would have ~4,871,000 shares (still below requirement)
+      // Since user doesn't currently have the benefit, they can sell freely
+      const result = await calculateBestStockToSell(100000000);
+
+      // Should recommend WLT because user doesn't have the benefit to lose
+      expect(result).not.toBeNull();
+      expect(result?.stock_id).toBe(30);
+      expect(result?.ticker).toBe('WLT');
+    });
     });
   });
 });

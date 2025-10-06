@@ -61,8 +61,9 @@ Comprehensive test suite covering:
 - Share capping at owned amount
 - URL generation
 - **Benefit preservation scenarios:**
-  - Rejecting stock when selling would cause benefit loss
-  - Accepting stock with benefit when selling is safe
+  - Rejecting stock when selling would cause benefit loss (user has benefit)
+  - Accepting stock with benefit when selling is safe (user keeps benefit)
+  - Allowing stock sale when user doesn't currently have the benefit (NEW)
   - Choosing next best stock when primary choice would lose benefit
   - Preferring stocks by sell_score when both preserve benefits
 
@@ -112,31 +113,47 @@ Stocks from the Torn API can have benefits that require a minimum number of shar
 ```typescript
 // For each stock, check if selling would cause benefit loss
 if (stock.benefit && stock.benefit.requirement > 0) {
-  const sharesToSell = Math.ceil(requiredAmount / adjustedPrice);
-  const sharesAfterSale = stock.owned_shares - sharesToSell;
+  // Only protect the benefit if we currently have it
+  const currentlyHasBenefit = stock.owned_shares >= stock.benefit.requirement;
   
-  // Exclude stock if remaining shares < requirement
-  if (sharesAfterSale < stock.benefit.requirement) {
-    return false; // Skip this stock
+  if (currentlyHasBenefit) {
+    const sharesToSell = Math.ceil(requiredAmount / adjustedPrice);
+    const sharesAfterSale = stock.owned_shares - sharesToSell;
+    
+    // Exclude stock if remaining shares < requirement
+    if (sharesAfterSale < stock.benefit.requirement) {
+      return false; // Skip this stock
+    }
   }
+  // If we don't currently have the benefit, we can sell freely
 }
 ```
 
 **How It Works:**
 1. When fetching stock prices from Torn API, benefit information is extracted and stored
 2. When calculating best stock to sell, the system checks each stock's benefit requirement
-3. Stocks are filtered out if selling the required amount would drop shares below the benefit threshold
-4. Only stocks that preserve benefits (or have no benefits) are considered
-5. Among viable stocks, the one with highest sell_score is chosen
+3. **Only protects benefits the user currently has** (owned_shares >= requirement)
+4. Stocks are filtered out if **they currently have the benefit** AND selling would drop shares below the threshold
+5. Stocks without benefits OR stocks where the user doesn't yet have the benefit can be sold freely
+6. Among viable stocks, the one with highest sell_score is chosen
 
-**Example:**
+**Example 1 - User Has Benefit:**
 - Wind Lines Travel (WLT) requires 9,000,000 shares for "Private jet access"
-- User owns 9,100,000 shares at $775.38 each
+- User owns 9,100,000 shares at $775.38 each (HAS benefit)
 - Need $100,000,000 to buy an item
 - Would require selling ~129,000 shares
 - After sale: 9,100,000 - 129,000 = 8,971,000 shares (below requirement)
 - **Result:** WLT is excluded from recommendations to preserve the benefit
 - System recommends next best stock without benefit loss risk
+
+**Example 2 - User Doesn't Have Benefit:**
+- Wind Lines Travel (WLT) requires 9,000,000 shares for "Private jet access"
+- User owns 5,000,000 shares at $775.38 each (does NOT have benefit)
+- Need $100,000,000 to buy an item
+- Would require selling ~129,000 shares
+- After sale: 5,000,000 - 129,000 = 4,871,000 shares (still below requirement)
+- **Result:** WLT can be recommended since there's no benefit to lose
+- User can sell freely while building up to the benefit threshold
 
 ### URL Format
 The generated URL follows Torn.com's stock selling interface:

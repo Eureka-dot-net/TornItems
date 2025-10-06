@@ -157,15 +157,21 @@ export async function calculateBestStockToSell(requiredAmount: number): Promise<
       
       // If stock has a benefit with a requirement, check if we'd lose it
       if (stock.benefit && stock.benefit.requirement > 0) {
-        // Calculate how many shares would need to be sold
-        const adjustedPrice = Math.max(stock.price - 0.1, 0.01);
-        const sharesToSell = Math.ceil(requiredAmount / adjustedPrice);
-        const sharesAfterSale = stock.owned_shares - sharesToSell;
+        // Only protect the benefit if we currently have it
+        const currentlyHasBenefit = stock.owned_shares >= stock.benefit.requirement;
         
-        // If selling would drop below the requirement, exclude this stock
-        if (sharesAfterSale < stock.benefit.requirement) {
-          return false;
+        if (currentlyHasBenefit) {
+          // Calculate how many shares would need to be sold
+          const adjustedPrice = Math.max(stock.price - 0.1, 0.01);
+          const sharesToSell = Math.ceil(requiredAmount / adjustedPrice);
+          const sharesAfterSale = stock.owned_shares - sharesToSell;
+          
+          // If selling would drop below the requirement, exclude this stock
+          if (sharesAfterSale < stock.benefit.requirement) {
+            return false;
+          }
         }
+        // If we don't currently have the benefit, we can sell freely
       }
       
       return true;
