@@ -24,6 +24,9 @@ const RATE_LIMIT_PER_MINUTE = parseInt(process.env.TORN_RATE_LIMIT || '60', 10);
 // Curiosity rate - percentage of budget to reserve for random checks of quiet items (default 5%)
 const CURIOSITY_RATE = parseFloat(process.env.CURIOSITY_RATE || '0.05');
 
+// Enable/disable background jobs (default: enabled)
+const ENABLE_BACKGROUND_JOBS = process.env.ENABLE_BACKGROUND_JOBS !== 'false';
+
 // Country code mapping
 const COUNTRY_CODE_MAP: Record<string, string> = {
   mex: 'Mexico',
@@ -1297,6 +1300,13 @@ export async function fetchStockPrices(): Promise<void> {
 
 // Initialize and start the scheduler
 export function startScheduler(): void {
+  // Check if background jobs are disabled
+  if (!ENABLE_BACKGROUND_JOBS) {
+    logInfo('Background jobs are DISABLED via ENABLE_BACKGROUND_JOBS environment variable');
+    logInfo('Set ENABLE_BACKGROUND_JOBS=true to enable background jobs');
+    return;
+  }
+
   logInfo('Starting background fetcher scheduler...');
   logInfo(`Rate limit configured: ${RATE_LIMIT_PER_MINUTE} requests per minute`);
   logInfo(`Curiosity rate: ${(CURIOSITY_RATE * 100).toFixed(0)}% (${Math.floor(RATE_LIMIT_PER_MINUTE * CURIOSITY_RATE)} requests reserved for random checks)`);

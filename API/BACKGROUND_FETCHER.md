@@ -173,12 +173,18 @@ Legacy collection - use MarketSnapshot instead for detailed market data.
 TORN_API_KEY=your_torn_api_key_here
 MONGO_URI=mongodb://localhost:27017/wasteland_rpg
 
+# Optional: Enable/disable background jobs (default: true)
+# Set to false to disable all scheduled background jobs
+ENABLE_BACKGROUND_JOBS=true
+
 # Optional: Configure rate limit (default: 60 requests per minute)
 TORN_RATE_LIMIT=60
 
 # Optional: Configure curiosity check rate (default: 0.05 = 5%)
 CURIOSITY_RATE=0.05
 ```
+
+The `ENABLE_BACKGROUND_JOBS` variable allows you to disable all background jobs (data fetching, monitoring, aggregation). When set to `false`, the background fetcher will not start any scheduled tasks. Default is `true` (enabled).
 
 The `TORN_RATE_LIMIT` variable allows you to decrease the rate limit if needed to avoid hitting Torn's API limits. The system will automatically adjust its request timing based on this value.
 
@@ -344,6 +350,7 @@ No wait needed, starting next cycle immediately...
 ## Development Notes
 
 - The scheduler runs 24/7 in production
+- Background jobs can be disabled via ENABLE_BACKGROUND_JOBS environment variable (default: enabled)
 - Initial item fetch happens on startup if data is older than 24 hours
 - Monitored items update immediately on startup, then every 10 minutes
 - Adaptive market snapshots start immediately after monitored items initialize

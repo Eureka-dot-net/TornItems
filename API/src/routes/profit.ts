@@ -57,12 +57,16 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     // Check if ItemsSold should be included in the response (for debugging)
     const includeItemsSold = process.env.INCLUDE_ITEMS_SOLD === 'true';
 
+    // Only fetch market snapshots from the last 48 hours to improve performance
+    // We need 48 hours to calculate 24h trends properly
+    const fortyEightHoursAgo = new Date(Date.now() - (48 * 60 * 60 * 1000));
+
     // Fetch all items, city shop stock, foreign stock, and market snapshots from MongoDB
     const [items, cityShopStock, foreignStock, marketSnapshots, shopItemStates] = await Promise.all([
       TornItem.find({ buy_price: { $ne: null } }).lean(),
       CityShopStock.find().lean(),
       ForeignStock.find().lean(),
-      MarketSnapshot.find().sort({ fetched_at: -1 }).lean(),
+      MarketSnapshot.find({ fetched_at: { $gte: fortyEightHoursAgo } }).sort({ fetched_at: -1 }).lean(),
       ShopItemState.find().lean(),
     ]);
 
