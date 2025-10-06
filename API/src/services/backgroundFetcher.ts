@@ -1313,23 +1313,17 @@ export async function fetchStockPrices(): Promise<void> {
     const timestamp = new Date();
     
     for (const [stockId, stockData] of Object.entries(stocks) as [string, any][]) {
-      // Extract benefit information if available
-      let benefit = null;
-      if (stockData.benefit && stockData.benefit.requirement) {
-        benefit = {
-          type: stockData.benefit.type || '',
-          frequency: stockData.benefit.frequency || 0,
-          requirement: stockData.benefit.requirement || 0,
-          description: stockData.benefit.description || ''
-        };
-      }
+      // Extract benefit requirement if available
+      const benefit_requirement = (stockData.benefit && stockData.benefit.requirement) 
+        ? stockData.benefit.requirement 
+        : null;
       
       bulkOps.push({
         stock_id: parseInt(stockId, 10),
         ticker: stockData.acronym,
         name: stockData.name,
         price: stockData.current_price,
-        benefit: benefit,
+        benefit_requirement: benefit_requirement,
         timestamp: timestamp,
       });
     }

@@ -14,12 +14,7 @@ interface StockRecommendation {
   sell_score: number;
   owned_shares: number;
   total_value: number;
-  benefit?: {
-    type: string;
-    frequency: number;
-    requirement: number;
-    description: string;
-  } | null;
+  benefit_requirement?: number | null;
 }
 
 interface SellRecommendation {
@@ -99,7 +94,7 @@ export async function calculateBestStockToSell(requiredAmount: number): Promise<
           currentPrice: { $first: '$price' },
           oldestPrice: { $last: '$price' },
           prices: { $push: '$price' },
-          benefit: { $first: '$benefit' }
+          benefit_requirement: { $first: '$benefit_requirement' }
         }
       }
     ]);
@@ -117,7 +112,7 @@ export async function calculateBestStockToSell(requiredAmount: number): Promise<
       const name = stock.name;
       const currentPrice = stock.currentPrice;
       const weekAgoPrice = stock.oldestPrice;
-      const benefit = stock.benefit;
+      const benefit_requirement = stock.benefit_requirement;
 
       const holding = holdingsMap[stockId];
       if (!holding || holding.total_shares === 0) {
@@ -144,7 +139,7 @@ export async function calculateBestStockToSell(requiredAmount: number): Promise<
         sell_score,
         owned_shares: ownedShares,
         total_value: totalValue,
-        benefit: benefit
+        benefit_requirement: benefit_requirement
       });
     }
 
@@ -157,9 +152,9 @@ export async function calculateBestStockToSell(requiredAmount: number): Promise<
       }
       
       // If stock has a benefit with a requirement, check if we'd lose it
-      if (stock.benefit && stock.benefit.requirement > 0) {
+      if (stock.benefit_requirement && stock.benefit_requirement > 0) {
         // Only protect the benefit if we currently have it
-        const currentlyHasBenefit = stock.owned_shares >= stock.benefit.requirement;
+        const currentlyHasBenefit = stock.owned_shares >= stock.benefit_requirement;
         
         if (currentlyHasBenefit) {
           // Calculate how many shares would need to be sold
@@ -168,7 +163,7 @@ export async function calculateBestStockToSell(requiredAmount: number): Promise<
           const sharesAfterSale = stock.owned_shares - sharesToSell;
           
           // If selling would drop below the requirement, exclude this stock
-          if (sharesAfterSale < stock.benefit.requirement) {
+          if (sharesAfterSale < stock.benefit_requirement) {
             return false;
           }
         }

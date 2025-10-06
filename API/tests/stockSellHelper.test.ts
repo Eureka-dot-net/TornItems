@@ -237,12 +237,7 @@ describe('Stock Sell Helper', () => {
         ticker: 'WLT',
         name: 'Wind Lines Travel',
         price: 775.38,
-        benefit: {
-          type: 'passive',
-          frequency: 7,
-          requirement: 9000000,
-          description: 'Private jet access'
-        },
+        benefit_requirement: 9000000,
         timestamp: now
       });
 
@@ -284,12 +279,7 @@ describe('Stock Sell Helper', () => {
         ticker: 'WLT',
         name: 'Wind Lines Travel',
         price: 775.38,
-        benefit: {
-          type: 'passive',
-          frequency: 7,
-          requirement: 9000000,
-          description: 'Private jet access'
-        },
+        benefit_requirement: 9000000,
         timestamp: now
       });
 
@@ -331,12 +321,7 @@ describe('Stock Sell Helper', () => {
         ticker: 'TST1',
         name: 'Test Stock 1',
         price: 100,
-        benefit: {
-          type: 'passive',
-          frequency: 7,
-          requirement: 1000,
-          description: 'Some benefit'
-        },
+        benefit_requirement: 1000,
         timestamp: now
       });
       await StockPriceSnapshot.create({
@@ -353,7 +338,7 @@ describe('Stock Sell Helper', () => {
         ticker: 'TST2',
         name: 'Test Stock 2',
         price: 100,
-        benefit: null,
+        benefit_requirement: null,
         timestamp: now
       });
       await StockPriceSnapshot.create({
@@ -399,12 +384,7 @@ describe('Stock Sell Helper', () => {
         ticker: 'TST1',
         name: 'Test Stock 1',
         price: 100,
-        benefit: {
-          type: 'passive',
-          frequency: 7,
-          requirement: 1000,
-          description: 'Some benefit'
-        },
+        benefit_requirement: 1000,
         timestamp: now
       });
       await StockPriceSnapshot.create({
@@ -421,7 +401,7 @@ describe('Stock Sell Helper', () => {
         ticker: 'TST2',
         name: 'Test Stock 2',
         price: 100,
-        benefit: null,
+        benefit_requirement: null,
         timestamp: now
       });
       await StockPriceSnapshot.create({
@@ -472,12 +452,7 @@ describe('Stock Sell Helper', () => {
         ticker: 'WLT',
         name: 'Wind Lines Travel',
         price: 775.38,
-        benefit: {
-          type: 'passive',
-          frequency: 7,
-          requirement: 9000000,
-          description: 'Private jet access'
-        },
+        benefit_requirement: 9000000,
         timestamp: now
       });
 
