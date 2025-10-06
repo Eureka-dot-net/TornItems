@@ -3,6 +3,7 @@ import Bottleneck from 'bottleneck';
 import { MarketWatchlistItem } from '../models/MarketWatchlistItem';
 import { logInfo, logError } from '../utils/logger';
 import { sendDiscordAlert } from '../utils/discord';
+import { calculateBestStockToSell } from '../utils/stockSellHelper';
 
 const API_KEY = process.env.TORN_API_KEY || 'yLp4OoENbjRy30GZ';
 const RATE_LIMIT_PER_MINUTE = parseInt(process.env.TORN_RATE_LIMIT || '60', 10);
@@ -94,12 +95,24 @@ export async function monitorMarketPrices(): Promise<void> {
           const discordUserId = process.env.MY_DISCORD_USER_ID;
           const userMention = discordUserId ? `<@${discordUserId}>` : '';
           
-          const message = [
+          // Calculate best stock to sell to cover the cost
+          const sellRecommendation = await calculateBestStockToSell(lowestPrice);
+          
+          const messageParts = [
             '🚨 Cheap item found!',
             `💊 ${watchlistItem.name} listed at $${lowestPrice.toLocaleString()} (below $${watchlistItem.alert_below.toLocaleString()})`,
             userMention,
             `https://www.torn.com/page.php?sid=ItemMarket#/market/view=search&itemID=${encodeURIComponent(watchlistItem.itemId)}`
-          ].filter(Boolean).join('\n');
+          ];
+          
+          // Add stock sell recommendation if available
+          if (sellRecommendation) {
+            messageParts.push('');
+            messageParts.push(`💰 To pay for it, sell ${sellRecommendation.shares_to_sell} shares of ${sellRecommendation.name} (${sellRecommendation.ticker}):`);
+            messageParts.push(sellRecommendation.sell_url);
+          }
+          
+          const message = messageParts.filter(Boolean).join('\n');
           
           // Send Discord alert
           await sendDiscordAlert(message);
