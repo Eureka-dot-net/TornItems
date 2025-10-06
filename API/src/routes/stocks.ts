@@ -161,9 +161,9 @@ router.get('/stocks/profit', async (_req: Request, res: Response): Promise<void>
   try {
     console.log('Fetching stock transaction history...');
 
-    // Fetch all transaction records, sorted by time descending (newest first)
+    // Fetch all transaction records, sorted by timestamp descending (newest first)
     const transactions = await StockTransactionHistory.find()
-      .sort({ time: -1 })
+      .sort({ timestamp: -1 })
       .lean();
 
     console.log(`Returning ${transactions.length} stock transactions`);

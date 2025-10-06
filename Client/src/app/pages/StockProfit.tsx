@@ -10,7 +10,7 @@ export default function StockProfit() {
     const runningTotal = useMemo(() => {
         if (!transactionsData) return 0;
         return transactionsData.reduce((total, transaction) => {
-            return total + (transaction.total_profit || 0);
+            return total + transaction.total_profit;
         }, 0);
     }, [transactionsData]);
 
@@ -40,8 +40,7 @@ export default function StockProfit() {
         );
     }
 
-    const formatCurrency = (value: number | null) => {
-        if (value === null) return '-';
+    const formatCurrency = (value: number) => {
         return value.toLocaleString('en-US', {
             style: 'currency',
             currency: 'USD',
@@ -65,8 +64,22 @@ export default function StockProfit() {
         });
     };
 
-    const getActionColor = (action: string): 'success' | 'error' => {
-        return action === 'BUY' ? 'success' : 'error';
+    const getRecommendationColor = (recommendation: string | null): 'success' | 'info' | 'default' | 'warning' | 'error' => {
+        if (!recommendation) return 'default';
+        switch (recommendation) {
+            case 'STRONG_BUY':
+                return 'success';
+            case 'BUY':
+                return 'info';
+            case 'HOLD':
+                return 'default';
+            case 'SELL':
+                return 'warning';
+            case 'STRONG_SELL':
+                return 'error';
+            default:
+                return 'default';
+        }
     };
 
     return (
@@ -100,14 +113,14 @@ export default function StockProfit() {
                 }}>
                     <Grid size={{ xs: 12, sm: 1.5 }}>Date</Grid>
                     <Grid size={{ xs: 4, sm: 0.8 }}>Ticker</Grid>
-                    <Grid size={{ xs: 4, sm: 0.8 }}>Action</Grid>
                     <Grid size={{ xs: 4, sm: 1 }}>Shares</Grid>
-                    <Grid size={{ xs: 4, sm: 1 }}>Price</Grid>
+                    <Grid size={{ xs: 4, sm: 1 }}>Buy $</Grid>
+                    <Grid size={{ xs: 4, sm: 1 }}>Sell $</Grid>
                     <Grid size={{ xs: 4, sm: 1.2 }}>Profit</Grid>
                     <Grid size={{ xs: 4, sm: 0.8 }}>Buy Score</Grid>
                     <Grid size={{ xs: 6, sm: 1.2 }}>Buy Rec</Grid>
-                    <Grid size={{ xs: 4, sm: 0.8 }}>Sale Score</Grid>
-                    <Grid size={{ xs: 6, sm: 1.2 }}>Sale Rec</Grid>
+                    <Grid size={{ xs: 4, sm: 0.8 }}>Sell Score</Grid>
+                    <Grid size={{ xs: 6, sm: 1.2 }}>Sell Rec</Grid>
                 </Grid>
 
                 {/* Data Rows */}
@@ -126,51 +139,60 @@ export default function StockProfit() {
                             }}
                         >
                             <Grid size={{ xs: 12, sm: 1.5 }}>
-                                <Typography variant="body2">{formatDate(transaction.time)}</Typography>
+                                <Typography variant="body2">{formatDate(transaction.timestamp)}</Typography>
                             </Grid>
                             <Grid size={{ xs: 4, sm: 0.8 }}>
                                 <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{transaction.ticker}</Typography>
                             </Grid>
-                            <Grid size={{ xs: 4, sm: 0.8 }}>
-                                <Chip
-                                    label={transaction.action}
-                                    color={getActionColor(transaction.action)}
-                                    size="small"
-                                    sx={{ fontSize: '0.75rem' }}
-                                />
+                            <Grid size={{ xs: 4, sm: 1 }}>
+                                <Typography variant="body2">{transaction.shares_sold.toLocaleString()}</Typography>
                             </Grid>
                             <Grid size={{ xs: 4, sm: 1 }}>
-                                <Typography variant="body2">{transaction.shares.toLocaleString()}</Typography>
+                                <Typography variant="body2">{formatCurrency(transaction.bought_price)}</Typography>
                             </Grid>
                             <Grid size={{ xs: 4, sm: 1 }}>
-                                <Typography variant="body2">{formatCurrency(transaction.price)}</Typography>
+                                <Typography variant="body2">{formatCurrency(transaction.sell_price)}</Typography>
                             </Grid>
                             <Grid size={{ xs: 4, sm: 1.2 }}>
                                 <Typography
                                     variant="body2"
                                     sx={{
-                                        color: transaction.total_profit && transaction.total_profit > 0 ? '#4caf50' : transaction.total_profit && transaction.total_profit < 0 ? '#f44336' : 'inherit',
-                                        fontWeight: transaction.total_profit !== null ? 'bold' : 'normal'
+                                        color: transaction.total_profit > 0 ? '#4caf50' : transaction.total_profit < 0 ? '#f44336' : 'inherit',
+                                        fontWeight: 'bold'
                                     }}
                                 >
-                                    {transaction.total_profit !== null ? formatCurrency(transaction.total_profit) : '-'}
+                                    {formatCurrency(transaction.total_profit)}
                                 </Typography>
                             </Grid>
                             <Grid size={{ xs: 4, sm: 0.8 }}>
                                 <Typography variant="body2">{formatNumber(transaction.score_at_buy)}</Typography>
                             </Grid>
                             <Grid size={{ xs: 6, sm: 1.2 }}>
-                                <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                                    {transaction.recommendation_at_buy || '-'}
-                                </Typography>
+                                {transaction.recommendation_at_buy ? (
+                                    <Chip
+                                        label={transaction.recommendation_at_buy}
+                                        color={getRecommendationColor(transaction.recommendation_at_buy)}
+                                        size="small"
+                                        sx={{ fontSize: '0.65rem' }}
+                                    />
+                                ) : (
+                                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>-</Typography>
+                                )}
                             </Grid>
                             <Grid size={{ xs: 4, sm: 0.8 }}>
                                 <Typography variant="body2">{formatNumber(transaction.score_at_sale)}</Typography>
                             </Grid>
                             <Grid size={{ xs: 6, sm: 1.2 }}>
-                                <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                                    {transaction.recommendation_at_sale || '-'}
-                                </Typography>
+                                {transaction.recommendation_at_sale ? (
+                                    <Chip
+                                        label={transaction.recommendation_at_sale}
+                                        color={getRecommendationColor(transaction.recommendation_at_sale)}
+                                        size="small"
+                                        sx={{ fontSize: '0.65rem' }}
+                                    />
+                                ) : (
+                                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>-</Typography>
+                                )}
                             </Grid>
                         </Grid>
                     ))}

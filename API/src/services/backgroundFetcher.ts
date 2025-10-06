@@ -12,6 +12,7 @@ import { ShopItemState } from '../models/ShopItemState';
 import { StockPriceSnapshot } from '../models/StockPriceSnapshot';
 import { UserStockHoldingSnapshot } from '../models/UserStockHoldingSnapshot';
 import { StockTransactionHistory } from '../models/StockTransactionHistory';
+import { StockHoldingLot } from '../models/StockHoldingLot';
 import { logInfo, logError } from '../utils/logger';
 import { 
   calculate7DayPercentChange, 
@@ -1265,7 +1266,7 @@ async function getStockInfoAndScores(stockId: number): Promise<{
   }
 }
 
-// Fetch and save user stock holdings
+// Fetch and save user stock holdings with FIFO lot tracking
 async function fetchUserStockHoldings(): Promise<void> {
   try {
     logInfo('Fetching user stock holdings...');
@@ -1307,6 +1308,7 @@ async function fetchUserStockHoldings(): Promise<void> {
     }
     
     const transactionRecords: any[] = [];
+    const newLots: any[] = [];
     
     if (stocks) {
       for (const [stockId, stockData] of Object.entries(stocks) as [string, any][]) {
@@ -1341,63 +1343,96 @@ async function fetchUserStockHoldings(): Promise<void> {
         const previousShares = previousHolding?.total_shares || 0;
         
         if (previousShares !== totalShares) {
-          // Shares changed - record transaction
           const sharesDelta = totalShares - previousShares;
-          const action = sharesDelta > 0 ? 'BUY' : 'SELL';
-          const shares = Math.abs(sharesDelta);
           
           // Get stock info and scores
           const stockInfo = await getStockInfoAndScores(stockIdNum);
           
-          if (stockInfo) {
-            const transactionRecord: any = {
+          if (!stockInfo) {
+            logError(`Could not get stock info for stock ${stockIdNum}`, new Error('Stock info unavailable'));
+            continue;
+          }
+          
+          if (sharesDelta > 0) {
+            // BUY - Create new lot
+            const sharesBought = sharesDelta;
+            
+            newLots.push({
               stock_id: stockIdNum,
               ticker: stockInfo.ticker,
               name: stockInfo.name,
-              time: timestamp,
-              action,
-              shares,
-              price: stockInfo.price,
-              previous_shares: previousShares,
-              new_shares: totalShares,
-              bought_price: avgBuyPrice,
-              trend_7d_pct: stockInfo.trend_7d_pct,
-              volatility_7d_pct: stockInfo.volatility_7d_pct
-            };
+              shares_total: sharesBought,
+              shares_remaining: sharesBought,
+              bought_price: avgBuyPrice || stockInfo.price,
+              score_at_buy: stockInfo.score,
+              recommendation_at_buy: stockInfo.recommendation,
+              timestamp: timestamp,
+              fully_sold: false
+            });
             
-            if (action === 'BUY') {
-              transactionRecord.score_at_buy = stockInfo.score;
-              transactionRecord.recommendation_at_buy = stockInfo.recommendation;
-              transactionRecord.score_at_sale = null;
-              transactionRecord.recommendation_at_sale = null;
-              transactionRecord.profit_per_share = null;
-              transactionRecord.total_profit = null;
-            } else {
-              // SELL
-              transactionRecord.score_at_buy = null;
-              transactionRecord.recommendation_at_buy = null;
-              transactionRecord.score_at_sale = stockInfo.score;
-              transactionRecord.recommendation_at_sale = stockInfo.recommendation;
+            logInfo(`Detected BUY for stock ${stockIdNum} (${stockInfo.ticker}): ${sharesBought} shares at $${avgBuyPrice || stockInfo.price}`);
+          } else {
+            // SELL - Process FIFO matching
+            const sharesSold = Math.abs(sharesDelta);
+            
+            // Load all open lots for this stock, oldest first (FIFO)
+            const openLots = await StockHoldingLot.find({
+              stock_id: stockIdNum,
+              fully_sold: false,
+              shares_remaining: { $gt: 0 }
+            }).sort({ timestamp: 1 });
+            
+            let remainingSharesToSell = sharesSold;
+            
+            for (const lot of openLots) {
+              if (remainingSharesToSell <= 0) break;
               
-              // Calculate profit/loss
-              if (previousHolding?.avg_buy_price !== null && previousHolding?.avg_buy_price !== undefined) {
-                transactionRecord.profit_per_share = stockInfo.price - previousHolding.avg_buy_price;
-                transactionRecord.total_profit = transactionRecord.profit_per_share * shares;
-              } else {
-                transactionRecord.profit_per_share = null;
-                transactionRecord.total_profit = null;
+              const sharesToTakeFromThisLot = Math.min(lot.shares_remaining, remainingSharesToSell);
+              
+              // Calculate profit for this portion
+              const profitPerShare = stockInfo.price - lot.bought_price;
+              const totalProfit = profitPerShare * sharesToTakeFromThisLot;
+              
+              // Create transaction record
+              transactionRecords.push({
+                stock_id: stockIdNum,
+                ticker: stockInfo.ticker,
+                name: stockInfo.name,
+                action: 'SELL',
+                shares_sold: sharesToTakeFromThisLot,
+                sell_price: stockInfo.price,
+                bought_price: lot.bought_price,
+                profit_per_share: profitPerShare,
+                total_profit: totalProfit,
+                timestamp: timestamp,
+                score_at_buy: lot.score_at_buy,
+                recommendation_at_buy: lot.recommendation_at_buy,
+                score_at_sale: stockInfo.score,
+                recommendation_at_sale: stockInfo.recommendation,
+                linked_buy_id: lot._id
+              });
+              
+              // Update lot
+              lot.shares_remaining -= sharesToTakeFromThisLot;
+              if (lot.shares_remaining === 0) {
+                lot.fully_sold = true;
               }
+              await lot.save();
+              
+              remainingSharesToSell -= sharesToTakeFromThisLot;
+              
+              logInfo(`Matched SELL of ${sharesToTakeFromThisLot} shares from lot ${lot._id} (bought at $${lot.bought_price}, sold at $${stockInfo.price}, profit: $${totalProfit.toFixed(2)})`);
             }
             
-            transactionRecords.push(transactionRecord);
-            logInfo(`Detected ${action} transaction for stock ${stockIdNum} (${stockInfo.ticker}): ${shares} shares`);
+            if (remainingSharesToSell > 0) {
+              logError(`Could not match all sold shares for stock ${stockIdNum}`, new Error(`${remainingSharesToSell} shares unmatched`));
+            }
           }
         }
       }
     }
     
-    // Find stocks that were previously owned (total_shares > 0) but are not in the current API response
-    // This means the user has sold all their shares
+    // Find stocks that were previously owned but are not in the current API response
     for (const [stockId, holding] of Object.entries(previousHoldingsMap)) {
       const stockIdNum = parseInt(stockId, 10);
       if (!currentStockIds.has(stockIdNum) && holding.total_shares > 0) {
@@ -1411,39 +1446,59 @@ async function fetchUserStockHoldings(): Promise<void> {
           timestamp: timestamp,
         });
         
-        // Record SELL transaction
+        // Process SELL for all remaining shares
         const stockInfo = await getStockInfoAndScores(stockIdNum);
         if (stockInfo) {
-          const transactionRecord: any = {
+          const sharesSold = holding.total_shares;
+          
+          // Load all open lots for this stock, oldest first (FIFO)
+          const openLots = await StockHoldingLot.find({
             stock_id: stockIdNum,
-            ticker: stockInfo.ticker,
-            name: stockInfo.name,
-            time: timestamp,
-            action: 'SELL',
-            shares: holding.total_shares,
-            price: stockInfo.price,
-            previous_shares: holding.total_shares,
-            new_shares: 0,
-            bought_price: holding.avg_buy_price,
-            score_at_buy: null,
-            recommendation_at_buy: null,
-            score_at_sale: stockInfo.score,
-            recommendation_at_sale: stockInfo.recommendation,
-            trend_7d_pct: stockInfo.trend_7d_pct,
-            volatility_7d_pct: stockInfo.volatility_7d_pct
-          };
+            fully_sold: false,
+            shares_remaining: { $gt: 0 }
+          }).sort({ timestamp: 1 });
           
-          // Calculate profit/loss
-          if (holding.avg_buy_price !== null && holding.avg_buy_price !== undefined) {
-            transactionRecord.profit_per_share = stockInfo.price - holding.avg_buy_price;
-            transactionRecord.total_profit = transactionRecord.profit_per_share * holding.total_shares;
-          } else {
-            transactionRecord.profit_per_share = null;
-            transactionRecord.total_profit = null;
+          let remainingSharesToSell = sharesSold;
+          
+          for (const lot of openLots) {
+            if (remainingSharesToSell <= 0) break;
+            
+            const sharesToTakeFromThisLot = Math.min(lot.shares_remaining, remainingSharesToSell);
+            
+            // Calculate profit for this portion
+            const profitPerShare = stockInfo.price - lot.bought_price;
+            const totalProfit = profitPerShare * sharesToTakeFromThisLot;
+            
+            // Create transaction record
+            transactionRecords.push({
+              stock_id: stockIdNum,
+              ticker: stockInfo.ticker,
+              name: stockInfo.name,
+              action: 'SELL',
+              shares_sold: sharesToTakeFromThisLot,
+              sell_price: stockInfo.price,
+              bought_price: lot.bought_price,
+              profit_per_share: profitPerShare,
+              total_profit: totalProfit,
+              timestamp: timestamp,
+              score_at_buy: lot.score_at_buy,
+              recommendation_at_buy: lot.recommendation_at_buy,
+              score_at_sale: stockInfo.score,
+              recommendation_at_sale: stockInfo.recommendation,
+              linked_buy_id: lot._id
+            });
+            
+            // Update lot
+            lot.shares_remaining -= sharesToTakeFromThisLot;
+            if (lot.shares_remaining === 0) {
+              lot.fully_sold = true;
+            }
+            await lot.save();
+            
+            remainingSharesToSell -= sharesToTakeFromThisLot;
+            
+            logInfo(`Matched SELL (full exit) of ${sharesToTakeFromThisLot} shares from lot ${lot._id}`);
           }
-          
-          transactionRecords.push(transactionRecord);
-          logInfo(`Detected SELL transaction for stock ${stockIdNum} (${stockInfo.ticker}): ${holding.total_shares} shares (sold all)`);
         }
       }
     }
@@ -1454,6 +1509,12 @@ async function fetchUserStockHoldings(): Promise<void> {
       logInfo(`Successfully saved ${bulkOps.length} user stock holding snapshots to database`);
     } else {
       logInfo('No user stock holdings to save');
+    }
+    
+    // Save new buy lots
+    if (newLots.length > 0) {
+      await StockHoldingLot.insertMany(newLots);
+      logInfo(`Successfully saved ${newLots.length} new stock holding lots to database`);
     }
     
     // Save transaction records

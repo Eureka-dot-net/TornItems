@@ -9,6 +9,7 @@ import { StockPriceSnapshot } from '../src/models/StockPriceSnapshot';
 import { UserStockHoldingSnapshot } from '../src/models/UserStockHoldingSnapshot';
 import { MarketWatchlistItem } from '../src/models/MarketWatchlistItem';
 import { StockTransactionHistory } from '../src/models/StockTransactionHistory';
+import { StockHoldingLot } from '../src/models/StockHoldingLot';
 
 describe('MongoDB Models', () => {
   describe('TornItem Model', () => {
@@ -324,84 +325,111 @@ describe('MongoDB Models', () => {
     });
   });
 
-  describe('StockTransactionHistory Model', () => {
-    it('should create a BUY transaction', async () => {
-      const transaction = await StockTransactionHistory.create({
+  describe('StockHoldingLot Model', () => {
+    it('should create a buy lot', async () => {
+      const lot = await StockHoldingLot.create({
         stock_id: 22,
         ticker: 'HRG',
         name: 'Helayne Robertson Group',
-        time: new Date(),
-        action: 'BUY',
-        shares: 10000,
-        price: 590.50,
-        previous_shares: 0,
-        new_shares: 10000,
+        shares_total: 10000,
+        shares_remaining: 10000,
         bought_price: 590.50,
         score_at_buy: 5.23,
         recommendation_at_buy: 'STRONG_BUY',
-        trend_7d_pct: -15.2,
-        volatility_7d_pct: 2.9,
+        timestamp: new Date(),
+        fully_sold: false,
       });
 
-      expect(transaction.stock_id).toBe(22);
-      expect(transaction.ticker).toBe('HRG');
-      expect(transaction.action).toBe('BUY');
-      expect(transaction.shares).toBe(10000);
-      expect(transaction.score_at_buy).toBe(5.23);
-      expect(transaction.recommendation_at_buy).toBe('STRONG_BUY');
-      expect(transaction.profit_per_share).toBeNull();
-      expect(transaction.total_profit).toBeNull();
+      expect(lot.stock_id).toBe(22);
+      expect(lot.ticker).toBe('HRG');
+      expect(lot.shares_total).toBe(10000);
+      expect(lot.shares_remaining).toBe(10000);
+      expect(lot.bought_price).toBe(590.50);
+      expect(lot.score_at_buy).toBe(5.23);
+      expect(lot.recommendation_at_buy).toBe('STRONG_BUY');
+      expect(lot.fully_sold).toBe(false);
       
-      await StockTransactionHistory.deleteOne({ _id: transaction._id });
+      await StockHoldingLot.deleteOne({ _id: lot._id });
     });
 
+    it('should have compound index on stock_id and timestamp', async () => {
+      const indexes = await StockHoldingLot.collection.getIndexes();
+      
+      // Check if compound index exists
+      const hasCompoundIndex = Object.keys(indexes).some(key => 
+        indexes[key].some((field: any) => field[0] === 'stock_id' && field[1] === 1) &&
+        indexes[key].some((field: any) => field[0] === 'timestamp' && field[1] === 1)
+      );
+      
+      expect(hasCompoundIndex || indexes['stock_id_1_timestamp_1']).toBeTruthy();
+    });
+  });
+
+  describe('StockTransactionHistory Model', () => {
     it('should create a SELL transaction with profit', async () => {
+      // First create a holding lot
+      const lot = await StockHoldingLot.create({
+        stock_id: 22,
+        ticker: 'HRG',
+        name: 'Helayne Robertson Group',
+        shares_total: 10000,
+        shares_remaining: 0,
+        bought_price: 590.00,
+        score_at_buy: 5.23,
+        recommendation_at_buy: 'STRONG_BUY',
+        timestamp: new Date(),
+        fully_sold: true,
+      });
+
       const transaction = await StockTransactionHistory.create({
         stock_id: 22,
         ticker: 'HRG',
         name: 'Helayne Robertson Group',
-        time: new Date(),
+        timestamp: new Date(),
         action: 'SELL',
-        shares: 10000,
-        price: 604.12,
-        previous_shares: 10000,
-        new_shares: 0,
+        shares_sold: 10000,
+        sell_price: 604.12,
         bought_price: 590.00,
         profit_per_share: 14.12,
         total_profit: 141200,
+        score_at_buy: 5.23,
+        recommendation_at_buy: 'STRONG_BUY',
         score_at_sale: 6.27,
         recommendation_at_sale: 'STRONG_BUY',
-        trend_7d_pct: -18.3,
-        volatility_7d_pct: 2.9,
+        linked_buy_id: lot._id,
       });
 
       expect(transaction.stock_id).toBe(22);
       expect(transaction.ticker).toBe('HRG');
       expect(transaction.action).toBe('SELL');
-      expect(transaction.shares).toBe(10000);
+      expect(transaction.shares_sold).toBe(10000);
       expect(transaction.profit_per_share).toBe(14.12);
       expect(transaction.total_profit).toBe(141200);
+      expect(transaction.score_at_buy).toBe(5.23);
+      expect(transaction.recommendation_at_buy).toBe('STRONG_BUY');
       expect(transaction.score_at_sale).toBe(6.27);
       expect(transaction.recommendation_at_sale).toBe('STRONG_BUY');
+      expect(transaction.linked_buy_id.toString()).toBe(lot._id.toString());
       
       await StockTransactionHistory.deleteOne({ _id: transaction._id });
+      await StockHoldingLot.deleteOne({ _id: lot._id });
     });
 
-    it('should have compound index on stock_id and time', async () => {
+    it('should have compound index on stock_id and timestamp', async () => {
       const indexes = await StockTransactionHistory.collection.getIndexes();
       
       // Check if compound index exists
       const hasCompoundIndex = Object.keys(indexes).some(key => 
         indexes[key].some((field: any) => field[0] === 'stock_id' && field[1] === 1) &&
-        indexes[key].some((field: any) => field[0] === 'time' && field[1] === -1)
+        indexes[key].some((field: any) => field[0] === 'timestamp' && field[1] === -1)
       );
       
-      expect(hasCompoundIndex || indexes['stock_id_1_time_-1']).toBeTruthy();
+      expect(hasCompoundIndex || indexes['stock_id_1_timestamp_-1']).toBeTruthy();
     });
 
-    it('should have index on time for sorting', async () => {
+    it('should have index on timestamp for sorting', async () => {
       const indexes = await StockTransactionHistory.collection.getIndexes();
-      expect(indexes['time_-1']).toBeTruthy();
+      expect(indexes['timestamp_-1']).toBeTruthy();
     });
   });
 });
