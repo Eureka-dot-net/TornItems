@@ -508,6 +508,5 @@ describe('Stock Sell Helper', () => {
       expect(result?.stock_id).toBe(30);
       expect(result?.ticker).toBe('WLT');
     });
-    });
   });
 });
