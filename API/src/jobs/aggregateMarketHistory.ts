@@ -26,6 +26,7 @@ const COUNTRY_CODE_MAP: Record<string, string> = {
 };
 
 interface AggregatedItemData {
+  country: string;
   id: number;
   name: string;
   date: string;
@@ -211,6 +212,7 @@ export async function aggregateMarketHistory(): Promise<void> {
           : 0;
 
         aggregatedData.push({
+          country,
           id: itemId,
           name: item.name,
           date: currentDate,
@@ -242,7 +244,7 @@ export async function aggregateMarketHistory(): Promise<void> {
       
       const bulkOps = aggregatedData.map(data => ({
         updateOne: {
-          filter: { id: data.id, date: data.date },
+          filter: { country: data.country, id: data.id, date: data.date },
           update: { $set: data },
           upsert: true,
         },

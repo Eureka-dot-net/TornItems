@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import { TornItem } from '../models/TornItem';
 import { CityShopStock } from '../models/CityShopStock';
 import { ForeignStock } from '../models/ForeignStock';
-import { MarketSnapshot } from '../models/MarketSnapshot';
+import { MarketHistory } from '../models/MarketHistory';
 import { ShopItemState } from '../models/ShopItemState';
 import { roundUpToNextQuarterHour } from '../utils/dateHelpers';
 
@@ -57,32 +57,26 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     // Check if ItemsSold should be included in the response (for debugging)
     const includeItemsSold = process.env.INCLUDE_ITEMS_SOLD === 'true';
 
-    // Fetch latest MarketSnapshot for each country-item combination using aggregation
-    // This is much more efficient than fetching 48 hours of data
-    const latestSnapshots = await MarketSnapshot.aggregate([
-      {
-        $sort: { fetched_at: -1 }
-      },
-      {
-        $group: {
-          _id: { country: '$country', itemId: '$itemId' },
-          latestSnapshot: { $first: '$$ROOT' }
-        }
-      },
-      {
-        $replaceRoot: { newRoot: '$latestSnapshot' }
-      }
-    ]);
+    // Get today's date for fetching the latest aggregated data
+    const today = new Date().toISOString().split('T')[0];
 
-    // Fetch all items, city shop stock, foreign stock, and shop item states from MongoDB
-    const [items, cityShopStock, foreignStock, shopItemStates] = await Promise.all([
+    // Fetch aggregated market history data (latest available, typically today or yesterday)
+    // Get the most recent date available in MarketHistory
+    const latestHistoryDate = await MarketHistory.findOne()
+      .sort({ date: -1 })
+      .select('date')
+      .lean();
+
+    const dateToFetch = latestHistoryDate?.date || today;
+
+    // Fetch all items, city shop stock, foreign stock, market history, and shop item states
+    const [items, cityShopStock, foreignStock, marketHistory, shopItemStates] = await Promise.all([
       TornItem.find({ buy_price: { $ne: null } }).lean(),
       CityShopStock.find().lean(),
       ForeignStock.find().lean(),
+      MarketHistory.find({ date: dateToFetch }).lean(),
       ShopItemState.find().lean(),
     ]);
-
-    const marketSnapshots = latestSnapshots;
 
     if (!items?.length) {
       res.status(503).json({ 
@@ -92,17 +86,14 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     }
 
     console.log(
-      `Retrieved ${items.length} items, ${cityShopStock.length} city shop items, ${foreignStock.length} foreign stock items, ${marketSnapshots.length} market snapshots, and ${shopItemStates.length} shop item states from database.`
+      `Retrieved ${items.length} items, ${cityShopStock.length} city shop items, ${foreignStock.length} foreign stock items, ${marketHistory.length} market history records (date: ${dateToFetch}), and ${shopItemStates.length} shop item states from database.`
     );
 
-    // Create a lookup map for market snapshots: key is "country:itemId", value is the latest snapshot
-    const snapshotMap = new Map<string, any>();
-    for (const snapshot of marketSnapshots) {
-      const key = `${snapshot.country}:${snapshot.itemId}`;
-      // Only keep the latest snapshot per country-item pair (already sorted by fetched_at desc)
-      if (!snapshotMap.has(key)) {
-        snapshotMap.set(key, snapshot);
-      }
+    // Create a lookup map for market history: key is "country:itemId", value is the history record
+    const historyMap = new Map<string, any>();
+    for (const record of marketHistory) {
+      const key = `${record.country}:${record.id}`;
+      historyMap.set(key, record);
     }
 
     // Create a lookup map for shop item states: key is "shopId:itemId" 
@@ -182,73 +173,25 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       let hour_velocity_24: number | null = null;
       let average_price_items_sold: number | null = null;
       
-      const snapshotKey = `${country}:${item.itemId}`;
-      const latestSnapshot = snapshotMap.get(snapshotKey);
+      const historyKey = `${country}:${item.itemId}`;
+      const historyRecord = historyMap.get(historyKey);
       
-      // Use pre-calculated metrics from the latest snapshot
-      if (latestSnapshot) {
-        sales_24h_current = latestSnapshot.sales_24h_current ?? null;
-        sales_24h_previous = latestSnapshot.sales_24h_previous ?? null;
-        trend_24h = latestSnapshot.trend_24h ?? null;
-        hour_velocity_24 = latestSnapshot.hour_velocity_24 ?? null;
-        
-        // Calculate average_price_items_sold from sales_by_price if available
-        if (latestSnapshot.sales_by_price && latestSnapshot.sales_by_price.length > 0) {
-          let totalRevenue = 0;
-          let totalItems = 0;
-          for (const sale of latestSnapshot.sales_by_price) {
-            totalRevenue += sale.price * sale.amount;
-            totalItems += sale.amount;
-          }
-          if (totalItems > 0) {
-            average_price_items_sold = Math.round(totalRevenue / totalItems);
-          }
-        }
+      // Use pre-calculated metrics from MarketHistory
+      if (historyRecord) {
+        sales_24h_current = historyRecord.sales_24h_current ?? null;
+        sales_24h_previous = historyRecord.sales_24h_previous ?? null;
+        trend_24h = historyRecord.trend_24h ?? null;
+        hour_velocity_24 = historyRecord.hour_velocity_24 ?? null;
+        average_price_items_sold = historyRecord.average_price_items_sold ?? null;
       }
 
-      // Build ItemsSold array for debugging if requested
+      // Build ItemsSold array for debugging if requested (not available from aggregated data)
       const ItemsSold: Array<{ Amount: number; TimeStamp: string; Price: number }> = [];
-      if (includeItemsSold && latestSnapshot && latestSnapshot.sales_by_price) {
-        for (const sale of latestSnapshot.sales_by_price) {
-          ItemsSold.push({
-            Amount: sale.amount,
-            TimeStamp: latestSnapshot.fetched_at.toISOString(),
-            Price: sale.price
-          });
-        }
-      }
 
-      // 💵 Calculate the three new profit fields
-      // 1. estimated_market_value_profit = (market_price * 0.95) - buy_price (after 5% sales tax)
-      const estimated_market_value_profit = market && buy ? marketAfterTax - buy : null;
-
-      // 2. lowest_50_profit = (average of lowest 50 listings * 0.95) - buy_price (after 5% sales tax)
-      let lowest_50_profit: number | null = null;
-      if (latestSnapshot && latestSnapshot.listings && latestSnapshot.listings.length > 0 && buy) {
-        // Sort listings by price ascending
-        const sortedListings = [...latestSnapshot.listings].sort((a, b) => a.price - b.price);
-        
-        // Calculate the average of the lowest 50 items (or fewer if less than 50 available)
-        let totalPrice = 0;
-        let count = 0;
-        for (const listing of sortedListings) {
-          const itemsToTake = Math.min(listing.amount, 50 - count);
-          totalPrice += listing.price * itemsToTake;
-          count += itemsToTake;
-          if (count >= 50) break;
-        }
-        
-        if (count > 0) {
-          const averageLowest50 = Math.round(totalPrice / count);
-          const averageLowest50AfterTax = averageLowest50 * (1 - SALES_TAX_RATE);
-          lowest_50_profit = averageLowest50AfterTax - buy;
-        }
-      }
-
-      // 3. sold_profit = (average_price_items_sold * 0.95) - buy_price (after 5% sales tax)
-      const sold_profit = average_price_items_sold !== null 
-        ? (average_price_items_sold * (1 - SALES_TAX_RATE)) - buy 
-        : null;
+      // 💵 Use pre-calculated profit fields from MarketHistory
+      const estimated_market_value_profit = historyRecord?.estimated_market_value_profit ?? (market && buy ? marketAfterTax - buy : null);
+      const lowest_50_profit = historyRecord?.lowest_50_profit ?? null;
+      const sold_profit = historyRecord?.sold_profit ?? null;
 
       // 📦 Fetch shop item state data for restock timing (for both Torn and foreign shops)
       let sellout_duration_minutes: number | null = null;
