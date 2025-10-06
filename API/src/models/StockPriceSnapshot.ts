@@ -22,12 +22,14 @@ const StockPriceSnapshotSchema = new Schema<IStockPriceSnapshot>({
   name: { type: String, required: true },
   price: { type: Number, required: true },
   benefit: {
-    type: {
+    type: new Schema({
       type: { type: String },
       frequency: { type: Number },
       requirement: { type: Number },
       description: { type: String }
-    }
+    }, { _id: false }),
+    required: false,
+    default: null
   },
   timestamp: { type: Date, required: true, default: Date.now },
 });
