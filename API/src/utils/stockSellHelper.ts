@@ -14,6 +14,12 @@ interface StockRecommendation {
   sell_score: number;
   owned_shares: number;
   total_value: number;
+  benefit?: {
+    type: string;
+    frequency: number;
+    requirement: number;
+    description: string;
+  } | null;
 }
 
 interface SellRecommendation {
@@ -91,7 +97,8 @@ export async function calculateBestStockToSell(requiredAmount: number): Promise<
           name: { $first: '$name' },
           currentPrice: { $first: '$price' },
           oldestPrice: { $last: '$price' },
-          prices: { $push: '$price' }
+          prices: { $push: '$price' },
+          benefit: { $first: '$benefit' }
         }
       }
     ]);
@@ -109,6 +116,7 @@ export async function calculateBestStockToSell(requiredAmount: number): Promise<
       const name = stock.name;
       const currentPrice = stock.currentPrice;
       const weekAgoPrice = stock.oldestPrice;
+      const benefit = stock.benefit;
 
       const holding = holdingsMap[stockId];
       if (!holding || holding.total_shares === 0) {
@@ -134,15 +142,37 @@ export async function calculateBestStockToSell(requiredAmount: number): Promise<
         price: currentPrice,
         sell_score,
         owned_shares: ownedShares,
-        total_value: totalValue
+        total_value: totalValue,
+        benefit: benefit
       });
     }
 
     // Filter stocks that have enough value to cover the cost
-    const affordableStocks = recommendations.filter(stock => stock.total_value >= requiredAmount);
+    // AND won't lose their benefits after selling
+    const affordableStocks = recommendations.filter(stock => {
+      // Check if stock has enough value
+      if (stock.total_value < requiredAmount) {
+        return false;
+      }
+      
+      // If stock has a benefit with a requirement, check if we'd lose it
+      if (stock.benefit && stock.benefit.requirement > 0) {
+        // Calculate how many shares would need to be sold
+        const adjustedPrice = Math.max(stock.price - 0.1, 0.01);
+        const sharesToSell = Math.ceil(requiredAmount / adjustedPrice);
+        const sharesAfterSale = stock.owned_shares - sharesToSell;
+        
+        // If selling would drop below the requirement, exclude this stock
+        if (sharesAfterSale < stock.benefit.requirement) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
 
     if (affordableStocks.length === 0) {
-      return null; // No single stock has enough value
+      return null; // No single stock has enough value or all would lose benefits
     }
 
     // Sort by sell_score descending (highest sell_score = best to sell)
