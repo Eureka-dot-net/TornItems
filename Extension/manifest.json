@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Torn Helper Tools",
-  "version": "1.3",
+  "version": "1.4",
   "description": "Auto-opens Torn stocks and shop items for convenience.",
   "host_permissions": ["https://www.torn.com/*"],
   "content_scripts": [
@@ -13,6 +13,11 @@
     {
       "matches": ["https://www.torn.com/shops.php*"],
       "js": ["injector-shops.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.torn.com/*"],
+      "js": ["injector-dashboard.js"],
       "run_at": "document_idle"
     }
   ]
