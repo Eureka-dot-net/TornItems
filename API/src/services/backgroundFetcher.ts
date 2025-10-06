@@ -1422,7 +1422,7 @@ export function startScheduler(): void {
   });
 
   // Schedule stock price fetch every 30 minutes
-  cron.schedule('*/30 * * * *', () => {
+  cron.schedule('*/10 * * * *', () => {
     logInfo('Running scheduled stock price fetch...');
     fetchStockPrices();
   });
