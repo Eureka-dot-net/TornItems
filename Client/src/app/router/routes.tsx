@@ -3,6 +3,7 @@ import App from "../layout/App";
 import UnderConstruction from "../layout/UnderConstruction";
 import Profit from "../pages/Profit";
 import Recommendations from "../pages/Recommendations";
+import StockProfit from "../pages/StockProfit";
 
 const router = createBrowserRouter([
     {
@@ -12,6 +13,7 @@ const router = createBrowserRouter([
             { path: "/", element: <UnderConstruction /> },
             { path: "/profit", element: <Profit /> },
             { path: "/recommendations", element: <Recommendations /> },
+            { path: "/stockProfit", element: <StockProfit /> },
             { path: "*", element: <UnderConstruction /> },
         ],
     },

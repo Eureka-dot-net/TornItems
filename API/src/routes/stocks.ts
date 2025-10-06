@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { StockPriceSnapshot } from '../models/StockPriceSnapshot';
 import { UserStockHoldingSnapshot } from '../models/UserStockHoldingSnapshot';
+import { StockTransactionHistory } from '../models/StockTransactionHistory';
 import { 
   calculate7DayPercentChange, 
   calculateVolatilityPercent, 
@@ -152,6 +153,30 @@ router.get('/stocks/recommendations', async (_req: Request, res: Response): Prom
     }
 
     res.status(500).json({ error: 'Failed to fetch stock recommendations.' });
+  }
+});
+
+// GET /stocks/profit
+router.get('/stocks/profit', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    console.log('Fetching stock transaction history...');
+
+    // Fetch all transaction records, sorted by time descending (newest first)
+    const transactions = await StockTransactionHistory.find()
+      .sort({ time: -1 })
+      .lean();
+
+    console.log(`Returning ${transactions.length} stock transactions`);
+
+    res.json(transactions);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      console.error('Error:', err.message);
+    } else {
+      console.error('Unknown error');
+    }
+
+    res.status(500).json({ error: 'Failed to fetch stock transaction history.' });
   }
 });
 

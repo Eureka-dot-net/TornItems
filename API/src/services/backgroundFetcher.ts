@@ -11,7 +11,14 @@ import { MonitoredItem } from '../models/MonitoredItem';
 import { ShopItemState } from '../models/ShopItemState';
 import { StockPriceSnapshot } from '../models/StockPriceSnapshot';
 import { UserStockHoldingSnapshot } from '../models/UserStockHoldingSnapshot';
+import { StockTransactionHistory } from '../models/StockTransactionHistory';
 import { logInfo, logError } from '../utils/logger';
+import { 
+  calculate7DayPercentChange, 
+  calculateVolatilityPercent, 
+  calculateScores,
+  getRecommendation 
+} from '../utils/stockMath';
 import { aggregateMarketHistory } from '../jobs/aggregateMarketHistory';
 import { monitorMarketPrices } from '../jobs/monitorMarketPrices';
 import { roundUpToNextQuarterHour, minutesBetween } from '../utils/dateHelpers';
@@ -1197,6 +1204,67 @@ export async function fetchMarketSnapshots(): Promise<void> {
   }
 }
 
+// Helper function to get stock information and scores
+async function getStockInfoAndScores(stockId: number): Promise<{
+  ticker: string;
+  name: string;
+  price: number;
+  score: number | null;
+  recommendation: string;
+  trend_7d_pct: number | null;
+  volatility_7d_pct: number | null;
+} | null> {
+  try {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // Get recent price snapshots
+    const priceSnapshots = await StockPriceSnapshot.find({
+      stock_id: stockId,
+      timestamp: { $gte: sevenDaysAgo }
+    }).sort({ timestamp: -1 }).limit(8);
+
+    if (priceSnapshots.length === 0) {
+      return null;
+    }
+
+    const latestSnapshot = priceSnapshots[0];
+    const prices = priceSnapshots.map(s => s.price).reverse();
+    
+    // Calculate 7-day change
+    let trend_7d_pct: number | null = null;
+    if (priceSnapshots.length >= 2) {
+      const weekAgoPrice = priceSnapshots[priceSnapshots.length - 1].price;
+      trend_7d_pct = calculate7DayPercentChange(latestSnapshot.price, weekAgoPrice);
+    }
+
+    // Calculate volatility
+    const volatility_7d_pct = calculateVolatilityPercent(prices);
+
+    // Calculate scores
+    let score: number | null = null;
+    let recommendation = 'HOLD';
+    if (trend_7d_pct !== null) {
+      const scores = calculateScores(trend_7d_pct, volatility_7d_pct);
+      score = scores.score;
+      recommendation = getRecommendation(score);
+    }
+
+    return {
+      ticker: latestSnapshot.ticker,
+      name: latestSnapshot.name,
+      price: latestSnapshot.price,
+      score,
+      recommendation,
+      trend_7d_pct,
+      volatility_7d_pct
+    };
+  } catch (error) {
+    logError(`Error getting stock info for ${stockId}`, error instanceof Error ? error : new Error(String(error)));
+    return null;
+  }
+}
+
 // Fetch and save user stock holdings
 async function fetchUserStockHoldings(): Promise<void> {
   try {
@@ -1214,6 +1282,31 @@ async function fetchUserStockHoldings(): Promise<void> {
     
     // Track which stock IDs are present in the current API response
     const currentStockIds = new Set<number>();
+    
+    // Get previous holdings to detect changes
+    const previousHoldings = await UserStockHoldingSnapshot.aggregate([
+      {
+        $sort: { stock_id: 1, timestamp: -1 }
+      },
+      {
+        $group: {
+          _id: '$stock_id',
+          total_shares: { $first: '$total_shares' },
+          avg_buy_price: { $first: '$avg_buy_price' },
+          timestamp: { $first: '$timestamp' }
+        }
+      }
+    ]);
+    
+    const previousHoldingsMap: Record<number, { total_shares: number; avg_buy_price: number | null }> = {};
+    for (const holding of previousHoldings) {
+      previousHoldingsMap[holding._id] = {
+        total_shares: holding.total_shares,
+        avg_buy_price: holding.avg_buy_price
+      };
+    }
+    
+    const transactionRecords: any[] = [];
     
     if (stocks) {
       for (const [stockId, stockData] of Object.entries(stocks) as [string, any][]) {
@@ -1242,49 +1335,131 @@ async function fetchUserStockHoldings(): Promise<void> {
           transaction_count: Object.keys(transactions).length,
           timestamp: timestamp,
         });
+        
+        // Check for changes in holdings
+        const previousHolding = previousHoldingsMap[stockIdNum];
+        const previousShares = previousHolding?.total_shares || 0;
+        
+        if (previousShares !== totalShares) {
+          // Shares changed - record transaction
+          const sharesDelta = totalShares - previousShares;
+          const action = sharesDelta > 0 ? 'BUY' : 'SELL';
+          const shares = Math.abs(sharesDelta);
+          
+          // Get stock info and scores
+          const stockInfo = await getStockInfoAndScores(stockIdNum);
+          
+          if (stockInfo) {
+            const transactionRecord: any = {
+              stock_id: stockIdNum,
+              ticker: stockInfo.ticker,
+              name: stockInfo.name,
+              time: timestamp,
+              action,
+              shares,
+              price: stockInfo.price,
+              previous_shares: previousShares,
+              new_shares: totalShares,
+              bought_price: avgBuyPrice,
+              trend_7d_pct: stockInfo.trend_7d_pct,
+              volatility_7d_pct: stockInfo.volatility_7d_pct
+            };
+            
+            if (action === 'BUY') {
+              transactionRecord.score_at_buy = stockInfo.score;
+              transactionRecord.recommendation_at_buy = stockInfo.recommendation;
+              transactionRecord.score_at_sale = null;
+              transactionRecord.recommendation_at_sale = null;
+              transactionRecord.profit_per_share = null;
+              transactionRecord.total_profit = null;
+            } else {
+              // SELL
+              transactionRecord.score_at_buy = null;
+              transactionRecord.recommendation_at_buy = null;
+              transactionRecord.score_at_sale = stockInfo.score;
+              transactionRecord.recommendation_at_sale = stockInfo.recommendation;
+              
+              // Calculate profit/loss
+              if (previousHolding?.avg_buy_price !== null && previousHolding?.avg_buy_price !== undefined) {
+                transactionRecord.profit_per_share = stockInfo.price - previousHolding.avg_buy_price;
+                transactionRecord.total_profit = transactionRecord.profit_per_share * shares;
+              } else {
+                transactionRecord.profit_per_share = null;
+                transactionRecord.total_profit = null;
+              }
+            }
+            
+            transactionRecords.push(transactionRecord);
+            logInfo(`Detected ${action} transaction for stock ${stockIdNum} (${stockInfo.ticker}): ${shares} shares`);
+          }
+        }
       }
     }
     
     // Find stocks that were previously owned (total_shares > 0) but are not in the current API response
     // This means the user has sold all their shares
-    const previouslyOwnedStocks = await UserStockHoldingSnapshot.aggregate([
-      {
-        $match: {
-          total_shares: { $gt: 0 }
-        }
-      },
-      {
-        $sort: { stock_id: 1, timestamp: -1 }
-      },
-      {
-        $group: {
-          _id: '$stock_id',
-          total_shares: { $first: '$total_shares' },
-          timestamp: { $first: '$timestamp' }
-        }
-      }
-    ]);
-    
-    // For stocks that were previously owned but are not in the current response, create 0-share snapshots
-    for (const previousStock of previouslyOwnedStocks) {
-      const stockId = previousStock._id;
-      if (!currentStockIds.has(stockId)) {
-        logInfo(`Stock ${stockId} no longer owned, creating 0-share snapshot`);
+    for (const [stockId, holding] of Object.entries(previousHoldingsMap)) {
+      const stockIdNum = parseInt(stockId, 10);
+      if (!currentStockIds.has(stockIdNum) && holding.total_shares > 0) {
+        logInfo(`Stock ${stockIdNum} no longer owned, creating 0-share snapshot`);
+        
         bulkOps.push({
-          stock_id: stockId,
+          stock_id: stockIdNum,
           total_shares: 0,
           avg_buy_price: null,
           transaction_count: 0,
           timestamp: timestamp,
         });
+        
+        // Record SELL transaction
+        const stockInfo = await getStockInfoAndScores(stockIdNum);
+        if (stockInfo) {
+          const transactionRecord: any = {
+            stock_id: stockIdNum,
+            ticker: stockInfo.ticker,
+            name: stockInfo.name,
+            time: timestamp,
+            action: 'SELL',
+            shares: holding.total_shares,
+            price: stockInfo.price,
+            previous_shares: holding.total_shares,
+            new_shares: 0,
+            bought_price: holding.avg_buy_price,
+            score_at_buy: null,
+            recommendation_at_buy: null,
+            score_at_sale: stockInfo.score,
+            recommendation_at_sale: stockInfo.recommendation,
+            trend_7d_pct: stockInfo.trend_7d_pct,
+            volatility_7d_pct: stockInfo.volatility_7d_pct
+          };
+          
+          // Calculate profit/loss
+          if (holding.avg_buy_price !== null && holding.avg_buy_price !== undefined) {
+            transactionRecord.profit_per_share = stockInfo.price - holding.avg_buy_price;
+            transactionRecord.total_profit = transactionRecord.profit_per_share * holding.total_shares;
+          } else {
+            transactionRecord.profit_per_share = null;
+            transactionRecord.total_profit = null;
+          }
+          
+          transactionRecords.push(transactionRecord);
+          logInfo(`Detected SELL transaction for stock ${stockIdNum} (${stockInfo.ticker}): ${holding.total_shares} shares (sold all)`);
+        }
       }
     }
 
+    // Save snapshots
     if (bulkOps.length > 0) {
       await UserStockHoldingSnapshot.insertMany(bulkOps);
       logInfo(`Successfully saved ${bulkOps.length} user stock holding snapshots to database`);
     } else {
       logInfo('No user stock holdings to save');
+    }
+    
+    // Save transaction records
+    if (transactionRecords.length > 0) {
+      await StockTransactionHistory.insertMany(transactionRecords);
+      logInfo(`Successfully saved ${transactionRecords.length} stock transaction records to database`);
     }
   } catch (error) {
     logError('Error fetching user stock holdings', error instanceof Error ? error : new Error(String(error)));
@@ -1415,8 +1590,8 @@ export function startScheduler(): void {
     aggregateMarketHistory();
   });
 
-  // Schedule stock price fetch every 30 minutes
-  cron.schedule('*/10 * * * *', () => {
+  // Schedule stock price fetch every 1 minute (for transaction tracking)
+  cron.schedule('* * * * *', () => {
     logInfo('Running scheduled stock price fetch...');
     fetchStockPrices();
   });
