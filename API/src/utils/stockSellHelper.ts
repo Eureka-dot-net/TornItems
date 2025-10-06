@@ -30,6 +30,7 @@ interface SellRecommendation {
   current_price: number;
   total_value: number;
   sell_url: string;
+  sell_score: number;
 }
 
 /**
@@ -205,7 +206,8 @@ export async function calculateBestStockToSell(requiredAmount: number): Promise<
       shares_to_sell: finalSharesToSell,
       current_price: bestStock.price,
       total_value: finalSharesToSell * bestStock.price,
-      sell_url: sellUrl
+      sell_url: sellUrl,
+      sell_score: bestStock.sell_score
     };
   } catch (error) {
     console.error('Error calculating best stock to sell:', error);

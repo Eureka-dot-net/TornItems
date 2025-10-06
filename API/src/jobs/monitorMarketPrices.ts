@@ -82,6 +82,7 @@ export async function monitorMarketPrices(): Promise<void> {
         , listings[0]);
         
         const lowestPrice = lowestListing.price;
+        const availableQuantity = lowestListing.quantity || 1;
         
         // Check if price is below threshold
         if (lowestPrice < watchlistItem.alert_below) {
@@ -95,21 +96,36 @@ export async function monitorMarketPrices(): Promise<void> {
           const discordUserId = process.env.MY_DISCORD_USER_ID;
           const userMention = discordUserId ? `<@${discordUserId}>` : '';
           
-          // Calculate best stock to sell to cover the cost
-          const sellRecommendation = await calculateBestStockToSell(lowestPrice);
+          // Calculate stock sell recommendations for multiple quantities
+          const quantityOptions: Array<{ qty: number; recommendation: any }> = [];
+          
+          for (let qty = 1; qty <= availableQuantity; qty++) {
+            const totalCost = lowestPrice * qty;
+            const recommendation = await calculateBestStockToSell(totalCost);
+            
+            if (recommendation) {
+              quantityOptions.push({ qty, recommendation });
+            }
+          }
           
           const messageParts = [
             '🚨 Cheap item found!',
-            `💊 ${watchlistItem.name} listed at $${lowestPrice.toLocaleString()} (below $${watchlistItem.alert_below.toLocaleString()})`,
+            `💊 ${availableQuantity}x ${watchlistItem.name} at $${lowestPrice.toLocaleString()} each (below $${watchlistItem.alert_below.toLocaleString()})`,
             userMention,
             `https://www.torn.com/page.php?sid=ItemMarket#/market/view=search&itemID=${encodeURIComponent(watchlistItem.itemId)}`
           ];
           
-          // Add stock sell recommendation if available
-          if (sellRecommendation) {
+          // Add stock sell recommendations for each quantity
+          if (quantityOptions.length > 0) {
             messageParts.push('');
-            messageParts.push(`💰 To pay for it, sell ${sellRecommendation.shares_to_sell} shares of ${sellRecommendation.name} (${sellRecommendation.ticker}):`);
-            messageParts.push(sellRecommendation.sell_url);
+            messageParts.push('💰 Click here to sell stocks to buy:');
+            
+            for (const option of quantityOptions) {
+              const { qty, recommendation } = option;
+              const totalCost = (lowestPrice * qty).toLocaleString();
+              const scoreFormatted = recommendation.sell_score.toFixed(2);
+              messageParts.push(`${qty}x (score: ${scoreFormatted}) - $${totalCost} - ${recommendation.sell_url}`);
+            }
           }
           
           const message = messageParts.filter(Boolean).join('\n');
