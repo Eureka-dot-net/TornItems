@@ -224,9 +224,6 @@ export default function Recommendations() {
                             Profit %
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 12, sm: 1.8 }}>
-                        <Typography variant="body2">Action</Typography>
-                    </Grid>
                 </Grid>
 
                 {/* Data Rows */}
@@ -248,7 +245,15 @@ export default function Recommendations() {
                                 <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{stock.ticker}</Typography>
                             </Grid>
                             <Grid size={{ xs: 6, sm: 1.5 }}>
-                                <Typography variant="body2">{stock.name}</Typography>
+                                <Link
+                                    href={getTornStockUrl(stock.stock_id)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    sx={{ fontSize: '0.875rem' }}
+                                >
+
+                                    <Typography variant="body2">{stock.name}</Typography>
+                                </Link>
                             </Grid>
                             <Grid size={{ xs: 6, sm: 1 }}>
                                 <Typography variant="body2">{formatCurrency(stock.price)}</Typography>
@@ -309,16 +314,6 @@ export default function Recommendations() {
                                 >
                                     {formatPercent(stock.unrealized_profit_pct)}
                                 </Typography>
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 1.8 }}>
-                                <Link
-                                    href={getTornStockUrl(stock.stock_id)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    sx={{ fontSize: '0.875rem' }}
-                                >
-                                    View in Torn
-                                </Link>
                             </Grid>
                         </Grid>
                     ))}
