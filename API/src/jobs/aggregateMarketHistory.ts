@@ -46,8 +46,8 @@ interface AggregatedItemData {
 }
 
 /**
- * Aggregates MarketSnapshot data for the past 24 hours into daily summary records
- * This job should run once per day at midnight UTC
+ * Aggregates MarketSnapshot data for the past 24 hours into summary records
+ * This job runs hourly by default (configurable via HISTORY_AGGREGATION_CRON)
  */
 export async function aggregateMarketHistory(): Promise<void> {
   const startTime = Date.now();

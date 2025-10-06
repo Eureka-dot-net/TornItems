@@ -1364,8 +1364,8 @@ export function startScheduler(): void {
     updateMonitoredItems();
   });
 
-  // Schedule market history aggregation (default: daily at midnight UTC)
-  const historyAggregationCron = process.env.HISTORY_AGGREGATION_CRON || '0 0 * * *';
+  // Schedule market history aggregation (default: hourly)
+  const historyAggregationCron = process.env.HISTORY_AGGREGATION_CRON || '0 * * * *';
   cron.schedule(historyAggregationCron, () => {
     logInfo('Running scheduled market history aggregation...');
     aggregateMarketHistory();
