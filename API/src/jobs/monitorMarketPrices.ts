@@ -98,7 +98,7 @@ export async function monitorMarketPrices(): Promise<void> {
             '🚨 Cheap item found!',
             `💊 ${watchlistItem.name} listed at $${lowestPrice.toLocaleString()} (below $${watchlistItem.alert_below.toLocaleString()})`,
             userMention,
-            `https://www.torn.com/imarket.php#/p=shop&step=item&type=${encodeURIComponent(watchlistItem.name)}`
+            `https://www.torn.com/page.php?sid=ItemMarket#/market/view=search&itemID=${encodeURIComponent(watchlistItem.itemId)}`
           ].filter(Boolean).join('\n');
           
           // Send Discord alert
