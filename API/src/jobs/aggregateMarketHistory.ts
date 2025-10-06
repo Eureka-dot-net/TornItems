@@ -161,20 +161,90 @@ export async function aggregateMarketHistory(): Promise<void> {
         let hour_velocity_24 = 0;
         let average_price_items_sold = 0;
 
-        // Use the latest snapshot's metrics
-        if (latestSnapshot) {
+        // Calculate 24-hour sales from available snapshots instead of using pre-calculated values
+        // This ensures we get accurate data even if individual snapshots have null values
+        if (itemSnapshots.length >= 2) {
+          // Sort snapshots by fetched_at (oldest first)
+          const sortedSnapshots = [...itemSnapshots].sort((a, b) => 
+            new Date(a.fetched_at).getTime() - new Date(b.fetched_at).getTime()
+          );
+          
+          const oldestSnapshot = sortedSnapshots[0];
+          const newestSnapshot = sortedSnapshots[sortedSnapshots.length - 1];
+          
+          // Calculate sales between oldest and newest snapshot in the 24-hour window
+          // by comparing their listings
+          const olderListings = oldestSnapshot.listings || [];
+          const newerListings = newestSnapshot.listings || [];
+          
+          // Create maps of price -> amount
+          const olderMap = new Map<number, number>();
+          for (const listing of olderListings) {
+            olderMap.set(listing.price, (olderMap.get(listing.price) || 0) + listing.amount);
+          }
+          
+          const newerMap = new Map<number, number>();
+          for (const listing of newerListings) {
+            newerMap.set(listing.price, (newerMap.get(listing.price) || 0) + listing.amount);
+          }
+          
+          // Calculate items sold
+          let totalItemsSoldIn24h = 0;
+          let totalRevenueIn24h = 0;
+          
+          // Get sorted list of prices from newer listings (cheapest first)
+          const sortedNewerPrices = Array.from(newerMap.keys()).sort((a, b) => a - b);
+          const cheapestCurrentPrice = sortedNewerPrices[0];
+          
+          // For each price point in older listings, see how many are missing in newer
+          for (const [price, olderAmount] of olderMap.entries()) {
+            const newerAmount = newerMap.get(price) || 0;
+            if (olderAmount > newerAmount) {
+              const removedAmount = olderAmount - newerAmount;
+              
+              // Count as sold if price is less than or equal to the cheapest current price
+              // If there are no newer listings (all sold out), count all removed items as sold
+              if (cheapestCurrentPrice === undefined || price <= cheapestCurrentPrice) {
+                totalItemsSoldIn24h += removedAmount;
+                totalRevenueIn24h += removedAmount * price;
+              }
+            }
+          }
+          
+          sales_24h_current = totalItemsSoldIn24h;
+          
+          // Calculate average_price_items_sold from the 24-hour data we just calculated
+          if (totalItemsSoldIn24h > 0) {
+            average_price_items_sold = Math.round(totalRevenueIn24h / totalItemsSoldIn24h);
+          }
+        } else if (latestSnapshot) {
+          // Fallback to pre-calculated values if we don't have enough snapshots
           sales_24h_current = latestSnapshot.sales_24h_current ?? 0;
+        }
+        
+        // Use latest snapshot for other metrics that aren't as critical
+        if (latestSnapshot) {
           sales_24h_previous = latestSnapshot.sales_24h_previous ?? 0;
           trend_24h = latestSnapshot.trend_24h ?? 0;
           hour_velocity_24 = latestSnapshot.hour_velocity_24 ?? 0;
         }
 
-        // Calculate average_price_items_sold from 24-hour metrics in the latest snapshot
-        // Use total_revenue_24h_current and sales_24h_current from the latest snapshot
-        // These already represent the full 24-hour period without double-counting
-        if (latestSnapshot && latestSnapshot.total_revenue_24h_current !== null && 
-            latestSnapshot.sales_24h_current !== null && latestSnapshot.sales_24h_current > 0) {
-          average_price_items_sold = Math.round(latestSnapshot.total_revenue_24h_current / latestSnapshot.sales_24h_current);
+        // If we didn't calculate average_price_items_sold above, use the old method as fallback
+        if (average_price_items_sold === 0) {
+          // Calculate average_price_items_sold from sales_by_price data
+          let totalRevenue = 0;
+          let totalItemsSold = 0;
+          for (const snapshot of itemSnapshots) {
+            if (snapshot.sales_by_price && snapshot.sales_by_price.length > 0) {
+              for (const sale of snapshot.sales_by_price) {
+                totalItemsSold += sale.amount;
+                totalRevenue += sale.amount * sale.price;
+              }
+            }
+          }
+          if (totalItemsSold > 0) {
+            average_price_items_sold = Math.round(totalRevenue / totalItemsSold);
+          }
         }
 
         // Calculate profit metrics (after 5% sales tax)
