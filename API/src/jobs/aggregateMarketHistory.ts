@@ -470,18 +470,16 @@ async function cleanupOldData(currentDate: string): Promise<void> {
   
   try {
     // Calculate cutoff dates
-    const fourteenDaysAgo = new Date(currentDate);
-    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-
     const fortyEightHoursAgo = new Date(currentDate);
     fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
 
-    // Delete old MarketSnapshots (older than 14 days)
+    // Delete old MarketSnapshots (older than 48 hours)
+    // We only need 48 hours for profit calculations (24h current + 24h previous for trends)
     const marketSnapshotResult = await MarketSnapshot.deleteMany({
-      fetched_at: { $lt: fourteenDaysAgo }
+      fetched_at: { $lt: fortyEightHoursAgo }
     });
 
-    logInfo(`Deleted ${marketSnapshotResult.deletedCount} old MarketSnapshot records (>14 days)`);
+    logInfo(`Deleted ${marketSnapshotResult.deletedCount} old MarketSnapshot records (>48 hours)`);
 
     // Delete old CityShopStockHistory (older than 48 hours)
     const cityStockResult = await CityShopStockHistory.deleteMany({
