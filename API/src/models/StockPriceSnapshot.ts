@@ -27,8 +27,7 @@ const StockPriceSnapshotSchema = new Schema<IStockPriceSnapshot>({
       frequency: { type: Number },
       requirement: { type: Number },
       description: { type: String }
-    },
-    default: null
+    }
   },
   timestamp: { type: Date, required: true, default: Date.now },
 });
