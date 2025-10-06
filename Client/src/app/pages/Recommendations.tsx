@@ -262,7 +262,7 @@ export default function Recommendations() {
                                 <Typography
                                     variant="body2"
                                     sx={{
-                                        color: stock.change_7d_pct && stock.change_7d_pct > 0 ? '#f44336' : stock.change_7d_pct && stock.change_7d_pct < 0 ? '#4caf50' : 'inherit'
+                                        color: stock.change_7d_pct && stock.change_7d_pct > 0 ? '#4caf50' : stock.change_7d_pct && stock.change_7d_pct < 0 ? '#f44336' : 'inherit'
                                     }}
                                 >
                                     {formatPercent(stock.change_7d_pct)}
