@@ -7,6 +7,7 @@ import { ItemMarket } from '../src/models/ItemMarket';
 import { MarketHistory } from '../src/models/MarketHistory';
 import { StockPriceSnapshot } from '../src/models/StockPriceSnapshot';
 import { UserStockHoldingSnapshot } from '../src/models/UserStockHoldingSnapshot';
+import { MarketWatchlistItem } from '../src/models/MarketWatchlistItem';
 
 describe('MongoDB Models', () => {
   describe('TornItem Model', () => {
@@ -258,6 +259,67 @@ describe('MongoDB Models', () => {
       );
       
       expect(hasCompoundIndex || indexes['stock_id_1_timestamp_-1']).toBeTruthy();
+    });
+  });
+
+  describe('MarketWatchlistItem Model', () => {
+    it('should create a MarketWatchlistItem entry', async () => {
+      const watchlistItem = await MarketWatchlistItem.create({
+        itemId: 18,
+        name: 'Xanax',
+        alert_below: 830000,
+      });
+
+      expect(watchlistItem.itemId).toBe(18);
+      expect(watchlistItem.name).toBe('Xanax');
+      expect(watchlistItem.alert_below).toBe(830000);
+      expect(watchlistItem.lastAlertPrice).toBeNull();
+      expect(watchlistItem.lastAlertTimestamp).toBeNull();
+      
+      await MarketWatchlistItem.deleteOne({ itemId: 18 });
+    });
+
+    it('should update lastAlertPrice and lastAlertTimestamp', async () => {
+      const watchlistItem = await MarketWatchlistItem.create({
+        itemId: 23,
+        name: 'Erotic DVD',
+        alert_below: 4600000,
+      });
+
+      const alertPrice = 4500000;
+      const alertTime = new Date();
+
+      await MarketWatchlistItem.updateOne(
+        { itemId: 23 },
+        { 
+          lastAlertPrice: alertPrice,
+          lastAlertTimestamp: alertTime
+        }
+      );
+
+      const updated = await MarketWatchlistItem.findOne({ itemId: 23 });
+      expect(updated?.lastAlertPrice).toBe(alertPrice);
+      expect(updated?.lastAlertTimestamp).toBeInstanceOf(Date);
+      
+      await MarketWatchlistItem.deleteOne({ itemId: 23 });
+    });
+
+    it('should enforce unique itemId constraint', async () => {
+      await MarketWatchlistItem.create({
+        itemId: 99,
+        name: 'Test Item',
+        alert_below: 1000000,
+      });
+
+      await expect(
+        MarketWatchlistItem.create({
+          itemId: 99,
+          name: 'Test Item 2',
+          alert_below: 2000000,
+        })
+      ).rejects.toThrow();
+      
+      await MarketWatchlistItem.deleteOne({ itemId: 99 });
     });
   });
 });

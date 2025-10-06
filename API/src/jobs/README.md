@@ -1,4 +1,43 @@
-# MarketHistory Aggregation Job
+# Background Jobs
+
+This directory contains scheduled jobs that run automatically via the background fetcher service.
+
+## Available Jobs
+
+### 1. Market History Aggregation (`aggregateMarketHistory.ts`)
+
+Processes MarketSnapshot data to create daily summary records.
+
+**Schedule:** Daily at midnight UTC (configurable via `HISTORY_AGGREGATION_CRON`)
+
+**Purpose:** Reduces data volume while preserving key metrics over time
+
+**Details:** See below for full documentation
+
+---
+
+### 2. Market Price Monitoring (`monitorMarketPrices.ts`)
+
+Monitors specific Torn items and sends Discord alerts when prices drop below thresholds.
+
+**Schedule:** Every 30 seconds
+
+**Purpose:** Real-time price alerts for profitable item deals
+
+**Configuration:**
+- `DISCORD_WEBHOOK_URL` - Discord webhook for alerts
+- `MY_DISCORD_USER_ID` - Your Discord ID for mentions
+
+**Setup:**
+1. Add items to `MarketWatchlistItem` collection
+2. Configure Discord webhook in `.env`
+3. Alerts sent automatically when prices drop
+
+**See:** `API/MARKET_MONITORING_IMPLEMENTATION.md` for detailed documentation
+
+---
+
+## Market History Aggregation Job
 
 ## Overview
 The `aggregateMarketHistory` job processes MarketSnapshot data to create daily summary records for each item. This reduces data volume while preserving key metrics over time.
