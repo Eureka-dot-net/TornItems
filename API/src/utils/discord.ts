@@ -14,7 +14,7 @@ export async function sendDiscordAlert(message: string): Promise<void> {
   }
   
   try {
-    await axios.post(webhookUrl, { content: message });
+    await axios.post(webhookUrl, { content: message.substring(0, 2000) }); // Discord message limit
     logInfo('Discord alert sent successfully');
   } catch (error) {
     logError('Failed to send Discord alert', error instanceof Error ? error : new Error(String(error)));
