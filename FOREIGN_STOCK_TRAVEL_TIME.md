@@ -32,23 +32,25 @@ cd API
 npx ts-node scripts/initializeTravelTimes.ts
 ```
 
-This script will populate the database with the following travel times:
-- Argentina: 210 minutes
-- Mexico: 135 minutes
-- Cayman Islands: 120 minutes
-- Canada: 60 minutes
-- Hawaii: 180 minutes
-- Switzerland: 180 minutes
-- Japan: 240 minutes
-- China: 240 minutes
-- United Kingdom: 150 minutes
-- South Africa: 270 minutes
-- UAE: 240 minutes
+This script will populate the database with the following travel times (standard, without private island):
+- Mexico: 26 minutes
+- Cayman Islands: 35 minutes
+- Canada: 41 minutes
+- Hawaii: 134 minutes
+- United Kingdom: 159 minutes
+- Argentina: 167 minutes
+- Switzerland: 175 minutes
+- Japan: 225 minutes
+- China: 242 minutes
+- UAE: 271 minutes
+- South Africa: 297 minutes
 
 ### 2. Hardcoded Configuration
 The following values are currently hardcoded in the API:
 - **MAX_FOREIGN_ITEMS**: 15 (maximum items you can buy at a foreign shop)
-- **PRIVATE_ISLAND_REDUCTION**: 0.25 (25% travel time reduction)
+- **PRIVATE_ISLAND_REDUCTION**: 0.30 (30% travel time reduction with private island/airstrip)
+- **HAS_PRIVATE_ISLAND**: true (whether the player has a private island)
+- **PRIVATE_ISLAND_REDUCTION**: 0.30 (30% travel time reduction)
 - **HAS_PRIVATE_ISLAND**: true (whether the player has a private island)
 
 These can be found in `API/src/routes/profit.ts` and will be moved to a user configuration table in the future.
@@ -73,7 +75,7 @@ actual_travel_time = base_travel_time × (1 - PRIVATE_ISLAND_REDUCTION)
 
 If `HAS_PRIVATE_ISLAND` is true:
 ```
-actual_travel_time = base_travel_time × 0.75
+actual_travel_time = base_travel_time × 0.70  // 30% reduction
 ```
 
 ## API Changes
