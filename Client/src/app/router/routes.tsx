@@ -9,10 +9,8 @@ const router = createBrowserRouter([
     {
         element: <App />,
         children: [
-            // All routes show the maintenance page
-            { path: "/", element: <UnderConstruction /> },
+            { path: "/", element: <Recommendations /> },
             { path: "/profit", element: <Profit /> },
-            { path: "/recommendations", element: <Recommendations /> },
             { path: "/stockProfit", element: <StockProfit /> },
             { path: "*", element: <UnderConstruction /> },
         ],
