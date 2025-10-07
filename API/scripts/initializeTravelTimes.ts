@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import { TravelTime } from '../models/TravelTime';
-import { connectDB } from '../config/db';
+import { TravelTime } from '../src/models/TravelTime';
+import { connectDB } from '../src/config/db';
 
 // Travel times in minutes from the problem statement
 const travelTimes = {
