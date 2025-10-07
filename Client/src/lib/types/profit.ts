@@ -11,6 +11,7 @@ export interface CountryItem {
   market_price: number | null;
   profitPer1: number | null;
   shop_name: string | null;
+  country?: string | null;
   shop_url_name?: string | null;
   in_stock?: number | null;
   sales_24h_current?: number | null;

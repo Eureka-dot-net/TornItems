@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { useProfit } from '../../lib/hooks/useProfit';
 import type { CountryItem } from '../../lib/types/profit';
 
-type SortField = 'name' | 'shop_name' | 'buy_price' | 'average_price_items_sold' | 'sold_profit' | 'sales_24h_current' | 'profit_per_minute' | 'travel_time_minutes';
+type SortField = 'name' | 'shop_name' | 'country' | 'buy_price' | 'average_price_items_sold' | 'sold_profit' | 'sales_24h_current' | 'profit_per_minute' | 'travel_time_minutes';
 type SortOrder = 'asc' | 'desc';
 
 export default function Profit() {
@@ -223,9 +223,9 @@ export default function Profit() {
                         </Grid>
                         <Grid size={{ xs: 12, sm: 1.5 }}>
                             <TableSortLabel
-                                active={sortField === 'shop_name'}
-                                direction={sortField === 'shop_name' ? sortOrder : 'asc'}
-                                onClick={() => handleSort('shop_name')}
+                                active={sortField === 'country'}
+                                direction={sortField === 'country' ? sortOrder : 'asc'}
+                                onClick={() => handleSort('country')}
                             >
                                 Country
                             </TableSortLabel>
@@ -377,7 +377,7 @@ export default function Profit() {
                                     <Typography variant="body2">{item.name}</Typography>
                                 </Grid>
                                 <Grid size={{ xs: 12, sm: 1.5 }}>
-                                    <Typography variant="body2">{item.shop_name || '-'}</Typography>
+                                    <Typography variant="body2">{item.country || '-'}</Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 1.2 }}>
                                     <Typography variant="body2">{formatCurrency(item.buy_price)}</Typography>
