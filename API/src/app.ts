@@ -3,6 +3,7 @@ import express from 'express';
 
 import profit from './routes/profit';
 import stocks from './routes/stocks';
+import discord from './routes/discord';
 
 export const app = express();
 
@@ -31,3 +32,4 @@ app.get('/api/', (req, res) => {
 
 app.use('/api', profit);
 app.use('/api', stocks);
+app.use('/api', discord);
