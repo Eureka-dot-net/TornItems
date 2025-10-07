@@ -4,6 +4,7 @@ import { CityShopStock } from '../models/CityShopStock';
 import { ForeignStock } from '../models/ForeignStock';
 import { MarketHistory } from '../models/MarketHistory';
 import { ShopItemState } from '../models/ShopItemState';
+import { TravelTime } from '../models/TravelTime';
 import { roundUpToNextQuarterHour } from '../utils/dateHelpers';
 
 const router = express.Router({ mergeParams: true });
@@ -30,6 +31,8 @@ interface CountryItem {
   cycles_skipped?: number | null;
   last_restock_time?: string | null;
   next_estimated_restock_time?: string | null;
+  travel_time_minutes?: number | null;
+  profit_per_minute?: number | null;
 }
 
 interface GroupedByCountry {
@@ -86,13 +89,14 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
 
     const dateToFetch = latestHistoryDate?.date || today;
 
-    // Fetch all items, city shop stock, foreign stock, market history, and shop item states
-    const [items, cityShopStock, foreignStock, marketHistory, shopItemStates] = await Promise.all([
+    // Fetch all items, city shop stock, foreign stock, market history, shop item states, and travel times
+    const [items, cityShopStock, foreignStock, marketHistory, shopItemStates, travelTimes] = await Promise.all([
       TornItem.find({ buy_price: { $ne: null } }).lean(),
       CityShopStock.find().lean(),
       ForeignStock.find().lean(),
       MarketHistory.find({ date: dateToFetch }).lean(),
       ShopItemState.find().lean(),
+      TravelTime.find().lean(),
     ]);
 
     if (!items?.length) {
@@ -103,7 +107,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     }
 
     console.log(
-      `Retrieved ${items.length} items, ${cityShopStock.length} city shop items, ${foreignStock.length} foreign stock items, ${marketHistory.length} market history records (date: ${dateToFetch}), and ${shopItemStates.length} shop item states from database.`
+      `Retrieved ${items.length} items, ${cityShopStock.length} city shop items, ${foreignStock.length} foreign stock items, ${marketHistory.length} market history records (date: ${dateToFetch}), ${shopItemStates.length} shop item states, and ${travelTimes.length} travel times from database.`
     );
 
     // Create a lookup map for market history: key is "country:itemId", value is the history record
@@ -142,6 +146,17 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       const key = `${stock.countryCode}:${stock.itemName.toLowerCase()}`;
       foreignStockMap.set(key, stock);
     }
+
+    // Create a lookup map for travel times: key is countryCode
+    const travelTimeMap = new Map<string, number>();
+    for (const travelTime of travelTimes) {
+      travelTimeMap.set(travelTime.countryCode, travelTime.travelTimeMinutes);
+    }
+
+    // Constants for foreign stock calculations
+    const MAX_FOREIGN_ITEMS = 15;
+    const PRIVATE_ISLAND_REDUCTION = 0.30; // 30% reduction (airstrip effect)
+    const HAS_PRIVATE_ISLAND = true; // Hardcoded for now
 
     // 🗺 Group by country (shop is informational)
     const grouped: GroupedByCountry = {};
@@ -280,6 +295,37 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         }
       }
 
+      // Calculate travel time and profit per minute for foreign stock
+      let travel_time_minutes: number | null = null;
+      let profit_per_minute: number | null = null;
+      
+      if (country !== 'Torn' && country !== 'Unknown') {
+        // Get country code for this country
+        const countryCode = Object.entries(COUNTRY_CODE_MAP).find(
+          ([, name]) => name === country
+        )?.[0];
+        
+        if (countryCode) {
+          // Get base travel time from the map
+          const baseTravelTime = travelTimeMap.get(countryCode);
+          
+          if (baseTravelTime !== undefined) {
+            // Apply private island reduction if applicable
+            travel_time_minutes = HAS_PRIVATE_ISLAND 
+              ? baseTravelTime * (1 - PRIVATE_ISLAND_REDUCTION)
+              : baseTravelTime;
+            
+            // Calculate profit per minute: (sold_profit * MAX_FOREIGN_ITEMS) / (2 * travel_time)
+            // Multiply by 2 because travel time is for one way, we need round trip
+            if (sold_profit !== null && travel_time_minutes > 0) {
+              const totalProfit = sold_profit * MAX_FOREIGN_ITEMS;
+              const roundTripTime = travel_time_minutes * 2;
+              profit_per_minute = totalProfit / roundTripTime;
+            }
+          }
+        }
+      }
+
       // Build the country item object
       const countryItem: CountryItem = {
         id: item.itemId,
@@ -302,6 +348,8 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         cycles_skipped,
         last_restock_time,
         next_estimated_restock_time,
+        travel_time_minutes,
+        profit_per_minute,
       };
 
       // Conditionally add ItemsSold if flag is enabled
