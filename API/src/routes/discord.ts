@@ -65,6 +65,18 @@ router.post('/discord/setkey', async (req: Request, res: Response): Promise<void
       throw error;
     }
 
+    // Validate that the response has the expected structure
+    if (!tornUserData.profile || !tornUserData.profile.id) {
+      logError('Invalid response from Torn API - missing profile data', new Error('Invalid API response structure'), {
+        discordId,
+        responseData: tornUserData
+      });
+      res.status(400).json({ 
+        error: 'Invalid API key or failed to fetch user data from Torn API' 
+      });
+      return;
+    }
+
     const { id: tornId, name, level } = tornUserData.profile;
 
     // Encrypt the API key before storing

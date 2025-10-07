@@ -212,6 +212,32 @@ describe('Discord API Endpoints', () => {
       expect(response.body.error).toContain('required');
     });
 
+    it('should return 400 error when API returns invalid response structure', async () => {
+      // Mock API response with missing profile data
+      const invalidResponse = {
+        error: {
+          code: 2,
+          error: 'Incorrect ID'
+        }
+      };
+      
+      mockedAxios.get.mockResolvedValueOnce({ data: invalidResponse });
+
+      const response = await request(app)
+        .post('/api/discord/setkey')
+        .send({
+          discordId: '123456789',
+          apiKey: 'test-api-key'
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('Invalid API key');
+
+      // Verify user was NOT saved
+      const savedUser = await DiscordUser.findOne({ discordId: '123456789' });
+      expect(savedUser).toBeNull();
+    });
+
     it('should still save user even if battle stats fetch fails', async () => {
       const mockUserData = {
         profile: {
