@@ -13,6 +13,7 @@ export interface StockRecommendation {
   unrealized_profit_value: number | null;
   unrealized_profit_pct: number | null;
   can_sell: boolean;
+  max_shares_to_sell: number;
 }
 
 export type StockRecommendationsData = StockRecommendation[];
