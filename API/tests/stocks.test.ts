@@ -189,5 +189,262 @@ describe('Stocks API', () => {
       expect(stock.unrealized_profit_value).toBeNull(); // No profit since 0 shares
       expect(stock.unrealized_profit_pct).toBeNull();
     });
+
+    it('should calculate can_sell and max_shares_to_sell correctly without benefit', async () => {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      // Create stock price data (no benefit requirement)
+      await StockPriceSnapshot.insertMany([
+        { stock_id: 5, ticker: 'TSB', name: 'Torn & Shanghai Banking', price: 100.00, timestamp: now },
+        { stock_id: 5, ticker: 'TSB', name: 'Torn & Shanghai Banking', price: 95.00, timestamp: sevenDaysAgo },
+      ]);
+
+      // User owns 1000 shares
+      await UserStockHoldingSnapshot.create({
+        stock_id: 5,
+        total_shares: 1000,
+        avg_buy_price: 90.00,
+        transaction_count: 1,
+        timestamp: now
+      });
+
+      const response = await request(app)
+        .get('/api/stocks/recommendations')
+        .expect(200);
+
+      const stock = response.body.find((s: any) => s.ticker === 'TSB');
+      expect(stock).toBeDefined();
+      expect(stock.owned_shares).toBe(1000);
+      expect(stock.can_sell).toBe(true); // Can sell since no benefit
+      expect(stock.max_shares_to_sell).toBe(1000); // Can sell all shares
+    });
+
+    it('should calculate can_sell and max_shares_to_sell when user has benefit', async () => {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      // Create stock price data with benefit requirement of 9,000,000
+      await StockPriceSnapshot.insertMany([
+        { stock_id: 30, ticker: 'WLT', name: 'Wind Lines Travel', price: 775.00, benefit_requirement: 9000000, timestamp: now },
+        { stock_id: 30, ticker: 'WLT', name: 'Wind Lines Travel', price: 770.00, benefit_requirement: 9000000, timestamp: sevenDaysAgo },
+      ]);
+
+      // User owns 9,100,000 shares (above requirement)
+      await UserStockHoldingSnapshot.create({
+        stock_id: 30,
+        total_shares: 9100000,
+        avg_buy_price: 750.00,
+        transaction_count: 1,
+        timestamp: now
+      });
+
+      const response = await request(app)
+        .get('/api/stocks/recommendations')
+        .expect(200);
+
+      const stock = response.body.find((s: any) => s.ticker === 'WLT');
+      expect(stock).toBeDefined();
+      expect(stock.owned_shares).toBe(9100000);
+      expect(stock.can_sell).toBe(true); // Can sell some shares
+      expect(stock.max_shares_to_sell).toBe(100000); // Can only sell 100k to keep benefit
+    });
+
+    it('should set can_sell to false when at exact benefit requirement', async () => {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      // Create stock price data with benefit requirement
+      await StockPriceSnapshot.insertMany([
+        { stock_id: 30, ticker: 'WLT', name: 'Wind Lines Travel', price: 775.00, benefit_requirement: 9000000, timestamp: now },
+        { stock_id: 30, ticker: 'WLT', name: 'Wind Lines Travel', price: 770.00, benefit_requirement: 9000000, timestamp: sevenDaysAgo },
+      ]);
+
+      // User owns exactly 9,000,000 shares (at requirement)
+      await UserStockHoldingSnapshot.create({
+        stock_id: 30,
+        total_shares: 9000000,
+        avg_buy_price: 750.00,
+        transaction_count: 1,
+        timestamp: now
+      });
+
+      const response = await request(app)
+        .get('/api/stocks/recommendations')
+        .expect(200);
+
+      const stock = response.body.find((s: any) => s.ticker === 'WLT');
+      expect(stock).toBeDefined();
+      expect(stock.owned_shares).toBe(9000000);
+      expect(stock.can_sell).toBe(false); // Can't sell without losing benefit
+      expect(stock.max_shares_to_sell).toBe(0); // Can't sell any shares
+    });
+
+    it('should allow selling all shares when below benefit requirement', async () => {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      // Create stock price data with benefit requirement
+      await StockPriceSnapshot.insertMany([
+        { stock_id: 30, ticker: 'WLT', name: 'Wind Lines Travel', price: 775.00, benefit_requirement: 9000000, timestamp: now },
+        { stock_id: 30, ticker: 'WLT', name: 'Wind Lines Travel', price: 770.00, benefit_requirement: 9000000, timestamp: sevenDaysAgo },
+      ]);
+
+      // User owns 5,000,000 shares (below requirement - doesn't have benefit)
+      await UserStockHoldingSnapshot.create({
+        stock_id: 30,
+        total_shares: 5000000,
+        avg_buy_price: 750.00,
+        transaction_count: 1,
+        timestamp: now
+      });
+
+      const response = await request(app)
+        .get('/api/stocks/recommendations')
+        .expect(200);
+
+      const stock = response.body.find((s: any) => s.ticker === 'WLT');
+      expect(stock).toBeDefined();
+      expect(stock.owned_shares).toBe(5000000);
+      expect(stock.can_sell).toBe(true); // Can sell freely since no benefit
+      expect(stock.max_shares_to_sell).toBe(5000000); // Can sell all shares
+    });
+  });
+
+  describe('GET /api/stocks/recommendations/top-sell', () => {
+    beforeEach(async () => {
+      // Clean up test data
+      await StockPriceSnapshot.deleteMany({});
+      await UserStockHoldingSnapshot.deleteMany({});
+    });
+
+    afterEach(async () => {
+      // Clean up test data
+      await StockPriceSnapshot.deleteMany({});
+      await UserStockHoldingSnapshot.deleteMany({});
+    });
+
+    it('should return 404 when no stocks are owned', async () => {
+      const response = await request(app)
+        .get('/api/stocks/recommendations/top-sell')
+        .expect(404);
+
+      expect(response.body.error).toContain('No stocks owned');
+    });
+
+    it('should return stock with highest sell_score', async () => {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      // Stock A: Increased in price (high sell_score)
+      await StockPriceSnapshot.insertMany([
+        { stock_id: 1, ticker: 'AAA', name: 'Stock A', price: 200, timestamp: now },
+        { stock_id: 1, ticker: 'AAA', name: 'Stock A', price: 100, timestamp: sevenDaysAgo },
+      ]);
+
+      // Stock B: Decreased in price (low sell_score)
+      await StockPriceSnapshot.insertMany([
+        { stock_id: 2, ticker: 'BBB', name: 'Stock B', price: 50, timestamp: now },
+        { stock_id: 2, ticker: 'BBB', name: 'Stock B', price: 100, timestamp: sevenDaysAgo },
+      ]);
+
+      // User owns both stocks
+      await UserStockHoldingSnapshot.create({
+        stock_id: 1,
+        total_shares: 1000,
+        avg_buy_price: 90,
+        transaction_count: 1,
+        timestamp: now
+      });
+
+      await UserStockHoldingSnapshot.create({
+        stock_id: 2,
+        total_shares: 500,
+        avg_buy_price: 90,
+        transaction_count: 1,
+        timestamp: now
+      });
+
+      const response = await request(app)
+        .get('/api/stocks/recommendations/top-sell')
+        .expect(200);
+
+      // Should return Stock A (higher sell_score)
+      expect(response.body.ticker).toBe('AAA');
+      expect(response.body.stock_id).toBe(1);
+      expect(response.body.sell_score).toBeGreaterThan(0);
+      expect(response.body.can_sell).toBe(true);
+      expect(response.body.max_shares_to_sell).toBe(1000);
+    });
+
+    it('should exclude stocks that cannot be sold due to benefit preservation', async () => {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      // Stock A: High sell_score but at exact benefit requirement
+      await StockPriceSnapshot.insertMany([
+        { stock_id: 30, ticker: 'WLT', name: 'Wind Lines Travel', price: 800, benefit_requirement: 9000000, timestamp: now },
+        { stock_id: 30, ticker: 'WLT', name: 'Wind Lines Travel', price: 700, benefit_requirement: 9000000, timestamp: sevenDaysAgo },
+      ]);
+
+      // Stock B: Lower sell_score but can be sold
+      await StockPriceSnapshot.insertMany([
+        { stock_id: 5, ticker: 'TSB', name: 'Torn & Shanghai Banking', price: 110, timestamp: now },
+        { stock_id: 5, ticker: 'TSB', name: 'Torn & Shanghai Banking', price: 100, timestamp: sevenDaysAgo },
+      ]);
+
+      // User owns WLT at exact requirement (can't sell)
+      await UserStockHoldingSnapshot.create({
+        stock_id: 30,
+        total_shares: 9000000,
+        avg_buy_price: 750,
+        transaction_count: 1,
+        timestamp: now
+      });
+
+      // User owns TSB (can sell)
+      await UserStockHoldingSnapshot.create({
+        stock_id: 5,
+        total_shares: 1000,
+        avg_buy_price: 95,
+        transaction_count: 1,
+        timestamp: now
+      });
+
+      const response = await request(app)
+        .get('/api/stocks/recommendations/top-sell')
+        .expect(200);
+
+      // Should return TSB since WLT can't be sold
+      expect(response.body.ticker).toBe('TSB');
+      expect(response.body.stock_id).toBe(5);
+      expect(response.body.can_sell).toBe(true);
+    });
+
+    it('should return 404 when all stocks cannot be sold', async () => {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      // Stock with benefit requirement
+      await StockPriceSnapshot.insertMany([
+        { stock_id: 30, ticker: 'WLT', name: 'Wind Lines Travel', price: 775, benefit_requirement: 9000000, timestamp: now },
+        { stock_id: 30, ticker: 'WLT', name: 'Wind Lines Travel', price: 770, benefit_requirement: 9000000, timestamp: sevenDaysAgo },
+      ]);
+
+      // User owns at exact requirement (can't sell)
+      await UserStockHoldingSnapshot.create({
+        stock_id: 30,
+        total_shares: 9000000,
+        avg_buy_price: 750,
+        transaction_count: 1,
+        timestamp: now
+      });
+
+      const response = await request(app)
+        .get('/api/stocks/recommendations/top-sell')
+        .expect(404);
+
+      expect(response.body.error).toContain('No sellable stocks found');
+    });
   });
 });
