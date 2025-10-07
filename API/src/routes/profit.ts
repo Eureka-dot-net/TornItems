@@ -16,6 +16,7 @@ interface CountryItem {
   market_price: number | null;
   profitPer1: number | null;
   shop_name: string | null;
+  country?: string | null;
   shop_url_name?: string | null;
   in_stock?: number | null;
   sales_24h_current?: number | null;
@@ -334,6 +335,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         market_price: market,
         profitPer1,
         shop_name: shop,
+        country,
         shop_url_name,
         in_stock: inStock,
         sales_24h_current,
