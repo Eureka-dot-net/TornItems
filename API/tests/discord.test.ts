@@ -9,6 +9,10 @@ import axios from 'axios';
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
+// Set up test environment variables
+const TEST_BOT_SECRET = 'test-bot-secret-12345';
+process.env.BOT_SECRET = TEST_BOT_SECRET;
+
 describe('Discord API Endpoints', () => {
   beforeEach(async () => {
     // Clear the database before each test
@@ -24,6 +28,46 @@ describe('Discord API Endpoints', () => {
   });
 
   describe('POST /api/discord/setkey', () => {
+    describe('Authentication', () => {
+      it('should return 401 when Authorization header is missing', async () => {
+        const response = await request(app)
+          .post('/api/discord/setkey')
+          .send({
+            discordId: '123456789',
+            apiKey: 'test-api-key'
+          });
+
+        expect(response.status).toBe(401);
+        expect(response.body.error).toContain('Authorization');
+      });
+
+      it('should return 401 when Authorization header has invalid format', async () => {
+        const response = await request(app)
+          .post('/api/discord/setkey')
+          .set('Authorization', 'InvalidFormat')
+          .send({
+            discordId: '123456789',
+            apiKey: 'test-api-key'
+          });
+
+        expect(response.status).toBe(401);
+        expect(response.body.error).toContain('Invalid');
+      });
+
+      it('should return 401 when Bearer token is invalid', async () => {
+        const response = await request(app)
+          .post('/api/discord/setkey')
+          .set('Authorization', 'Bearer invalid-token')
+          .send({
+            discordId: '123456789',
+            apiKey: 'test-api-key'
+          });
+
+        expect(response.status).toBe(401);
+        expect(response.body.error).toContain('Invalid token');
+      });
+    });
+
     it('should create a new Discord user with valid API key', async () => {
       const mockUserData = {
         profile: {
@@ -58,6 +102,7 @@ describe('Discord API Endpoints', () => {
 
       const response = await request(app)
         .post('/api/discord/setkey')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
         .send({
           discordId: '123456789',
           apiKey: 'test-api-key'
@@ -144,6 +189,7 @@ describe('Discord API Endpoints', () => {
 
       await request(app)
         .post('/api/discord/setkey')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
         .send({
           discordId: '123456789',
           apiKey: 'test-api-key-1'
@@ -156,6 +202,7 @@ describe('Discord API Endpoints', () => {
 
       const response = await request(app)
         .post('/api/discord/setkey')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
         .send({
           discordId: '123456789',
           apiKey: 'test-api-key-2'
@@ -187,6 +234,7 @@ describe('Discord API Endpoints', () => {
 
       const response = await request(app)
         .post('/api/discord/setkey')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
         .send({
           discordId: '123456789',
           apiKey: 'invalid-key'
@@ -203,6 +251,7 @@ describe('Discord API Endpoints', () => {
     it('should return 400 error when required fields are missing', async () => {
       const response = await request(app)
         .post('/api/discord/setkey')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
         .send({
           discordId: '123456789'
           // Missing apiKey
@@ -210,6 +259,33 @@ describe('Discord API Endpoints', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('required');
+    });
+
+    it('should return 400 error when API returns invalid response structure', async () => {
+      // Mock API response with missing profile data
+      const invalidResponse = {
+        error: {
+          code: 2,
+          error: 'Incorrect ID'
+        }
+      };
+      
+      mockedAxios.get.mockResolvedValueOnce({ data: invalidResponse });
+
+      const response = await request(app)
+        .post('/api/discord/setkey')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
+        .send({
+          discordId: '123456789',
+          apiKey: 'test-api-key'
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('Invalid API key');
+
+      // Verify user was NOT saved
+      const savedUser = await DiscordUser.findOne({ discordId: '123456789' });
+      expect(savedUser).toBeNull();
     });
 
     it('should still save user even if battle stats fetch fails', async () => {
@@ -244,6 +320,7 @@ describe('Discord API Endpoints', () => {
 
       const response = await request(app)
         .post('/api/discord/setkey')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
         .send({
           discordId: '123456789',
           apiKey: 'test-api-key'

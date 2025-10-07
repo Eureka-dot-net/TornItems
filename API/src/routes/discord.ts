@@ -4,6 +4,7 @@ import { DiscordUser } from '../models/DiscordUser';
 import { encrypt } from '../utils/encryption';
 import { fetchAndStoreBattleStats } from '../utils/tornApi';
 import { logInfo, logError } from '../utils/logger';
+import { authenticateDiscordBot } from '../middleware/discordAuth';
 
 const router = express.Router({ mergeParams: true });
 
@@ -29,7 +30,7 @@ interface SetKeyRequestBody {
 }
 
 // POST /discord/setkey
-router.post('/discord/setkey', async (req: Request, res: Response): Promise<void> => {
+router.post('/discord/setkey', authenticateDiscordBot, async (req: Request, res: Response): Promise<void> => {
   try {
     const { discordId, apiKey } = req.body as SetKeyRequestBody;
 
@@ -63,6 +64,18 @@ router.post('/discord/setkey', async (req: Request, res: Response): Promise<void
         return;
       }
       throw error;
+    }
+
+    // Validate that the response has the expected structure
+    if (!tornUserData || !tornUserData.profile || !tornUserData.profile.id) {
+      logError('Invalid response from Torn API - missing profile data', new Error('Invalid API response structure'), {
+        discordId,
+        responseData: tornUserData
+      });
+      res.status(400).json({ 
+        error: 'Invalid API key or failed to fetch user data from Torn API' 
+      });
+      return;
     }
 
     const { id: tornId, name, level } = tornUserData.profile;
