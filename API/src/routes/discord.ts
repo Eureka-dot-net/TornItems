@@ -4,6 +4,7 @@ import { DiscordUser } from '../models/DiscordUser';
 import { encrypt } from '../utils/encryption';
 import { fetchAndStoreBattleStats } from '../utils/tornApi';
 import { logInfo, logError } from '../utils/logger';
+import { authenticateDiscordBot } from '../middleware/discordAuth';
 
 const router = express.Router({ mergeParams: true });
 
@@ -29,7 +30,7 @@ interface SetKeyRequestBody {
 }
 
 // POST /discord/setkey
-router.post('/discord/setkey', async (req: Request, res: Response): Promise<void> => {
+router.post('/discord/setkey', authenticateDiscordBot, async (req: Request, res: Response): Promise<void> => {
   try {
     const { discordId, apiKey } = req.body as SetKeyRequestBody;
 
