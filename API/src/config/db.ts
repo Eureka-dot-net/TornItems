@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
+import 'dotenv/config';
 
 let mongoServer: MongoMemoryServer | null = null;
 let isUsingMockDatabase = false;
