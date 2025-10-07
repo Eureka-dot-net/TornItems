@@ -66,7 +66,7 @@ router.post('/discord/setkey', async (req: Request, res: Response): Promise<void
     }
 
     // Validate that the response has the expected structure
-    if (!tornUserData.profile || !tornUserData.profile.id) {
+    if (!tornUserData || !tornUserData.profile || !tornUserData.profile.id) {
       logError('Invalid response from Torn API - missing profile data', new Error('Invalid API response structure'), {
         discordId,
         responseData: tornUserData
