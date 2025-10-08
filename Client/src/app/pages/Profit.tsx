@@ -15,6 +15,10 @@ export default function Profit() {
     const [multiplyByAmount, setMultiplyByAmount] = useState<boolean>(true); // Default checked
     const [selectedItems, setSelectedItems] = useState<Map<number, number>>(new Map()); // itemId -> order (1, 2, 3)
     
+    // Track notification preferences for countries and items
+    const [countryNotifications, setCountryNotifications] = useState<Map<string, boolean>>(new Map());
+    const [itemNotifications, setItemNotifications] = useState<Map<number, boolean>>(new Map());
+    
     // Auto-refresh countdown every second
     const [, setCurrentTime] = useState(new Date());
     useEffect(() => {
@@ -102,6 +106,149 @@ export default function Profit() {
         
         return Array.from(countriesMap.values());
     }, [profitData, foreignCountries]);
+
+    // Effect to handle country notifications
+    useEffect(() => {
+        const scheduledTimeouts: ReturnType<typeof setTimeout>[] = [];
+        
+        const sendNotification = (title: string, body: string) => {
+            try {
+                if (Notification.permission === "granted") {
+                    new Notification(title, { body, icon: "https://www.torn.com/favicon.ico" });
+                } else if (Notification.permission !== "denied") {
+                    Notification.requestPermission().then((permission) => {
+                        if (permission === "granted") {
+                            new Notification(title, { body, icon: "https://www.torn.com/favicon.ico" });
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error("Notification error:", error);
+            }
+        };
+
+        const scheduleNotification = (boardingTime: string, title: string, body: string) => {
+            const boarding = new Date(boardingTime);
+            const now = new Date();
+            const timeUntilBoarding = boarding.getTime() - now.getTime();
+            const notificationTime = timeUntilBoarding - 10000; // 10 seconds before
+
+            if (notificationTime > 0) {
+                const timeout = setTimeout(() => {
+                    sendNotification(title, body);
+                }, notificationTime);
+                scheduledTimeouts.push(timeout);
+            }
+        };
+
+        countryNotifications.forEach((enabled, countryCode) => {
+            if (enabled && foreignCountriesWithTravelTimes.length > 0) {
+                const country = foreignCountriesWithTravelTimes.find(c => c.code === countryCode);
+                if (country) {
+                    const now = new Date();
+                    const travelTimeToDestination = Math.round(country.travelTime);
+                    const landingTimeIfBoardNow = new Date(now.getTime() + travelTimeToDestination * 60 * 1000);
+                    
+                    const nextSlotMinutes = Math.ceil(landingTimeIfBoardNow.getMinutes() / 15) * 15;
+                    const nextSlot = new Date(landingTimeIfBoardNow);
+                    nextSlot.setMinutes(nextSlotMinutes);
+                    nextSlot.setSeconds(0);
+                    nextSlot.setMilliseconds(0);
+                    if (nextSlotMinutes === 60) {
+                        nextSlot.setHours(nextSlot.getHours() + 1);
+                        nextSlot.setMinutes(0);
+                    }
+                    
+                    const boardingTime = new Date(nextSlot.getTime() - travelTimeToDestination * 60 * 1000);
+                    scheduleNotification(
+                        boardingTime.toISOString(),
+                        `✈️ ${country.name} Boarding Soon`,
+                        "Board now to land on the next restock!"
+                    );
+                }
+            }
+        });
+
+        return () => {
+            scheduledTimeouts.forEach(timeout => clearTimeout(timeout));
+        };
+    }, [countryNotifications, foreignCountriesWithTravelTimes]);
+
+    // Effect to handle item notifications
+    useEffect(() => {
+        const scheduledTimeouts: ReturnType<typeof setTimeout>[] = [];
+        
+        const sendNotification = (title: string, body: string) => {
+            try {
+                if (Notification.permission === "granted") {
+                    new Notification(title, { body, icon: "https://www.torn.com/favicon.ico" });
+                } else if (Notification.permission !== "denied") {
+                    Notification.requestPermission().then((permission) => {
+                        if (permission === "granted") {
+                            new Notification(title, { body, icon: "https://www.torn.com/favicon.ico" });
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error("Notification error:", error);
+            }
+        };
+
+        const scheduleNotification = (boardingTime: string, title: string, body: string) => {
+            const boarding = new Date(boardingTime);
+            const now = new Date();
+            const timeUntilBoarding = boarding.getTime() - now.getTime();
+            const notificationTime = timeUntilBoarding - 10000; // 10 seconds before
+
+            if (notificationTime > 0) {
+                const timeout = setTimeout(() => {
+                    sendNotification(title, body);
+                }, notificationTime);
+                scheduledTimeouts.push(timeout);
+            }
+        };
+
+        itemNotifications.forEach((enabled, itemId) => {
+            if (enabled && sortedData.length > 0) {
+                const item = sortedData.find(i => i.id === itemId);
+                if (item && item.travel_time_minutes && item.travel_time_minutes > 0) {
+                    const now = new Date();
+                    const travelTimeToDestination = Math.round(item.travel_time_minutes);
+                    const landingTimeIfBoardNow = new Date(now.getTime() + travelTimeToDestination * 60 * 1000);
+                    
+                    let targetRestockTime: Date;
+                    if (item.next_estimated_restock_time) {
+                        let estimatedRestock = new Date(item.next_estimated_restock_time);
+                        while (estimatedRestock <= landingTimeIfBoardNow) {
+                            estimatedRestock = new Date(estimatedRestock.getTime() + 15 * 60 * 1000);
+                        }
+                        targetRestockTime = estimatedRestock;
+                    } else {
+                        const nextSlotMinutes = Math.ceil(landingTimeIfBoardNow.getMinutes() / 15) * 15;
+                        targetRestockTime = new Date(landingTimeIfBoardNow);
+                        targetRestockTime.setMinutes(nextSlotMinutes);
+                        targetRestockTime.setSeconds(0);
+                        targetRestockTime.setMilliseconds(0);
+                        if (nextSlotMinutes === 60) {
+                            targetRestockTime.setHours(targetRestockTime.getHours() + 1);
+                            targetRestockTime.setMinutes(0);
+                        }
+                    }
+                    
+                    const boardingTimeDate = new Date(targetRestockTime.getTime() - travelTimeToDestination * 60 * 1000);
+                    scheduleNotification(
+                        boardingTimeDate.toISOString(),
+                        `✈️ ${item.name} Boarding Soon`,
+                        `Board to ${item.country} now to land on the next restock!`
+                    );
+                }
+            }
+        });
+
+        return () => {
+            scheduledTimeouts.forEach(timeout => clearTimeout(timeout));
+        };
+    }, [itemNotifications, sortedData]);
 
     if (profitLoading) {
         return (
@@ -366,6 +513,19 @@ export default function Profit() {
             <Typography variant="h4" gutterBottom>
                 Profit Analysis
             </Typography>
+
+            {/* Travel Status Banner */}
+            {profitData?.travel_status && profitData.travel_status.destination !== 'Torn' && (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                    <Typography variant="body1">
+                        <strong>Currently Travelling to: {profitData.travel_status.destination}</strong>
+                    </Typography>
+                    <Typography variant="body2">
+                        Arrival in: {formatBoardingTimeLeft(profitData.travel_status.time_left)} | 
+                        Arrival Time: {new Date(profitData.travel_status.arrival_at * 1000).toLocaleString()}
+                    </Typography>
+                </Alert>
+            )}
 
             <Typography variant="body1" gutterBottom>
                 Total Items: {profitData.count} | Countries: {profitData.countries}
@@ -773,6 +933,25 @@ export default function Profit() {
                                                                     </Typography>
                                                                 </Link>
                                                             </Grid>
+                                                            <Grid size={{ xs: 12, sm: 4 }}>
+                                                                <FormControlLabel
+                                                                    control={
+                                                                        <Checkbox
+                                                                            checked={itemNotifications.get(item.id) || false}
+                                                                            onChange={(e) => {
+                                                                                const newMap = new Map(itemNotifications);
+                                                                                if (e.target.checked) {
+                                                                                    newMap.set(item.id, true);
+                                                                                } else {
+                                                                                    newMap.delete(item.id);
+                                                                                }
+                                                                                setItemNotifications(newMap);
+                                                                            }}
+                                                                        />
+                                                                    }
+                                                                    label="Notify Me"
+                                                                />
+                                                            </Grid>
                                                         </>
                                                     )}
                                                 </Grid>
@@ -944,8 +1123,8 @@ export default function Profit() {
                 </Box>
             </Paper>
 
-            {/* Boarding Time Section for Foreign Shops */}
-            {(selectedCountry === 'Foreign' || (selectedCountry !== 'Torn' && selectedCountry !== 'Unknown')) && foreignCountriesWithTravelTimes.length > 0 && (
+            {/* Boarding Time Section for Foreign Shops - Now shown on ALL pages */}
+            {foreignCountriesWithTravelTimes.length > 0 && (
                 <Paper sx={{ mt: 3, p: 2 }}>
                     <Typography variant="h6" gutterBottom>
                         Boarding Times for Foreign Shops
@@ -958,6 +1137,8 @@ export default function Profit() {
                             // For country-level, calculate generic boarding time to land on next 15-min slot
                             const boardingTime = calculateNextBoardingTime(country.travelTime);
                             const timeLeft = calculateBoardingTimeLeft(boardingTime);
+                            const isNotifyEnabled = countryNotifications.get(country.code) || false;
+                            
                             return (
                                 <Grid size={{ xs: 12, sm: 6, md: 4 }} key={country.code}>
                                     <Card sx={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}>
@@ -996,6 +1177,25 @@ export default function Profit() {
                                                     {formatBoardingTimeLeft(timeLeft)}
                                                 </Typography>
                                             </Link>
+                                            <Box sx={{ mt: 1 }}>
+                                                <FormControlLabel
+                                                    control={
+                                                        <Checkbox
+                                                            checked={isNotifyEnabled}
+                                                            onChange={(e) => {
+                                                                const newMap = new Map(countryNotifications);
+                                                                if (e.target.checked) {
+                                                                    newMap.set(country.code, true);
+                                                                } else {
+                                                                    newMap.delete(country.code);
+                                                                }
+                                                                setCountryNotifications(newMap);
+                                                            }}
+                                                        />
+                                                    }
+                                                    label="Notify Me"
+                                                />
+                                            </Box>
                                         </CardContent>
                                     </Card>
                                 </Grid>
