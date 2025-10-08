@@ -4,6 +4,14 @@ export interface ItemSold {
   Price: number;
 }
 
+export interface TravelStatus {
+  destination: string;
+  method: string;
+  departed_at: number;
+  arrival_at: number;
+  time_left: number;
+}
+
 export interface CountryItem {
   id: number;
   name: string;
@@ -40,5 +48,7 @@ export interface GroupedByCountry {
 export interface ProfitData {
   count: number;
   countries: number;
+  max_foreign_items: number;
+  travel_status: TravelStatus | null;
   results: GroupedByCountry;
 }

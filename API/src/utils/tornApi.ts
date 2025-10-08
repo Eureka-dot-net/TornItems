@@ -24,6 +24,18 @@ interface TornBattleStatsResponse {
   };
 }
 
+export interface TravelStatus {
+  destination: string;
+  method: string;
+  departed_at: number;
+  arrival_at: number;
+  time_left: number;
+}
+
+interface TornTravelResponse {
+  travel?: TravelStatus;
+}
+
 /**
  * Fetch and store battle stats for a user from the Torn API
  * @param tornId - The Torn user ID
@@ -68,5 +80,43 @@ export async function fetchAndStoreBattleStats(tornId: number, apiKey: string) {
       logError(`Failed to fetch battle stats for Torn ID: ${tornId}`, error instanceof Error ? error : new Error(String(error)));
     }
     throw error;
+  }
+}
+
+/**
+ * Fetch travel status from the Torn API
+ * @param apiKey - The user's Torn API key
+ * @returns The travel status or null if not travelling
+ */
+export async function fetchTravelStatus(apiKey: string): Promise<TravelStatus | null> {
+  try {
+    logInfo('Fetching travel status from Torn API');
+    
+    const response = await axios.get<TornTravelResponse>(
+      `https://api.torn.com/v2/user/travel?key=${apiKey}`
+    );
+    
+    // If the response has travel data, return it; otherwise return null
+    if (response.data && response.data.travel) {
+      logInfo('Travel status fetched successfully', {
+        destination: response.data.travel.destination,
+        time_left: response.data.travel.time_left
+      });
+      return response.data.travel;
+    }
+    
+    logInfo('User is not currently travelling');
+    return null;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      logError('Failed to fetch travel status', error, {
+        status: error.response.status,
+        data: error.response.data
+      });
+    } else {
+      logError('Failed to fetch travel status', error instanceof Error ? error : new Error(String(error)));
+    }
+    // Return null instead of throwing - travel status is optional
+    return null;
   }
 }
