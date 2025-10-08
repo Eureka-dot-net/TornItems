@@ -55,3 +55,31 @@ export async function sendDiscordChannelAlert(channelId: string, message: string
     logError('Failed to send Discord channel alert', error instanceof Error ? error : new Error(String(error)), { channelId });
   }
 }
+
+/**
+ * Sends a direct message to a Discord user using the bot client
+ * @param userId - The Discord user ID
+ * @param message - The message content to send
+ */
+export async function sendDirectMessage(userId: string, message: string): Promise<void> {
+  const client = getDiscordClient();
+  
+  if (!client || !client.isReady()) {
+    logError('Discord bot not ready', new Error('Discord client is not initialized or not ready'));
+    return;
+  }
+  
+  try {
+    const user = await client.users.fetch(userId);
+    
+    if (!user) {
+      logError('User not found', new Error(`User ${userId} not found`));
+      return;
+    }
+    
+    await user.send({ content: message.substring(0, 2000) }); // Discord message limit
+    logInfo('Discord DM sent successfully', { userId });
+  } catch (error) {
+    logError('Failed to send Discord DM', error instanceof Error ? error : new Error(String(error)), { userId });
+  }
+}
