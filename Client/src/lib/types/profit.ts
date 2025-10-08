@@ -30,6 +30,7 @@ export interface CountryItem {
   next_estimated_restock_time?: string | null;
   travel_time_minutes?: number | null;
   profit_per_minute?: number | null;
+  boarding_time?: string | null;
 }
 
 export interface GroupedByCountry {

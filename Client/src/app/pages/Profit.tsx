@@ -151,13 +151,13 @@ export default function Profit() {
     const formatDuration = (minutes: number | null | undefined) => {
         if (minutes == null) return '-';
 
-        // Round to two decimal places
-        const rounded = Math.round(minutes * 100) / 100;
+        // Round to nearest whole minute (matches in-game display)
+        const rounded = Math.round(minutes);
 
         if (rounded < 60) return `${rounded}m`;
 
         const hours = Math.floor(rounded / 60);
-        const mins = +(rounded % 60).toFixed(2); // keep two decimals
+        const mins = rounded % 60;
 
         return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
     };
@@ -242,7 +242,7 @@ export default function Profit() {
     };
 
     // Calculate boarding time for a specific item based on its next restock time
-    // This is used for individual items in the detail view
+    // This ensures boarding times are always fresh and in the future
     const calculateItemBoardingTime = (item: CountryItem): string | null => {
         if (!item.travel_time_minutes || item.travel_time_minutes <= 0) return null;
         
