@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {
+    "scripts": {
     "dev": "cross-env NODE_ENV=development nodemon --watch src --ext ts --exec ts-node --project tsconfig.json src/index.ts",
     "build": "tsc",
-    "start": "npm run register-commands && node dist/src/index.js",
+    "start": "npm run register-commands-prod && node dist/src/index.js",
     "test": "jest --runInBand",
     "test:debug": "node --inspect-brk ./node_modules/jest/bin/jest.js --runInBand",
     "lint": "eslint src --ext .ts --max-warnings 0",
@@ -14,8 +14,9 @@
     "typecheck": "tsc --noEmit",
     "kill": "taskkill /IM node.exe /F",
     "init-travel-times": "ts-node scripts/initializeTravelTimes.ts",
+    "register-commands-prod": "node dist/src/register-commands.js",
     "register-commands": "ts-node src/register-commands.ts"
-  },
+  }, 
   "keywords": [],
   "author": "",
   "license": "ISC",
