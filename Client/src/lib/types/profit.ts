@@ -12,6 +12,7 @@ export interface CountryItem {
   profitPer1: number | null;
   shop_name: string | null;
   country?: string | null;
+  country_code?: string | null;
   shop_url_name?: string | null;
   in_stock?: number | null;
   sales_24h_current?: number | null;
@@ -27,6 +28,7 @@ export interface CountryItem {
   next_estimated_restock_time?: string | null;
   travel_time_minutes?: number | null;
   profit_per_minute?: number | null;
+  boarding_time?: string | null;
 }
 
 export interface GroupedByCountry {
