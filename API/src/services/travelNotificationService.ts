@@ -3,7 +3,7 @@ import { TravelNotification } from '../models/TravelNotification';
 import { DiscordUser } from '../models/DiscordUser';
 import { fetchTravelStatus } from '../utils/tornApi';
 import { decrypt } from '../utils/encryption';
-import { sendDirectMessage } from '../utils/discord';
+import { sendDirectMessageWithFallback } from '../utils/discord';
 import { logInfo, logError } from '../utils/logger';
 
 const COUNTRY_CODE_MAP: Record<string, string> = {
@@ -26,6 +26,7 @@ const COUNTRY_CODE_MAP: Record<string, string> = {
 async function checkTravelNotifications() {
   try {
     const now = new Date();
+    const fallbackChannelId = process.env.DISCORD_TRAVEL_CHANNEL_ID;
     
     // Find all enabled travel notifications that haven't been sent yet
     const notifications = await TravelNotification.find({ 
@@ -37,19 +38,20 @@ async function checkTravelNotifications() {
     for (const notification of notifications) {
       try {
         const scheduledNotifyBeforeTime = notification.scheduledNotifyBeforeTime ? new Date(notification.scheduledNotifyBeforeTime) : null;
+        const scheduledNotifyBeforeTime2 = notification.scheduledNotifyBeforeTime2 ? new Date(notification.scheduledNotifyBeforeTime2) : null;
         const scheduledBoardingTime = notification.scheduledBoardingTime ? new Date(notification.scheduledBoardingTime) : null;
         
         if (!scheduledBoardingTime) continue;
         
         const countryName = COUNTRY_CODE_MAP[notification.countryCode] || notification.countryCode;
         
-        // Check if we should send the "before" notification
+        // Check if we should send the first "before" notification
         if (scheduledNotifyBeforeTime && now >= scheduledNotifyBeforeTime && now < scheduledBoardingTime) {
           const message = `🛫 **Travel Alert - ${notification.notifyBeforeSeconds}s Warning**\n\n` +
             `Prepare to board for **${countryName}**!\n` +
-            `Board in **${notification.notifyBeforeSeconds} seconds** to land at ${notification.scheduledArrivalTime ? new Date(notification.scheduledArrivalTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : 'scheduled time'}`;
+            `Board in **${notification.notifyBeforeSeconds} seconds** to land at <t:${notification.scheduledArrivalTime ? Math.floor(new Date(notification.scheduledArrivalTime).getTime() / 1000) : 0}:t>`;
           
-          await sendDirectMessage(notification.discordUserId, message);
+          await sendDirectMessageWithFallback(notification.discordUserId, message, fallbackChannelId);
           
           logInfo('Sent travel warning notification', {
             discordUserId: notification.discordUserId,
@@ -58,14 +60,36 @@ async function checkTravelNotifications() {
           });
         }
         
+        // Check if we should send the second "before" notification
+        if (scheduledNotifyBeforeTime2 && now >= scheduledNotifyBeforeTime2 && now < scheduledBoardingTime && !notification.notificationsSent2) {
+          const message = `🛫 **Travel Alert - ${notification.notifyBeforeSeconds2}s Warning**\n\n` +
+            `Prepare to board for **${countryName}**!\n` +
+            `Board in **${notification.notifyBeforeSeconds2} seconds** to land at <t:${notification.scheduledArrivalTime ? Math.floor(new Date(notification.scheduledArrivalTime).getTime() / 1000) : 0}:t>`;
+          
+          await sendDirectMessageWithFallback(notification.discordUserId, message, fallbackChannelId);
+          
+          // Mark second notification as sent
+          await TravelNotification.updateOne(
+            { _id: notification._id },
+            { notificationsSent2: true }
+          );
+          
+          logInfo('Sent second travel warning notification', {
+            discordUserId: notification.discordUserId,
+            country: countryName,
+            notifyBeforeSeconds2: notification.notifyBeforeSeconds2,
+          });
+        }
+        
         // Check if we should send the "board now" notification
-        if (now >= scheduledBoardingTime) {
+        // Only send if there's no second notification time set
+        if (now >= scheduledBoardingTime && notification.notifyBeforeSeconds2 == null) {
           const message = `🛫 **Travel Alert - BOARD NOW!**\n\n` +
             `**Board now for ${countryName}!**\n` +
-            `You will land at ${notification.scheduledArrivalTime ? new Date(notification.scheduledArrivalTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : 'scheduled time'} (next 15-min restock slot)\n\n` +
+            `You will land at <t:${notification.scheduledArrivalTime ? Math.floor(new Date(notification.scheduledArrivalTime).getTime() / 1000) : 0}:t> (next 15-min restock slot)\n\n` +
             `https://www.torn.com/page.php?sid=travel&destination=${notification.countryCode}`;
           
-          await sendDirectMessage(notification.discordUserId, message);
+          await sendDirectMessageWithFallback(notification.discordUserId, message, fallbackChannelId);
           
           // Mark notifications as sent
           await TravelNotification.updateOne(
@@ -77,6 +101,17 @@ async function checkTravelNotifications() {
             discordUserId: notification.discordUserId,
             country: countryName,
             boardingTime: scheduledBoardingTime.toISOString(),
+          });
+        } else if (now >= scheduledBoardingTime && notification.notifyBeforeSeconds2 != null) {
+          // If there's a second notification time, just mark as sent without sending boarding notification
+          await TravelNotification.updateOne(
+            { _id: notification._id },
+            { notificationsSent: true }
+          );
+          
+          logInfo('Marked travel notification as sent (skipped boarding notification due to second warning)', {
+            discordUserId: notification.discordUserId,
+            country: countryName,
           });
         }
       } catch (error) {
@@ -100,6 +135,7 @@ async function checkTravelNotifications() {
 async function checkTravelStart() {
   try {
     const now = new Date();
+    const fallbackChannelId = process.env.DISCORD_TRAVEL_CHANNEL_ID;
     
     // Find notifications that have been sent but haven't received shop URL yet
     // Check within 1 minute after boarding time (in case user starts late)
@@ -122,6 +158,7 @@ async function checkTravelStart() {
             { _id: notification._id },
             { 
               scheduledNotifyBeforeTime: null,
+              scheduledNotifyBeforeTime2: null,
               scheduledBoardingTime: null,
               scheduledArrivalTime: null,
             }
@@ -145,7 +182,7 @@ async function checkTravelStart() {
           // Build the shop URL with watch items
           const itemParams = notification.watchItems
             .slice(0, 3)
-            .map((itemId, index) => `item${index + 1}=${itemId}`)
+            .map((itemId: number, index: number) => `item${index + 1}=${itemId}`)
             .join('&');
           
           const shopUrl = `https://www.torn.com/page.php?sid=travel&${itemParams}&amount=${user.itemsToBuy}&arrival=${arrivalTimestamp}`;
@@ -156,13 +193,14 @@ async function checkTravelStart() {
             `Watch Items: ${notification.watchItems.join(', ')}\n` +
             `Items to Buy: ${user.itemsToBuy}`;
           
-          await sendDirectMessage(notification.discordUserId, message);
+          await sendDirectMessageWithFallback(notification.discordUserId, message, fallbackChannelId);
           
           // Clear scheduled times to avoid duplicate messages
           await TravelNotification.updateOne(
             { _id: notification._id },
             { 
               scheduledNotifyBeforeTime: null,
+              scheduledNotifyBeforeTime2: null,
               scheduledBoardingTime: null,
               scheduledArrivalTime: null,
             }
