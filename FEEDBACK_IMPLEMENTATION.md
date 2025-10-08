@@ -79,30 +79,37 @@ cron.schedule('*/5 * * * * *', ...)  // Every 5 seconds
 
 **Impact**: Better chance of hitting exact notification times (±2.5 seconds vs ±5 seconds).
 
-### 5. Private Island Rounding Fix ✅
+### 5. Travel Time Rounding Fix ✅
 
-**Issue**: `Math.round(time * 0.70)` could lose precision.
+**Issue**: `Math.round(time * 0.70)` could lose precision for private island, and `Math.round(travelTime)` unnecessarily rounded base travel times.
 
-**Fix**: Multiply by 100, round, divide by 100 to preserve 2 decimal places.
+**Fix**: 
+- For private island: Multiply by 100, round, divide by 100 to preserve 2 decimal places
+- For non-private island: Use the base travel time as-is (no rounding)
 
 **Before**:
 ```typescript
 const actualTravelTime = notification.hasPrivateIsland 
   ? Math.round(travelTime.travelTimeMinutes * 0.70) 
-  : Math.round(travelTime.travelTimeMinutes);
+  : Math.round(travelTime.travelTimeMinutes);  // ← Unnecessary rounding
 ```
 
 **After**:
 ```typescript
 const actualTravelTime = user.hasPrivateIsland 
   ? Math.round(travelTime.travelTimeMinutes * 0.70 * 100) / 100
-  : Math.round(travelTime.travelTimeMinutes);
+  : travelTime.travelTimeMinutes;  // ← No rounding preserves precision
 ```
 
-**Example**:
-- Travel time: 18.5 minutes
-- Old: `Math.round(18.5 * 0.70)` = `Math.round(12.95)` = **13**
-- New: `Math.round(18.5 * 0.70 * 100) / 100` = `Math.round(1295) / 100` = **12.95**
+**Example (with private island)**:
+- Travel time: 26 minutes
+- Old: `Math.round(26 * 0.70)` = `Math.round(18.2)` = **18** (lost precision)
+- New: `Math.round(26 * 0.70 * 100) / 100` = `Math.round(1820) / 100` = **18.20** (preserved)
+
+**Example (without private island)**:
+- Travel time: 26 minutes
+- Old: `Math.round(26)` = **26** (already integer, but would lose decimals if present)
+- New: `26` = **26** (preserves any precision in base travel times)
 
 ## Updated Data Flow
 

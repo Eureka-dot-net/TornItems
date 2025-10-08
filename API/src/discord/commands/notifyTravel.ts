@@ -151,7 +151,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     // Fix rounding error with private island calculation (multiply by 100, round, divide by 100)
     const actualTravelTimeMinutes = user.hasPrivateIsland 
       ? Math.round(travelTime.travelTimeMinutes * 0.70 * 100) / 100
-      : Math.round(travelTime.travelTimeMinutes);
+      : travelTime.travelTimeMinutes;
 
     const landingTimeIfBoardNow = new Date(now.getTime() + actualTravelTimeMinutes * 60 * 1000);
     
