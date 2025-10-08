@@ -1,69 +1,69 @@
 describe('Travel Time Rounding', () => {
   describe('actualTravelTimeMinutes calculation', () => {
-    it('should preserve precision for non-private island users', () => {
+    it('should round to whole minutes for non-private island users', () => {
       const travelTimeMinutes = 26;
       const hasPrivateIsland = false;
       
       const actualTravelTimeMinutes = hasPrivateIsland 
-        ? Math.round(travelTimeMinutes * 0.70 * 100) / 100
-        : travelTimeMinutes;
+        ? Math.round(travelTimeMinutes * 0.70)
+        : Math.round(travelTimeMinutes);
       
       expect(actualTravelTimeMinutes).toBe(26);
     });
 
-    it('should preserve decimal precision for private island users', () => {
+    it('should round to whole minutes for private island users', () => {
       const travelTimeMinutes = 26;
       const hasPrivateIsland = true;
       
       const actualTravelTimeMinutes = hasPrivateIsland 
-        ? Math.round(travelTimeMinutes * 0.70 * 100) / 100
-        : travelTimeMinutes;
+        ? Math.round(travelTimeMinutes * 0.70)
+        : Math.round(travelTimeMinutes);
       
-      // 26 * 0.70 = 18.2
-      expect(actualTravelTimeMinutes).toBe(18.2);
+      // 26 * 0.70 = 18.2, rounded to 18
+      expect(actualTravelTimeMinutes).toBe(18);
     });
 
-    it('should handle edge case with private island calculation', () => {
-      const travelTimeMinutes = 18.5; // hypothetical decimal travel time
+    it('should round correctly when result has .5 decimals', () => {
+      const travelTimeMinutes = 35; // 35 * 0.70 = 24.5
       const hasPrivateIsland = true;
       
       const actualTravelTimeMinutes = hasPrivateIsland 
-        ? Math.round(travelTimeMinutes * 0.70 * 100) / 100
-        : travelTimeMinutes;
+        ? Math.round(travelTimeMinutes * 0.70)
+        : Math.round(travelTimeMinutes);
       
-      // 18.5 * 0.70 = 12.95
-      expect(actualTravelTimeMinutes).toBe(12.95);
+      // 35 * 0.70 = 24.5, rounds to 25 (Math.round rounds up)
+      expect(actualTravelTimeMinutes).toBe(25);
     });
 
-    it('should not round base travel time when no private island', () => {
-      const travelTimeMinutes = 18.5; // hypothetical decimal travel time
-      const hasPrivateIsland = false;
+    it('should round down when decimal is less than .5', () => {
+      const travelTimeMinutes = 41; // 41 * 0.70 = 28.7
+      const hasPrivateIsland = true;
       
       const actualTravelTimeMinutes = hasPrivateIsland 
-        ? Math.round(travelTimeMinutes * 0.70 * 100) / 100
-        : travelTimeMinutes;
+        ? Math.round(travelTimeMinutes * 0.70)
+        : Math.round(travelTimeMinutes);
       
-      // Should preserve the original value
-      expect(actualTravelTimeMinutes).toBe(18.5);
+      // 41 * 0.70 = 28.7, rounds to 29
+      expect(actualTravelTimeMinutes).toBe(29);
     });
 
     it('should calculate correctly for all countries with private island', () => {
       const testCases = [
-        { country: 'Mexico', time: 26, expected: 18.2 },
-        { country: 'Cayman Islands', time: 35, expected: 24.5 },
-        { country: 'Canada', time: 41, expected: 28.7 },
-        { country: 'Hawaii', time: 134, expected: 93.8 },
-        { country: 'United Kingdom', time: 159, expected: 111.3 },
-        { country: 'Argentina', time: 167, expected: 116.9 },
-        { country: 'Switzerland', time: 175, expected: 122.5 },
-        { country: 'Japan', time: 225, expected: 157.5 },
-        { country: 'China', time: 242, expected: 169.4 },
-        { country: 'UAE', time: 271, expected: 189.7 },
-        { country: 'South Africa', time: 297, expected: 207.9 },
+        { country: 'Mexico', time: 26, expected: 18 },        // 26 * 0.70 = 18.2 → 18
+        { country: 'Cayman Islands', time: 35, expected: 25 }, // 35 * 0.70 = 24.5 → 25
+        { country: 'Canada', time: 41, expected: 29 },         // 41 * 0.70 = 28.7 → 29
+        { country: 'Hawaii', time: 134, expected: 94 },        // 134 * 0.70 = 93.8 → 94
+        { country: 'United Kingdom', time: 159, expected: 111 }, // 159 * 0.70 = 111.3 → 111
+        { country: 'Argentina', time: 167, expected: 117 },    // 167 * 0.70 = 116.9 → 117
+        { country: 'Switzerland', time: 175, expected: 123 },  // 175 * 0.70 = 122.5 → 123
+        { country: 'Japan', time: 225, expected: 158 },        // 225 * 0.70 = 157.5 → 158
+        { country: 'China', time: 242, expected: 169 },        // 242 * 0.70 = 169.4 → 169
+        { country: 'UAE', time: 271, expected: 190 },          // 271 * 0.70 = 189.7 → 190
+        { country: 'South Africa', time: 297, expected: 208 }, // 297 * 0.70 = 207.9 → 208
       ];
 
       testCases.forEach(({ country, time, expected }) => {
-        const actualTravelTimeMinutes = Math.round(time * 0.70 * 100) / 100;
+        const actualTravelTimeMinutes = Math.round(time * 0.70);
         expect(actualTravelTimeMinutes).toBe(expected);
       });
     });

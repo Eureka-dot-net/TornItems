@@ -148,10 +148,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     // Calculate scheduled times using current settings
     const now = new Date();
     
-    // Fix rounding error with private island calculation (multiply by 100, round, divide by 100)
+    // Round travel time to whole minutes for both private island and non-private island
     const actualTravelTimeMinutes = user.hasPrivateIsland 
-      ? Math.round(travelTime.travelTimeMinutes * 0.70 * 100) / 100
-      : travelTime.travelTimeMinutes;
+      ? Math.round(travelTime.travelTimeMinutes * 0.70)
+      : Math.round(travelTime.travelTimeMinutes);
 
     const landingTimeIfBoardNow = new Date(now.getTime() + actualTravelTimeMinutes * 60 * 1000);
     

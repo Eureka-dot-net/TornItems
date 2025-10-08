@@ -79,37 +79,30 @@ cron.schedule('*/5 * * * * *', ...)  // Every 5 seconds
 
 **Impact**: Better chance of hitting exact notification times (±2.5 seconds vs ±5 seconds).
 
-### 5. Travel Time Rounding Fix ✅
+### 5. Travel Time Rounding for Display ✅
 
-**Issue**: `Math.round(time * 0.70)` could lose precision for private island, and `Math.round(travelTime)` unnecessarily rounded base travel times.
+**Issue**: Travel times were being displayed with decimal places (e.g., "18.2 minutes") when users expected whole minutes.
 
-**Fix**: 
-- For private island: Multiply by 100, round, divide by 100 to preserve 2 decimal places
-- For non-private island: Use the base travel time as-is (no rounding)
+**Fix**: Round travel times to whole minutes for display in notifications.
 
 **Before**:
 ```typescript
-const actualTravelTime = notification.hasPrivateIsland 
-  ? Math.round(travelTime.travelTimeMinutes * 0.70) 
-  : Math.round(travelTime.travelTimeMinutes);  // ← Unnecessary rounding
+const actualTravelTime = user.hasPrivateIsland 
+  ? Math.round(travelTime.travelTimeMinutes * 0.70 * 100) / 100  // Shows 18.2
+  : Math.round(travelTime.travelTimeMinutes);
 ```
 
 **After**:
 ```typescript
 const actualTravelTime = user.hasPrivateIsland 
-  ? Math.round(travelTime.travelTimeMinutes * 0.70 * 100) / 100
-  : travelTime.travelTimeMinutes;  // ← No rounding preserves precision
+  ? Math.round(travelTime.travelTimeMinutes * 0.70)  // Shows 18
+  : Math.round(travelTime.travelTimeMinutes);
 ```
 
-**Example (with private island)**:
-- Travel time: 26 minutes
-- Old: `Math.round(26 * 0.70)` = `Math.round(18.2)` = **18** (lost precision)
-- New: `Math.round(26 * 0.70 * 100) / 100` = `Math.round(1820) / 100` = **18.20** (preserved)
-
-**Example (without private island)**:
-- Travel time: 26 minutes
-- Old: `Math.round(26)` = **26** (already integer, but would lose decimals if present)
-- New: `26` = **26** (preserves any precision in base travel times)
+**Example (Mexico with private island)**:
+- Base travel time: 26 minutes
+- With 30% discount: 26 * 0.70 = 18.2 minutes
+- Displayed as: **18 minutes** (rounded for clarity)
 
 ## Updated Data Flow
 
