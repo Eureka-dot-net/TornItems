@@ -12,6 +12,12 @@ export const data = new SlashCommandBuilder()
   .setDescription('Add an item to your market watch list.')
   .addIntegerOption(option =>
     option
+      .setName('price')
+      .setDescription('Alert when price drops below this amount')
+      .setRequired(true)
+  )
+  .addIntegerOption(option =>
+    option
       .setName('itemid')
       .setDescription('The Torn item ID to watch (required if name not provided)')
       .setRequired(false)
@@ -21,12 +27,6 @@ export const data = new SlashCommandBuilder()
       .setName('name')
       .setDescription('The name of the item (required if itemid not provided)')
       .setRequired(false)
-  )
-  .addIntegerOption(option =>
-    option
-      .setName('price')
-      .setDescription('Alert when price drops below this amount')
-      .setRequired(true)
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
