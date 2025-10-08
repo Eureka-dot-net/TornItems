@@ -107,100 +107,6 @@ export default function Profit() {
         return Array.from(countriesMap.values());
     }, [profitData, foreignCountries]);
 
-    if (profitLoading) {
-        return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-                <CircularProgress />
-            </Box>
-        );
-    }
-
-    if (profitError) {
-        return (
-            <Box p={3}>
-                <Alert severity="error">
-                    Error loading profit data: {profitError instanceof Error ? profitError.message : 'Unknown error'}
-                </Alert>
-            </Box>
-        );
-    }
-
-    if (!profitData || !profitData.results) {
-        return (
-            <Box p={3}>
-                <Alert severity="info">No profit data available</Alert>
-            </Box>
-        );
-    }
-
-    const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
-        setSelectedCountry(newValue);
-    };
-
-    const handleSort = (field: SortField) => {
-        if (sortField === field) {
-            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-        } else {
-            setSortField(field);
-            setSortOrder('desc');
-        }
-    };
-
-    // Helper function to apply multiplication if checkbox is checked
-    const applyMultiplier = (value: number | null | undefined): number | null | undefined => {
-        if (value == null) return value;
-        const multiplier = profitData?.max_foreign_items || 15;
-        return multiplyByAmount ? value * multiplier : value;
-    };
-
-    // Handle item selection for watch list
-    const handleItemSelection = (itemId: number, checked: boolean) => {
-        setSelectedItems(prev => {
-            const newMap = new Map(prev);
-            if (checked) {
-                // Find the next available position (1, 2, or 3)
-                const usedPositions = new Set(newMap.values());
-                let position = 1;
-                while (usedPositions.has(position) && position <= 3) {
-                    position++;
-                }
-                if (position <= 3) {
-                    newMap.set(itemId, position);
-                }
-            } else {
-                newMap.delete(itemId);
-            }
-            return newMap;
-        });
-    };
-
-    // Build the watch URL
-    const buildWatchUrl = (): string | null => {
-        if (!profitData?.travel_status) return null;
-        
-        const sortedItems = Array.from(selectedItems.entries())
-            .sort((a, b) => a[1] - b[1]) // Sort by position
-            .map(([itemId]) => itemId);
-        
-        if (sortedItems.length === 0) return null;
-        
-        const params = new URLSearchParams();
-        sortedItems.forEach((itemId, index) => {
-            params.append(`item${index + 1}`, String(itemId));
-        });
-        params.append('amount', String(profitData.max_foreign_items));
-        params.append('arrival', String(profitData.travel_status.arrival_at));
-        
-        return `https://www.torn.com/page.php?sid=travel&${params.toString()}`;
-    };
-
-    // Check if we're currently travelling to the selected country (not Torn)
-    const isTravellingToCountry = (country: string): boolean => {
-        if (!profitData?.travel_status) return false;
-        if (profitData.travel_status.destination === 'Torn') return false; // Travelling home
-        return profitData.travel_status.destination === country;
-    };
-
     // Effect to handle country notifications
     useEffect(() => {
         const scheduledTimeouts: ReturnType<typeof setTimeout>[] = [];
@@ -343,6 +249,100 @@ export default function Profit() {
             scheduledTimeouts.forEach(timeout => clearTimeout(timeout));
         };
     }, [itemNotifications, sortedData]);
+
+    if (profitLoading) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+    if (profitError) {
+        return (
+            <Box p={3}>
+                <Alert severity="error">
+                    Error loading profit data: {profitError instanceof Error ? profitError.message : 'Unknown error'}
+                </Alert>
+            </Box>
+        );
+    }
+
+    if (!profitData || !profitData.results) {
+        return (
+            <Box p={3}>
+                <Alert severity="info">No profit data available</Alert>
+            </Box>
+        );
+    }
+
+    const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
+        setSelectedCountry(newValue);
+    };
+
+    const handleSort = (field: SortField) => {
+        if (sortField === field) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortField(field);
+            setSortOrder('desc');
+        }
+    };
+
+    // Helper function to apply multiplication if checkbox is checked
+    const applyMultiplier = (value: number | null | undefined): number | null | undefined => {
+        if (value == null) return value;
+        const multiplier = profitData?.max_foreign_items || 15;
+        return multiplyByAmount ? value * multiplier : value;
+    };
+
+    // Handle item selection for watch list
+    const handleItemSelection = (itemId: number, checked: boolean) => {
+        setSelectedItems(prev => {
+            const newMap = new Map(prev);
+            if (checked) {
+                // Find the next available position (1, 2, or 3)
+                const usedPositions = new Set(newMap.values());
+                let position = 1;
+                while (usedPositions.has(position) && position <= 3) {
+                    position++;
+                }
+                if (position <= 3) {
+                    newMap.set(itemId, position);
+                }
+            } else {
+                newMap.delete(itemId);
+            }
+            return newMap;
+        });
+    };
+
+    // Build the watch URL
+    const buildWatchUrl = (): string | null => {
+        if (!profitData?.travel_status) return null;
+        
+        const sortedItems = Array.from(selectedItems.entries())
+            .sort((a, b) => a[1] - b[1]) // Sort by position
+            .map(([itemId]) => itemId);
+        
+        if (sortedItems.length === 0) return null;
+        
+        const params = new URLSearchParams();
+        sortedItems.forEach((itemId, index) => {
+            params.append(`item${index + 1}`, String(itemId));
+        });
+        params.append('amount', String(profitData.max_foreign_items));
+        params.append('arrival', String(profitData.travel_status.arrival_at));
+        
+        return `https://www.torn.com/page.php?sid=travel&${params.toString()}`;
+    };
+
+    // Check if we're currently travelling to the selected country (not Torn)
+    const isTravellingToCountry = (country: string): boolean => {
+        if (!profitData?.travel_status) return false;
+        if (profitData.travel_status.destination === 'Torn') return false; // Travelling home
+        return profitData.travel_status.destination === country;
+    };
 
     const formatCurrency = (value: number | null | undefined) => {
         return value !== null && value !== undefined ? `$${value.toLocaleString()}` : '-';
