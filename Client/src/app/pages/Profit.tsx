@@ -235,7 +235,8 @@ export default function Profit() {
     // NOTE: travelTimeMinutes from API is ONE-WAY time
     const calculateNextBoardingTime = (travelTimeMinutes: number): string => {
         const now = new Date();
-        const travelTimeToDestination = travelTimeMinutes; // Already one-way
+        // Ensure travel time is rounded to avoid floating point issues
+        const travelTimeToDestination = Math.round(travelTimeMinutes);
         
         // Calculate when we would land if we boarded right now
         const landingTimeIfBoardNow = new Date(now.getTime() + travelTimeToDestination * 60 * 1000);
@@ -254,7 +255,8 @@ export default function Profit() {
         if (!item.travel_time_minutes || item.travel_time_minutes <= 0) return null;
         
         const now = new Date();
-        const travelTimeToDestination = item.travel_time_minutes; // ONE-WAY time
+        // Ensure travel time is rounded to avoid floating point issues
+        const travelTimeToDestination = Math.round(item.travel_time_minutes);
         
         // Calculate when we would land if we boarded right now
         const landingTimeIfBoardNow = new Date(now.getTime() + travelTimeToDestination * 60 * 1000);
