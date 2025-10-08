@@ -127,16 +127,32 @@ export default function Profit() {
             }
         };
 
-        const scheduleNotification = (boardingTime: string, title: string, body: string) => {
+        const scheduleNotification = (boardingTime: string, countryName: string) => {
             const boarding = new Date(boardingTime);
             const now = new Date();
             const timeUntilBoarding = boarding.getTime() - now.getTime();
-            const notificationTime = timeUntilBoarding - 10000; // 10 seconds before
+            const notificationTime10Sec = timeUntilBoarding - 10000; // 10 seconds before
+            const notificationTime1Sec = timeUntilBoarding - 1000; // 1 second before
 
-            if (notificationTime > 0) {
+            // First notification: 10 seconds before - Get ready
+            if (notificationTime10Sec > 0) {
                 const timeout = setTimeout(() => {
-                    sendNotification(title, body);
-                }, notificationTime);
+                    sendNotification(
+                        `✈️ ${countryName} - Get Ready!`,
+                        "You have 10 seconds to prepare for boarding!"
+                    );
+                }, notificationTime10Sec);
+                scheduledTimeouts.push(timeout);
+            }
+
+            // Second notification: 1 second before - Leave now
+            if (notificationTime1Sec > 0) {
+                const timeout = setTimeout(() => {
+                    sendNotification(
+                        `✈️ ${countryName} - LEAVE NOW!`,
+                        "Board immediately to land on the next restock!"
+                    );
+                }, notificationTime1Sec);
                 scheduledTimeouts.push(timeout);
             }
         };
@@ -162,8 +178,7 @@ export default function Profit() {
                     const boardingTime = new Date(nextSlot.getTime() - travelTimeToDestination * 60 * 1000);
                     scheduleNotification(
                         boardingTime.toISOString(),
-                        `✈️ ${country.name} Boarding Soon`,
-                        "Board now to land on the next restock!"
+                        country.name
                     );
                 }
             }
@@ -194,16 +209,32 @@ export default function Profit() {
             }
         };
 
-        const scheduleNotification = (boardingTime: string, title: string, body: string) => {
+        const scheduleNotification = (boardingTime: string, itemName: string, countryName: string) => {
             const boarding = new Date(boardingTime);
             const now = new Date();
             const timeUntilBoarding = boarding.getTime() - now.getTime();
-            const notificationTime = timeUntilBoarding - 10000; // 10 seconds before
+            const notificationTime10Sec = timeUntilBoarding - 10000; // 10 seconds before
+            const notificationTime1Sec = timeUntilBoarding - 1000; // 1 second before
 
-            if (notificationTime > 0) {
+            // First notification: 10 seconds before - Get ready
+            if (notificationTime10Sec > 0) {
                 const timeout = setTimeout(() => {
-                    sendNotification(title, body);
-                }, notificationTime);
+                    sendNotification(
+                        `✈️ ${itemName} - Get Ready!`,
+                        `You have 10 seconds to prepare for boarding to ${countryName}!`
+                    );
+                }, notificationTime10Sec);
+                scheduledTimeouts.push(timeout);
+            }
+
+            // Second notification: 1 second before - Leave now
+            if (notificationTime1Sec > 0) {
+                const timeout = setTimeout(() => {
+                    sendNotification(
+                        `✈️ ${itemName} - LEAVE NOW!`,
+                        `Board to ${countryName} immediately to land on the next restock!`
+                    );
+                }, notificationTime1Sec);
                 scheduledTimeouts.push(timeout);
             }
         };
@@ -238,8 +269,8 @@ export default function Profit() {
                     const boardingTimeDate = new Date(targetRestockTime.getTime() - travelTimeToDestination * 60 * 1000);
                     scheduleNotification(
                         boardingTimeDate.toISOString(),
-                        `✈️ ${item.name} Boarding Soon`,
-                        `Board to ${item.country} now to land on the next restock!`
+                        item.name,
+                        item.country || 'Unknown'
                     );
                 }
             }
