@@ -24,7 +24,7 @@ import { aggregateMarketHistory } from '../jobs/aggregateMarketHistory';
 import { monitorMarketPrices } from '../jobs/monitorMarketPrices';
 import { roundUpToNextQuarterHour, minutesBetween } from '../utils/dateHelpers';
 
-const API_KEY = process.env.TORN_API_KEY || 'yLp4OoENbjRy30GZ';
+const API_KEY = process.env.TORN_API_KEY;
 
 // Configurable rate limit (default 60 requests per minute, can be decreased if needed)
 const RATE_LIMIT_PER_MINUTE = parseInt(process.env.TORN_RATE_LIMIT || '60', 10);
