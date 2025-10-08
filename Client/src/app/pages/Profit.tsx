@@ -1,4 +1,4 @@
-import { Box, Typography, CircularProgress, Alert, Tabs, Tab, Paper, Grid, TableSortLabel, Link, Card, CardContent, Collapse } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, Tabs, Tab, Paper, Grid, TableSortLabel, Link, Card, CardContent, Collapse, Checkbox, Button } from '@mui/material';
 import { useState, useMemo, useEffect } from 'react';
 import { useProfit } from '../../lib/hooks/useProfit';
 import type { CountryItem } from '../../lib/types/profit';
@@ -7,11 +7,17 @@ type SortField = 'name' | 'shop_name' | 'country' | 'buy_price' | 'average_price
 type SortOrder = 'asc' | 'desc';
 
 export default function Profit() {
-    const { profitData, profitLoading, profitError } = useProfit();
+    // API Key state - you could also get this from localStorage or a context
+    const [apiKey, setApiKey] = useState<string>('');
+    
+    const { profitData, profitLoading, profitError } = useProfit(apiKey);
     const [selectedCountry, setSelectedCountry] = useState<string>('Torn');
     const [sortField, setSortField] = useState<SortField>('sold_profit');
     const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
     const [expandedItemId, setExpandedItemId] = useState<number | null>(null);
+    
+    // Watched items state (max 3 items)
+    const [watchedItems, setWatchedItems] = useState<Set<number>>(new Set());
     
     // Auto-refresh countdown every second
     const [, setCurrentTime] = useState(new Date());
@@ -304,6 +310,51 @@ export default function Profit() {
         return result;
     };
 
+    // Handle toggling watched items
+    const handleToggleWatchItem = (itemId: number) => {
+        setWatchedItems(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(itemId)) {
+                newSet.delete(itemId);
+            } else {
+                // Only allow max 3 items
+                if (newSet.size < 3) {
+                    newSet.add(itemId);
+                }
+            }
+            return newSet;
+        });
+    };
+
+    // Build the Torn watch URL
+    const buildWatchUrl = () => {
+        if (!profitData?.travelStatus) return null;
+        
+        const watchedItemsArray = Array.from(watchedItems);
+        if (watchedItemsArray.length === 0) return null;
+        
+        const params = new URLSearchParams();
+        watchedItemsArray.forEach((itemId, index) => {
+            params.set(`item${index + 1}`, itemId.toString());
+        });
+        params.set('amount', '15');
+        params.set('arrival', profitData.travelStatus.arrival_at.toString());
+        
+        return `https://www.torn.com/index.php?${params.toString()}`;
+    };
+
+    // Handle opening watch URL
+    const handleStartWatching = () => {
+        const url = buildWatchUrl();
+        if (url) {
+            window.open(url, '_blank');
+        }
+    };
+
+    // Check if we're traveling and to a foreign destination
+    const isTraveling = profitData?.travelStatus !== undefined && profitData?.travelStatus !== null;
+    const canWatch = isTraveling && watchedItems.size > 0;
+
     return (
         <Box sx={{ width: '100%', p: 3 }}>
             <Typography variant="h4" gutterBottom>
@@ -313,6 +364,57 @@ export default function Profit() {
             <Typography variant="body1" gutterBottom>
                 Total Items: {profitData.count} | Countries: {profitData.countries}
             </Typography>
+
+            {/* Watch Items Section - Only show for foreign countries */}
+            {(selectedCountry === 'Foreign' || (selectedCountry !== 'Torn' && selectedCountry !== 'Unknown')) && (
+                <Paper sx={{ mt: 2, p: 2, backgroundColor: 'rgba(33, 150, 243, 0.1)' }}>
+                    <Grid container spacing={2} alignItems="center">
+                        <Grid size={{ xs: 12, md: 6 }}>
+                            <Typography variant="h6" gutterBottom>
+                                Watch Items {isTraveling && `(Traveling to ${profitData.travelStatus?.destination})`}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                {isTraveling 
+                                    ? `Select up to 3 items to watch (${watchedItems.size}/3 selected)`
+                                    : 'You must be traveling to watch items. Provide your API key to check travel status.'}
+                            </Typography>
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 6 }} sx={{ textAlign: { md: 'right' } }}>
+                            {!isTraveling && (
+                                <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter your Torn API key"
+                                        value={apiKey}
+                                        onChange={(e) => setApiKey(e.target.value)}
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderRadius: '4px',
+                                            border: '1px solid rgba(255, 255, 255, 0.23)',
+                                            backgroundColor: 'rgba(255, 255, 255, 0.09)',
+                                            color: 'inherit',
+                                            fontFamily: 'inherit',
+                                            fontSize: '14px',
+                                            minWidth: '250px'
+                                        }}
+                                    />
+                                </Box>
+                            )}
+                            {isTraveling && (
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    disabled={!canWatch}
+                                    onClick={handleStartWatching}
+                                    sx={{ minWidth: '150px' }}
+                                >
+                                    Start Watching
+                                </Button>
+                            )}
+                        </Grid>
+                    </Grid>
+                </Paper>
+            )}
 
             <Paper sx={{ mt: 3 }}>
                 <Tabs
@@ -358,7 +460,12 @@ export default function Profit() {
                         borderBottom: '2px solid #555',
                         fontWeight: 'bold'
                     }}>
-                        <Grid size={{ xs: 12, sm: 2.5 }}>
+                        {isTraveling && (
+                            <Grid size={{ xs: 1, sm: 0.5 }}>
+                                <Typography variant="caption">Watch</Typography>
+                            </Grid>
+                        )}
+                        <Grid size={{ xs: isTraveling ? 11 : 12, sm: isTraveling ? 2 : 2.5 }}>
                             <TableSortLabel
                                 active={sortField === 'name'}
                                 direction={sortField === 'name' ? sortOrder : 'asc'}
@@ -517,37 +624,80 @@ export default function Profit() {
                                             borderBottom: '1px solid #333',
                                             '&:hover': {
                                                 backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                                cursor: 'pointer'
                                             }
                                         }}
-                                        onClick={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
                                     >
-                                        <Grid size={{ xs: 12, sm: 2.5 }}>
+                                        {isTraveling && (
+                                            <Grid size={{ xs: 1, sm: 0.5 }} sx={{ display: 'flex', alignItems: 'center' }}>
+                                                <Checkbox
+                                                    checked={watchedItems.has(item.id)}
+                                                    onChange={(e) => {
+                                                        e.stopPropagation();
+                                                        handleToggleWatchItem(item.id);
+                                                    }}
+                                                    disabled={!watchedItems.has(item.id) && watchedItems.size >= 3}
+                                                    sx={{ padding: 0 }}
+                                                />
+                                            </Grid>
+                                        )}
+                                        <Grid 
+                                            size={{ xs: isTraveling ? 11 : 12, sm: isTraveling ? 2 : 2.5 }}
+                                            sx={{ cursor: 'pointer' }}
+                                            onClick={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
+                                        >
                                             <Typography variant="body2">{item.name}</Typography>
                                         </Grid>
-                                        <Grid size={{ xs: 12, sm: 1.5 }}>
+                                        <Grid 
+                                            size={{ xs: 12, sm: 1.5 }}
+                                            sx={{ cursor: 'pointer' }}
+                                            onClick={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
+                                        >
                                             <Typography variant="body2">{item.country || '-'}</Typography>
                                         </Grid>
-                                        <Grid size={{ xs: 6, sm: 1.2 }}>
+                                        <Grid 
+                                            size={{ xs: 6, sm: 1.2 }}
+                                            sx={{ cursor: 'pointer' }}
+                                            onClick={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
+                                        >
                                             <Typography variant="body2">{formatCurrency(item.buy_price)}</Typography>
                                         </Grid>
-                                        <Grid size={{ xs: 6, sm: 1.2 }}>
+                                        <Grid 
+                                            size={{ xs: 6, sm: 1.2 }}
+                                            sx={{ cursor: 'pointer' }}
+                                            onClick={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
+                                        >
                                             <Typography variant="body2">{formatCurrency(item.average_price_items_sold)}</Typography>
                                         </Grid>
-                                        <Grid size={{ xs: 6, sm: 1.3 }}>
+                                        <Grid 
+                                            size={{ xs: 6, sm: 1.3 }}
+                                            sx={{ cursor: 'pointer' }}
+                                            onClick={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
+                                        >
                                             <Typography variant="body2" sx={{ color: (item.sold_profit ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
                                                 {formatCurrency(item.sold_profit)}
                                             </Typography>
                                         </Grid>
-                                        <Grid size={{ xs: 6, sm: 1.3 }}>
+                                        <Grid 
+                                            size={{ xs: 6, sm: 1.3 }}
+                                            sx={{ cursor: 'pointer' }}
+                                            onClick={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
+                                        >
                                             <Typography variant="body2">{formatDuration(item.travel_time_minutes)}</Typography>
                                         </Grid>
-                                        <Grid size={{ xs: 6, sm: 1.5 }}>
+                                        <Grid 
+                                            size={{ xs: 6, sm: 1.5 }}
+                                            sx={{ cursor: 'pointer' }}
+                                            onClick={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
+                                        >
                                             <Typography variant="body2" sx={{ color: (item.profit_per_minute ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
                                                 {formatCurrency(item.profit_per_minute)}
                                             </Typography>
                                         </Grid>
-                                        <Grid size={{ xs: 6, sm: 1.5 }}>
+                                        <Grid 
+                                            size={{ xs: 6, sm: 1.5 }}
+                                            sx={{ cursor: 'pointer' }}
+                                            onClick={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
+                                        >
                                             <Typography variant="body2">{formatNumber(item.sales_24h_current)}</Typography>
                                         </Grid>
                                     </Grid>

@@ -6,6 +6,7 @@ import { MarketHistory } from '../models/MarketHistory';
 import { ShopItemState } from '../models/ShopItemState';
 import { TravelTime } from '../models/TravelTime';
 import { roundUpToNextQuarterHour } from '../utils/dateHelpers';
+import { fetchTravelStatus, TravelStatus } from '../utils/tornApi';
 
 const router = express.Router({ mergeParams: true });
 
@@ -73,12 +74,21 @@ const TORN_SHOP_MAP: Record<string, string> = {
 };
 
 // GET /profit
-router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
+router.get('/profit', async (req: Request, res: Response): Promise<void> => {
   try {
     console.log('Fetching profit data from MongoDB...');
 
     // Check if ItemsSold should be included in the response (for debugging)
     const includeItemsSold = process.env.INCLUDE_ITEMS_SOLD === 'true';
+
+    // Get API key from query parameter or header
+    const apiKey = (req.query.key as string) || (req.headers['x-api-key'] as string);
+    
+    // Fetch travel status if API key is provided
+    let travelStatus: TravelStatus | null = null;
+    if (apiKey) {
+      travelStatus = await fetchTravelStatus(apiKey);
+    }
 
     // Get today's date for fetching the latest aggregated data
     const today = new Date().toISOString().split('T')[0];
@@ -437,6 +447,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       count: items.length,
       countries: Object.keys(grouped).length,
       results: grouped,
+      travelStatus: travelStatus || undefined,
     });
   } catch (err: unknown) {
     if (err instanceof Error) {
