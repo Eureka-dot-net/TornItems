@@ -46,6 +46,29 @@ async function retryWithBackoff<T>(
 }
 
 /**
+ * Calculate smart quantity intervals for purchase recommendations.
+ * If availableQuantity <= 5, returns [1, 2, 3, 4, 5] up to the available amount.
+ * If availableQuantity > 5, returns exactly 5 values: 1, max, and 3 evenly spaced values at 25%, 50%, 75%.
+ * Example: for 100 items, returns [1, 25, 50, 75, 100]
+ * Example: for 82 items, returns [1, 21, 41, 62, 82]
+ */
+export function calculateQuantityIntervals(availableQuantity: number): number[] {
+  if (availableQuantity <= 5) {
+    // For 5 or fewer items, return sequential quantities
+    return Array.from({ length: availableQuantity }, (_, i) => i + 1);
+  }
+  
+  // For more than 5 items, return exactly 5 values: 1, 25%, 50%, 75%, and max
+  return [
+    1,
+    Math.round(availableQuantity * 0.25),
+    Math.round(availableQuantity * 0.5),
+    Math.round(availableQuantity * 0.75),
+    availableQuantity
+  ];
+}
+
+/**
  * Monitors market prices for watchlist items and sends Discord alerts when prices drop below thresholds.
  * Uses random API keys from users watching each item and sends alerts to user-specific channels.
  * Includes deduplication logic to prevent spam for the same price.
@@ -96,7 +119,7 @@ export async function monitorMarketPrices(): Promise<void> {
         , listings[0]);
         
         const lowestPrice = lowestListing.price;
-        const availableQuantity = lowestListing.quantity || 1;
+        const availableQuantity = lowestListing.amount || 1;
         
         // Check each watch for this item
         for (const watch of watches) {
@@ -116,7 +139,10 @@ export async function monitorMarketPrices(): Promise<void> {
               const userApiKey = decrypt(watch.apiKey);
               const quantityOptions: Array<{ qty: number; recommendation: any }> = [];
               
-              for (let qty = 1; qty <= Math.min(availableQuantity, 5); qty++) {
+              // Calculate smart quantity intervals (max 5 options)
+              const quantities = calculateQuantityIntervals(availableQuantity);
+              
+              for (const qty of quantities) {
                 const totalCost = lowestPrice * qty;
                 const recommendation = await calculateBestStockToSell(totalCost, userApiKey);
                 
