@@ -187,7 +187,7 @@ export default function Profit() {
         params.append('amount', String(profitData.max_foreign_items));
         params.append('arrival', String(profitData.travel_status.arrival_at));
         
-        return `https://www.torn.com/index.php?${params.toString()}`;
+        return `https://www.torn.com/page.php?sid=travel&${params.toString()}`;
     };
 
     // Check if we're currently travelling to the selected country (not Torn)
