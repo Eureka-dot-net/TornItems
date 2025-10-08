@@ -56,6 +56,20 @@ const COUNTRY_CODE_MAP: Record<string, string> = {
   swi: 'Switzerland',
 };
 
+// Reverse mapping to handle both full names and abbreviations
+const getCountryCode = (countryName: string): string | undefined => {
+  // Check if it's already a known full name in COUNTRY_CODE_MAP
+  const codeEntry = Object.entries(COUNTRY_CODE_MAP).find(([, name]) => name === countryName);
+  if (codeEntry) return codeEntry[0];
+  
+  // Check for special abbreviations
+  const abbreviationMap: Record<string, string> = {
+    'UAE': 'uae',
+  };
+  
+  return abbreviationMap[countryName];
+};
+
 const TORN_SHOP_MAP: Record<string, string> = {
   "101": "candy",
   "102": "candy",
@@ -187,9 +201,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         inStock = match ? (match.in_stock ?? 0) : 0;
       } else {
         // 🌍 Check foreign travel stock
-        const countryCode = Object.entries(COUNTRY_CODE_MAP).find(
-          ([, name]) => name === country
-        )?.[0];
+        const countryCode = getCountryCode(country);
 
         if (countryCode) {
           const foreignKey = `${countryCode}:${item.name.toLowerCase()}`;
@@ -241,9 +253,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         shopItemState = shopItemStateMap.get(String(item.itemId));
       } else {
         // For foreign items, use countryCode:itemId lookup
-        const countryCode = Object.entries(COUNTRY_CODE_MAP).find(
-          ([, name]) => name === country
-        )?.[0];
+        const countryCode = getCountryCode(country);
         
         if (countryCode) {
           const stateKey = `${countryCode}:${item.itemId}`;
@@ -306,9 +316,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       
       if (country !== 'Torn' && country !== 'Unknown') {
         // Get country code for this country
-        const countryCode = Object.entries(COUNTRY_CODE_MAP).find(
-          ([, name]) => name === country
-        )?.[0];
+        const countryCode = getCountryCode(country);
         
         if (countryCode) {
           country_code = countryCode;
