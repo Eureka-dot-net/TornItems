@@ -25,10 +25,11 @@ export interface CountryItem {
   lowest_50_profit: number | null;
   sold_profit: number | null;
   sellout_duration_minutes?: number | null;
+  cycles_skipped?: number | null;
+  last_restock_time?: string | null;
   next_estimated_restock_time?: string | null;
   travel_time_minutes?: number | null;
   profit_per_minute?: number | null;
-  boarding_time?: string | null;
 }
 
 export interface GroupedByCountry {
