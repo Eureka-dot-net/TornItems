@@ -8,17 +8,42 @@ export const data = new SlashCommandBuilder()
   .addIntegerOption(option =>
     option
       .setName('itemid')
-      .setDescription('The Torn item ID to enable')
-      .setRequired(true)
+      .setDescription('The Torn item ID to enable (omit to enable all)')
+      .setRequired(false)
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  const itemId = interaction.options.getInteger('itemid', true);
+  const itemId = interaction.options.getInteger('itemid');
   const discordUserId = interaction.user.id;
 
   await interaction.deferReply({ ephemeral: true });
 
   try {
+    // If no itemId provided, enable all items for the user
+    if (itemId === null) {
+      const result = await MarketWatchlistItem.updateMany(
+        { discordUserId, enabled: false },
+        { enabled: true }
+      );
+
+      if (result.modifiedCount === 0) {
+        await interaction.editReply({
+          content: '❌ You have no disabled watch items to enable.',
+        });
+        return;
+      }
+
+      logInfo('Enabled all market watch items', {
+        discordUserId,
+        count: result.modifiedCount,
+      });
+
+      await interaction.editReply({
+        content: `✅ Enabled ${result.modifiedCount} watch item${result.modifiedCount !== 1 ? 's' : ''}.`,
+      });
+      return;
+    }
+
     // Find and update the watch
     const watch = await MarketWatchlistItem.findOneAndUpdate(
       { discordUserId, itemId },
