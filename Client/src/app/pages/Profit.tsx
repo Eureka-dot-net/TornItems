@@ -12,17 +12,32 @@ export default function Profit() {
     const [sortField, setSortField] = useState<SortField>('sold_profit');
     const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
     const [expandedItemId, setExpandedItemId] = useState<number | null>(null);
+    
+    // Auto-refresh countdown every second
+    const [, setCurrentTime] = useState(new Date());
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
 
-    const countries = profitData?.results ? Object.keys(profitData.results).sort((a, b) => {
-        // Torn first
-        if (a === 'Torn') return -1;
-        if (b === 'Torn') return 1;
-        // Then alphabetical
-        return a.localeCompare(b);
-    }) : [];
+    const countries = useMemo(() => {
+        if (!profitData?.results) return [];
+        return Object.keys(profitData.results).sort((a, b) => {
+            // Torn first
+            if (a === 'Torn') return -1;
+            if (b === 'Torn') return 1;
+            // Then alphabetical
+            return a.localeCompare(b);
+        });
+    }, [profitData]);
 
-    // Group all foreign countries (non-Torn) for the "Foreign" tab
-    const foreignCountries = countries.filter(c => c !== 'Torn');
+    // Group all foreign countries (non-Torn) for the "Foreign" tab - memoize to prevent hook count changes
+    const foreignCountries = useMemo(() => {
+        return countries.filter(c => c !== 'Torn');
+    }, [countries]);
+    
     const foreignItems = useMemo(() => {
         if (!profitData?.results) return [];
         return foreignCountries.flatMap(country => profitData.results[country] || []);
@@ -62,6 +77,29 @@ export default function Profit() {
         });
         return data;
     }, [rawData, sortField, sortOrder]);
+    
+    // Get unique foreign countries with travel times for the bottom section
+    const foreignCountriesWithTravelTimes = useMemo(() => {
+        if (!profitData?.results) return [];
+        
+        const countriesMap = new Map<string, { code: string; name: string; travelTime: number }>();
+        
+        foreignCountries.forEach(countryName => {
+            const items = profitData.results[countryName];
+            if (items && items.length > 0) {
+                const firstItem = items[0];
+                if (firstItem.country_code && firstItem.travel_time_minutes) {
+                    countriesMap.set(countryName, {
+                        code: firstItem.country_code,
+                        name: countryName,
+                        travelTime: firstItem.travel_time_minutes
+                    });
+                }
+            }
+        });
+        
+        return Array.from(countriesMap.values());
+    }, [profitData, foreignCountries]);
 
     if (profitLoading) {
         return (
@@ -222,38 +260,6 @@ export default function Profit() {
         
         return result;
     };
-
-    // Get unique foreign countries with travel times for the bottom section
-    const foreignCountriesWithTravelTimes = useMemo(() => {
-        if (!profitData?.results) return [];
-        
-        const countriesMap = new Map<string, { code: string; name: string; travelTime: number }>();
-        
-        foreignCountries.forEach(countryName => {
-            const items = profitData.results[countryName];
-            if (items && items.length > 0) {
-                const firstItem = items[0];
-                if (firstItem.country_code && firstItem.travel_time_minutes) {
-                    countriesMap.set(countryName, {
-                        code: firstItem.country_code,
-                        name: countryName,
-                        travelTime: firstItem.travel_time_minutes
-                    });
-                }
-            }
-        });
-        
-        return Array.from(countriesMap.values());
-    }, [profitData, foreignCountries]);
-
-    // Auto-refresh countdown every second
-    const [, setCurrentTime] = useState(new Date());
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setCurrentTime(new Date());
-        }, 1000);
-        return () => clearInterval(timer);
-    }, []);
 
     return (
         <Box sx={{ width: '100%', p: 3 }}>
