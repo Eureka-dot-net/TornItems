@@ -235,8 +235,15 @@ export default function Profit() {
     // NOTE: travelTimeMinutes from API is ONE-WAY time
     const calculateNextBoardingTime = (travelTimeMinutes: number): string => {
         const now = new Date();
-        const nextSlot = roundUpToNextQuarterHour(now);
         const travelTimeToDestination = travelTimeMinutes; // Already one-way
+        
+        // Calculate when we would land if we boarded right now
+        const landingTimeIfBoardNow = new Date(now.getTime() + travelTimeToDestination * 60 * 1000);
+        
+        // Find the next 15-minute slot AFTER our landing time
+        const nextSlot = roundUpToNextQuarterHour(landingTimeIfBoardNow);
+        
+        // Boarding time is the landing slot minus travel time
         const boardingTime = new Date(nextSlot.getTime() - travelTimeToDestination * 60 * 1000);
         return boardingTime.toISOString();
     };
