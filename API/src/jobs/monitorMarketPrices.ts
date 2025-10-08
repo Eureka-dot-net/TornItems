@@ -2,10 +2,10 @@ import axios from 'axios';
 import Bottleneck from 'bottleneck';
 import { MarketWatchlistItem } from '../models/MarketWatchlistItem';
 import { logInfo, logError } from '../utils/logger';
-import { sendDiscordAlert } from '../utils/discord';
+import { sendDiscordChannelAlert } from '../utils/discord';
 import { calculateBestStockToSell } from '../utils/stockSellHelper';
+import { decrypt } from '../utils/encryption';
 
-const API_KEY = process.env.TORN_API_KEY || 'yLp4OoENbjRy30GZ';
 const RATE_LIMIT_PER_MINUTE = parseInt(process.env.TORN_RATE_LIMIT || '60', 10);
 
 // Create a shared rate limiter for market monitoring
@@ -47,26 +47,40 @@ async function retryWithBackoff<T>(
 
 /**
  * Monitors market prices for watchlist items and sends Discord alerts when prices drop below thresholds.
+ * Uses random API keys from users watching each item and sends alerts to user-specific channels.
  * Includes deduplication logic to prevent spam for the same price.
  */
 export async function monitorMarketPrices(): Promise<void> {
   try {
-    // Get all watchlist items
-    const watchlistItems = await MarketWatchlistItem.find({});
+    // Get all enabled watchlist items
+    const watchlistItems = await MarketWatchlistItem.find({ enabled: true });
     
     if (watchlistItems.length === 0) {
-      logInfo('No items in watchlist to monitor');
+      logInfo('No enabled items in watchlist to monitor');
       return;
     }
     
-    logInfo(`Monitoring ${watchlistItems.length} watchlist items for price alerts...`);
+    logInfo(`Monitoring ${watchlistItems.length} enabled watchlist items for price alerts...`);
     
-    for (const watchlistItem of watchlistItems) {
+    // Group watches by itemId to process each item once with all watchers
+    const itemWatchMap = new Map<number, typeof watchlistItems>();
+    for (const watch of watchlistItems) {
+      if (!itemWatchMap.has(watch.itemId)) {
+        itemWatchMap.set(watch.itemId, []);
+      }
+      itemWatchMap.get(watch.itemId)!.push(watch);
+    }
+    
+    for (const [itemId, watches] of itemWatchMap.entries()) {
       try {
+        // Select a random watch to get an API key
+        const randomWatch = watches[Math.floor(Math.random() * watches.length)];
+        const apiKey = decrypt(randomWatch.apiKey);
+        
         // Fetch market data for this item using rate limiter
         const response = await retryWithBackoff(() =>
           limiter.schedule(() =>
-            axios.get(`https://api.torn.com/v2/market/${watchlistItem.itemId}/itemmarket?limit=20&key=${API_KEY}`)
+            axios.get(`https://api.torn.com/v2/market/${itemId}/itemmarket?limit=20&key=${apiKey}`)
           )
         ) as { data: { itemmarket: any } };
         
@@ -84,77 +98,85 @@ export async function monitorMarketPrices(): Promise<void> {
         const lowestPrice = lowestListing.price;
         const availableQuantity = lowestListing.quantity || 1;
         
-        // Check if price is below threshold
-        if (lowestPrice < watchlistItem.alert_below) {
-          // Check if we already sent an alert for this price (deduplication)
-          if (watchlistItem.lastAlertPrice === lowestPrice) {
-            logInfo(`Skipping duplicate alert for ${watchlistItem.name} at $${lowestPrice.toLocaleString()}`);
-            continue;
-          }
-          
-          // Format the alert message
-          const discordUserId = process.env.MY_DISCORD_USER_ID;
-          const userMention = discordUserId ? `<@${discordUserId}>` : '';
-          
-          // Calculate stock sell recommendations for multiple quantities
-          const quantityOptions: Array<{ qty: number; recommendation: any }> = [];
-          
-          for (let qty = 1; qty <= availableQuantity; qty++) {
-            const totalCost = lowestPrice * qty;
-            const recommendation = await calculateBestStockToSell(totalCost);
-            
-            if (recommendation) {
-              quantityOptions.push({ qty, recommendation });
+        // Check each watch for this item
+        for (const watch of watches) {
+          try {
+            // Check if price is below threshold
+            if (lowestPrice < watch.alert_below) {
+              // Check if we already sent an alert for this price (deduplication)
+              if (watch.lastAlertPrice === lowestPrice) {
+                logInfo(`Skipping duplicate alert for ${watch.name} at $${lowestPrice.toLocaleString()} for user ${watch.discordUserId}`);
+                continue;
+              }
+              
+              // Format the alert message
+              const userMention = `<@${watch.discordUserId}>`;
+              
+              // Calculate stock sell recommendations for multiple quantities using user's API key
+              const userApiKey = decrypt(watch.apiKey);
+              const quantityOptions: Array<{ qty: number; recommendation: any }> = [];
+              
+              for (let qty = 1; qty <= Math.min(availableQuantity, 5); qty++) {
+                const totalCost = lowestPrice * qty;
+                const recommendation = await calculateBestStockToSell(totalCost, userApiKey);
+                
+                if (recommendation) {
+                  quantityOptions.push({ qty, recommendation });
+                }
+              }
+              
+              const messageParts = [
+                '🚨 Cheap item found!',
+                `💊 ${availableQuantity}x ${watch.name} at $${lowestPrice.toLocaleString()} each (below $${watch.alert_below.toLocaleString()})`,
+                userMention,
+                `https://www.torn.com/page.php?sid=ItemMarket#/market/view=search&itemID=${encodeURIComponent(itemId)}`
+              ];
+              
+              // Add stock sell recommendations for each quantity
+              if (quantityOptions.length > 0) {
+                messageParts.push('');
+                messageParts.push('💰 Click here to sell stocks to buy:');
+                
+                for (const option of quantityOptions) {
+                  const { qty, recommendation } = option;
+                  const totalCost = (lowestPrice * qty).toLocaleString();
+                  const scoreFormatted = recommendation.sell_score.toFixed(2);
+                  messageParts.push(`${qty}x (score: ${scoreFormatted}) - $${totalCost} - ${recommendation.sell_url}`);
+                }
+              }
+              
+              const message = messageParts.filter(Boolean).join('\n');
+              
+              // Send Discord alert to user's channel
+              await sendDiscordChannelAlert(watch.channelId, message);
+              
+              // Update last alert info to prevent duplicate alerts
+              await MarketWatchlistItem.updateOne(
+                { _id: watch._id },
+                { 
+                  lastAlertPrice: lowestPrice,
+                  lastAlertTimestamp: new Date()
+                }
+              );
+              
+              logInfo(`Alert sent for ${watch.name} at $${lowestPrice.toLocaleString()} to user ${watch.discordUserId}`);
+            } else {
+              // Price is above threshold, reset last alert price so we can alert again if it drops
+              if (watch.lastAlertPrice !== null) {
+                await MarketWatchlistItem.updateOne(
+                  { _id: watch._id },
+                  { lastAlertPrice: null }
+                );
+              }
             }
-          }
-          
-          const messageParts = [
-            '🚨 Cheap item found!',
-            `💊 ${availableQuantity}x ${watchlistItem.name} at $${lowestPrice.toLocaleString()} each (below $${watchlistItem.alert_below.toLocaleString()})`,
-            userMention,
-            `https://www.torn.com/page.php?sid=ItemMarket#/market/view=search&itemID=${encodeURIComponent(watchlistItem.itemId)}`
-          ];
-          
-          // Add stock sell recommendations for each quantity
-          if (quantityOptions.length > 0) {
-            messageParts.push('');
-            messageParts.push('💰 Click here to sell stocks to buy:');
-            
-            for (const option of quantityOptions) {
-              const { qty, recommendation } = option;
-              const totalCost = (lowestPrice * qty).toLocaleString();
-              const scoreFormatted = recommendation.sell_score.toFixed(2);
-              messageParts.push(`${qty}x (score: ${scoreFormatted}) - $${totalCost} - ${recommendation.sell_url}`);
-            }
-          }
-          
-          const message = messageParts.filter(Boolean).join('\n');
-          
-          // Send Discord alert
-          await sendDiscordAlert(message);
-          
-          // Update last alert info to prevent duplicate alerts
-          await MarketWatchlistItem.updateOne(
-            { itemId: watchlistItem.itemId },
-            { 
-              lastAlertPrice: lowestPrice,
-              lastAlertTimestamp: new Date()
-            }
-          );
-          
-          logInfo(`Alert sent for ${watchlistItem.name} at $${lowestPrice.toLocaleString()}`);
-        } else {
-          // Price is above threshold, reset last alert price so we can alert again if it drops
-          if (watchlistItem.lastAlertPrice !== null) {
-            await MarketWatchlistItem.updateOne(
-              { itemId: watchlistItem.itemId },
-              { lastAlertPrice: null }
-            );
+          } catch (error) {
+            logError(`Error processing watch for ${watch.name} (user: ${watch.discordUserId})`, 
+              error instanceof Error ? error : new Error(String(error)));
           }
         }
         
       } catch (error) {
-        logError(`Error monitoring item ${watchlistItem.name} (ID: ${watchlistItem.itemId})`, 
+        logError(`Error monitoring item ${itemId}`, 
           error instanceof Error ? error : new Error(String(error)));
       }
     }

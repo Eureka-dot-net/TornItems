@@ -158,7 +158,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     }
 
     // Constants for foreign stock calculations
-    const MAX_FOREIGN_ITEMS = 15;
+    const MAX_FOREIGN_ITEMS = 19;
     const PRIVATE_ISLAND_REDUCTION = 0.30; // 30% reduction (airstrip effect)
     const HAS_PRIVATE_ISLAND = true; // Hardcoded for now
 

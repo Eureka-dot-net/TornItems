@@ -270,15 +270,24 @@ describe('MongoDB Models', () => {
         itemId: 18,
         name: 'Xanax',
         alert_below: 830000,
+        discordUserId: '123456789',
+        apiKey: 'test_encrypted_key',
+        guildId: '987654321',
+        channelId: '111222333',
+        enabled: true,
       });
 
       expect(watchlistItem.itemId).toBe(18);
       expect(watchlistItem.name).toBe('Xanax');
       expect(watchlistItem.alert_below).toBe(830000);
+      expect(watchlistItem.discordUserId).toBe('123456789');
+      expect(watchlistItem.guildId).toBe('987654321');
+      expect(watchlistItem.channelId).toBe('111222333');
+      expect(watchlistItem.enabled).toBe(true);
       expect(watchlistItem.lastAlertPrice).toBeNull();
       expect(watchlistItem.lastAlertTimestamp).toBeNull();
       
-      await MarketWatchlistItem.deleteOne({ itemId: 18 });
+      await MarketWatchlistItem.deleteOne({ _id: watchlistItem._id });
     });
 
     it('should update lastAlertPrice and lastAlertTimestamp', async () => {
@@ -286,42 +295,80 @@ describe('MongoDB Models', () => {
         itemId: 23,
         name: 'Erotic DVD',
         alert_below: 4600000,
+        discordUserId: '123456789',
+        apiKey: 'test_encrypted_key',
+        guildId: '987654321',
+        channelId: '111222333',
+        enabled: true,
       });
 
       const alertPrice = 4500000;
       const alertTime = new Date();
 
       await MarketWatchlistItem.updateOne(
-        { itemId: 23 },
+        { _id: watchlistItem._id },
         { 
           lastAlertPrice: alertPrice,
           lastAlertTimestamp: alertTime
         }
       );
 
-      const updated = await MarketWatchlistItem.findOne({ itemId: 23 });
+      const updated = await MarketWatchlistItem.findOne({ _id: watchlistItem._id });
       expect(updated?.lastAlertPrice).toBe(alertPrice);
       expect(updated?.lastAlertTimestamp).toBeInstanceOf(Date);
       
-      await MarketWatchlistItem.deleteOne({ itemId: 23 });
+      await MarketWatchlistItem.deleteOne({ _id: watchlistItem._id });
     });
 
-    it('should enforce unique itemId constraint', async () => {
-      await MarketWatchlistItem.create({
+    it('should enforce unique constraint on discordUserId and itemId combination', async () => {
+      const data = {
         itemId: 99,
         name: 'Test Item',
         alert_below: 1000000,
-      });
+        discordUserId: '123456789',
+        apiKey: 'test_encrypted_key',
+        guildId: '987654321',
+        channelId: '111222333',
+        enabled: true,
+      };
+
+      await MarketWatchlistItem.create(data);
 
       await expect(
-        MarketWatchlistItem.create({
-          itemId: 99,
-          name: 'Test Item 2',
-          alert_below: 2000000,
-        })
+        MarketWatchlistItem.create(data)
       ).rejects.toThrow();
       
-      await MarketWatchlistItem.deleteOne({ itemId: 99 });
+      await MarketWatchlistItem.deleteOne({ discordUserId: '123456789', itemId: 99 });
+    });
+
+    it('should allow different users to watch the same item', async () => {
+      const item1 = await MarketWatchlistItem.create({
+        itemId: 99,
+        name: 'Test Item',
+        alert_below: 1000000,
+        discordUserId: '123456789',
+        apiKey: 'test_encrypted_key_1',
+        guildId: '987654321',
+        channelId: '111222333',
+        enabled: true,
+      });
+
+      const item2 = await MarketWatchlistItem.create({
+        itemId: 99,
+        name: 'Test Item',
+        alert_below: 1000000,
+        discordUserId: '987654321',
+        apiKey: 'test_encrypted_key_2',
+        guildId: '987654321',
+        channelId: '444555666',
+        enabled: true,
+      });
+
+      expect(item1.itemId).toBe(99);
+      expect(item2.itemId).toBe(99);
+      expect(item1.discordUserId).not.toBe(item2.discordUserId);
+      
+      await MarketWatchlistItem.deleteMany({ itemId: 99 });
     });
   });
 
@@ -409,7 +456,7 @@ describe('MongoDB Models', () => {
       expect(transaction.recommendation_at_buy).toBe('STRONG_BUY');
       expect(transaction.score_at_sale).toBe(6.27);
       expect(transaction.recommendation_at_sale).toBe('STRONG_BUY');
-      expect(transaction.linked_buy_id.toString()).toBe(lot._id.toString());
+      expect(transaction.linked_buy_id?.toString()).toBe(lot._id?.toString());
       
       await StockTransactionHistory.deleteOne({ _id: transaction._id });
       await StockHoldingLot.deleteOne({ _id: lot._id });

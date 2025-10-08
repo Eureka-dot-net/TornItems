@@ -63,7 +63,7 @@ export const connectDB = async (): Promise<void> => {
     
   } catch (error) {
     console.error('❌ Database connection failed:', (error as Error).message);
-    if (!isUsingMockDatabase) {
+    if (!isUsingMockDatabase && process.env.NODE_ENV !== 'test') {
       console.log('\n🚨 The server cannot start without a database connection.');
       console.log('Please follow the setup instructions above.\n');
       process.exit(1);

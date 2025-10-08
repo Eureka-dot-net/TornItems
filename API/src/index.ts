@@ -11,6 +11,7 @@ import { app } from './app';
 import { connectDB } from './config/db';
 import { logInfo, logError } from './utils/logger';
 import { startScheduler } from './services/backgroundFetcher';
+import { startDiscordBot } from './services/discordBot';
 
 const PORT = process.env.PORT || 3000;
 
@@ -56,6 +57,9 @@ connectDB()
         
         // Start the background fetcher scheduler
         startScheduler();
+        
+        // Start the Discord bot
+        startDiscordBot();
     })
     .catch((error) => {
         logError('Database connection failed', error);
