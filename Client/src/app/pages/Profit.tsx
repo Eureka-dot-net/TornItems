@@ -151,13 +151,13 @@ export default function Profit() {
     const formatDuration = (minutes: number | null | undefined) => {
         if (minutes == null) return '-';
 
-        // Round to two decimal places
-        const rounded = Math.round(minutes * 100) / 100;
+        // Round to nearest whole minute (matches in-game display)
+        const rounded = Math.round(minutes);
 
         if (rounded < 60) return `${rounded}m`;
 
         const hours = Math.floor(rounded / 60);
-        const mins = +(rounded % 60).toFixed(2); // keep two decimals
+        const mins = rounded % 60;
 
         return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
     };
@@ -235,10 +235,53 @@ export default function Profit() {
     // NOTE: travelTimeMinutes from API is ONE-WAY time
     const calculateNextBoardingTime = (travelTimeMinutes: number): string => {
         const now = new Date();
-        const nextSlot = roundUpToNextQuarterHour(now);
-        const travelTimeToDestination = travelTimeMinutes; // Already one-way
+        // Ensure travel time is rounded to avoid floating point issues
+        const travelTimeToDestination = Math.round(travelTimeMinutes);
+        
+        // Calculate when we would land if we boarded right now
+        const landingTimeIfBoardNow = new Date(now.getTime() + travelTimeToDestination * 60 * 1000);
+        
+        // Find the next 15-minute slot AFTER our landing time
+        const nextSlot = roundUpToNextQuarterHour(landingTimeIfBoardNow);
+        
+        // Boarding time is the landing slot minus travel time
         const boardingTime = new Date(nextSlot.getTime() - travelTimeToDestination * 60 * 1000);
         return boardingTime.toISOString();
+    };
+
+    // Calculate boarding time for a specific item based on its next restock time
+    // This ensures boarding times are always fresh and in the future
+    const calculateItemBoardingTime = (item: CountryItem): string | null => {
+        if (!item.travel_time_minutes || item.travel_time_minutes <= 0) return null;
+        
+        const now = new Date();
+        // Ensure travel time is rounded to avoid floating point issues
+        const travelTimeToDestination = Math.round(item.travel_time_minutes);
+        
+        // Calculate when we would land if we boarded right now
+        const landingTimeIfBoardNow = new Date(now.getTime() + travelTimeToDestination * 60 * 1000);
+        
+        let targetRestockTime: Date;
+        
+        if (item.next_estimated_restock_time) {
+            // We have restock data - find next restock after our landing time
+            let estimatedRestock = new Date(item.next_estimated_restock_time);
+            
+            // If the estimated restock is before we would land, advance to next cycle(s)
+            while (estimatedRestock <= landingTimeIfBoardNow) {
+                // Advance by 15 minutes (one restock cycle)
+                estimatedRestock = new Date(estimatedRestock.getTime() + 15 * 60 * 1000);
+            }
+            
+            targetRestockTime = estimatedRestock;
+        } else {
+            // No restock data - find next quarter hour after landing time
+            targetRestockTime = roundUpToNextQuarterHour(landingTimeIfBoardNow);
+        }
+        
+        // Boarding time is the target restock time minus the travel time
+        const boardingTimeDate = new Date(targetRestockTime.getTime() - travelTimeToDestination * 60 * 1000);
+        return boardingTimeDate.toISOString();
     };
 
     // Helper function to round up to next quarter hour (client-side version)
@@ -528,8 +571,26 @@ export default function Profit() {
                                                         <Typography variant="body1">{formatCurrency(item.market_price)}</Typography>
                                                     </Grid>
                                                     <Grid size={{ xs: 6, sm: 4 }}>
+                                                        <Typography variant="body2" color="text.secondary">Profit Per 1:</Typography>
+                                                        <Typography variant="body1" sx={{ color: (item.profitPer1 ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
+                                                            {formatCurrency(item.profitPer1)}
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid size={{ xs: 6, sm: 4 }}>
                                                         <Typography variant="body2" color="text.secondary">Avg Sold Price:</Typography>
                                                         <Typography variant="body1">{formatCurrency(item.average_price_items_sold)}</Typography>
+                                                    </Grid>
+                                                    <Grid size={{ xs: 6, sm: 4 }}>
+                                                        <Typography variant="body2" color="text.secondary">Estimated Market Value Profit:</Typography>
+                                                        <Typography variant="body1" sx={{ color: (item.estimated_market_value_profit ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
+                                                            {formatCurrency(item.estimated_market_value_profit)}
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid size={{ xs: 6, sm: 4 }}>
+                                                        <Typography variant="body2" color="text.secondary">Lowest 50 Profit:</Typography>
+                                                        <Typography variant="body1" sx={{ color: (item.lowest_50_profit ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
+                                                            {formatCurrency(item.lowest_50_profit)}
+                                                        </Typography>
                                                     </Grid>
                                                     <Grid size={{ xs: 6, sm: 4 }}>
                                                         <Typography variant="body2" color="text.secondary">Sold Profit:</Typography>
@@ -542,6 +603,24 @@ export default function Profit() {
                                                         <Typography variant="body1">{formatNumber(item.in_stock)}</Typography>
                                                     </Grid>
                                                     <Grid size={{ xs: 6, sm: 4 }}>
+                                                        <Typography variant="body2" color="text.secondary">24h Sales Current:</Typography>
+                                                        <Typography variant="body1">{formatNumber(item.sales_24h_current)}</Typography>
+                                                    </Grid>
+                                                    <Grid size={{ xs: 6, sm: 4 }}>
+                                                        <Typography variant="body2" color="text.secondary">24h Sales Previous:</Typography>
+                                                        <Typography variant="body1">{formatNumber(item.sales_24h_previous)}</Typography>
+                                                    </Grid>
+                                                    <Grid size={{ xs: 6, sm: 4 }}>
+                                                        <Typography variant="body2" color="text.secondary">24h Trend:</Typography>
+                                                        <Typography variant="body1" sx={{ color: (item.trend_24h ?? 0) > 0 ? '#4caf50' : (item.trend_24h ?? 0) < 0 ? '#f44336' : 'inherit' }}>
+                                                            {item.trend_24h !== null && item.trend_24h !== undefined ? `${item.trend_24h > 0 ? '+' : ''}${formatNumber(item.trend_24h)}` : '-'}
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid size={{ xs: 6, sm: 4 }}>
+                                                        <Typography variant="body2" color="text.secondary">Hour Velocity 24:</Typography>
+                                                        <Typography variant="body1">{item.hour_velocity_24 !== null && item.hour_velocity_24 !== undefined ? item.hour_velocity_24.toFixed(2) : '-'}</Typography>
+                                                    </Grid>
+                                                    <Grid size={{ xs: 6, sm: 4 }}>
                                                         <Typography variant="body2" color="text.secondary">Travel Time:</Typography>
                                                         <Typography variant="body1">{formatDuration(item.travel_time_minutes)}</Typography>
                                                     </Grid>
@@ -551,15 +630,11 @@ export default function Profit() {
                                                             {formatCurrency(item.profit_per_minute)}
                                                         </Typography>
                                                     </Grid>
-                                                    <Grid size={{ xs: 6, sm: 4 }}>
-                                                        <Typography variant="body2" color="text.secondary">24h Sales:</Typography>
-                                                        <Typography variant="body1">{formatNumber(item.sales_24h_current)}</Typography>
-                                                    </Grid>
-                                                    {item.boarding_time && (
+                                                    {item.travel_time_minutes && item.travel_time_minutes > 0 && (
                                                         <>
                                                             <Grid size={{ xs: 6, sm: 4 }}>
                                                                 <Typography variant="body2" color="text.secondary">Boarding Time:</Typography>
-                                                                <Typography variant="body1">{formatDateTime(item.boarding_time)}</Typography>
+                                                                <Typography variant="body1">{formatDateTime(calculateItemBoardingTime(item))}</Typography>
                                                             </Grid>
                                                             <Grid size={{ xs: 6, sm: 4 }}>
                                                                 <Typography variant="body2" color="text.secondary">Boarding Time Left:</Typography>
@@ -576,7 +651,7 @@ export default function Profit() {
                                                                     }}
                                                                 >
                                                                     <Typography variant="body1">
-                                                                        {formatBoardingTimeLeft(calculateBoardingTimeLeft(item.boarding_time))}
+                                                                        {formatBoardingTimeLeft(calculateBoardingTimeLeft(calculateItemBoardingTime(item)))}
                                                                     </Typography>
                                                                 </Link>
                                                             </Grid>
@@ -668,8 +743,26 @@ export default function Profit() {
                                                         <Typography variant="body1">{formatCurrency(item.market_price)}</Typography>
                                                     </Grid>
                                                     <Grid size={{ xs: 6, sm: 4 }}>
+                                                        <Typography variant="body2" color="text.secondary">Profit Per 1:</Typography>
+                                                        <Typography variant="body1" sx={{ color: (item.profitPer1 ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
+                                                            {formatCurrency(item.profitPer1)}
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid size={{ xs: 6, sm: 4 }}>
                                                         <Typography variant="body2" color="text.secondary">Avg Sold Price:</Typography>
                                                         <Typography variant="body1">{formatCurrency(item.average_price_items_sold)}</Typography>
+                                                    </Grid>
+                                                    <Grid size={{ xs: 6, sm: 4 }}>
+                                                        <Typography variant="body2" color="text.secondary">Estimated Market Value Profit:</Typography>
+                                                        <Typography variant="body1" sx={{ color: (item.estimated_market_value_profit ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
+                                                            {formatCurrency(item.estimated_market_value_profit)}
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid size={{ xs: 6, sm: 4 }}>
+                                                        <Typography variant="body2" color="text.secondary">Lowest 50 Profit:</Typography>
+                                                        <Typography variant="body1" sx={{ color: (item.lowest_50_profit ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
+                                                            {formatCurrency(item.lowest_50_profit)}
+                                                        </Typography>
                                                     </Grid>
                                                     <Grid size={{ xs: 6, sm: 4 }}>
                                                         <Typography variant="body2" color="text.secondary">Sold Profit:</Typography>
@@ -682,12 +775,34 @@ export default function Profit() {
                                                         <Typography variant="body1">{formatNumber(item.in_stock)}</Typography>
                                                     </Grid>
                                                     <Grid size={{ xs: 6, sm: 4 }}>
-                                                        <Typography variant="body2" color="text.secondary">24h Sales:</Typography>
+                                                        <Typography variant="body2" color="text.secondary">24h Sales Current:</Typography>
                                                         <Typography variant="body1">{formatNumber(item.sales_24h_current)}</Typography>
+                                                    </Grid>
+                                                    <Grid size={{ xs: 6, sm: 4 }}>
+                                                        <Typography variant="body2" color="text.secondary">24h Sales Previous:</Typography>
+                                                        <Typography variant="body1">{formatNumber(item.sales_24h_previous)}</Typography>
+                                                    </Grid>
+                                                    <Grid size={{ xs: 6, sm: 4 }}>
+                                                        <Typography variant="body2" color="text.secondary">24h Trend:</Typography>
+                                                        <Typography variant="body1" sx={{ color: (item.trend_24h ?? 0) > 0 ? '#4caf50' : (item.trend_24h ?? 0) < 0 ? '#f44336' : 'inherit' }}>
+                                                            {item.trend_24h !== null && item.trend_24h !== undefined ? `${item.trend_24h > 0 ? '+' : ''}${formatNumber(item.trend_24h)}` : '-'}
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid size={{ xs: 6, sm: 4 }}>
+                                                        <Typography variant="body2" color="text.secondary">Hour Velocity 24:</Typography>
+                                                        <Typography variant="body1">{item.hour_velocity_24 !== null && item.hour_velocity_24 !== undefined ? item.hour_velocity_24.toFixed(2) : '-'}</Typography>
                                                     </Grid>
                                                     <Grid size={{ xs: 6, sm: 4 }}>
                                                         <Typography variant="body2" color="text.secondary">Sellout Duration:</Typography>
                                                         <Typography variant="body1">{formatDuration(item.sellout_duration_minutes)}</Typography>
+                                                    </Grid>
+                                                    <Grid size={{ xs: 6, sm: 4 }}>
+                                                        <Typography variant="body2" color="text.secondary">Cycles Skipped:</Typography>
+                                                        <Typography variant="body1">{item.cycles_skipped !== null && item.cycles_skipped !== undefined ? formatNumber(item.cycles_skipped) : '-'}</Typography>
+                                                    </Grid>
+                                                    <Grid size={{ xs: 6, sm: 4 }}>
+                                                        <Typography variant="body2" color="text.secondary">Last Restock:</Typography>
+                                                        <Typography variant="body1">{formatDateTime(item.last_restock_time)}</Typography>
                                                     </Grid>
                                                     <Grid size={{ xs: 6, sm: 4 }}>
                                                         <Typography variant="body2" color="text.secondary">Next Restock:</Typography>

@@ -44,7 +44,7 @@ const COUNTRY_CODE_MAP: Record<string, string> = {
   chi: 'China',
   arg: 'Argentina',
   uni: 'United Kingdom',
-  uae: 'United Arab Emirates',
+  uae: 'UAE',
   sou: 'South Africa',
   cay: 'Cayman Islands',
   swi: 'Switzerland',

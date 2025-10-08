@@ -50,7 +50,7 @@ const COUNTRY_CODE_MAP: Record<string, string> = {
   chi: 'China',
   arg: 'Argentina',
   uni: 'United Kingdom',
-  uae: 'United Arab Emirates',
+  uae: 'UAE',
   sou: 'South Africa',
   cay: 'Cayman Islands',
   swi: 'Switzerland',
@@ -317,10 +317,10 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
           const baseTravelTime = travelTimeMap.get(countryCode);
           
           if (baseTravelTime !== undefined) {
-            // Apply private island reduction if applicable
+            // Apply private island reduction if applicable and round to nearest minute
             travel_time_minutes = HAS_PRIVATE_ISLAND 
-              ? baseTravelTime * (1 - PRIVATE_ISLAND_REDUCTION)
-              : baseTravelTime;
+              ? Math.round(baseTravelTime * (1 - PRIVATE_ISLAND_REDUCTION))
+              : Math.round(baseTravelTime);
             
             // Calculate profit per minute: (sold_profit * MAX_FOREIGN_ITEMS) / (2 * travel_time)
             // travel_time_minutes is stored as ONE-WAY time, so multiply by 2 for round trip
