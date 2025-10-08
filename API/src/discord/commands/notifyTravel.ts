@@ -28,8 +28,21 @@ export const data = new SlashCommandBuilder()
   .addStringOption(option =>
     option
       .setName('country')
-      .setDescription('Destination country (e.g., Mexico, Canada, Japan)')
+      .setDescription('Destination country')
       .setRequired(true)
+      .addChoices(
+        { name: 'Argentina', value: 'Argentina' },
+        { name: 'Canada', value: 'Canada' },
+        { name: 'Cayman Islands', value: 'Cayman Islands' },
+        { name: 'China', value: 'China' },
+        { name: 'Hawaii', value: 'Hawaii' },
+        { name: 'Japan', value: 'Japan' },
+        { name: 'Mexico', value: 'Mexico' },
+        { name: 'South Africa', value: 'South Africa' },
+        { name: 'Switzerland', value: 'Switzerland' },
+        { name: 'UAE', value: 'UAE' },
+        { name: 'United Kingdom', value: 'United Kingdom' }
+      )
   )
   .addIntegerOption(option =>
     option
