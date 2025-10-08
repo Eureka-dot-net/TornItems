@@ -3,21 +3,44 @@
   "name": "Torn Helper Tools",
   "version": "1.4",
   "description": "Auto-opens Torn stocks and shop items for convenience.",
-  "host_permissions": ["https://www.torn.com/*"],
+  "host_permissions": [
+    "https://www.torn.com/*"
+  ],
   "content_scripts": [
     {
-      "matches": ["https://www.torn.com/page.php?sid=stocks*"],
-      "js": ["injector-stocks.js"],
+      "matches": [
+        "https://www.torn.com/page.php?sid=stocks*"
+      ],
+      "js": [
+        "injector-stocks.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://www.torn.com/shops.php*"],
-      "js": ["injector-shops.js"],
+      "matches": [
+        "https://www.torn.com/shops.php*"
+      ],
+      "js": [
+        "injector-shops.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://www.torn.com/*"],
-      "js": ["injector-dashboard.js"],
+      "matches": [
+        "https://www.torn.com/index.php*"
+      ],
+      "js": [
+        "injector-flyshop.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.torn.com/*"
+      ],
+      "js": [
+        "injector-dashboard.js"
+      ],
       "run_at": "document_idle"
     }
   ]
