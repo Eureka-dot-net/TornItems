@@ -330,17 +330,27 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
               profit_per_minute = totalProfit / roundTripTime;
             }
             
-            // Calculate boarding time to land on next 15-minute restock slot
-            // Boarding time = next 15-minute slot - (travel_time / 2)
+            // Calculate boarding time to land on estimated restock time
+            // Boarding time = next estimated restock - (travel_time / 2)
+            // Use next_estimated_restock_time if available (accounts for skipped restocks),
+            // otherwise fall back to next 15-minute slot
             if (travel_time_minutes > 0) {
-              const now = new Date();
-              const nextSlot = roundUpToNextQuarterHour(now);
+              let targetRestockTime: Date;
+              
+              if (next_estimated_restock_time) {
+                // Use the estimated restock time which accounts for skipped cycles
+                targetRestockTime = new Date(next_estimated_restock_time);
+              } else {
+                // Fall back to next quarter hour if no restock data available
+                const now = new Date();
+                targetRestockTime = roundUpToNextQuarterHour(now);
+              }
               
               // Travel time to destination is half of total travel time (one way)
               const travelTimeToDestination = travel_time_minutes / 2;
               
-              // Boarding time is the next slot minus the travel time
-              const boardingTimeDate = new Date(nextSlot.getTime() - travelTimeToDestination * 60 * 1000);
+              // Boarding time is the target restock time minus the travel time
+              const boardingTimeDate = new Date(targetRestockTime.getTime() - travelTimeToDestination * 60 * 1000);
               boarding_time = boardingTimeDate.toISOString();
             }
           }
