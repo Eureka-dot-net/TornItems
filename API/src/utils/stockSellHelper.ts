@@ -1,10 +1,22 @@
+import axios from 'axios';
+import Bottleneck from 'bottleneck';
 import { StockPriceSnapshot } from '../models/StockPriceSnapshot';
-import { UserStockHoldingSnapshot } from '../models/UserStockHoldingSnapshot';
 import { 
   calculate7DayPercentChange, 
   calculateVolatilityPercent, 
   calculateScores
 } from './stockMath';
+
+const RATE_LIMIT_PER_MINUTE = parseInt(process.env.TORN_RATE_LIMIT || '60', 10);
+
+// Create a shared rate limiter
+const limiter = new Bottleneck({
+  reservoir: RATE_LIMIT_PER_MINUTE,
+  reservoirRefreshAmount: RATE_LIMIT_PER_MINUTE,
+  reservoirRefreshInterval: 60 * 1000, // 1 minute
+  maxConcurrent: 1,
+  minTime: Math.floor(60 * 1000 / RATE_LIMIT_PER_MINUTE),
+});
 
 interface StockRecommendation {
   stock_id: number;
@@ -31,49 +43,58 @@ interface SellRecommendation {
 /**
  * Calculate the best stock to sell to cover a specific cost
  * @param requiredAmount - The amount of money needed
+ * @param userApiKey - The Torn API key of the user (decrypted)
  * @returns Sell recommendation with stock details and URL, or null if no suitable stock found
  */
-export async function calculateBestStockToSell(requiredAmount: number): Promise<SellRecommendation | null> {
+export async function calculateBestStockToSell(requiredAmount: number, userApiKey: string): Promise<SellRecommendation | null> {
   try {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    // Fetch most recent user stock holdings from database
-    const holdingsSnapshots = await UserStockHoldingSnapshot.aggregate([
-      {
-        $sort: { stock_id: 1, timestamp: -1 }
-      },
-      {
-        $group: {
-          _id: '$stock_id',
-          total_shares: { $first: '$total_shares' },
-          avg_buy_price: { $first: '$avg_buy_price' },
-          transaction_count: { $first: '$transaction_count' },
-          timestamp: { $first: '$timestamp' }
-        }
-      },
-      {
-        $match: {
-          total_shares: { $gt: 0 } // Only stocks we own
-        }
-      }
-    ]);
+    // Fetch user's current stock holdings from Torn API
+    const response = await limiter.schedule(() =>
+      axios.get(`https://api.torn.com/v2/user?selections=stocks&key=${userApiKey}`)
+    ) as { data: { stocks: any } };
+
+    const stocks = response.data?.stocks;
     
-    if (holdingsSnapshots.length === 0) {
+    if (!stocks || Object.keys(stocks).length === 0) {
       return null; // No stocks owned
     }
 
     // Create lookup map for holdings
     const holdingsMap: Record<number, { total_shares: number; avg_buy_price: number | null }> = {};
-    for (const holding of holdingsSnapshots) {
-      holdingsMap[holding._id] = {
-        total_shares: holding.total_shares,
-        avg_buy_price: holding.avg_buy_price
+    for (const [stockId, stockData] of Object.entries(stocks) as [string, any][]) {
+      const stockIdNum = parseInt(stockId, 10);
+      const totalShares = stockData.total_shares || 0;
+      const transactions = stockData.transactions || {};
+      
+      if (totalShares === 0) continue;
+      
+      // Calculate weighted average buy price
+      let avgBuyPrice: number | null = null;
+      if (totalShares > 0 && Object.keys(transactions).length > 0) {
+        let weightedSum = 0;
+        for (const transaction of Object.values(transactions) as any[]) {
+          const shares = transaction.shares || 0;
+          const boughtPrice = transaction.bought_price || 0;
+          weightedSum += shares * boughtPrice;
+        }
+        avgBuyPrice = weightedSum / totalShares;
+      }
+      
+      holdingsMap[stockIdNum] = {
+        total_shares: totalShares,
+        avg_buy_price: avgBuyPrice
       };
     }
 
     // Get stock IDs we own
-    const ownedStockIds = holdingsSnapshots.map(h => h._id);
+    const ownedStockIds = Object.keys(holdingsMap).map(id => parseInt(id, 10));
+
+    if (ownedStockIds.length === 0) {
+      return null; // No stocks owned
+    }
 
     // Fetch stock data for owned stocks
     const stockData = await StockPriceSnapshot.aggregate([

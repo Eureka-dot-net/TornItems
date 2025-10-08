@@ -112,12 +112,13 @@ export async function monitorMarketPrices(): Promise<void> {
               // Format the alert message
               const userMention = `<@${watch.discordUserId}>`;
               
-              // Calculate stock sell recommendations for multiple quantities
+              // Calculate stock sell recommendations for multiple quantities using user's API key
+              const userApiKey = decrypt(watch.apiKey);
               const quantityOptions: Array<{ qty: number; recommendation: any }> = [];
               
               for (let qty = 1; qty <= Math.min(availableQuantity, 5); qty++) {
                 const totalCost = lowestPrice * qty;
-                const recommendation = await calculateBestStockToSell(totalCost);
+                const recommendation = await calculateBestStockToSell(totalCost, userApiKey);
                 
                 if (recommendation) {
                   quantityOptions.push({ qty, recommendation });
