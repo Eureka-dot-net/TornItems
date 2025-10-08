@@ -16,7 +16,7 @@
     "init-travel-times": "ts-node scripts/initializeTravelTimes.ts",
     "register-commands-prod": "node dist/src/register-commands.js",
     "register-commands": "ts-node src/register-commands.ts"
-  },
+  }, 
   "keywords": [],
   "author": "",
   "license": "ISC",
