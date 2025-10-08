@@ -48,9 +48,9 @@ async function retryWithBackoff<T>(
 /**
  * Calculate smart quantity intervals for purchase recommendations.
  * If availableQuantity <= 5, returns [1, 2, 3, 4, 5] up to the available amount.
- * If availableQuantity > 5, returns up to 5 evenly spaced intervals including 1 and the max.
- * Example: for 100 items, returns [1, 20, 40, 60, 80, 100] (6 values)
- * Example: for 82 items, returns [1, 16, 32, 48, 64, 82] (6 values)
+ * If availableQuantity > 5, returns exactly 5 values: 1, max, and 3 evenly spaced values at 25%, 50%, 75%.
+ * Example: for 100 items, returns [1, 25, 50, 75, 100]
+ * Example: for 82 items, returns [1, 21, 41, 62, 82]
  */
 export function calculateQuantityIntervals(availableQuantity: number): number[] {
   if (availableQuantity <= 5) {
@@ -58,26 +58,14 @@ export function calculateQuantityIntervals(availableQuantity: number): number[] 
     return Array.from({ length: availableQuantity }, (_, i) => i + 1);
   }
   
-  // For more than 5 items, calculate evenly spaced intervals
-  // Calculate interval size as max/5, then show multiples up to max
-  const intervals: number[] = [1]; // Always start with 1
-  const step = Math.floor(availableQuantity / 5);
-  
-  // Add intervals at step, step*2, step*3, step*4
-  for (let i = 1; i <= 4; i++) {
-    const value = step * i;
-    // Only add if it's greater than the last value and less than max
-    if (value > intervals[intervals.length - 1] && value < availableQuantity) {
-      intervals.push(value);
-    }
-  }
-  
-  // Always include the max (even if it creates 6 values total)
-  if (intervals[intervals.length - 1] !== availableQuantity) {
-    intervals.push(availableQuantity);
-  }
-  
-  return intervals;
+  // For more than 5 items, return exactly 5 values: 1, 25%, 50%, 75%, and max
+  return [
+    1,
+    Math.round(availableQuantity * 0.25),
+    Math.round(availableQuantity * 0.5),
+    Math.round(availableQuantity * 0.75),
+    availableQuantity
+  ];
 }
 
 /**
