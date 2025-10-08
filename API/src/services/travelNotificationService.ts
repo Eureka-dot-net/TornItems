@@ -102,13 +102,14 @@ async function checkTravelStart() {
     const now = new Date();
     
     // Find notifications that have been sent but haven't received shop URL yet
+    // Check within 1 minute after boarding time (in case user starts late)
     const sentNotifications = await TravelNotification.find({
       enabled: true,
       notificationsSent: true,
       scheduledBoardingTime: { 
         $ne: null,
         $gte: new Date(now.getTime() - 5 * 60 * 1000), 
-        $lte: now 
+        $lte: new Date(now.getTime() + 60 * 1000) // Wait up to 1 minute after boarding time
       },
     }).lean();
     
