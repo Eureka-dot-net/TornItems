@@ -79,30 +79,40 @@ cron.schedule('*/5 * * * * *', ...)  // Every 5 seconds
 
 **Impact**: Better chance of hitting exact notification times (±2.5 seconds vs ±5 seconds).
 
-### 5. Private Island Rounding Fix ✅
+### 5. Travel Time Rounding with Precision Fix ✅
 
-**Issue**: `Math.round(time * 0.70)` could lose precision.
+**Issue**: Travel times need to display as whole minutes (not decimals like "18.2 minutes"), but JavaScript floating-point precision causes incorrect rounding for some countries like Switzerland.
 
-**Fix**: Multiply by 100, round, divide by 100 to preserve 2 decimal places.
+**Problem Example (Switzerland)**:
+- Mathematical calculation: 175 × 0.70 = 122.5 (should round to 123)
+- JavaScript calculates: 175 * 0.70 = 122.49999999999999
+- Direct `Math.round(175 * 0.70)` = 122 ❌ (rounds down incorrectly)
+- Expected result: 123 ✅ (proper rounding)
 
-**Before**:
-```typescript
-const actualTravelTime = notification.hasPrivateIsland 
-  ? Math.round(travelTime.travelTimeMinutes * 0.70) 
-  : Math.round(travelTime.travelTimeMinutes);
-```
+**Fix**: Use two-step rounding to avoid floating-point precision errors:
 
-**After**:
+**Before (incorrect)**:
 ```typescript
 const actualTravelTime = user.hasPrivateIsland 
-  ? Math.round(travelTime.travelTimeMinutes * 0.70 * 100) / 100
+  ? Math.round(travelTime.travelTimeMinutes * 0.70)  // 175 * 0.70 = 122 ❌
   : Math.round(travelTime.travelTimeMinutes);
 ```
 
-**Example**:
-- Travel time: 18.5 minutes
-- Old: `Math.round(18.5 * 0.70)` = `Math.round(12.95)` = **13**
-- New: `Math.round(18.5 * 0.70 * 100) / 100` = `Math.round(1295) / 100` = **12.95**
+**After (correct)**:
+```typescript
+const actualTravelTime = user.hasPrivateIsland 
+  ? Math.round(Math.round(travelTime.travelTimeMinutes * 0.70 * 100) / 100)  // 175 → 123 ✅
+  : Math.round(travelTime.travelTimeMinutes);
+```
+
+**How it works**:
+1. Step 1: `Math.round(175 * 0.70 * 100) / 100` = 122.5 (fixes precision)
+2. Step 2: `Math.round(122.5)` = 123 (rounds for display)
+
+**Results**:
+- Mexico (26 min): 26 × 0.70 = 18.2 → displays as **18 minutes**
+- Switzerland (175 min): 175 × 0.70 = 122.5 → displays as **123 minutes** (not 122!)
+- Japan (225 min): 225 × 0.70 = 157.5 → displays as **158 minutes**
 
 ## Updated Data Flow
 

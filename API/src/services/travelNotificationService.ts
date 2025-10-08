@@ -137,15 +137,15 @@ async function checkTravelStart() {
     const now = new Date();
     const fallbackChannelId = process.env.DISCORD_TRAVEL_CHANNEL_ID;
     
-    // Find notifications that have been sent but haven't received shop URL yet
-    // Check within 1 minute after boarding time (in case user starts late)
+    // Find notifications that have been sent and boarding time has passed
+    // Only check 1-5 minutes AFTER boarding time to give user time to actually start traveling
     const sentNotifications = await TravelNotification.find({
       enabled: true,
       notificationsSent: true,
       scheduledBoardingTime: { 
         $ne: null,
-        $gte: new Date(now.getTime() - 5 * 60 * 1000), 
-        $lte: new Date(now.getTime() + 60 * 1000) // Wait up to 1 minute after boarding time
+        $gte: new Date(now.getTime() - 5 * 60 * 1000), // Within last 5 minutes
+        $lte: new Date(now.getTime() - 60 * 1000) // At least 1 minute ago (so user has time to board)
       },
     }).lean();
     
@@ -175,7 +175,7 @@ async function checkTravelStart() {
         const travelStatus = await fetchTravelStatus(apiKey);
         
         if (travelStatus && travelStatus.destination) {
-          // User is travelling - send shop URL
+          // User is travelling - send shop URL with actual arrival time from Torn API
           const arrivalTimestamp = travelStatus.arrival_at;
           const countryName = COUNTRY_CODE_MAP[notification.countryCode] || notification.countryCode;
           
@@ -190,8 +190,9 @@ async function checkTravelStart() {
           const message = `✈️ **Travelling to ${countryName}!**\n\n` +
             `Here's your shop URL:\n\n` +
             `${shopUrl}\n\n` +
-            `Watch Items: ${notification.watchItems.join(', ')}\n` +
-            `Items to Buy: ${user.itemsToBuy}`;
+            `📍 Arrival: <t:${arrivalTimestamp}:t> (<t:${arrivalTimestamp}:R>)\n` +
+            `👁️ Watch Items: ${notification.watchItems.join(', ')}\n` +
+            `📦 Items to Buy: ${user.itemsToBuy}`;
           
           await sendDirectMessageWithFallback(notification.discordUserId, message, fallbackChannelId);
           
@@ -206,10 +207,17 @@ async function checkTravelStart() {
             }
           );
           
-          logInfo('Sent travel shop URL', {
+          logInfo('Sent travel shop URL with actual arrival time from Torn API', {
             discordUserId: notification.discordUserId,
             country: countryName,
             watchItems: notification.watchItems,
+            arrivalTime: new Date(arrivalTimestamp * 1000).toISOString(),
+          });
+        } else {
+          // User is not travelling yet - log and continue checking
+          logInfo('User not travelling yet, will check again', {
+            discordUserId: notification.discordUserId,
+            country: COUNTRY_CODE_MAP[notification.countryCode] || notification.countryCode,
           });
         }
       } catch (error) {
