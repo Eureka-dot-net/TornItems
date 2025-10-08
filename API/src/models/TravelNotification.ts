@@ -2,20 +2,20 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 /**
  * TravelNotification stores user preferences for travel notifications.
- * - Per-user global settings: hasPrivateIsland, itemsToBuy
- * - Per-destination settings: watchItems
+ * - Per-destination settings: watchItems, scheduled notification times
+ * - Global settings (hasPrivateIsland, itemsToBuy) are stored in DiscordUser
  */
 export interface ITravelNotification extends Document {
   discordUserId: string;
   countryCode: string; // e.g., 'mex', 'can', 'jap'
   notifyBeforeSeconds: number; // Default 10 seconds
-  hasPrivateIsland: boolean; // Reduces travel time by 30%
   watchItems: number[]; // Up to 3 item IDs to watch for this destination
-  itemsToBuy: number; // Number of items to buy (max 19 for foreign)
   enabled: boolean;
-  lastNotificationSent?: Date | null;
-  scheduledDepartureTime?: Date | null; // When user should start travelling
+  // One-time scheduled notification times
+  scheduledNotifyBeforeTime?: Date | null; // When to send the "X seconds before" notification
+  scheduledBoardingTime?: Date | null; // When to send the "board now" notification
   scheduledArrivalTime?: Date | null; // When user should arrive (15-min slot)
+  notificationsSent: boolean; // Track if notifications have been sent
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,13 +24,12 @@ const TravelNotificationSchema = new Schema<ITravelNotification>({
   discordUserId: { type: String, required: true, index: true },
   countryCode: { type: String, required: true, index: true },
   notifyBeforeSeconds: { type: Number, default: 10 },
-  hasPrivateIsland: { type: Boolean, default: false },
   watchItems: { type: [Number], default: [] },
-  itemsToBuy: { type: Number, default: 19 },
   enabled: { type: Boolean, default: true, index: true },
-  lastNotificationSent: { type: Date, default: null },
-  scheduledDepartureTime: { type: Date, default: null },
+  scheduledNotifyBeforeTime: { type: Date, default: null },
+  scheduledBoardingTime: { type: Date, default: null },
   scheduledArrivalTime: { type: Date, default: null },
+  notificationsSent: { type: Boolean, default: false, index: true },
 }, {
   timestamps: true
 });

@@ -49,18 +49,24 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     // Build message with all notifications
     let message = '✈️ **Your Travel Notifications**\n\n';
+    message += `**Global Settings:**\n`;
+    message += `🏝️ Private Island: ${user.hasPrivateIsland ? 'Yes' : 'No'}\n`;
+    message += `📦 Items to Buy: ${user.itemsToBuy}\n\n`;
+    message += `**Destinations:**\n`;
 
     for (const notification of notifications) {
       const countryName = COUNTRY_CODE_MAP[notification.countryCode] || notification.countryCode;
       const status = notification.enabled ? '✅ Enabled' : '❌ Disabled';
       
       message += `**${countryName}** ${status}\n`;
-      message += `  🏝️ Private Island: ${notification.hasPrivateIsland ? 'Yes' : 'No'}\n`;
       message += `  🔔 Notify: ${notification.notifyBeforeSeconds}s before\n`;
-      message += `  📦 Items to Buy: ${notification.itemsToBuy}\n`;
       
       if (notification.watchItems && notification.watchItems.length > 0) {
         message += `  👁️ Watch Items: ${notification.watchItems.join(', ')}\n`;
+      }
+      
+      if (notification.scheduledBoardingTime && !notification.notificationsSent) {
+        message += `  ⏰ Next alert: ${notification.scheduledBoardingTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}\n`;
       }
       
       message += '\n';

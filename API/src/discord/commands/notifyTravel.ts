@@ -74,12 +74,12 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   const countryInput = interaction.options.getString('country', true).trim();
-  const notifyBeforeSeconds = interaction.options.getInteger('notifybeforeseconds') || 10;
+  const notifyBeforeSeconds = interaction.options.getInteger('notifybeforeseconds');
   const hasPrivateIsland = interaction.options.getBoolean('hasprivateisland');
   const watchItem1 = interaction.options.getInteger('watchitem1');
   const watchItem2 = interaction.options.getInteger('watchitem2');
   const watchItem3 = interaction.options.getInteger('watchitem3');
-  const itemsToBuy = interaction.options.getInteger('itemstobuy') || 19;
+  const itemsToBuy = interaction.options.getInteger('itemstobuy');
   const discordUserId = interaction.user.id;
 
   await interaction.deferReply({ ephemeral: true });
@@ -93,6 +93,20 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         content: '❌ You must first set your API key using `/setkey` before setting up travel notifications.',
       });
       return;
+    }
+
+    // Update global settings if provided
+    let settingsUpdated = false;
+    if (hasPrivateIsland !== null) {
+      user.hasPrivateIsland = hasPrivateIsland;
+      settingsUpdated = true;
+    }
+    if (itemsToBuy !== null) {
+      user.itemsToBuy = itemsToBuy;
+      settingsUpdated = true;
+    }
+    if (settingsUpdated) {
+      await user.save();
     }
 
     // Convert country name to code
@@ -122,132 +136,113 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     if (watchItem2) watchItems.push(watchItem2);
     if (watchItem3) watchItems.push(watchItem3);
 
+    // Calculate scheduled times using current settings
+    const now = new Date();
+    
+    // Fix rounding error with private island calculation (multiply by 100, round, divide by 100)
+    const actualTravelTimeMinutes = user.hasPrivateIsland 
+      ? Math.round(travelTime.travelTimeMinutes * 0.70 * 100) / 100
+      : Math.round(travelTime.travelTimeMinutes);
+
+    const landingTimeIfBoardNow = new Date(now.getTime() + actualTravelTimeMinutes * 60 * 1000);
+    
+    // Find next 15-minute slot after landing
+    const nextSlotMinutes = Math.ceil(landingTimeIfBoardNow.getMinutes() / 15) * 15;
+    const nextSlot = new Date(landingTimeIfBoardNow);
+    nextSlot.setMinutes(nextSlotMinutes, 0, 0);
+    
+    // If we've gone to the next hour, adjust
+    if (nextSlotMinutes >= 60) {
+      nextSlot.setHours(nextSlot.getHours() + 1);
+      nextSlot.setMinutes(0, 0, 0);
+    }
+
+    // Calculate when to board
+    const boardingTime = new Date(nextSlot.getTime() - actualTravelTimeMinutes * 60 * 1000);
+    
+    // Calculate notification times
+    const actualNotifyBeforeSeconds = notifyBeforeSeconds || 10;
+    const notifyBeforeTime = new Date(boardingTime.getTime() - actualNotifyBeforeSeconds * 1000);
+
     // Check if notification already exists for this user+country
     let notification = await TravelNotification.findOne({ 
       discordUserId, 
       countryCode 
     });
 
-    // Determine which fields to update
-    const updateFields: any = {
-      notifyBeforeSeconds,
-      itemsToBuy,
-      enabled: true,
-    };
-
-    // Only update hasPrivateIsland if explicitly provided
-    if (hasPrivateIsland !== null) {
-      updateFields.hasPrivateIsland = hasPrivateIsland;
-    }
-
-    // Only update watchItems if provided
-    if (watchItems.length > 0) {
-      updateFields.watchItems = watchItems;
-    }
-
     if (notification) {
       // Update existing notification
-      Object.assign(notification, updateFields);
+      if (notifyBeforeSeconds !== null) {
+        notification.notifyBeforeSeconds = actualNotifyBeforeSeconds;
+      }
+      if (watchItems.length > 0) {
+        notification.watchItems = watchItems;
+      }
+      notification.enabled = true;
+      notification.scheduledNotifyBeforeTime = notifyBeforeTime;
+      notification.scheduledBoardingTime = boardingTime;
+      notification.scheduledArrivalTime = nextSlot;
+      notification.notificationsSent = false;
       await notification.save();
 
       logInfo('Updated travel notification', {
         discordUserId,
         countryCode,
-        notifyBeforeSeconds,
-        hasPrivateIsland: notification.hasPrivateIsland,
+        notifyBeforeSeconds: notification.notifyBeforeSeconds,
         watchItems: notification.watchItems,
-        itemsToBuy,
+        scheduledBoardingTime: boardingTime.toISOString(),
       });
-
-      // Calculate next boarding time
-      const now = new Date();
-      const actualTravelTimeMinutes = notification.hasPrivateIsland 
-        ? Math.round(travelTime.travelTimeMinutes * 0.70) 
-        : Math.round(travelTime.travelTimeMinutes);
-
-      const landingTimeIfBoardNow = new Date(now.getTime() + actualTravelTimeMinutes * 60 * 1000);
-      
-      // Find next 15-minute slot after landing
-      const nextSlotMinutes = Math.ceil(landingTimeIfBoardNow.getMinutes() / 15) * 15;
-      const nextSlot = new Date(landingTimeIfBoardNow);
-      nextSlot.setMinutes(nextSlotMinutes, 0, 0);
-      
-      // If we've gone to the next hour, adjust
-      if (nextSlotMinutes >= 60) {
-        nextSlot.setHours(nextSlot.getHours() + 1);
-        nextSlot.setMinutes(0, 0, 0);
-      }
-
-      // Calculate when to board
-      const boardingTime = new Date(nextSlot.getTime() - actualTravelTimeMinutes * 60 * 1000);
 
       await interaction.editReply({
         content: `✅ Updated travel notification for **${COUNTRY_CODE_MAP[countryCode]}**\n\n` +
-          `🏝️ Private Island: ${notification.hasPrivateIsland ? 'Yes (-30% travel time)' : 'No'}\n` +
+          `🏝️ Private Island: ${user.hasPrivateIsland ? 'Yes (-30% travel time)' : 'No'}\n` +
           `⏱️ Travel Time: ${actualTravelTimeMinutes} minutes\n` +
-          `📦 Items to Buy: ${itemsToBuy}\n` +
+          `📦 Items to Buy: ${user.itemsToBuy}\n` +
           `👁️ Watch Items: ${notification.watchItems.length > 0 ? notification.watchItems.join(', ') : 'None'}\n` +
-          `🔔 Notify: ${notifyBeforeSeconds}s before departure\n\n` +
+          `🔔 Notify: ${notification.notifyBeforeSeconds}s before departure\n\n` +
           `**Next scheduled landing:**\n` +
           `📍 Arrival: ${nextSlot.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}\n` +
           `🛫 Board at: ${boardingTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}\n\n` +
-          `The bot will monitor your travel and provide URLs when you land.`,
+          `You will receive notifications at:\n` +
+          `• ${notifyBeforeTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })} (warning)\n` +
+          `• ${boardingTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })} (board now)`,
       });
     } else {
       // Create new notification
       notification = new TravelNotification({
         discordUserId,
         countryCode,
-        notifyBeforeSeconds,
-        hasPrivateIsland: hasPrivateIsland ?? false,
+        notifyBeforeSeconds: actualNotifyBeforeSeconds,
         watchItems,
-        itemsToBuy,
         enabled: true,
+        scheduledNotifyBeforeTime: notifyBeforeTime,
+        scheduledBoardingTime: boardingTime,
+        scheduledArrivalTime: nextSlot,
+        notificationsSent: false,
       });
       await notification.save();
 
       logInfo('Created travel notification', {
         discordUserId,
         countryCode,
-        notifyBeforeSeconds,
-        hasPrivateIsland: notification.hasPrivateIsland,
+        notifyBeforeSeconds: actualNotifyBeforeSeconds,
         watchItems,
-        itemsToBuy,
+        scheduledBoardingTime: boardingTime.toISOString(),
       });
-
-      // Calculate next boarding time
-      const now = new Date();
-      const actualTravelTimeMinutes = notification.hasPrivateIsland 
-        ? Math.round(travelTime.travelTimeMinutes * 0.70) 
-        : Math.round(travelTime.travelTimeMinutes);
-
-      const landingTimeIfBoardNow = new Date(now.getTime() + actualTravelTimeMinutes * 60 * 1000);
-      
-      // Find next 15-minute slot after landing
-      const nextSlotMinutes = Math.ceil(landingTimeIfBoardNow.getMinutes() / 15) * 15;
-      const nextSlot = new Date(landingTimeIfBoardNow);
-      nextSlot.setMinutes(nextSlotMinutes, 0, 0);
-      
-      // If we've gone to the next hour, adjust
-      if (nextSlotMinutes >= 60) {
-        nextSlot.setHours(nextSlot.getHours() + 1);
-        nextSlot.setMinutes(0, 0, 0);
-      }
-
-      // Calculate when to board
-      const boardingTime = new Date(nextSlot.getTime() - actualTravelTimeMinutes * 60 * 1000);
 
       await interaction.editReply({
         content: `✅ Created travel notification for **${COUNTRY_CODE_MAP[countryCode]}**\n\n` +
-          `🏝️ Private Island: ${notification.hasPrivateIsland ? 'Yes (-30% travel time)' : 'No'}\n` +
+          `🏝️ Private Island: ${user.hasPrivateIsland ? 'Yes (-30% travel time)' : 'No'}\n` +
           `⏱️ Travel Time: ${actualTravelTimeMinutes} minutes\n` +
-          `📦 Items to Buy: ${itemsToBuy}\n` +
+          `📦 Items to Buy: ${user.itemsToBuy}\n` +
           `👁️ Watch Items: ${watchItems.length > 0 ? watchItems.join(', ') : 'None'}\n` +
-          `🔔 Notify: ${notifyBeforeSeconds}s before departure\n\n` +
+          `🔔 Notify: ${actualNotifyBeforeSeconds}s before departure\n\n` +
           `**Next scheduled landing:**\n` +
           `📍 Arrival: ${nextSlot.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}\n` +
           `🛫 Board at: ${boardingTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}\n\n` +
-          `The bot will monitor your travel and provide URLs when you land.`,
+          `You will receive notifications at:\n` +
+          `• ${notifyBeforeTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })} (warning)\n` +
+          `• ${boardingTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })} (board now)`,
       });
     }
   } catch (err) {
