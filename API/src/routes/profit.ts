@@ -17,6 +17,7 @@ interface CountryItem {
   profitPer1: number | null;
   shop_name: string | null;
   country?: string | null;
+  country_code?: string | null;
   shop_url_name?: string | null;
   in_stock?: number | null;
   sales_24h_current?: number | null;
@@ -34,6 +35,7 @@ interface CountryItem {
   next_estimated_restock_time?: string | null;
   travel_time_minutes?: number | null;
   profit_per_minute?: number | null;
+  boarding_time?: string | null;
 }
 
 interface GroupedByCountry {
@@ -299,6 +301,8 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       // Calculate travel time and profit per minute for foreign stock
       let travel_time_minutes: number | null = null;
       let profit_per_minute: number | null = null;
+      let country_code: string | null = null;
+      let boarding_time: string | null = null;
       
       if (country !== 'Torn' && country !== 'Unknown') {
         // Get country code for this country
@@ -307,6 +311,8 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         )?.[0];
         
         if (countryCode) {
+          country_code = countryCode;
+          
           // Get base travel time from the map
           const baseTravelTime = travelTimeMap.get(countryCode);
           
@@ -317,11 +323,45 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
               : baseTravelTime;
             
             // Calculate profit per minute: (sold_profit * MAX_FOREIGN_ITEMS) / (2 * travel_time)
-            // Multiply by 2 because travel time is for one way, we need round trip
+            // travel_time_minutes is stored as ONE-WAY time, so multiply by 2 for round trip
             if (sold_profit !== null && travel_time_minutes > 0) {
               const totalProfit = sold_profit * MAX_FOREIGN_ITEMS;
               const roundTripTime = travel_time_minutes * 2;
               profit_per_minute = totalProfit / roundTripTime;
+            }
+            
+            // Calculate boarding time to land on estimated restock time
+            // Strategy: Calculate when we would land if we board now, then find the next
+            // estimated restock that occurs AFTER that landing time
+            // NOTE: travel_time_minutes is stored as ONE-WAY time
+            if (travel_time_minutes > 0) {
+              const now = new Date();
+              const travelTimeToDestination = travel_time_minutes; // Already one-way
+              
+              // Calculate when we would land if we boarded right now
+              const landingTimeIfBoardNow = new Date(now.getTime() + travelTimeToDestination * 60 * 1000);
+              
+              let targetRestockTime: Date;
+              
+              if (next_estimated_restock_time) {
+                // We have restock data - find next restock after our landing time
+                let estimatedRestock = new Date(next_estimated_restock_time);
+                
+                // If the estimated restock is before we would land, advance to next cycle(s)
+                while (estimatedRestock <= landingTimeIfBoardNow) {
+                  // Advance by 15 minutes (one restock cycle)
+                  estimatedRestock = new Date(estimatedRestock.getTime() + 15 * 60 * 1000);
+                }
+                
+                targetRestockTime = estimatedRestock;
+              } else {
+                // No restock data - find next quarter hour after landing time
+                targetRestockTime = roundUpToNextQuarterHour(landingTimeIfBoardNow);
+              }
+              
+              // Boarding time is the target restock time minus the travel time
+              const boardingTimeDate = new Date(targetRestockTime.getTime() - travelTimeToDestination * 60 * 1000);
+              boarding_time = boardingTimeDate.toISOString();
             }
           }
         }
@@ -336,6 +376,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         profitPer1,
         shop_name: shop,
         country,
+        country_code,
         shop_url_name,
         in_stock: inStock,
         sales_24h_current,
@@ -352,6 +393,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         next_estimated_restock_time,
         travel_time_minutes,
         profit_per_minute,
+        boarding_time,
       };
 
       // Conditionally add ItemsSold if flag is enabled
