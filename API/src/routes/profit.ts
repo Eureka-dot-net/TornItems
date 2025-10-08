@@ -6,6 +6,7 @@ import { MarketHistory } from '../models/MarketHistory';
 import { ShopItemState } from '../models/ShopItemState';
 import { TravelTime } from '../models/TravelTime';
 import { roundUpToNextQuarterHour } from '../utils/dateHelpers';
+import { fetchTravelStatus, TravelStatus } from '../utils/tornApi';
 
 const router = express.Router({ mergeParams: true });
 
@@ -160,6 +161,13 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     const MAX_FOREIGN_ITEMS = 15;
     const PRIVATE_ISLAND_REDUCTION = 0.30; // 30% reduction (airstrip effect)
     const HAS_PRIVATE_ISLAND = true; // Hardcoded for now
+
+    // Fetch travel status from Torn API (using the API key from environment)
+    const apiKey = process.env.TORN_API_KEY;
+    let travelStatus: TravelStatus | null = null;
+    if (apiKey) {
+      travelStatus = await fetchTravelStatus(apiKey);
+    }
 
     // 🗺 Group by country (shop is informational)
     const grouped: GroupedByCountry = {};
@@ -436,6 +444,8 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     res.json({
       count: items.length,
       countries: Object.keys(grouped).length,
+      max_foreign_items: MAX_FOREIGN_ITEMS,
+      travel_status: travelStatus,
       results: grouped,
     });
   } catch (err: unknown) {

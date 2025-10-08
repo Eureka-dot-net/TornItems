@@ -1,4 +1,4 @@
-import { Box, Typography, CircularProgress, Alert, Tabs, Tab, Paper, Grid, TableSortLabel, Link, Card, CardContent, Collapse } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, Tabs, Tab, Paper, Grid, TableSortLabel, Link, Card, CardContent, Collapse, Checkbox, FormControlLabel, Button } from '@mui/material';
 import { useState, useMemo, useEffect } from 'react';
 import { useProfit } from '../../lib/hooks/useProfit';
 import type { CountryItem } from '../../lib/types/profit';
@@ -12,6 +12,8 @@ export default function Profit() {
     const [sortField, setSortField] = useState<SortField>('sold_profit');
     const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
     const [expandedItemId, setExpandedItemId] = useState<number | null>(null);
+    const [multiplyByAmount, setMultiplyByAmount] = useState<boolean>(true); // Default checked
+    const [selectedItems, setSelectedItems] = useState<Map<number, number>>(new Map()); // itemId -> order (1, 2, 3)
     
     // Auto-refresh countdown every second
     const [, setCurrentTime] = useState(new Date());
@@ -138,6 +140,61 @@ export default function Profit() {
             setSortField(field);
             setSortOrder('desc');
         }
+    };
+
+    // Helper function to apply multiplication if checkbox is checked
+    const applyMultiplier = (value: number | null | undefined): number | null | undefined => {
+        if (value == null) return value;
+        const multiplier = profitData?.max_foreign_items || 15;
+        return multiplyByAmount ? value * multiplier : value;
+    };
+
+    // Handle item selection for watch list
+    const handleItemSelection = (itemId: number, checked: boolean) => {
+        setSelectedItems(prev => {
+            const newMap = new Map(prev);
+            if (checked) {
+                // Find the next available position (1, 2, or 3)
+                const usedPositions = new Set(newMap.values());
+                let position = 1;
+                while (usedPositions.has(position) && position <= 3) {
+                    position++;
+                }
+                if (position <= 3) {
+                    newMap.set(itemId, position);
+                }
+            } else {
+                newMap.delete(itemId);
+            }
+            return newMap;
+        });
+    };
+
+    // Build the watch URL
+    const buildWatchUrl = (): string | null => {
+        if (!profitData?.travel_status) return null;
+        
+        const sortedItems = Array.from(selectedItems.entries())
+            .sort((a, b) => a[1] - b[1]) // Sort by position
+            .map(([itemId]) => itemId);
+        
+        if (sortedItems.length === 0) return null;
+        
+        const params = new URLSearchParams();
+        sortedItems.forEach((itemId, index) => {
+            params.append(`item${index + 1}`, String(itemId));
+        });
+        params.append('amount', String(profitData.max_foreign_items));
+        params.append('arrival', String(profitData.travel_status.arrival_at));
+        
+        return `https://www.torn.com/index.php?${params.toString()}`;
+    };
+
+    // Check if we're currently travelling to the selected country (not Torn)
+    const isTravellingToCountry = (country: string): boolean => {
+        if (!profitData?.travel_status) return false;
+        if (profitData.travel_status.destination === 'Torn') return false; // Travelling home
+        return profitData.travel_status.destination === country;
     };
 
     const formatCurrency = (value: number | null | undefined) => {
@@ -349,6 +406,34 @@ export default function Profit() {
             </Paper>
 
             <Paper sx={{ mt: 3, p: 2 }}>
+                {/* Multiply checkbox and Watch button for foreign pages */}
+                {(selectedCountry === 'Foreign' || (selectedCountry !== 'Torn' && selectedCountry !== 'Unknown')) && (
+                    <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={multiplyByAmount}
+                                    onChange={(e) => setMultiplyByAmount(e.target.checked)}
+                                />
+                            }
+                            label={`Multiply by ${profitData?.max_foreign_items || 15}`}
+                        />
+                        {/* Show Watch button only on individual country pages when travelling to that destination */}
+                        {selectedCountry !== 'Foreign' && isTravellingToCountry(selectedCountry) && (
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                disabled={selectedItems.size === 0}
+                                component="a"
+                                href={buildWatchUrl() || '#'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Watch ({selectedItems.size}/3)
+                            </Button>
+                        )}
+                    </Box>
+                )}
                 {/* Header Row */}
                 {(selectedCountry === 'Foreign' || (selectedCountry !== 'Torn' && selectedCountry !== 'Unknown')) ? (
                     // Foreign stock headers
@@ -358,6 +443,12 @@ export default function Profit() {
                         borderBottom: '2px solid #555',
                         fontWeight: 'bold'
                     }}>
+                        {/* Add checkbox column only for individual country pages when travelling */}
+                        {selectedCountry !== 'Foreign' && isTravellingToCountry(selectedCountry) && (
+                            <Grid size={{ xs: 1, sm: 0.5 }}>
+                                Select
+                            </Grid>
+                        )}
                         <Grid size={{ xs: 12, sm: 2.5 }}>
                             <TableSortLabel
                                 active={sortField === 'name'}
@@ -520,8 +611,35 @@ export default function Profit() {
                                                 cursor: 'pointer'
                                             }
                                         }}
-                                        onClick={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
+                                        onClick={(e) => {
+                                            // Don't expand if clicking on checkbox
+                                            if ((e.target as HTMLElement).closest('.item-checkbox')) {
+                                                e.stopPropagation();
+                                                return;
+                                            }
+                                            setExpandedItemId(expandedItemId === item.id ? null : item.id);
+                                        }}
                                     >
+                                        {/* Add checkbox only for individual country pages when travelling */}
+                                        {selectedCountry !== 'Foreign' && isTravellingToCountry(selectedCountry) && (
+                                            <Grid size={{ xs: 1, sm: 0.5 }} className="item-checkbox">
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                    <Checkbox
+                                                        checked={selectedItems.has(item.id)}
+                                                        onChange={(e) => {
+                                                            e.stopPropagation();
+                                                            handleItemSelection(item.id, e.target.checked);
+                                                        }}
+                                                        disabled={!selectedItems.has(item.id) && selectedItems.size >= 3}
+                                                    />
+                                                    {selectedItems.has(item.id) && (
+                                                        <Typography variant="caption">
+                                                            #{selectedItems.get(item.id)}
+                                                        </Typography>
+                                                    )}
+                                                </Box>
+                                            </Grid>
+                                        )}
                                         <Grid size={{ xs: 12, sm: 2.5 }}>
                                             <Typography variant="body2">{item.name}</Typography>
                                         </Grid>
@@ -529,14 +647,14 @@ export default function Profit() {
                                             <Typography variant="body2">{item.country || '-'}</Typography>
                                         </Grid>
                                         <Grid size={{ xs: 6, sm: 1.2 }}>
-                                            <Typography variant="body2">{formatCurrency(item.buy_price)}</Typography>
+                                            <Typography variant="body2">{formatCurrency(applyMultiplier(item.buy_price))}</Typography>
                                         </Grid>
                                         <Grid size={{ xs: 6, sm: 1.2 }}>
                                             <Typography variant="body2">{formatCurrency(item.average_price_items_sold)}</Typography>
                                         </Grid>
                                         <Grid size={{ xs: 6, sm: 1.3 }}>
                                             <Typography variant="body2" sx={{ color: (item.sold_profit ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
-                                                {formatCurrency(item.sold_profit)}
+                                                {formatCurrency(applyMultiplier(item.sold_profit))}
                                             </Typography>
                                         </Grid>
                                         <Grid size={{ xs: 6, sm: 1.3 }}>
@@ -544,7 +662,7 @@ export default function Profit() {
                                         </Grid>
                                         <Grid size={{ xs: 6, sm: 1.5 }}>
                                             <Typography variant="body2" sx={{ color: (item.profit_per_minute ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
-                                                {formatCurrency(item.profit_per_minute)}
+                                                {formatCurrency(applyMultiplier(item.profit_per_minute))}
                                             </Typography>
                                         </Grid>
                                         <Grid size={{ xs: 6, sm: 1.5 }}>
@@ -564,7 +682,7 @@ export default function Profit() {
                                                     </Grid>
                                                     <Grid size={{ xs: 6, sm: 4 }}>
                                                         <Typography variant="body2" color="text.secondary">Buy Price:</Typography>
-                                                        <Typography variant="body1">{formatCurrency(item.buy_price)}</Typography>
+                                                        <Typography variant="body1">{formatCurrency(applyMultiplier(item.buy_price))}</Typography>
                                                     </Grid>
                                                     <Grid size={{ xs: 6, sm: 4 }}>
                                                         <Typography variant="body2" color="text.secondary">Market Price:</Typography>
@@ -573,7 +691,7 @@ export default function Profit() {
                                                     <Grid size={{ xs: 6, sm: 4 }}>
                                                         <Typography variant="body2" color="text.secondary">Profit Per 1:</Typography>
                                                         <Typography variant="body1" sx={{ color: (item.profitPer1 ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
-                                                            {formatCurrency(item.profitPer1)}
+                                                            {formatCurrency(applyMultiplier(item.profitPer1))}
                                                         </Typography>
                                                     </Grid>
                                                     <Grid size={{ xs: 6, sm: 4 }}>
@@ -583,19 +701,19 @@ export default function Profit() {
                                                     <Grid size={{ xs: 6, sm: 4 }}>
                                                         <Typography variant="body2" color="text.secondary">Estimated Market Value Profit:</Typography>
                                                         <Typography variant="body1" sx={{ color: (item.estimated_market_value_profit ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
-                                                            {formatCurrency(item.estimated_market_value_profit)}
+                                                            {formatCurrency(applyMultiplier(item.estimated_market_value_profit))}
                                                         </Typography>
                                                     </Grid>
                                                     <Grid size={{ xs: 6, sm: 4 }}>
                                                         <Typography variant="body2" color="text.secondary">Lowest 50 Profit:</Typography>
                                                         <Typography variant="body1" sx={{ color: (item.lowest_50_profit ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
-                                                            {formatCurrency(item.lowest_50_profit)}
+                                                            {formatCurrency(applyMultiplier(item.lowest_50_profit))}
                                                         </Typography>
                                                     </Grid>
                                                     <Grid size={{ xs: 6, sm: 4 }}>
                                                         <Typography variant="body2" color="text.secondary">Sold Profit:</Typography>
                                                         <Typography variant="body1" sx={{ color: (item.sold_profit ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
-                                                            {formatCurrency(item.sold_profit)}
+                                                            {formatCurrency(applyMultiplier(item.sold_profit))}
                                                         </Typography>
                                                     </Grid>
                                                     <Grid size={{ xs: 6, sm: 4 }}>
@@ -627,7 +745,7 @@ export default function Profit() {
                                                     <Grid size={{ xs: 6, sm: 4 }}>
                                                         <Typography variant="body2" color="text.secondary">Profit/Min:</Typography>
                                                         <Typography variant="body1" sx={{ color: (item.profit_per_minute ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
-                                                            {formatCurrency(item.profit_per_minute)}
+                                                            {formatCurrency(applyMultiplier(item.profit_per_minute))}
                                                         </Typography>
                                                     </Grid>
                                                     {item.travel_time_minutes && item.travel_time_minutes > 0 && (
