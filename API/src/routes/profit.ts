@@ -323,7 +323,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
               : baseTravelTime;
             
             // Calculate profit per minute: (sold_profit * MAX_FOREIGN_ITEMS) / (2 * travel_time)
-            // Multiply by 2 because travel time is for one way, we need round trip
+            // travel_time_minutes is stored as ONE-WAY time, so multiply by 2 for round trip
             if (sold_profit !== null && travel_time_minutes > 0) {
               const totalProfit = sold_profit * MAX_FOREIGN_ITEMS;
               const roundTripTime = travel_time_minutes * 2;
@@ -333,9 +333,10 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
             // Calculate boarding time to land on estimated restock time
             // Strategy: Calculate when we would land if we board now, then find the next
             // estimated restock that occurs AFTER that landing time
+            // NOTE: travel_time_minutes is stored as ONE-WAY time
             if (travel_time_minutes > 0) {
               const now = new Date();
-              const travelTimeToDestination = travel_time_minutes / 2;
+              const travelTimeToDestination = travel_time_minutes; // Already one-way
               
               // Calculate when we would land if we boarded right now
               const landingTimeIfBoardNow = new Date(now.getTime() + travelTimeToDestination * 60 * 1000);

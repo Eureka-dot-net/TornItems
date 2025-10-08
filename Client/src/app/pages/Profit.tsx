@@ -194,10 +194,11 @@ export default function Profit() {
     };
 
     // Calculate next boarding time for foreign shops (generic, not tied to a specific item)
+    // NOTE: travelTimeMinutes from API is ONE-WAY time
     const calculateNextBoardingTime = (travelTimeMinutes: number): string => {
         const now = new Date();
         const nextSlot = roundUpToNextQuarterHour(now);
-        const travelTimeToDestination = travelTimeMinutes / 2;
+        const travelTimeToDestination = travelTimeMinutes; // Already one-way
         const boardingTime = new Date(nextSlot.getTime() - travelTimeToDestination * 60 * 1000);
         return boardingTime.toISOString();
     };
@@ -724,6 +725,12 @@ export default function Profit() {
                                         <CardContent>
                                             <Typography variant="subtitle1" gutterBottom>
                                                 {country.name}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Travel Time (one-way):
+                                            </Typography>
+                                            <Typography variant="body1" gutterBottom>
+                                                {formatDuration(country.travelTime)}
                                             </Typography>
                                             <Typography variant="body2" color="text.secondary">
                                                 Boarding Time:
