@@ -50,4 +50,5 @@ export interface ProfitData {
   countries: number;
   results: GroupedByCountry;
   travelStatus?: TravelStatus;
+  maxForeignItems?: number;
 }

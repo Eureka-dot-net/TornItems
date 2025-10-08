@@ -2,12 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import type { ProfitData } from "../types/profit";
 import { agent } from "../api/agent";
 
-export function useProfit(apiKey?: string) {
+export function useProfit() {
     const { data: profitData, isLoading: profitLoading, error: profitError, refetch } = useQuery<ProfitData>({
-        queryKey: ["profit", apiKey],
+        queryKey: ["profit"],
         queryFn: async () => {
-            const url = apiKey ? `/profit?key=${apiKey}` : '/profit';
-            const res = await agent.get(url);
+            const res = await agent.get(`/profit`);
             return res.data as ProfitData;
         },
         staleTime: 3600000, // 1 hour

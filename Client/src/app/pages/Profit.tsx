@@ -7,19 +7,7 @@ type SortField = 'name' | 'shop_name' | 'country' | 'buy_price' | 'average_price
 type SortOrder = 'asc' | 'desc';
 
 export default function Profit() {
-    // API Key state - get from localStorage or empty string
-    const [apiKey, setApiKey] = useState<string>(() => {
-        return localStorage.getItem('tornApiKey') || '';
-    });
-    
-    // Save API key to localStorage when it changes
-    useEffect(() => {
-        if (apiKey) {
-            localStorage.setItem('tornApiKey', apiKey);
-        }
-    }, [apiKey]);
-    
-    const { profitData, profitLoading, profitError } = useProfit(apiKey);
+    const { profitData, profitLoading, profitError } = useProfit();
     const [selectedCountry, setSelectedCountry] = useState<string>('Torn');
     const [sortField, setSortField] = useState<SortField>('sold_profit');
     const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -343,10 +331,10 @@ export default function Profit() {
         if (watchedItemsArray.length === 0) return null;
         
         const params = new URLSearchParams();
-        watchedItemsArray.forEach((itemId, index) => {
+        watchedItemsArray.forEach((itemId: number, index: number) => {
             params.set(`item${index + 1}`, itemId.toString());
         });
-        params.set('amount', '15');
+        params.set('amount', String(profitData?.maxForeignItems || 15));
         params.set('arrival', profitData.travelStatus.arrival_at.toString());
         
         return `https://www.torn.com/index.php?${params.toString()}`;
@@ -385,30 +373,10 @@ export default function Profit() {
                             <Typography variant="body2" color="text.secondary">
                                 {isTraveling 
                                     ? `Select up to 3 items to watch (${watchedItems.size}/3 selected)`
-                                    : 'You must be traveling to watch items. Provide your API key to check travel status.'}
+                                    : 'You are not currently traveling'}
                             </Typography>
                         </Grid>
                         <Grid size={{ xs: 12, md: 6 }} sx={{ textAlign: { md: 'right' } }}>
-                            {!isTraveling && (
-                                <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
-                                    <input
-                                        type="text"
-                                        placeholder="Enter your Torn API key"
-                                        value={apiKey}
-                                        onChange={(e) => setApiKey(e.target.value)}
-                                        style={{
-                                            padding: '8px 12px',
-                                            borderRadius: '4px',
-                                            border: '1px solid rgba(255, 255, 255, 0.23)',
-                                            backgroundColor: 'rgba(255, 255, 255, 0.09)',
-                                            color: 'inherit',
-                                            fontFamily: 'inherit',
-                                            fontSize: '14px',
-                                            minWidth: '250px'
-                                        }}
-                                    />
-                                </Box>
-                            )}
                             {isTraveling && (
                                 <Button
                                     variant="contained"
@@ -640,7 +608,7 @@ export default function Profit() {
                                             <Grid size={{ xs: 1, sm: 0.5 }} sx={{ display: 'flex', alignItems: 'center' }}>
                                                 <Checkbox
                                                     checked={watchedItems.has(item.id)}
-                                                    onChange={(e) => {
+                                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                                         e.stopPropagation();
                                                         handleToggleWatchItem(item.id);
                                                     }}

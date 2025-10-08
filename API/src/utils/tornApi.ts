@@ -84,16 +84,22 @@ export async function fetchAndStoreBattleStats(tornId: number, apiKey: string) {
 }
 
 /**
- * Fetch travel status for a user from the Torn API
- * @param apiKey - The user's Torn API key
+ * Fetch travel status from the Torn API using environment API key
  * @returns The travel status or null if not traveling
  */
-export async function fetchTravelStatus(apiKey: string): Promise<TravelStatus | null> {
+export async function fetchTravelStatus(): Promise<TravelStatus | null> {
+  const API_KEY = process.env.TORN_API_KEY;
+  
+  if (!API_KEY) {
+    logError('TORN_API_KEY not set in environment variables', new Error('Missing API key'));
+    return null;
+  }
+  
   try {
     logInfo('Fetching travel status from Torn API');
     
     const response = await axios.get<TornTravelResponse>(
-      `https://api.torn.com/v2/user/travel?key=${apiKey}`
+      `https://api.torn.com/v2/user/travel?key=${API_KEY}`
     );
     
     // If the user is not traveling, the API may not return a travel object

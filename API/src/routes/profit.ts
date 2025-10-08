@@ -74,21 +74,15 @@ const TORN_SHOP_MAP: Record<string, string> = {
 };
 
 // GET /profit
-router.get('/profit', async (req: Request, res: Response): Promise<void> => {
+router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
   try {
     console.log('Fetching profit data from MongoDB...');
 
     // Check if ItemsSold should be included in the response (for debugging)
     const includeItemsSold = process.env.INCLUDE_ITEMS_SOLD === 'true';
-
-    // Get API key from query parameter or header
-    const apiKey = (req.query.key as string) || (req.headers['x-api-key'] as string);
     
-    // Fetch travel status if API key is provided
-    let travelStatus: TravelStatus | null = null;
-    if (apiKey) {
-      travelStatus = await fetchTravelStatus(apiKey);
-    }
+    // Fetch travel status from Torn API
+    const travelStatus = await fetchTravelStatus();
 
     // Get today's date for fetching the latest aggregated data
     const today = new Date().toISOString().split('T')[0];
@@ -448,6 +442,7 @@ router.get('/profit', async (req: Request, res: Response): Promise<void> => {
       countries: Object.keys(grouped).length,
       results: grouped,
       travelStatus: travelStatus || undefined,
+      maxForeignItems: MAX_FOREIGN_ITEMS,
     });
   } catch (err: unknown) {
     if (err instanceof Error) {
