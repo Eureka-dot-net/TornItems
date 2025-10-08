@@ -331,23 +331,32 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
             }
             
             // Calculate boarding time to land on estimated restock time
-            // Boarding time = next estimated restock - (travel_time / 2)
-            // Use next_estimated_restock_time if available (accounts for skipped restocks),
-            // otherwise fall back to next 15-minute slot
+            // Strategy: Calculate when we would land if we board now, then find the next
+            // estimated restock that occurs AFTER that landing time
             if (travel_time_minutes > 0) {
+              const now = new Date();
+              const travelTimeToDestination = travel_time_minutes / 2;
+              
+              // Calculate when we would land if we boarded right now
+              const landingTimeIfBoardNow = new Date(now.getTime() + travelTimeToDestination * 60 * 1000);
+              
               let targetRestockTime: Date;
               
               if (next_estimated_restock_time) {
-                // Use the estimated restock time which accounts for skipped cycles
-                targetRestockTime = new Date(next_estimated_restock_time);
+                // We have restock data - find next restock after our landing time
+                let estimatedRestock = new Date(next_estimated_restock_time);
+                
+                // If the estimated restock is before we would land, advance to next cycle(s)
+                while (estimatedRestock <= landingTimeIfBoardNow) {
+                  // Advance by 15 minutes (one restock cycle)
+                  estimatedRestock = new Date(estimatedRestock.getTime() + 15 * 60 * 1000);
+                }
+                
+                targetRestockTime = estimatedRestock;
               } else {
-                // Fall back to next quarter hour if no restock data available
-                const now = new Date();
-                targetRestockTime = roundUpToNextQuarterHour(now);
+                // No restock data - find next quarter hour after landing time
+                targetRestockTime = roundUpToNextQuarterHour(landingTimeIfBoardNow);
               }
-              
-              // Travel time to destination is half of total travel time (one way)
-              const travelTimeToDestination = travel_time_minutes / 2;
               
               // Boarding time is the target restock time minus the travel time
               const boardingTimeDate = new Date(targetRestockTime.getTime() - travelTimeToDestination * 60 * 1000);

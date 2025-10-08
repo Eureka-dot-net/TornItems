@@ -226,7 +226,7 @@ export default function Profit() {
     const foreignCountriesWithTravelTimes = useMemo(() => {
         if (!profitData?.results) return [];
         
-        const countriesMap = new Map<string, { code: string; name: string; travelTime: number; boardingTime: string | null }>();
+        const countriesMap = new Map<string, { code: string; name: string; travelTime: number }>();
         
         foreignCountries.forEach(countryName => {
             const items = profitData.results[countryName];
@@ -236,8 +236,7 @@ export default function Profit() {
                     countriesMap.set(countryName, {
                         code: firstItem.country_code,
                         name: countryName,
-                        travelTime: firstItem.travel_time_minutes,
-                        boardingTime: firstItem.boarding_time ?? null
+                        travelTime: firstItem.travel_time_minutes
                     });
                 }
             }
@@ -716,9 +715,8 @@ export default function Profit() {
                     </Typography>
                     <Grid container spacing={2} sx={{ mt: 2 }}>
                         {foreignCountriesWithTravelTimes.map((country) => {
-                            // Use boarding time from API if available (accounts for skipped restocks),
-                            // otherwise calculate generic next slot boarding time
-                            const boardingTime = country.boardingTime ?? calculateNextBoardingTime(country.travelTime);
+                            // For country-level, calculate generic boarding time to land on next 15-min slot
+                            const boardingTime = calculateNextBoardingTime(country.travelTime);
                             const timeLeft = calculateBoardingTimeLeft(boardingTime);
                             return (
                                 <Grid size={{ xs: 12, sm: 6, md: 4 }} key={country.code}>
