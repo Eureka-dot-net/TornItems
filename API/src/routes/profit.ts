@@ -103,8 +103,8 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
     ]);
 
     if (!items?.length) {
-      res.status(503).json({ 
-        error: 'No items found in database. Background fetcher may still be initializing.' 
+      res.status(503).json({
+        error: 'No items found in database. Background fetcher may still be initializing.'
       });
       return;
     }
@@ -128,7 +128,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       // Store with composite key "shopId:itemId" for all items
       const key = `${state.shopId}:${state.itemId}`;
       shopItemStateMap.set(key, state);
-      
+
       // Also store Torn items by itemId alone for backward compatibility
       if (state.shopName === 'Torn' || !state.shopId.includes('_')) {
         shopItemStateMap.set(state.itemId, state);
@@ -207,10 +207,10 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       let trend_24h: number | null = null;
       let hour_velocity_24: number | null = null;
       let average_price_items_sold: number | null = null;
-      
+
       const historyKey = `${country}:${item.itemId}`;
       const historyRecord = historyMap.get(historyKey);
-      
+
       // Use pre-calculated metrics from MarketHistory
       if (historyRecord) {
         sales_24h_current = historyRecord.sales_24h_current ?? null;
@@ -233,7 +233,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       let cycles_skipped: number | null = null;
       let last_restock_time: string | null = null;
       let next_estimated_restock_time: string | null = null;
-      
+
       // Determine the lookup key based on country
       let shopItemState = null;
       if (country === 'Torn') {
@@ -244,45 +244,45 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         const countryCode = Object.entries(COUNTRY_CODE_MAP).find(
           ([, name]) => name === country
         )?.[0];
-        
+
         if (countryCode) {
           const stateKey = `${countryCode}:${item.itemId}`;
           shopItemState = shopItemStateMap.get(stateKey);
         }
       }
-      
+
       // If we found state data, populate the fields
       if (shopItemState) {
         sellout_duration_minutes = shopItemState.selloutDurationMinutes ?? null;
         cycles_skipped = shopItemState.cyclesSkipped ?? null;
-        
+
         if (shopItemState.lastRestockTime) {
           last_restock_time = shopItemState.lastRestockTime.toISOString();
-          
+
           // Calculate next estimated restock time
           // Start from last restock time, add (cyclesSkipped + 1) * 15 minutes
           const lastRestock = new Date(shopItemState.lastRestockTime);
           const cyclesSkippedCount = shopItemState.cyclesSkipped ?? 0;
-          
+
           // Add estimated wait time: (cycles_skipped + 1) * 15 minutes
           const estimatedWaitMinutes = (cyclesSkippedCount + 1) * 15;
           let estimatedTime = new Date(lastRestock.getTime() + estimatedWaitMinutes * 60 * 1000);
-          
+
           // Round to next quarter hour
           let nextRestock = roundUpToNextQuarterHour(estimatedTime);
-          
+
           // If the calculated time is in the past, advance it to the next future restock cycle
           const now = new Date();
           if (nextRestock < now) {
             // Calculate how many 15-minute cycles have passed since the estimated time
             const minutesSinceEstimate = (now.getTime() - nextRestock.getTime()) / (60 * 1000);
             const cyclesPassed = Math.ceil(minutesSinceEstimate / 15);
-            
+
             // Advance to the next restock cycle in the future
             nextRestock = new Date(nextRestock.getTime() + cyclesPassed * 15 * 60 * 1000);
             nextRestock = roundUpToNextQuarterHour(nextRestock);
           }
-          
+
           next_estimated_restock_time = nextRestock.toISOString();
         }
       }
@@ -303,25 +303,25 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
       let profit_per_minute: number | null = null;
       let country_code: string | null = null;
       let boarding_time: string | null = null;
-      
+
       if (country !== 'Torn' && country !== 'Unknown') {
         // Get country code for this country
         const countryCode = Object.entries(COUNTRY_CODE_MAP).find(
           ([, name]) => name === country
         )?.[0];
-        
+
         if (countryCode) {
           country_code = countryCode;
-          
+
           // Get base travel time from the map
           const baseTravelTime = travelTimeMap.get(countryCode);
-          
+
           if (baseTravelTime !== undefined) {
             // Apply private island reduction if applicable and round to nearest minute
-            travel_time_minutes = HAS_PRIVATE_ISLAND 
-              ? Math.round(baseTravelTime * (1 - PRIVATE_ISLAND_REDUCTION))
+            travel_time_minutes = HAS_PRIVATE_ISLAND
+              ? Math.round(baseTravelTime * (1 - PRIVATE_ISLAND_REDUCTION) * 100) / 100
               : Math.round(baseTravelTime);
-            
+
             // Calculate profit per minute: (sold_profit * MAX_FOREIGN_ITEMS) / (2 * travel_time)
             // travel_time_minutes is stored as ONE-WAY time, so multiply by 2 for round trip
             if (sold_profit !== null && travel_time_minutes > 0) {
@@ -329,7 +329,7 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
               const roundTripTime = travel_time_minutes * 2;
               profit_per_minute = totalProfit / roundTripTime;
             }
-            
+
             // Calculate boarding time to land on estimated restock time
             // Strategy: Calculate when we would land if we board now, then find the next
             // estimated restock that occurs AFTER that landing time
@@ -337,28 +337,28 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
             if (travel_time_minutes > 0) {
               const now = new Date();
               const travelTimeToDestination = travel_time_minutes; // Already one-way
-              
+
               // Calculate when we would land if we boarded right now
               const landingTimeIfBoardNow = new Date(now.getTime() + travelTimeToDestination * 60 * 1000);
-              
+
               let targetRestockTime: Date;
-              
+
               if (next_estimated_restock_time) {
                 // We have restock data - find next restock after our landing time
                 let estimatedRestock = new Date(next_estimated_restock_time);
-                
+
                 // If the estimated restock is before we would land, advance to next cycle(s)
                 while (estimatedRestock <= landingTimeIfBoardNow) {
                   // Advance by 15 minutes (one restock cycle)
                   estimatedRestock = new Date(estimatedRestock.getTime() + 15 * 60 * 1000);
                 }
-                
+
                 targetRestockTime = estimatedRestock;
               } else {
                 // No restock data - find next quarter hour after landing time
                 targetRestockTime = roundUpToNextQuarterHour(landingTimeIfBoardNow);
               }
-              
+
               // Boarding time is the target restock time minus the travel time
               const boardingTimeDate = new Date(targetRestockTime.getTime() - travelTimeToDestination * 60 * 1000);
               boarding_time = boardingTimeDate.toISOString();
@@ -414,18 +414,18 @@ router.get('/profit', async (_req: Request, res: Response): Promise<void> => {
         // Items with sold_profit should always come before those without
         const aSoldProfit = a.sold_profit ?? null;
         const bSoldProfit = b.sold_profit ?? null;
-        
+
         if (aSoldProfit !== null && bSoldProfit === null) return -1;
         if (aSoldProfit === null && bSoldProfit !== null) return 1;
         if (aSoldProfit !== null && bSoldProfit !== null) {
           if (aSoldProfit !== bSoldProfit) return bSoldProfit - aSoldProfit;
         }
-        
+
         // Second priority: lowest_50_profit (desc)
         const aLowest50 = a.lowest_50_profit ?? 0;
         const bLowest50 = b.lowest_50_profit ?? 0;
         if (aLowest50 !== bLowest50) return bLowest50 - aLowest50;
-        
+
         // Third priority: estimated_market_value_profit (desc)
         const aEstimated = a.estimated_market_value_profit ?? 0;
         const bEstimated = b.estimated_market_value_profit ?? 0;
