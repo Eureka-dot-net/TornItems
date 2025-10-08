@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { logInfo, logError } from './logger';
+import { getDiscordClient } from '../services/discordBot';
+import { TextChannel } from 'discord.js';
 
 /**
  * Sends a message to the configured Discord webhook
@@ -18,5 +20,38 @@ export async function sendDiscordAlert(message: string): Promise<void> {
     logInfo('Discord alert sent successfully');
   } catch (error) {
     logError('Failed to send Discord alert', error instanceof Error ? error : new Error(String(error)));
+  }
+}
+
+/**
+ * Sends a message to a specific Discord channel using the bot client
+ * @param channelId - The Discord channel ID
+ * @param message - The message content to send
+ */
+export async function sendDiscordChannelAlert(channelId: string, message: string): Promise<void> {
+  const client = getDiscordClient();
+  
+  if (!client || !client.isReady()) {
+    logError('Discord bot not ready', new Error('Discord client is not initialized or not ready'));
+    return;
+  }
+  
+  try {
+    const channel = await client.channels.fetch(channelId);
+    
+    if (!channel || !channel.isTextBased()) {
+      logError('Invalid channel or not a text channel', new Error(`Channel ${channelId} is not a text channel`));
+      return;
+    }
+    
+    // Type guard to ensure we have a sendable channel
+    if (channel instanceof TextChannel || 'send' in channel) {
+      await (channel as any).send({ content: message.substring(0, 2000) }); // Discord message limit
+      logInfo('Discord channel alert sent successfully', { channelId });
+    } else {
+      logError('Channel does not support sending messages', new Error(`Channel ${channelId} cannot send messages`));
+    }
+  } catch (error) {
+    logError('Failed to send Discord channel alert', error instanceof Error ? error : new Error(String(error)), { channelId });
   }
 }

@@ -13,16 +13,20 @@
     "lint:fix": "eslint --fix src --ext .ts --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "kill": "taskkill /IM node.exe /F",
-    "init-travel-times": "ts-node scripts/initializeTravelTimes.ts"
+    "init-travel-times": "ts-node scripts/initializeTravelTimes.ts",
+    "register-commands": "ts-node src/register-commands.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@discordjs/rest": "^2.6.0",
     "@types/node-cron": "^3.0.11",
     "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
     "bottleneck": "^2.19.5",
+    "discord-api-types": "^0.38.29",
+    "discord.js": "^14.22.1",
     "dotenv": "^17.2.1",
     "eslint": "^9.34.0",
     "express": "^5.1.0",
