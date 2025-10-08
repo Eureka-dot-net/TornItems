@@ -59,14 +59,19 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       const status = notification.enabled ? '✅ Enabled' : '❌ Disabled';
       
       message += `**${countryName}** ${status}\n`;
-      message += `  🔔 Notify: ${notification.notifyBeforeSeconds}s before\n`;
+      message += `  🔔 Notify: ${notification.notifyBeforeSeconds}s before`;
+      if (notification.notifyBeforeSeconds2) {
+        message += ` and ${notification.notifyBeforeSeconds2}s before`;
+      }
+      message += '\n';
       
       if (notification.watchItems && notification.watchItems.length > 0) {
         message += `  👁️ Watch Items: ${notification.watchItems.join(', ')}\n`;
       }
       
       if (notification.scheduledBoardingTime && !notification.notificationsSent) {
-        message += `  ⏰ Next alert: ${notification.scheduledBoardingTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}\n`;
+        const boardingTimestamp = Math.floor(new Date(notification.scheduledBoardingTime).getTime() / 1000);
+        message += `  ⏰ Next alert: <t:${boardingTimestamp}:t> (<t:${boardingTimestamp}:R>)\n`;
       }
       
       message += '\n';

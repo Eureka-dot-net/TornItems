@@ -39,6 +39,14 @@ export const data = new SlashCommandBuilder()
       .setMinValue(1)
       .setMaxValue(300)
   )
+  .addIntegerOption(option =>
+    option
+      .setName('notifybeforeseconds2')
+      .setDescription('Second alert seconds before departure (e.g., 5 for 5s warning)')
+      .setRequired(false)
+      .setMinValue(1)
+      .setMaxValue(300)
+  )
   .addBooleanOption(option =>
     option
       .setName('hasprivateisland')
@@ -75,6 +83,7 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: ChatInputCommandInteraction) {
   const countryInput = interaction.options.getString('country', true).trim();
   const notifyBeforeSeconds = interaction.options.getInteger('notifybeforeseconds');
+  const notifyBeforeSeconds2 = interaction.options.getInteger('notifybeforeseconds2');
   const hasPrivateIsland = interaction.options.getBoolean('hasprivateisland');
   const watchItem1 = interaction.options.getInteger('watchitem1');
   const watchItem2 = interaction.options.getInteger('watchitem2');
@@ -162,7 +171,20 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     
     // Calculate notification times
     const actualNotifyBeforeSeconds = notifyBeforeSeconds || 10;
+    const actualNotifyBeforeSeconds2 = notifyBeforeSeconds2 || null;
+    
+    // Validate that notifyBeforeSeconds2 is less than notifyBeforeSeconds
+    if (actualNotifyBeforeSeconds2 !== null && actualNotifyBeforeSeconds2 >= actualNotifyBeforeSeconds) {
+      await interaction.editReply({
+        content: `❌ Second notification time (${actualNotifyBeforeSeconds2}s) must be less than first notification time (${actualNotifyBeforeSeconds}s).`,
+      });
+      return;
+    }
+    
     const notifyBeforeTime = new Date(boardingTime.getTime() - actualNotifyBeforeSeconds * 1000);
+    const notifyBeforeTime2 = actualNotifyBeforeSeconds2 !== null 
+      ? new Date(boardingTime.getTime() - actualNotifyBeforeSeconds2 * 1000)
+      : null;
 
     // Check if notification already exists for this user+country
     let notification = await TravelNotification.findOne({ 
@@ -175,23 +197,45 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       if (notifyBeforeSeconds !== null) {
         notification.notifyBeforeSeconds = actualNotifyBeforeSeconds;
       }
+      if (notifyBeforeSeconds2 !== null || actualNotifyBeforeSeconds2 === null) {
+        notification.notifyBeforeSeconds2 = actualNotifyBeforeSeconds2;
+      }
       if (watchItems.length > 0) {
         notification.watchItems = watchItems;
       }
       notification.enabled = true;
       notification.scheduledNotifyBeforeTime = notifyBeforeTime;
+      notification.scheduledNotifyBeforeTime2 = notifyBeforeTime2;
       notification.scheduledBoardingTime = boardingTime;
       notification.scheduledArrivalTime = nextSlot;
       notification.notificationsSent = false;
+      notification.notificationsSent2 = false;
       await notification.save();
 
       logInfo('Updated travel notification', {
         discordUserId,
         countryCode,
         notifyBeforeSeconds: notification.notifyBeforeSeconds,
+        notifyBeforeSeconds2: notification.notifyBeforeSeconds2,
         watchItems: notification.watchItems,
         scheduledBoardingTime: boardingTime.toISOString(),
       });
+
+      // Build notification list with Discord timestamps
+      const notificationTimes = [
+        `• <t:${Math.floor(notifyBeforeTime.getTime() / 1000)}:T> (${actualNotifyBeforeSeconds}s warning)`
+      ];
+      if (notifyBeforeTime2) {
+        notificationTimes.push(
+          `• <t:${Math.floor(notifyBeforeTime2.getTime() / 1000)}:T> (${actualNotifyBeforeSeconds2}s warning)`
+        );
+      }
+      // Only add boarding time notification if no before times are set
+      if (actualNotifyBeforeSeconds2 === null) {
+        notificationTimes.push(
+          `• <t:${Math.floor(boardingTime.getTime() / 1000)}:T> (board now)`
+        );
+      }
 
       await interaction.editReply({
         content: `✅ Updated travel notification for **${COUNTRY_CODE_MAP[countryCode]}**\n\n` +
@@ -199,13 +243,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           `⏱️ Travel Time: ${actualTravelTimeMinutes} minutes\n` +
           `📦 Items to Buy: ${user.itemsToBuy}\n` +
           `👁️ Watch Items: ${notification.watchItems.length > 0 ? notification.watchItems.join(', ') : 'None'}\n` +
-          `🔔 Notify: ${notification.notifyBeforeSeconds}s before departure\n\n` +
+          `🔔 Notify: ${actualNotifyBeforeSeconds}s before${actualNotifyBeforeSeconds2 !== null ? ` and ${actualNotifyBeforeSeconds2}s before` : ''} departure\n\n` +
           `**Next scheduled landing:**\n` +
-          `📍 Arrival: ${nextSlot.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}\n` +
-          `🛫 Board at: ${boardingTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}\n\n` +
+          `📍 Arrival: <t:${Math.floor(nextSlot.getTime() / 1000)}:t>\n` +
+          `🛫 Board at: <t:${Math.floor(boardingTime.getTime() / 1000)}:t>\n\n` +
           `You will receive notifications at:\n` +
-          `• ${notifyBeforeTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })} (warning)\n` +
-          `• ${boardingTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })} (board now)`,
+          notificationTimes.join('\n'),
       });
     } else {
       // Create new notification
@@ -213,12 +256,15 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         discordUserId,
         countryCode,
         notifyBeforeSeconds: actualNotifyBeforeSeconds,
+        notifyBeforeSeconds2: actualNotifyBeforeSeconds2,
         watchItems,
         enabled: true,
         scheduledNotifyBeforeTime: notifyBeforeTime,
+        scheduledNotifyBeforeTime2: notifyBeforeTime2,
         scheduledBoardingTime: boardingTime,
         scheduledArrivalTime: nextSlot,
         notificationsSent: false,
+        notificationsSent2: false,
       });
       await notification.save();
 
@@ -226,9 +272,26 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         discordUserId,
         countryCode,
         notifyBeforeSeconds: actualNotifyBeforeSeconds,
+        notifyBeforeSeconds2: actualNotifyBeforeSeconds2,
         watchItems,
         scheduledBoardingTime: boardingTime.toISOString(),
       });
+
+      // Build notification list with Discord timestamps
+      const notificationTimes = [
+        `• <t:${Math.floor(notifyBeforeTime.getTime() / 1000)}:T> (${actualNotifyBeforeSeconds}s warning)`
+      ];
+      if (notifyBeforeTime2) {
+        notificationTimes.push(
+          `• <t:${Math.floor(notifyBeforeTime2.getTime() / 1000)}:T> (${actualNotifyBeforeSeconds2}s warning)`
+        );
+      }
+      // Only add boarding time notification if no before times are set
+      if (actualNotifyBeforeSeconds2 === null) {
+        notificationTimes.push(
+          `• <t:${Math.floor(boardingTime.getTime() / 1000)}:T> (board now)`
+        );
+      }
 
       await interaction.editReply({
         content: `✅ Created travel notification for **${COUNTRY_CODE_MAP[countryCode]}**\n\n` +
@@ -236,13 +299,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           `⏱️ Travel Time: ${actualTravelTimeMinutes} minutes\n` +
           `📦 Items to Buy: ${user.itemsToBuy}\n` +
           `👁️ Watch Items: ${watchItems.length > 0 ? watchItems.join(', ') : 'None'}\n` +
-          `🔔 Notify: ${actualNotifyBeforeSeconds}s before departure\n\n` +
+          `🔔 Notify: ${actualNotifyBeforeSeconds}s before${actualNotifyBeforeSeconds2 !== null ? ` and ${actualNotifyBeforeSeconds2}s before` : ''} departure\n\n` +
           `**Next scheduled landing:**\n` +
-          `📍 Arrival: ${nextSlot.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}\n` +
-          `🛫 Board at: ${boardingTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}\n\n` +
+          `📍 Arrival: <t:${Math.floor(nextSlot.getTime() / 1000)}:t>\n` +
+          `🛫 Board at: <t:${Math.floor(boardingTime.getTime() / 1000)}:t>\n\n` +
           `You will receive notifications at:\n` +
-          `• ${notifyBeforeTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })} (warning)\n` +
-          `• ${boardingTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })} (board now)`,
+          notificationTimes.join('\n'),
       });
     }
   } catch (err) {
