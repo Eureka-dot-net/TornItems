@@ -7,8 +7,17 @@ type SortField = 'name' | 'shop_name' | 'country' | 'buy_price' | 'average_price
 type SortOrder = 'asc' | 'desc';
 
 export default function Profit() {
-    // API Key state - you could also get this from localStorage or a context
-    const [apiKey, setApiKey] = useState<string>('');
+    // API Key state - get from localStorage or empty string
+    const [apiKey, setApiKey] = useState<string>(() => {
+        return localStorage.getItem('tornApiKey') || '';
+    });
+    
+    // Save API key to localStorage when it changes
+    useEffect(() => {
+        if (apiKey) {
+            localStorage.setItem('tornApiKey', apiKey);
+        }
+    }, [apiKey]);
     
     const { profitData, profitLoading, profitError } = useProfit(apiKey);
     const [selectedCountry, setSelectedCountry] = useState<string>('Torn');
