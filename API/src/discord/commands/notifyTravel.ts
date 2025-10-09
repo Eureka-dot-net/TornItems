@@ -251,8 +251,20 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         );
       }
 
+      // Calculate boarding time for the URL
+      // Use boarding time - notifyBeforeSeconds2 if provided, otherwise actual boarding time
+      const boardingTimeForUrl = actualNotifyBeforeSeconds2 !== null 
+        ? new Date(boardingTime.getTime() - actualNotifyBeforeSeconds2 * 1000)
+        : boardingTime;
+      const boardingTimestamp = Math.floor(boardingTimeForUrl.getTime() / 1000);
+      
+      // Use the country name and convert to lowercase for the URL
+      const countryName = COUNTRY_CODE_MAP[countryCode];
+      const destination = countryName.toLowerCase();
+      const boardingUrl = `https://www.torn.com/page.php?sid=travel&destination=${destination}&boardingtime=${boardingTimestamp}`;
+
       await interaction.editReply({
-        content: `✅ Updated travel notification for **${COUNTRY_CODE_MAP[countryCode]}**\n\n` +
+        content: `✅ Updated travel notification for **${countryName}**\n\n` +
           `🏝️ Private Island: ${user.hasPrivateIsland ? 'Yes (-30% travel time)' : 'No'}\n` +
           `⏱️ Travel Time: ${actualTravelTimeMinutes} minutes\n` +
           `📦 Items to Buy: ${user.itemsToBuy}\n` +
@@ -261,6 +273,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           `**Next scheduled landing:**\n` +
           `📍 Arrival: <t:${Math.floor(nextSlot.getTime() / 1000)}:t>\n` +
           `🛫 Board at: <t:${Math.floor(boardingTime.getTime() / 1000)}:t>\n\n` +
+          `🔗 Boarding Link: ${boardingUrl}\n\n` +
           `You will receive notifications at:\n` +
           notificationTimes.join('\n'),
       });
@@ -307,8 +320,20 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         );
       }
 
+      // Calculate boarding time for the URL
+      // Use boarding time - notifyBeforeSeconds2 if provided, otherwise actual boarding time
+      const boardingTimeForUrl = actualNotifyBeforeSeconds2 !== null 
+        ? new Date(boardingTime.getTime() - actualNotifyBeforeSeconds2 * 1000)
+        : boardingTime;
+      const boardingTimestamp = Math.floor(boardingTimeForUrl.getTime() / 1000);
+      
+      // Use the country name and convert to lowercase for the URL
+      const countryName = COUNTRY_CODE_MAP[countryCode];
+      const destination = countryName.toLowerCase();
+      const boardingUrl = `https://www.torn.com/page.php?sid=travel&destination=${destination}&boardingtime=${boardingTimestamp}`;
+
       await interaction.editReply({
-        content: `✅ Created travel notification for **${COUNTRY_CODE_MAP[countryCode]}**\n\n` +
+        content: `✅ Created travel notification for **${countryName}**\n\n` +
           `🏝️ Private Island: ${user.hasPrivateIsland ? 'Yes (-30% travel time)' : 'No'}\n` +
           `⏱️ Travel Time: ${actualTravelTimeMinutes} minutes\n` +
           `📦 Items to Buy: ${user.itemsToBuy}\n` +
@@ -317,6 +342,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           `**Next scheduled landing:**\n` +
           `📍 Arrival: <t:${Math.floor(nextSlot.getTime() / 1000)}:t>\n` +
           `🛫 Board at: <t:${Math.floor(boardingTime.getTime() / 1000)}:t>\n\n` +
+          `🔗 Boarding Link: ${boardingUrl}\n\n` +
           `You will receive notifications at:\n` +
           notificationTimes.join('\n'),
       });

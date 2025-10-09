@@ -432,8 +432,14 @@ export default function Profit() {
         return `https://www.torn.com/shops.php?step=${item.shop_url_name}&itemid=${item.id}&buyamount=100`;
     };
 
-    const buildTravelUrl = (countryCode: string) => {
-        return `https://www.torn.com/page.php?sid=travel&destination=${countryCode}`;
+    const buildTravelUrl = (countryName: string, boardingTime?: string | null) => {
+        const destination = countryName.toLowerCase();
+        const url = `https://www.torn.com/page.php?sid=travel&destination=${destination}`;
+        if (boardingTime) {
+            const boardingTimestamp = Math.floor(new Date(boardingTime).getTime() / 1000);
+            return `${url}&boardingtime=${boardingTimestamp}`;
+        }
+        return url;
     };
 
     // Calculate boarding time left (can be negative if missed)
@@ -948,7 +954,7 @@ export default function Profit() {
                                                             <Grid size={{ xs: 6, sm: 4 }}>
                                                                 <Typography variant="body2" color="text.secondary">Boarding Time Left:</Typography>
                                                                 <Link
-                                                                    href={item.country_code ? buildTravelUrl(item.country_code) : undefined}
+                                                                    href={item.country ? buildTravelUrl(item.country, calculateItemBoardingTime(item)) : undefined}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     sx={{
@@ -1193,7 +1199,7 @@ export default function Profit() {
                                                 Time Left:
                                             </Typography>
                                             <Link
-                                                href={buildTravelUrl(country.code)}
+                                                href={buildTravelUrl(country.name, boardingTime)}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 sx={{
