@@ -1,4 +1,4 @@
-// injector-travel.js — unified, robust travel helper (with dynamic map countdown restored)
+// injector-travel.js — fully restored (Modes A–D intact) + stronger observer patch
 (async () => {
   const url = new URL(window.location.href);
   const params = {
@@ -103,8 +103,8 @@
   }
 
   // ───────────────────────────────
-  // MODE C — dynamic pre-flight (map pick): compute boarding so that
-  // landing = first 15-min mark ≥ (now + flight time). Show countdown.
+  // MODE C — dynamic pre-flight (map pick)
+  // Landing = first 15-min mark ≥ (now + flight time)
   // ───────────────────────────────
   console.log("[TornTravel] MODE C (dynamic map detection) — waiting for travel map/root...");
 
@@ -159,7 +159,6 @@
 
     return { country, boardingEpoch };
   };
-
   const applyCountdownIfAvailable = () => {
     const result = computeBoardingForPanel();
     if (!result) return false;
@@ -167,10 +166,9 @@
     return true;
   };
 
-  // Try immediately, then watch for changes
   const initialApplied = applyCountdownIfAvailable();
-  const observer = new MutationObserver(() => applyCountdownIfAvailable());
-  observer.observe(travelRoot, { childList: true, subtree: true });
+  const observerC = new MutationObserver(() => applyCountdownIfAvailable());
+  observerC.observe(travelRoot, { childList: true, subtree: true });
 
   if (!initialApplied) {
     console.log("[TornTravel] Waiting for a destination pick to show flight details…");
@@ -186,7 +184,7 @@
     const t = container.querySelector("time")?.textContent?.trim();
     let secs = 0;
     if (t && t.includes(":")) {
-      const parts = t.split(":").map(Number); // hh:mm:ss or mm:ss
+      const parts = t.split(":").map(Number);
       if (parts.length === 3) secs = parts[0] * 3600 + parts[1] * 60 + parts[2];
       else if (parts.length === 2) secs = parts[0] * 60 + parts[1];
     }
@@ -202,10 +200,8 @@
 
   const armMexicoIfNeeded = () => {
     if (localStorage.getItem(ARMED_KEY)) return;
-
     const section = document.querySelector(".flightProgressSection___fhrD5");
     if (!section) return;
-
     const txt = (section.textContent || "").toLowerCase();
     if (!/ciudad juarez|mexico/.test(txt)) return;
 
@@ -214,7 +210,6 @@
 
     const arrival = nowSec() + remaining - 1;
     const args = { ...MEXICO_ITEM_SET, arrival: String(arrival) };
-
     localStorage.setItem("torn_flyshop_args", JSON.stringify(args));
     localStorage.setItem(ARMED_KEY, String(arrival));
 
@@ -222,9 +217,18 @@
     notify("✈️ Torn Flight", "Auto-buy armed for Mexico. Shop will open on landing.");
   };
 
+  // 🩵 Strengthened observer patch (robust detection)
   armMexicoIfNeeded();
-  const obs = new MutationObserver(() => { try { armMexicoIfNeeded(); } catch { } });
-  obs.observe(document.body, { childList: true, subtree: true });
+  const watchTargets = [document.body, document.querySelector("#travel-root")].filter(Boolean);
+  for (const target of watchTargets) {
+    const observer = new MutationObserver(() => {
+      try { armMexicoIfNeeded(); } catch { }
+    });
+    observer.observe(target, { childList: true, subtree: true });
+  }
+  setInterval(() => {
+    try { armMexicoIfNeeded(); } catch { }
+  }, 2000);
 
   const armedArrival = parseInt(localStorage.getItem(ARMED_KEY) || "0", 10);
   if (armedArrival) {
