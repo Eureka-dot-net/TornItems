@@ -46,12 +46,18 @@ async function checkTravelNotifications() {
         const countryName = COUNTRY_CODE_MAP[notification.countryCode] || notification.countryCode;
         
         // Check if we should send the first "before" notification
-        if (scheduledNotifyBeforeTime && now >= scheduledNotifyBeforeTime && now < scheduledBoardingTime) {
+        if (scheduledNotifyBeforeTime && now >= scheduledNotifyBeforeTime && now < scheduledBoardingTime && !notification.notificationsSent1) {
           const message = `🛫 **Travel Alert - ${notification.notifyBeforeSeconds}s Warning**\n\n` +
             `Prepare to board for **${countryName}**!\n` +
             `Board in **${notification.notifyBeforeSeconds} seconds** to land at <t:${notification.scheduledArrivalTime ? Math.floor(new Date(notification.scheduledArrivalTime).getTime() / 1000) : 0}:t>`;
           
           await sendDirectMessageWithFallback(notification.discordUserId, message, fallbackChannelId);
+          
+          // Mark first notification as sent
+          await TravelNotification.updateOne(
+            { _id: notification._id },
+            { notificationsSent1: true }
+          );
           
           logInfo('Sent travel warning notification', {
             discordUserId: notification.discordUserId,
@@ -139,9 +145,11 @@ async function checkTravelStart() {
     
     // Find notifications that have been sent and boarding time has passed
     // Only check 1-5 minutes AFTER boarding time to give user time to actually start traveling
+    // AND shop URL hasn't been sent yet
     const sentNotifications = await TravelNotification.find({
       enabled: true,
       notificationsSent: true,
+      shopUrlSent: false, // Only check notifications where shop URL hasn't been sent
       scheduledBoardingTime: { 
         $ne: null,
         $gte: new Date(now.getTime() - 5 * 60 * 1000), // Within last 5 minutes
@@ -153,7 +161,7 @@ async function checkTravelStart() {
       try {
         // Only send shop URLs if we have watch items
         if (!notification.watchItems || notification.watchItems.length === 0) {
-          // Clear scheduled times since no shop URL needed
+          // Clear scheduled times since no shop URL needed, and mark as sent
           await TravelNotification.updateOne(
             { _id: notification._id },
             { 
@@ -161,6 +169,7 @@ async function checkTravelStart() {
               scheduledNotifyBeforeTime2: null,
               scheduledBoardingTime: null,
               scheduledArrivalTime: null,
+              shopUrlSent: true, // Mark as sent even though we didn't send (to prevent rechecking)
             }
           );
           continue;
@@ -175,44 +184,61 @@ async function checkTravelStart() {
         const travelStatus = await fetchTravelStatus(apiKey);
         
         if (travelStatus && travelStatus.destination) {
-          // User is travelling - send shop URL with actual arrival time from Torn API
-          const arrivalTimestamp = travelStatus.arrival_at;
-          const countryName = COUNTRY_CODE_MAP[notification.countryCode] || notification.countryCode;
+          // Check if the user is travelling to the destination we have an alert for
+          // The API returns the full country name (e.g., "Mexico", "Canada")
+          // We need to verify it matches our notification's country code
+          const expectedCountryName = COUNTRY_CODE_MAP[notification.countryCode] || notification.countryCode;
           
-          // Build the shop URL with watch items
-          const itemParams = notification.watchItems
-            .slice(0, 3)
-            .map((itemId: number, index: number) => `item${index + 1}=${itemId}`)
-            .join('&');
-          
-          const shopUrl = `https://www.torn.com/page.php?sid=travel&${itemParams}&amount=${user.itemsToBuy}&arrival=${arrivalTimestamp}`;
-          
-          const message = `✈️ **Travelling to ${countryName}!**\n\n` +
-            `Here's your shop URL:\n\n` +
-            `${shopUrl}\n\n` +
-            `📍 Arrival: <t:${arrivalTimestamp}:t> (<t:${arrivalTimestamp}:R>)\n` +
-            `👁️ Watch Items: ${notification.watchItems.join(', ')}\n` +
-            `📦 Items to Buy: ${user.itemsToBuy}`;
-          
-          await sendDirectMessageWithFallback(notification.discordUserId, message, fallbackChannelId);
-          
-          // Clear scheduled times to avoid duplicate messages
-          await TravelNotification.updateOne(
-            { _id: notification._id },
-            { 
-              scheduledNotifyBeforeTime: null,
-              scheduledNotifyBeforeTime2: null,
-              scheduledBoardingTime: null,
-              scheduledArrivalTime: null,
-            }
-          );
-          
-          logInfo('Sent travel shop URL with actual arrival time from Torn API', {
-            discordUserId: notification.discordUserId,
-            country: countryName,
-            watchItems: notification.watchItems,
-            arrivalTime: new Date(arrivalTimestamp * 1000).toISOString(),
-          });
+          // Check if destination matches AND is not "Torn" (which means travelling back home)
+          if (travelStatus.destination === expectedCountryName && travelStatus.destination !== 'Torn') {
+            // User is travelling to the correct destination - send shop URL with actual arrival time from Torn API
+            const arrivalTimestamp = travelStatus.arrival_at;
+            const countryName = expectedCountryName;
+            
+            // Build the shop URL with watch items
+            const itemParams = notification.watchItems
+              .slice(0, 3)
+              .map((itemId: number, index: number) => `item${index + 1}=${itemId}`)
+              .join('&');
+            
+            const shopUrl = `https://www.torn.com/page.php?sid=travel&${itemParams}&amount=${user.itemsToBuy}&arrival=${arrivalTimestamp}`;
+            
+            const message = `✈️ **Travelling to ${countryName}!**\n\n` +
+              `Here's your shop URL:\n\n` +
+              `${shopUrl}\n\n` +
+              `📍 Arrival: <t:${arrivalTimestamp}:t> (<t:${arrivalTimestamp}:R>)\n` +
+              `👁️ Watch Items: ${notification.watchItems.join(', ')}\n` +
+              `📦 Items to Buy: ${user.itemsToBuy}`;
+            
+            await sendDirectMessageWithFallback(notification.discordUserId, message, fallbackChannelId);
+            
+            // Clear scheduled times and mark shop URL as sent to avoid duplicate messages
+            await TravelNotification.updateOne(
+              { _id: notification._id },
+              { 
+                scheduledNotifyBeforeTime: null,
+                scheduledNotifyBeforeTime2: null,
+                scheduledBoardingTime: null,
+                scheduledArrivalTime: null,
+                shopUrlSent: true,
+              }
+            );
+            
+            logInfo('Sent travel shop URL with actual arrival time from Torn API', {
+              discordUserId: notification.discordUserId,
+              country: countryName,
+              watchItems: notification.watchItems,
+              arrivalTime: new Date(arrivalTimestamp * 1000).toISOString(),
+              destination: travelStatus.destination,
+            });
+          } else {
+            // User is travelling but NOT to the destination we have an alert for
+            logInfo('User is travelling but not to the expected destination', {
+              discordUserId: notification.discordUserId,
+              expectedCountry: expectedCountryName,
+              actualDestination: travelStatus.destination,
+            });
+          }
         } else {
           // User is not travelling yet - log and continue checking
           logInfo('User not travelling yet, will check again', {

@@ -209,3 +209,123 @@ Result: Get alert 15s before boarding + alert 5s before boarding (no boarding ti
 - Fallback channel requires `DISCORD_TRAVEL_CHANNEL_ID` to be set in environment
 - Second notification time is optional and must be less than first notification time
 - When second notification time is set, boarding time notification is automatically skipped to avoid spam
+
+---
+
+## Additional Fixes (Latest)
+
+### 5. ✅ Multiple Duplicate Shop URL Messages
+**Problem**: The service was sending the same shop URL message multiple times because there was no flag to prevent re-processing notifications that had already received their shop URL.
+
+**Root Cause**: Between the time the shop URL notification was sent and the scheduled times were cleared in the database, the service (running every 5 seconds) could pick up the same notification again and send another message.
+
+**Solution**: 
+- Added a new `shopUrlSent` boolean field to the `TravelNotification` model
+- Updated the query in `checkTravelStart()` to exclude notifications where `shopUrlSent` is already true
+- Set `shopUrlSent = true` immediately after sending the shop URL to prevent future duplicate sends
+- Also set `shopUrlSent = true` for notifications with no watch items to prevent rechecking
+
+**Changes**:
+```typescript
+// Query now excludes notifications where shop URL was already sent
+const sentNotifications = await TravelNotification.find({
+  enabled: true,
+  notificationsSent: true,
+  shopUrlSent: false, // Only check notifications where shop URL hasn't been sent
+  scheduledBoardingTime: { 
+    $ne: null,
+    $gte: new Date(now.getTime() - 5 * 60 * 1000),
+    $lte: new Date(now.getTime() - 60 * 1000)
+  },
+}).lean();
+
+// After sending, mark as sent
+await TravelNotification.updateOne(
+  { _id: notification._id },
+  { 
+    scheduledNotifyBeforeTime: null,
+    scheduledNotifyBeforeTime2: null,
+    scheduledBoardingTime: null,
+    scheduledArrivalTime: null,
+    shopUrlSent: true, // Prevents duplicate sends
+  }
+);
+```
+
+### 6. ✅ Shop URL Sent When Not Travelling to Destination
+**Problem**: Users received shop URLs even when not travelling to the expected destination. For example, setting an alert for Mexico but getting the shop URL when travelling back home to "Torn" or when travelling to a different country.
+
+**Example from User**:
+```json
+{
+  "travel": {
+    "destination": "Torn",
+    "method": "Airstrip",
+    "departed_at": 1759936516,
+    "arrival_at": 1759937536,
+    "time_left": 0
+  }
+}
+```
+User had an alert for Mexico but was travelling back to "Torn" (home) and still received the Mexico shop URL.
+
+**Solution**:
+- Added destination verification that checks two conditions:
+  1. The travel destination matches the expected country name from `COUNTRY_CODE_MAP`
+  2. The destination is not "Torn" (which means travelling back home)
+- Added logging for cases where the user is travelling but not to the expected destination
+- Only send shop URL when both conditions are met
+
+**Changes**:
+```typescript
+if (travelStatus && travelStatus.destination) {
+  const expectedCountryName = COUNTRY_CODE_MAP[notification.countryCode] || notification.countryCode;
+  
+  // Check if destination matches AND is not "Torn" (travelling back home)
+  if (travelStatus.destination === expectedCountryName && travelStatus.destination !== 'Torn') {
+    // User is travelling to the correct destination - send shop URL
+    // ...
+  } else {
+    // User is travelling but NOT to the destination we have an alert for
+    logInfo('User is travelling but not to the expected destination', {
+      discordUserId: notification.discordUserId,
+      expectedCountry: expectedCountryName,
+      actualDestination: travelStatus.destination,
+    });
+  }
+}
+```
+
+**Database Schema Changes**:
+```typescript
+// Added to TravelNotification model
+shopUrlSent: { type: Boolean, default: false, index: true }
+```
+
+**Expected Behavior After Fix**:
+
+1. **No Duplicate Messages**: Each notification will only receive the shop URL once, even if the service runs multiple times
+2. **Correct Destination Verification**: Shop URLs will only be sent when:
+   - The user is actually travelling (not at home)
+   - The destination matches the country code from the alert
+   - The destination is not "Torn" (home)
+3. **Better Logging**: Clear log messages indicate when users are travelling to different destinations than expected
+
+**Example Scenarios**:
+
+✅ **Scenario 1**: User sets alert for Mexico and travels to Mexico
+- Shop URL sent with Mexico items
+
+❌ **Scenario 2**: User sets alert for Mexico but travels to Canada
+- No shop URL sent
+- Log: "User is travelling but not to the expected destination"
+
+❌ **Scenario 3**: User sets alert for Mexico but flies back home to Torn
+- No shop URL sent
+- The API returns `destination: "Torn"` which doesn't match "Mexico"
+
+✅ **Scenario 4**: User receives shop URL
+- `shopUrlSent` flag is set to `true`
+- Notification will not be processed again on subsequent service runs
+- No duplicate messages
+
