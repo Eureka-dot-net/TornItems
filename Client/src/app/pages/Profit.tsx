@@ -433,7 +433,23 @@ export default function Profit() {
     };
 
     const buildTravelUrl = (countryCode: string, boardingTime?: string | null) => {
-        const url = `https://www.torn.com/page.php?sid=travel&destination=${countryCode}`;
+        // Map country codes to lowercase country names for the URL
+        const countryCodeToName: Record<string, string> = {
+            'mex': 'mexico',
+            'can': 'canada',
+            'haw': 'hawaii',
+            'jap': 'japan',
+            'chi': 'china',
+            'arg': 'argentina',
+            'uni': 'united kingdom',
+            'uae': 'uae',
+            'sou': 'south africa',
+            'cay': 'cayman islands',
+            'swi': 'switzerland',
+        };
+        
+        const destination = countryCodeToName[countryCode] || countryCode;
+        const url = `https://www.torn.com/page.php?sid=travel&destination=${destination}`;
         if (boardingTime) {
             const boardingTimestamp = Math.floor(new Date(boardingTime).getTime() / 1000);
             return `${url}&boardingtime=${boardingTimestamp}`;

@@ -257,7 +257,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         ? new Date(boardingTime.getTime() - actualNotifyBeforeSeconds2 * 1000)
         : boardingTime;
       const boardingTimestamp = Math.floor(boardingTimeForUrl.getTime() / 1000);
-      const boardingUrl = `https://www.torn.com/page.php?sid=travel&destination=${countryCode}&boardingtime=${boardingTimestamp}`;
+      
+      // Convert country code to lowercase country name for URL
+      const countryName = COUNTRY_CODE_MAP[countryCode];
+      const destination = countryName ? countryName.toLowerCase() : countryCode;
+      const boardingUrl = `https://www.torn.com/page.php?sid=travel&destination=${destination}&boardingtime=${boardingTimestamp}`;
 
       await interaction.editReply({
         content: `✅ Updated travel notification for **${COUNTRY_CODE_MAP[countryCode]}**\n\n` +
@@ -322,7 +326,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         ? new Date(boardingTime.getTime() - actualNotifyBeforeSeconds2 * 1000)
         : boardingTime;
       const boardingTimestamp = Math.floor(boardingTimeForUrl.getTime() / 1000);
-      const boardingUrl = `https://www.torn.com/page.php?sid=travel&destination=${countryCode}&boardingtime=${boardingTimestamp}`;
+      
+      // Convert country code to lowercase country name for URL
+      const countryName = COUNTRY_CODE_MAP[countryCode];
+      const destination = countryName ? countryName.toLowerCase() : countryCode;
+      const boardingUrl = `https://www.torn.com/page.php?sid=travel&destination=${destination}&boardingtime=${boardingTimestamp}`;
 
       await interaction.editReply({
         content: `✅ Created travel notification for **${COUNTRY_CODE_MAP[countryCode]}**\n\n` +
