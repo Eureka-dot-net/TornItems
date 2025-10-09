@@ -9,7 +9,15 @@ import { StockPriceSnapshot } from '../models/StockPriceSnapshot';
 import { StockMarketHistory } from '../models/StockMarketHistory';
 import { ShopItemState } from '../models/ShopItemState';
 import { ShopItemStockHistory } from '../models/ShopItemStockHistory';
+import { StockRecommendation } from '../models/StockRecommendation';
+import { UserStockHoldingSnapshot } from '../models/UserStockHoldingSnapshot';
 import { logInfo, logError } from '../utils/logger';
+import { 
+  calculate7DayPercentChange, 
+  calculateVolatilityPercent, 
+  calculateScores,
+  getRecommendation 
+} from '../utils/stockMath';
 
 const COUNTRY_CODE_MAP: Record<string, string> = {
   mex: 'Mexico',
@@ -274,6 +282,9 @@ export async function aggregateMarketHistory(): Promise<void> {
     // Aggregate shop item stock history
     await aggregateShopItemStockHistory(currentDate);
     
+    // Aggregate stock recommendations
+    await aggregateStockRecommendations(currentDate);
+    
     // Clean up old transactional data
     await cleanupOldData(currentDate);
 
@@ -467,6 +478,178 @@ async function aggregateShopItemStockHistory(currentDate: string): Promise<void>
 }
 
 /**
+ * Aggregates stock recommendations data
+ * Calculates recommendations, scores, and P/L for all stocks
+ */
+async function aggregateStockRecommendations(currentDate: string): Promise<void> {
+  logInfo('=== Starting Stock Recommendations aggregation ===');
+  
+  try {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // Fetch most recent user stock holdings from database
+    const holdingsSnapshots = await UserStockHoldingSnapshot.aggregate([
+      {
+        $sort: { stock_id: 1, timestamp: -1 }
+      },
+      {
+        $group: {
+          _id: '$stock_id',
+          total_shares: { $first: '$total_shares' },
+          avg_buy_price: { $first: '$avg_buy_price' },
+          transaction_count: { $first: '$transaction_count' },
+          timestamp: { $first: '$timestamp' }
+        }
+      }
+    ]);
+    
+    // Create lookup map for holdings
+    const holdingsMap: Record<number, { total_shares: number; avg_buy_price: number | null }> = {};
+    for (const holding of holdingsSnapshots) {
+      holdingsMap[holding._id] = {
+        total_shares: holding.total_shares,
+        avg_buy_price: holding.avg_buy_price
+      };
+    }
+
+    // Use aggregation to get all data efficiently
+    const stockData = await StockPriceSnapshot.aggregate([
+      {
+        $match: {
+          timestamp: { $gte: sevenDaysAgo }
+        }
+      },
+      {
+        $sort: { ticker: 1, timestamp: -1 }
+      },
+      {
+        $group: {
+          _id: '$ticker',
+          stock_id: { $first: '$stock_id' },
+          name: { $first: '$name' },
+          currentPrice: { $first: '$price' },
+          oldestPrice: { $last: '$price' },
+          prices: { $push: '$price' },
+          benefit_requirement: { $first: '$benefit_requirement' }
+        }
+      }
+    ]);
+
+    if (!stockData || stockData.length === 0) {
+      logInfo('No stock data found for recommendations aggregation');
+      return;
+    }
+
+    logInfo(`Processing ${stockData.length} stocks for recommendations...`);
+
+    const recommendationsData = [];
+
+    for (const stock of stockData) {
+      const ticker = stock._id;
+      const stockId = stock.stock_id;
+      const name = stock.name;
+      const currentPrice = stock.currentPrice;
+      const weekAgoPrice = stock.oldestPrice;
+      const benefitRequirement = stock.benefit_requirement;
+
+      // Calculate 7-day change percentage
+      let change_7d_pct: number | null = null;
+      if (weekAgoPrice && weekAgoPrice > 0) {
+        change_7d_pct = calculate7DayPercentChange(currentPrice, weekAgoPrice);
+      }
+
+      // Calculate volatility as percentage (standard deviation of daily returns)
+      const volatility_7d_pct = calculateVolatilityPercent(stock.prices);
+
+      // Calculate scores
+      let score: number | null = null;
+      let sell_score: number | null = null;
+      let recommendation = 'HOLD';
+
+      if (change_7d_pct !== null) {
+        const scores = calculateScores(change_7d_pct, volatility_7d_pct);
+        score = scores.score;
+        sell_score = scores.sell_score;
+        recommendation = getRecommendation(score);
+      }
+
+      // Get ownership data and calculate P/L
+      const holding = holdingsMap[stockId];
+      const ownedShares = holding?.total_shares ?? 0;
+      const avgBuyPrice = holding?.avg_buy_price ?? null;
+      
+      let unrealizedProfitValue: number | null = null;
+      let unrealizedProfitPct: number | null = null;
+      
+      if (ownedShares > 0 && avgBuyPrice !== null && avgBuyPrice > 0) {
+        unrealizedProfitValue = (currentPrice - avgBuyPrice) * ownedShares;
+        unrealizedProfitPct = ((currentPrice / avgBuyPrice) - 1) * 100;
+      }
+
+      // Calculate can_sell and max_shares_to_sell based on benefit preservation
+      let canSell = ownedShares > 0;
+      let maxSharesToSell = ownedShares;
+
+      if (ownedShares > 0 && benefitRequirement && benefitRequirement > 0) {
+        const currentlyHasBenefit = ownedShares >= benefitRequirement;
+        
+        if (currentlyHasBenefit) {
+          // User has the benefit, can only sell shares above the requirement
+          maxSharesToSell = Math.max(0, ownedShares - benefitRequirement);
+          // Can only sell if we have shares above the requirement
+          canSell = maxSharesToSell > 0;
+        }
+        // If we don't have the benefit, we can sell all shares freely
+      }
+
+      recommendationsData.push({
+        stock_id: stockId,
+        ticker,
+        name,
+        price: currentPrice,
+        change_7d_pct: change_7d_pct !== null ? parseFloat(change_7d_pct.toFixed(2)) : null,
+        volatility_7d_pct: parseFloat(volatility_7d_pct.toFixed(2)),
+        score: score !== null ? parseFloat(score.toFixed(2)) : null,
+        sell_score: sell_score !== null ? parseFloat(sell_score.toFixed(2)) : null,
+        recommendation,
+        owned_shares: ownedShares,
+        avg_buy_price: avgBuyPrice,
+        unrealized_profit_value: unrealizedProfitValue !== null ? parseFloat(unrealizedProfitValue.toFixed(2)) : null,
+        unrealized_profit_pct: unrealizedProfitPct !== null ? parseFloat(unrealizedProfitPct.toFixed(2)) : null,
+        can_sell: canSell,
+        max_shares_to_sell: maxSharesToSell,
+        benefit_requirement: benefitRequirement,
+        date: currentDate,
+        timestamp: now
+      });
+    }
+
+    // Bulk upsert stock recommendations
+    if (recommendationsData.length > 0) {
+      logInfo(`Upserting ${recommendationsData.length} stock recommendation records`);
+      
+      const bulkOps = recommendationsData.map(data => ({
+        updateOne: {
+          filter: { stock_id: data.stock_id, date: data.date },
+          update: { $set: data },
+          upsert: true,
+        },
+      }));
+
+      await StockRecommendation.bulkWrite(bulkOps);
+    }
+
+    logInfo('=== Stock Recommendations aggregation completed ===', {
+      recordsProcessed: recommendationsData.length
+    });
+
+  } catch (error) {
+    logError('Stock Recommendations aggregation failed', error instanceof Error ? error : new Error(String(error)));
+  }
+}
+
+/**
  * Cleans up old transactional data
  * - MarketSnapshots older than 14 days
  * - CityShopStockHistory and ForeignStockHistory older than 48 hours
@@ -478,6 +661,9 @@ async function cleanupOldData(currentDate: string): Promise<void> {
     // Calculate cutoff dates
     const fortyEightHoursAgo = new Date(currentDate);
     fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
+    
+    const twentyFourHoursAgo = new Date(currentDate);
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
     // Delete old MarketSnapshots (older than 48 hours)
     // We only need 48 hours for profit calculations (24h current + 24h previous for trends)
@@ -500,11 +686,20 @@ async function cleanupOldData(currentDate: string): Promise<void> {
     });
 
     logInfo(`Deleted ${foreignStockResult.deletedCount} old ForeignStockHistory records (>48 hours)`);
+    
+    // Delete old StockPriceSnapshot records (older than 24 hours)
+    // We only need them for the aggregation job which runs every 30 minutes
+    const stockPriceResult = await StockPriceSnapshot.deleteMany({
+      timestamp: { $lt: twentyFourHoursAgo }
+    });
+
+    logInfo(`Deleted ${stockPriceResult.deletedCount} old StockPriceSnapshot records (>24 hours)`);
 
     logInfo('=== Cleanup of old transactional data completed ===', {
       marketSnapshotsDeleted: marketSnapshotResult.deletedCount,
       cityStockHistoryDeleted: cityStockResult.deletedCount,
-      foreignStockHistoryDeleted: foreignStockResult.deletedCount
+      foreignStockHistoryDeleted: foreignStockResult.deletedCount,
+      stockPriceSnapshotsDeleted: stockPriceResult.deletedCount
     });
 
   } catch (error) {
