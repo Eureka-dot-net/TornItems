@@ -130,20 +130,22 @@
     const timeText = panel.querySelector(".flightDetailsGrid___uAttX span[aria-hidden='true']")?.textContent?.trim();
     if (!country || !timeText || !timeText.includes(":")) return null;
 
-    // parse "hh:mm" or "mm:ss" (Torn shows "00:18" etc.)
-
-    // 🟢 Compute boarding so that *landing* hits the next 15-minute mark
-    const parts = timeText.split(":").map(Number); // "mm:ss" or "hh:mm:ss"
+    const parts = timeText.split(":").map(Number);
     let flightMinutes = 0;
-    if (parts.length === 2) flightMinutes = parts[0];                 // mm:ss → minutes
-    else if (parts.length === 3) flightMinutes = parts[0] * 60 + parts[1]; // hh:mm:ss → minutes
 
+    // Torn normally uses mm:ss or hh:mm
+    if (parts.length === 2) {
+      const [a, b] = parts;
+      // if the first segment is hours (>=1 hour flight)
+      flightMinutes = a * 60 + b;
+    } else if (parts.length === 3) {
+      const [h, m, s] = parts;
+      flightMinutes = h * 60 + m;
+    } else return null;
+
+    // ✅ Compute so that we LAND on the next 15-minute mark
     const nowDate = new Date();
-
-    // Land if we left *now*
     const estLanding = new Date(nowDate.getTime() + flightMinutes * 60000);
-
-    // Round *landing* up to next :00/:15/:30/:45
     const roundedLanding = new Date(estLanding);
     const mins = roundedLanding.getMinutes();
     const roundedMins = Math.ceil(mins / 15) * 15;
@@ -153,9 +155,9 @@
     const boarding = new Date(roundedLanding.getTime() - flightMinutes * 60000);
     const boardingEpoch = Math.floor(boarding.getTime() / 1000);
 
-
     console.log(`[TornTravel] Flight → ${country}, ~${flightMinutes} min`);
-    console.log(`[TornTravel] Boarding: ${boarding.toLocaleTimeString()} | Landing: ${roundedLanding.toLocaleTimeString()}`);
+    console.log(`[TornTravel] ✅ Landing aligned to ${roundedLanding.toLocaleTimeString()} (15-minute mark)`);
+    console.log(`[TornTravel] Boarding at ${boarding.toLocaleTimeString()}`);
 
     return { country, boardingEpoch };
   };
