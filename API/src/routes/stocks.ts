@@ -1,14 +1,6 @@
 import express, { Request, Response } from 'express';
-import { StockPriceSnapshot } from '../models/StockPriceSnapshot';
-import { UserStockHoldingSnapshot } from '../models/UserStockHoldingSnapshot';
 import { StockTransactionHistory } from '../models/StockTransactionHistory';
 import { StockRecommendation } from '../models/StockRecommendation';
-import { 
-  calculate7DayPercentChange, 
-  calculateVolatilityPercent, 
-  calculateScores,
-  getRecommendation 
-} from '../utils/stockMath';
 
 const router = express.Router({ mergeParams: true });
 
