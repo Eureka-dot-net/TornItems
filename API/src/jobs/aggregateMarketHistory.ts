@@ -6,7 +6,7 @@ import { ForeignStock } from '../models/ForeignStock';
 import { CityShopStockHistory } from '../models/CityShopStockHistory';
 import { ForeignStockHistory } from '../models/ForeignStockHistory';
 import { StockPriceSnapshot } from '../models/StockPriceSnapshot';
-import { StockMarketHistory } from '../models/StockMarketHistory';
+import { StockMarketHistory, IStockMarketHistory } from '../models/StockMarketHistory';
 import { ShopItemState } from '../models/ShopItemState';
 import { ShopItemStockHistory } from '../models/ShopItemStockHistory';
 import { StockRecommendation } from '../models/StockRecommendation';
@@ -513,7 +513,7 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
       };
     }
 
-    // Use aggregation to get all data efficiently
+    // Use aggregation to get all data efficiently from snapshots
     const stockData = await StockPriceSnapshot.aggregate([
       {
         $match: {
@@ -531,7 +531,9 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
           currentPrice: { $first: '$price' },
           oldestPrice: { $last: '$price' },
           prices: { $push: '$price' },
-          benefit_requirement: { $first: '$benefit_requirement' }
+          benefit_requirement: { $first: '$benefit_requirement' },
+          oldestTimestamp: { $last: '$timestamp' },
+          newestTimestamp: { $first: '$timestamp' }
         }
       }
     ]);
@@ -542,6 +544,52 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
     }
 
     logInfo(`Processing ${stockData.length} stocks for recommendations...`);
+    
+    // Check for stocks with insufficient snapshot data and supplement with history
+    const sevenDaysAgoDate = new Date(sevenDaysAgo);
+    sevenDaysAgoDate.setHours(0, 0, 0, 0);
+    const sevenDaysAgoDateStr = sevenDaysAgoDate.toISOString().split('T')[0];
+    
+    for (const stock of stockData) {
+      const oldestTimestamp = new Date(stock.oldestTimestamp);
+      const daysOfData = (now.getTime() - oldestTimestamp.getTime()) / (24 * 60 * 60 * 1000);
+      
+      // If we have less than 6 days of snapshot data, supplement with history
+      if (daysOfData < 6) {
+        logInfo(`Stock ${stock._id} has only ${daysOfData.toFixed(1)} days of snapshot data, supplementing with StockMarketHistory`);
+        
+        // Fetch historical daily closing prices for the missing days
+        const historicalData = await StockMarketHistory.find({
+          ticker: stock._id,
+          date: { $gte: sevenDaysAgoDateStr }
+        }).sort({ date: -1 }).lean();
+        
+        if (historicalData.length > 0) {
+          // Build a complete price array using history + snapshots
+          // Use closing prices from history for days we don't have snapshots
+          const historicalPrices = historicalData.map((h: IStockMarketHistory) => h.closing_price);
+          
+          // Combine: newer snapshot prices + older historical prices
+          // Remove duplicates by only using history for days before oldest snapshot
+          const oldestSnapshotDate = new Date(oldestTimestamp);
+          oldestSnapshotDate.setHours(0, 0, 0, 0);
+          const oldestSnapshotDateStr = oldestSnapshotDate.toISOString().split('T')[0];
+          
+          const olderHistoricalPrices = historicalData
+            .filter((h: IStockMarketHistory) => h.date < oldestSnapshotDateStr)
+            .map((h: IStockMarketHistory) => h.closing_price);
+          
+          // Prepend older historical prices to snapshot prices
+          stock.prices = [...stock.prices, ...olderHistoricalPrices];
+          
+          // Update oldest price if we now have older data
+          if (olderHistoricalPrices.length > 0) {
+            stock.oldestPrice = olderHistoricalPrices[olderHistoricalPrices.length - 1];
+            logInfo(`Stock ${stock._id}: Extended from ${daysOfData.toFixed(1)} days to ~7 days using ${olderHistoricalPrices.length} historical prices`);
+          }
+        }
+      }
+    }
 
     const recommendationsData = [];
 

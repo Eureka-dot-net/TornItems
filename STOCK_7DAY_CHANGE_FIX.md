@@ -64,6 +64,28 @@ Updated section 5 to reflect:
 - Explanation that 7 days are needed for calculations
 - Note about the 1-day buffer for safety
 
+### Additional Resilience: StockMarketHistory Fallback
+
+To make the system more resilient against data gaps, the `aggregateStockRecommendations()` function now includes a **fallback mechanism**:
+
+**How it works:**
+1. After querying StockPriceSnapshot, checks if we have at least 6 days of data
+2. If snapshot data is insufficient, queries `StockMarketHistory` for the missing days
+3. Uses daily closing prices from the history table to fill gaps
+4. Combines historical prices with available snapshot data
+5. Provides accurate 7-day calculations even when snapshot data is incomplete
+
+**Benefits:**
+- Immediate accuracy even during transition period after deploying the fix
+- Resilience against future data gaps from system downtime
+- Uses existing aggregated historical data efficiently
+
+**Example log output:**
+```
+Stock FHG has only 3.2 days of snapshot data, supplementing with StockMarketHistory
+Stock FHG: Extended from 3.2 days to ~7 days using 4 historical prices
+```
+
 ## Why 8 Days?
 - **7 days**: Required for accurate 7-day change calculation
 - **+1 day**: Buffer to handle edge cases and timing variations
