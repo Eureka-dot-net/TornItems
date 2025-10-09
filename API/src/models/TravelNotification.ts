@@ -19,6 +19,7 @@ export interface ITravelNotification extends Document {
   scheduledArrivalTime?: Date | null; // When user should arrive (15-min slot)
   notificationsSent: boolean; // Track if notifications have been sent
   notificationsSent2: boolean; // Track if second notification has been sent
+  shopUrlSent: boolean; // Track if shop URL has been sent to prevent duplicates
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,6 +37,7 @@ const TravelNotificationSchema = new Schema<ITravelNotification>({
   scheduledArrivalTime: { type: Date, default: null },
   notificationsSent: { type: Boolean, default: false, index: true },
   notificationsSent2: { type: Boolean, default: false, index: true },
+  shopUrlSent: { type: Boolean, default: false, index: true },
 }, {
   timestamps: true
 });
