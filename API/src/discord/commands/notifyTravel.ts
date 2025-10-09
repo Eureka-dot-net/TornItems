@@ -258,13 +258,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         : boardingTime;
       const boardingTimestamp = Math.floor(boardingTimeForUrl.getTime() / 1000);
       
-      // Convert country code to lowercase country name for URL
+      // Use the country name and convert to lowercase for the URL
       const countryName = COUNTRY_CODE_MAP[countryCode];
-      const destination = countryName ? countryName.toLowerCase() : countryCode;
+      const destination = countryName.toLowerCase();
       const boardingUrl = `https://www.torn.com/page.php?sid=travel&destination=${destination}&boardingtime=${boardingTimestamp}`;
 
       await interaction.editReply({
-        content: `✅ Updated travel notification for **${COUNTRY_CODE_MAP[countryCode]}**\n\n` +
+        content: `✅ Updated travel notification for **${countryName}**\n\n` +
           `🏝️ Private Island: ${user.hasPrivateIsland ? 'Yes (-30% travel time)' : 'No'}\n` +
           `⏱️ Travel Time: ${actualTravelTimeMinutes} minutes\n` +
           `📦 Items to Buy: ${user.itemsToBuy}\n` +
@@ -327,13 +327,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         : boardingTime;
       const boardingTimestamp = Math.floor(boardingTimeForUrl.getTime() / 1000);
       
-      // Convert country code to lowercase country name for URL
+      // Use the country name and convert to lowercase for the URL
       const countryName = COUNTRY_CODE_MAP[countryCode];
-      const destination = countryName ? countryName.toLowerCase() : countryCode;
+      const destination = countryName.toLowerCase();
       const boardingUrl = `https://www.torn.com/page.php?sid=travel&destination=${destination}&boardingtime=${boardingTimestamp}`;
 
       await interaction.editReply({
-        content: `✅ Created travel notification for **${COUNTRY_CODE_MAP[countryCode]}**\n\n` +
+        content: `✅ Created travel notification for **${countryName}**\n\n` +
           `🏝️ Private Island: ${user.hasPrivateIsland ? 'Yes (-30% travel time)' : 'No'}\n` +
           `⏱️ Travel Time: ${actualTravelTimeMinutes} minutes\n` +
           `📦 Items to Buy: ${user.itemsToBuy}\n` +
