@@ -55,14 +55,23 @@ Added `aggregateStockRecommendations()` function that:
 
 1. Fetches the most recent user stock holdings
 2. Queries StockPriceSnapshot data from the last 7 days
-3. Calculates for each stock:
+3. **Falls back to StockMarketHistory** when snapshot data is insufficient (less than 6 days)
+   - Uses daily closing prices from the history table
+   - Combines historical prices with available snapshot data
+   - Ensures accurate 7-day calculations even after cleanup
+4. Calculates for each stock:
    - 7-day price change percentage
    - Volatility (standard deviation of returns)
    - Buy and sell scores
    - Recommendation based on scores
    - Unrealized profit/loss for owned stocks
    - Benefit preservation rules (can_sell, max_shares_to_sell)
-4. Bulk upserts results into StockRecommendation collection
+5. Bulk upserts results into StockRecommendation collection
+
+**Fallback Logic:**
+- If snapshot data covers less than 6 days, the function queries `StockMarketHistory` for missing days
+- Uses closing prices from historical records to fill gaps
+- Provides resilience against data loss from aggressive cleanup or system downtime
 
 ### 3. Scheduled Execution
 
@@ -112,14 +121,14 @@ To:
 Added cleanup logic in `cleanupOldData()` function:
 
 ```typescript
-// Delete old StockPriceSnapshot records (older than 24 hours)
-// We only need them for the aggregation job which runs every 30 minutes
+// Delete old StockPriceSnapshot records (older than 8 days)
+// We need 7 days for the 7-day change calculation in stock recommendations
 const stockPriceResult = await StockPriceSnapshot.deleteMany({
-  timestamp: { $lt: twentyFourHoursAgo }
+  timestamp: { $lt: eightDaysAgo }
 });
 ```
 
-This keeps the database lean by only retaining recent snapshots needed for aggregation.
+This keeps the database lean by only retaining 8 days of snapshots (7 days needed for calculations plus 1 day buffer).
 
 ### 6. Configuration
 
