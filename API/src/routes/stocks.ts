@@ -1,169 +1,69 @@
 import express, { Request, Response } from 'express';
-import { StockPriceSnapshot } from '../models/StockPriceSnapshot';
-import { UserStockHoldingSnapshot } from '../models/UserStockHoldingSnapshot';
 import { StockTransactionHistory } from '../models/StockTransactionHistory';
-import { 
-  calculate7DayPercentChange, 
-  calculateVolatilityPercent, 
-  calculateScores,
-  getRecommendation 
-} from '../utils/stockMath';
+import { StockRecommendation } from '../models/StockRecommendation';
 
 const router = express.Router({ mergeParams: true });
 
 // GET /stocks/recommendations
 router.get('/stocks/recommendations', async (_req: Request, res: Response): Promise<void> => {
   try {
-    console.log('Fetching stock recommendations...');
+    console.log('Fetching stock recommendations from aggregated data...');
 
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    // Get today's date for fetching the latest aggregated data
+    const today = new Date().toISOString().split('T')[0];
 
-    // Fetch most recent user stock holdings from database
-    const holdingsSnapshots = await UserStockHoldingSnapshot.aggregate([
-      {
-        $sort: { stock_id: 1, timestamp: -1 }
-      },
-      {
-        $group: {
-          _id: '$stock_id',
-          total_shares: { $first: '$total_shares' },
-          avg_buy_price: { $first: '$avg_buy_price' },
-          transaction_count: { $first: '$transaction_count' },
-          timestamp: { $first: '$timestamp' }
-        }
-      }
-    ]);
-    
-    // Create lookup map for holdings
-    const holdingsMap: Record<number, { total_shares: number; avg_buy_price: number | null }> = {};
-    for (const holding of holdingsSnapshots) {
-      holdingsMap[holding._id] = {
-        total_shares: holding.total_shares,
-        avg_buy_price: holding.avg_buy_price
-      };
-    }
+    // Fetch aggregated recommendations data (latest available, typically today)
+    // Get the most recent date available in StockRecommendation
+    const latestRecommendationDate = await StockRecommendation.findOne()
+      .sort({ date: -1 })
+      .select('date')
+      .lean();
 
-    // Use aggregation to get all data efficiently
-    const stockData = await StockPriceSnapshot.aggregate([
-      {
-        $match: {
-          timestamp: { $gte: sevenDaysAgo }
-        }
-      },
-      {
-        $sort: { ticker: 1, timestamp: -1 }
-      },
-      {
-        $group: {
-          _id: '$ticker',
-          stock_id: { $first: '$stock_id' },
-          name: { $first: '$name' },
-          currentPrice: { $first: '$price' },
-          oldestPrice: { $last: '$price' },
-          prices: { $push: '$price' },
-          benefit_requirement: { $first: '$benefit_requirement' }
-        }
-      }
-    ]);
+    const dateToFetch = latestRecommendationDate?.date || today;
 
-    if (!stockData || stockData.length === 0) {
+    // Fetch all recommendations for the latest date
+    const recommendations = await StockRecommendation.find({ date: dateToFetch })
+      .lean();
+
+    if (!recommendations || recommendations.length === 0) {
       res.status(503).json({ 
-        error: 'No stock data found. Background fetcher may still be initializing.' 
+        error: 'No stock recommendations found. Background aggregation may still be initializing.' 
       });
       return;
     }
 
-    console.log(`Processing ${stockData.length} stocks...`);
-
-    const recommendations = stockData.map((stock: any) => {
-      const ticker = stock._id;
-      const stockId = stock.stock_id;
-      const name = stock.name;
-      const currentPrice = stock.currentPrice;
-      const weekAgoPrice = stock.oldestPrice;
-      const benefitRequirement = stock.benefit_requirement;
-
-      // Calculate 7-day change percentage
-      let change_7d_pct: number | null = null;
-      if (weekAgoPrice && weekAgoPrice > 0) {
-        change_7d_pct = calculate7DayPercentChange(currentPrice, weekAgoPrice);
-      }
-
-      // Calculate volatility as percentage (standard deviation of daily returns)
-      const volatility_7d_pct = calculateVolatilityPercent(stock.prices);
-
-      // Calculate scores
-      let score: number | null = null;
-      let sell_score: number | null = null;
-      let recommendation = 'HOLD';
-
-      if (change_7d_pct !== null) {
-        const scores = calculateScores(change_7d_pct, volatility_7d_pct);
-        score = scores.score;
-        sell_score = scores.sell_score;
-        recommendation = getRecommendation(score);
-      }
-
-      // Get ownership data and calculate P/L
-      const holding = holdingsMap[stockId];
-      const ownedShares = holding?.total_shares ?? 0;
-      const avgBuyPrice = holding?.avg_buy_price ?? null;
-      
-      let unrealizedProfitValue: number | null = null;
-      let unrealizedProfitPct: number | null = null;
-      
-      if (ownedShares > 0 && avgBuyPrice !== null && avgBuyPrice > 0) {
-        unrealizedProfitValue = (currentPrice - avgBuyPrice) * ownedShares;
-        unrealizedProfitPct = ((currentPrice / avgBuyPrice) - 1) * 100;
-      }
-
-      // Calculate can_sell and max_shares_to_sell based on benefit preservation
-      let canSell = ownedShares > 0;
-      let maxSharesToSell = ownedShares;
-
-      if (ownedShares > 0 && benefitRequirement && benefitRequirement > 0) {
-        const currentlyHasBenefit = ownedShares >= benefitRequirement;
-        
-        if (currentlyHasBenefit) {
-          // User has the benefit, can only sell shares above the requirement
-          maxSharesToSell = Math.max(0, ownedShares - benefitRequirement);
-          // Can only sell if we have shares above the requirement
-          canSell = maxSharesToSell > 0;
-        }
-        // If we don't have the benefit, we can sell all shares freely
-      }
-
-      return {
-        stock_id: stockId,
-        ticker,
-        name,
-        price: currentPrice,
-        change_7d_pct: change_7d_pct !== null ? parseFloat(change_7d_pct.toFixed(2)) : null,
-        volatility_7d_pct: parseFloat(volatility_7d_pct.toFixed(2)),
-        score: score !== null ? parseFloat(score.toFixed(2)) : null,
-        sell_score: sell_score !== null ? parseFloat(sell_score.toFixed(2)) : null,
-        recommendation,
-        owned_shares: ownedShares,
-        avg_buy_price: avgBuyPrice,
-        unrealized_profit_value: unrealizedProfitValue !== null ? parseFloat(unrealizedProfitValue.toFixed(2)) : null,
-        unrealized_profit_pct: unrealizedProfitPct !== null ? parseFloat(unrealizedProfitPct.toFixed(2)) : null,
-        can_sell: canSell,
-        max_shares_to_sell: maxSharesToSell
-      };
-    });
+    console.log(`Found ${recommendations.length} stock recommendations for date ${dateToFetch}`);
 
     // Sort by score descending (best buys first)
-    recommendations.sort((a, b) => {
+    const sortedRecommendations = recommendations.sort((a, b) => {
       if (a.score === null && b.score === null) return 0;
       if (a.score === null) return 1;
       if (b.score === null) return -1;
       return b.score - a.score;
     });
 
-    console.log(`Returning ${recommendations.length} stock recommendations`);
+    // Map to API response format (remove internal fields)
+    const response = sortedRecommendations.map(rec => ({
+      stock_id: rec.stock_id,
+      ticker: rec.ticker,
+      name: rec.name,
+      price: rec.price,
+      change_7d_pct: rec.change_7d_pct,
+      volatility_7d_pct: rec.volatility_7d_pct,
+      score: rec.score,
+      sell_score: rec.sell_score,
+      recommendation: rec.recommendation,
+      owned_shares: rec.owned_shares,
+      avg_buy_price: rec.avg_buy_price,
+      unrealized_profit_value: rec.unrealized_profit_value,
+      unrealized_profit_pct: rec.unrealized_profit_pct,
+      can_sell: rec.can_sell,
+      max_shares_to_sell: rec.max_shares_to_sell
+    }));
 
-    res.json(recommendations);
+    console.log(`Returning ${response.length} stock recommendations`);
+
+    res.json(response);
   } catch (err: unknown) {
     if (err instanceof Error) {
       console.error('Error:', err.message);
@@ -178,168 +78,36 @@ router.get('/stocks/recommendations', async (_req: Request, res: Response): Prom
 // GET /stocks/recommendations/top-sell
 router.get('/stocks/recommendations/top-sell', async (_req: Request, res: Response): Promise<void> => {
   try {
-    console.log('Fetching top stock to sell recommendation...');
+    console.log('Fetching top stock to sell recommendation from aggregated data...');
 
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    // Get today's date for fetching the latest aggregated data
+    const today = new Date().toISOString().split('T')[0];
 
-    // Fetch most recent user stock holdings from database
-    const holdingsSnapshots = await UserStockHoldingSnapshot.aggregate([
-      {
-        $sort: { stock_id: 1, timestamp: -1 }
-      },
-      {
-        $group: {
-          _id: '$stock_id',
-          total_shares: { $first: '$total_shares' },
-          avg_buy_price: { $first: '$avg_buy_price' },
-          transaction_count: { $first: '$transaction_count' },
-          timestamp: { $first: '$timestamp' }
-        }
-      },
-      {
-        $match: {
-          total_shares: { $gt: 0 } // Only stocks we own
-        }
-      }
-    ]);
-    
-    if (holdingsSnapshots.length === 0) {
-      res.status(404).json({ error: 'No stocks owned' });
-      return;
-    }
+    // Fetch aggregated recommendations data (latest available, typically today)
+    // Get the most recent date available in StockRecommendation
+    const latestRecommendationDate = await StockRecommendation.findOne()
+      .sort({ date: -1 })
+      .select('date')
+      .lean();
 
-    // Create lookup map for holdings
-    const holdingsMap: Record<number, { total_shares: number; avg_buy_price: number | null }> = {};
-    for (const holding of holdingsSnapshots) {
-      holdingsMap[holding._id] = {
-        total_shares: holding.total_shares,
-        avg_buy_price: holding.avg_buy_price
-      };
-    }
+    const dateToFetch = latestRecommendationDate?.date || today;
 
-    // Get stock IDs we own
-    const ownedStockIds = holdingsSnapshots.map(h => h._id);
+    // Fetch recommendations that can be sold
+    const sellableStocks = await StockRecommendation.find({ 
+      date: dateToFetch,
+      can_sell: true,
+      sell_score: { $ne: null }
+    }).lean();
 
-    // Use aggregation to get all data efficiently for owned stocks
-    const stockData = await StockPriceSnapshot.aggregate([
-      {
-        $match: {
-          timestamp: { $gte: sevenDaysAgo },
-          stock_id: { $in: ownedStockIds }
-        }
-      },
-      {
-        $sort: { ticker: 1, timestamp: -1 }
-      },
-      {
-        $group: {
-          _id: '$ticker',
-          stock_id: { $first: '$stock_id' },
-          name: { $first: '$name' },
-          currentPrice: { $first: '$price' },
-          oldestPrice: { $last: '$price' },
-          prices: { $push: '$price' },
-          benefit_requirement: { $first: '$benefit_requirement' }
-        }
-      }
-    ]);
-
-    if (!stockData || stockData.length === 0) {
-      res.status(503).json({ 
-        error: 'No stock data found. Background fetcher may still be initializing.' 
-      });
-      return;
-    }
-
-    // Calculate sell scores for owned stocks
-    const recommendations = stockData.map((stock: any) => {
-      const ticker = stock._id;
-      const stockId = stock.stock_id;
-      const name = stock.name;
-      const currentPrice = stock.currentPrice;
-      const weekAgoPrice = stock.oldestPrice;
-      const benefitRequirement = stock.benefit_requirement;
-
-      // Calculate 7-day change percentage
-      let change_7d_pct: number | null = null;
-      if (weekAgoPrice && weekAgoPrice > 0) {
-        change_7d_pct = calculate7DayPercentChange(currentPrice, weekAgoPrice);
-      }
-
-      // Calculate volatility as percentage (standard deviation of daily returns)
-      const volatility_7d_pct = calculateVolatilityPercent(stock.prices);
-
-      // Calculate scores
-      let score: number | null = null;
-      let sell_score: number | null = null;
-      let recommendation = 'HOLD';
-
-      if (change_7d_pct !== null) {
-        const scores = calculateScores(change_7d_pct, volatility_7d_pct);
-        score = scores.score;
-        sell_score = scores.sell_score;
-        recommendation = getRecommendation(score);
-      }
-
-      // Get ownership data and calculate P/L
-      const holding = holdingsMap[stockId];
-      const ownedShares = holding?.total_shares ?? 0;
-      const avgBuyPrice = holding?.avg_buy_price ?? null;
-      
-      let unrealizedProfitValue: number | null = null;
-      let unrealizedProfitPct: number | null = null;
-      
-      if (ownedShares > 0 && avgBuyPrice !== null && avgBuyPrice > 0) {
-        unrealizedProfitValue = (currentPrice - avgBuyPrice) * ownedShares;
-        unrealizedProfitPct = ((currentPrice / avgBuyPrice) - 1) * 100;
-      }
-
-      // Calculate can_sell and max_shares_to_sell based on benefit preservation
-      let canSell = ownedShares > 0;
-      let maxSharesToSell = ownedShares;
-
-      if (ownedShares > 0 && benefitRequirement && benefitRequirement > 0) {
-        const currentlyHasBenefit = ownedShares >= benefitRequirement;
-        
-        if (currentlyHasBenefit) {
-          // User has the benefit, can only sell shares above the requirement
-          maxSharesToSell = Math.max(0, ownedShares - benefitRequirement);
-          // Can only sell if we have shares above the requirement
-          canSell = maxSharesToSell > 0;
-        }
-        // If we don't have the benefit, we can sell all shares freely
-      }
-
-      return {
-        stock_id: stockId,
-        ticker,
-        name,
-        price: currentPrice,
-        change_7d_pct: change_7d_pct !== null ? parseFloat(change_7d_pct.toFixed(2)) : null,
-        volatility_7d_pct: parseFloat(volatility_7d_pct.toFixed(2)),
-        score: score !== null ? parseFloat(score.toFixed(2)) : null,
-        sell_score: sell_score !== null ? parseFloat(sell_score.toFixed(2)) : null,
-        recommendation,
-        owned_shares: ownedShares,
-        avg_buy_price: avgBuyPrice,
-        unrealized_profit_value: unrealizedProfitValue !== null ? parseFloat(unrealizedProfitValue.toFixed(2)) : null,
-        unrealized_profit_pct: unrealizedProfitPct !== null ? parseFloat(unrealizedProfitPct.toFixed(2)) : null,
-        can_sell: canSell,
-        max_shares_to_sell: maxSharesToSell
-      };
-    });
-
-    // Filter to only stocks that can be sold
-    const sellableStocks = recommendations.filter(stock => stock.can_sell && stock.sell_score !== null);
-
-    if (sellableStocks.length === 0) {
+    if (!sellableStocks || sellableStocks.length === 0) {
       res.status(404).json({ error: 'No sellable stocks found' });
       return;
     }
 
+    console.log(`Found ${sellableStocks.length} sellable stocks for date ${dateToFetch}`);
+
     // Sort by sell_score descending (highest sell_score = best to sell)
-    sellableStocks.sort((a, b) => {
+    const sortedStocks = sellableStocks.sort((a, b) => {
       if (a.sell_score === null && b.sell_score === null) return 0;
       if (a.sell_score === null) return 1;
       if (b.sell_score === null) return -1;
@@ -347,11 +115,30 @@ router.get('/stocks/recommendations/top-sell', async (_req: Request, res: Respon
     });
 
     // Return the top stock to sell
-    const topStock = sellableStocks[0];
+    const topStock = sortedStocks[0];
+
+    // Map to API response format (remove internal fields)
+    const response = {
+      stock_id: topStock.stock_id,
+      ticker: topStock.ticker,
+      name: topStock.name,
+      price: topStock.price,
+      change_7d_pct: topStock.change_7d_pct,
+      volatility_7d_pct: topStock.volatility_7d_pct,
+      score: topStock.score,
+      sell_score: topStock.sell_score,
+      recommendation: topStock.recommendation,
+      owned_shares: topStock.owned_shares,
+      avg_buy_price: topStock.avg_buy_price,
+      unrealized_profit_value: topStock.unrealized_profit_value,
+      unrealized_profit_pct: topStock.unrealized_profit_pct,
+      can_sell: topStock.can_sell,
+      max_shares_to_sell: topStock.max_shares_to_sell
+    };
 
     console.log(`Returning top stock to sell: ${topStock.ticker}`);
 
-    res.json(topStock);
+    res.json(response);
   } catch (err: unknown) {
     if (err instanceof Error) {
       console.error('Error:', err.message);
