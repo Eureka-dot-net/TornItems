@@ -251,6 +251,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         );
       }
 
+      // Calculate boarding time for the URL
+      // Use boarding time - notifyBeforeSeconds2 if provided, otherwise actual boarding time
+      const boardingTimeForUrl = actualNotifyBeforeSeconds2 !== null 
+        ? new Date(boardingTime.getTime() - actualNotifyBeforeSeconds2 * 1000)
+        : boardingTime;
+      const boardingTimestamp = Math.floor(boardingTimeForUrl.getTime() / 1000);
+      const boardingUrl = `https://www.torn.com/page.php?sid=travel&destination=${countryCode}&boardingtime=${boardingTimestamp}`;
+
       await interaction.editReply({
         content: `✅ Updated travel notification for **${COUNTRY_CODE_MAP[countryCode]}**\n\n` +
           `🏝️ Private Island: ${user.hasPrivateIsland ? 'Yes (-30% travel time)' : 'No'}\n` +
@@ -261,6 +269,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           `**Next scheduled landing:**\n` +
           `📍 Arrival: <t:${Math.floor(nextSlot.getTime() / 1000)}:t>\n` +
           `🛫 Board at: <t:${Math.floor(boardingTime.getTime() / 1000)}:t>\n\n` +
+          `🔗 Boarding Link: ${boardingUrl}\n\n` +
           `You will receive notifications at:\n` +
           notificationTimes.join('\n'),
       });
@@ -307,6 +316,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         );
       }
 
+      // Calculate boarding time for the URL
+      // Use boarding time - notifyBeforeSeconds2 if provided, otherwise actual boarding time
+      const boardingTimeForUrl = actualNotifyBeforeSeconds2 !== null 
+        ? new Date(boardingTime.getTime() - actualNotifyBeforeSeconds2 * 1000)
+        : boardingTime;
+      const boardingTimestamp = Math.floor(boardingTimeForUrl.getTime() / 1000);
+      const boardingUrl = `https://www.torn.com/page.php?sid=travel&destination=${countryCode}&boardingtime=${boardingTimestamp}`;
+
       await interaction.editReply({
         content: `✅ Created travel notification for **${COUNTRY_CODE_MAP[countryCode]}**\n\n` +
           `🏝️ Private Island: ${user.hasPrivateIsland ? 'Yes (-30% travel time)' : 'No'}\n` +
@@ -317,6 +334,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           `**Next scheduled landing:**\n` +
           `📍 Arrival: <t:${Math.floor(nextSlot.getTime() / 1000)}:t>\n` +
           `🛫 Board at: <t:${Math.floor(boardingTime.getTime() / 1000)}:t>\n\n` +
+          `🔗 Boarding Link: ${boardingUrl}\n\n` +
           `You will receive notifications at:\n` +
           notificationTimes.join('\n'),
       });
