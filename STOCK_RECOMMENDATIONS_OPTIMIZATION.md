@@ -112,14 +112,14 @@ To:
 Added cleanup logic in `cleanupOldData()` function:
 
 ```typescript
-// Delete old StockPriceSnapshot records (older than 24 hours)
-// We only need them for the aggregation job which runs every 30 minutes
+// Delete old StockPriceSnapshot records (older than 8 days)
+// We need 7 days for the 7-day change calculation in stock recommendations
 const stockPriceResult = await StockPriceSnapshot.deleteMany({
-  timestamp: { $lt: twentyFourHoursAgo }
+  timestamp: { $lt: eightDaysAgo }
 });
 ```
 
-This keeps the database lean by only retaining recent snapshots needed for aggregation.
+This keeps the database lean by only retaining 8 days of snapshots (7 days needed for calculations plus 1 day buffer).
 
 ### 6. Configuration
 

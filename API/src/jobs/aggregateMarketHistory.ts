@@ -662,8 +662,8 @@ async function cleanupOldData(currentDate: string): Promise<void> {
     const fortyEightHoursAgo = new Date(currentDate);
     fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
     
-    const twentyFourHoursAgo = new Date(currentDate);
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+    const eightDaysAgo = new Date(currentDate);
+    eightDaysAgo.setDate(eightDaysAgo.getDate() - 8);
 
     // Delete old MarketSnapshots (older than 48 hours)
     // We only need 48 hours for profit calculations (24h current + 24h previous for trends)
@@ -687,13 +687,13 @@ async function cleanupOldData(currentDate: string): Promise<void> {
 
     logInfo(`Deleted ${foreignStockResult.deletedCount} old ForeignStockHistory records (>48 hours)`);
     
-    // Delete old StockPriceSnapshot records (older than 24 hours)
-    // We only need them for the aggregation job which runs every 30 minutes
+    // Delete old StockPriceSnapshot records (older than 8 days)
+    // We need 7 days for the 7-day change calculation in stock recommendations
     const stockPriceResult = await StockPriceSnapshot.deleteMany({
-      timestamp: { $lt: twentyFourHoursAgo }
+      timestamp: { $lt: eightDaysAgo }
     });
 
-    logInfo(`Deleted ${stockPriceResult.deletedCount} old StockPriceSnapshot records (>24 hours)`);
+    logInfo(`Deleted ${stockPriceResult.deletedCount} old StockPriceSnapshot records (>8 days)`);
 
     logInfo('=== Cleanup of old transactional data completed ===', {
       marketSnapshotsDeleted: marketSnapshotResult.deletedCount,
