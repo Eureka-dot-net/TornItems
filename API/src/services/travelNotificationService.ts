@@ -46,12 +46,18 @@ async function checkTravelNotifications() {
         const countryName = COUNTRY_CODE_MAP[notification.countryCode] || notification.countryCode;
         
         // Check if we should send the first "before" notification
-        if (scheduledNotifyBeforeTime && now >= scheduledNotifyBeforeTime && now < scheduledBoardingTime) {
+        if (scheduledNotifyBeforeTime && now >= scheduledNotifyBeforeTime && now < scheduledBoardingTime && !notification.notificationsSent1) {
           const message = `🛫 **Travel Alert - ${notification.notifyBeforeSeconds}s Warning**\n\n` +
             `Prepare to board for **${countryName}**!\n` +
             `Board in **${notification.notifyBeforeSeconds} seconds** to land at <t:${notification.scheduledArrivalTime ? Math.floor(new Date(notification.scheduledArrivalTime).getTime() / 1000) : 0}:t>`;
           
           await sendDirectMessageWithFallback(notification.discordUserId, message, fallbackChannelId);
+          
+          // Mark first notification as sent
+          await TravelNotification.updateOne(
+            { _id: notification._id },
+            { notificationsSent1: true }
+          );
           
           logInfo('Sent travel warning notification', {
             discordUserId: notification.discordUserId,
