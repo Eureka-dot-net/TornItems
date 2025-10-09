@@ -202,13 +202,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       ? new Date(boardingTime.getTime() - actualNotifyBeforeSeconds2 * 1000)
       : null;
     
-    // Check if any notification time is in the past or too close (within 15 seconds)
+    // Check if we can send the first notification (must have enough time before boarding)
+    // The buffer should be based on the user's requested notification time, not a fixed 15 seconds
     const earliestNotificationTime = notifyBeforeTime2 && notifyBeforeTime2.getTime() < notifyBeforeTime.getTime()
       ? notifyBeforeTime2
       : notifyBeforeTime;
-    const minTimeBuffer = 15 * 1000; // 15 seconds buffer
     
-    if (earliestNotificationTime.getTime() < now.getTime() + minTimeBuffer) {
+    if (earliestNotificationTime.getTime() < now.getTime()) {
       // Move boarding time forward by 15 minutes to the next slot
       finalBoardingTime = new Date(boardingTime.getTime() + 15 * 60 * 1000);
       const nextArrivalSlot = new Date(nextSlot.getTime() + 15 * 60 * 1000);

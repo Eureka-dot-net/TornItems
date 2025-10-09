@@ -41,19 +41,19 @@ This fix applies to both:
 
 ### Issue 2: Notification Times Too Close to Boarding ⏰ → ✅
 
-**Problem**: When a user requests a notification close to the boarding time (e.g., requesting at 10:00:10 when boarding is at 10:00:20), the notification times could be in the past or within a few seconds, making it impossible to send them.
+**Problem**: When a user requests a notification close to the boarding time, the notification time could be in the past, making it impossible to send.
 
 **Example Scenario**:
 ```
-Current time:  10:00:10
-Boarding time: 10:00:20 (10 seconds away)
-Notify before: 10 seconds
-→ Notification time: 10:00:10 (RIGHT NOW, no buffer!)
+Current time:        10:00:00
+Boarding time:       10:00:30 (30 seconds away)
+User requested:      60 seconds before boarding
+→ Notification time: 09:59:30 (30 seconds in the PAST!)
 ```
 
-The notification service runs every 5 seconds, so if the notification time is too close to the current time, it might be missed entirely.
+The notification service runs every 5 seconds, so if the notification time is in the past, it will never be sent.
 
-**Fix**: Added automatic boarding time adjustment with a 15-second minimum buffer:
+**Fix**: Added automatic boarding time adjustment that checks if the first notification time is in the past:
 
 ```typescript
 // Calculate initial notification times
@@ -67,10 +67,8 @@ const earliestNotificationTime = notifyBeforeTime2 && notifyBeforeTime2.getTime(
   ? notifyBeforeTime2
   : notifyBeforeTime;
 
-const minTimeBuffer = 15 * 1000; // 15 seconds minimum buffer
-
-// Check if notification time is too close or in the past
-if (earliestNotificationTime.getTime() < now.getTime() + minTimeBuffer) {
+// Check if notification time is in the past
+if (earliestNotificationTime.getTime() < now.getTime()) {
   // Move boarding time forward by 15 minutes to the next slot
   finalBoardingTime = new Date(boardingTime.getTime() + 15 * 60 * 1000);
   const nextArrivalSlot = new Date(nextSlot.getTime() + 15 * 60 * 1000);
@@ -88,8 +86,9 @@ if (earliestNotificationTime.getTime() < now.getTime() + minTimeBuffer) {
 ```
 
 **Behavior**:
-- If ANY notification time is less than 15 seconds in the future, the system automatically moves the boarding time forward by 15 minutes
-- This ensures all notifications have adequate time to be sent
+- Checks if the first notification time (based on user's requested `notifyBeforeSeconds`) is in the past
+- If the user requested 60s notification but boarding is only 30s away, the notification time would be 30s in the past
+- If ANY notification time is in the past, the system automatically moves the boarding time forward by 15 minutes
 - The arrival time is also adjusted by 15 minutes to maintain the correct travel duration
 - Users are notified of the adjusted times in the confirmation message
 
@@ -163,21 +162,10 @@ Boarding time:  10:05:00 (calculated for next 15-min slot)
 Notify before:  10 seconds
 
 First notification time: 10:04:50 (4m 50s in future) ✅
-→ No adjustment needed, sufficient buffer
+→ No adjustment needed, notification time is in the future
 ```
 
-### Scenario 2: Too Close, Needs Adjustment
-```
-Current time:   10:00:00
-Boarding time:  10:00:15 (only 15 seconds away)
-Notify before:  10 seconds
-
-First notification time: 10:00:05 (5s in future, < 15s buffer) ❌
-→ Adjust boarding time: 10:15:15 (moved +15 minutes)
-→ New notification time: 10:15:05 ✅
-```
-
-### Scenario 3: Notification Time in the Past
+### Scenario 2: Notification Time in the Past (Needs Adjustment)
 ```
 Current time:   10:00:00
 Boarding time:  10:00:05 (5 seconds away)
@@ -188,11 +176,33 @@ First notification time: 09:59:55 (5s in the PAST) ❌
 → New notification time: 10:14:55 ✅
 ```
 
+### Scenario 3: User Requested 60s but Boarding is Only 30s Away
+```
+Current time:   10:00:00
+Boarding time:  10:00:30 (30 seconds away)
+Notify before:  60 seconds (user's request)
+
+First notification time: 09:59:30 (30s in the PAST) ❌
+→ Adjust boarding time: 10:15:30 (moved +15 minutes)
+→ New notification time: 10:14:30 ✅
+```
+
+### Scenario 4: Close but Still in Future (No Adjustment)
+```
+Current time:   10:00:00
+Boarding time:  10:00:20 (20 seconds away)
+Notify before:  10 seconds
+
+First notification time: 10:00:10 (10s in future) ✅
+→ No adjustment needed, notification time is in the future
+```
+
 ---
 
 ## Notes
 
-- The 15-second buffer provides adequate time for the notification service (which runs every 5 seconds) to catch and send notifications
+- The system only checks if the notification time is in the past, not if it's "close"
+- This respects the user's requested notification timing (10s, 60s, etc.)
 - The automatic adjustment is transparent to users - they see the adjusted times in the confirmation message
 - Both notification times are checked when determining if adjustment is needed
 - The logic correctly identifies the earliest notification time when two notification times are configured

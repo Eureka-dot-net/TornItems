@@ -37,28 +37,26 @@ describe('Travel Notification Fixes', () => {
       const now = new Date('2024-01-10T10:00:00Z');
       const boardingTime = new Date('2024-01-10T10:05:00Z'); // 5 minutes in the future
       const notifyBeforeSeconds = 10;
-      const minTimeBuffer = 15 * 1000; // 15 seconds
 
       const notifyBeforeTime = new Date(boardingTime.getTime() - notifyBeforeSeconds * 1000);
       const earliestNotificationTime = notifyBeforeTime;
 
-      // Check if adjustment is needed
-      const needsAdjustment = earliestNotificationTime.getTime() < now.getTime() + minTimeBuffer;
+      // Check if adjustment is needed (only if notification time is in the past)
+      const needsAdjustment = earliestNotificationTime.getTime() < now.getTime();
 
       expect(needsAdjustment).toBe(false);
     });
 
-    it('should move boarding time forward by 15 minutes if notification time is too close', () => {
+    it('should move boarding time forward by 15 minutes if notification time is in the past', () => {
       const now = new Date('2024-01-10T10:00:00Z');
-      const boardingTime = new Date('2024-01-10T10:00:20Z'); // 20 seconds in the future
-      const notifyBeforeSeconds = 10;
-      const minTimeBuffer = 15 * 1000; // 15 seconds
+      const boardingTime = new Date('2024-01-10T10:00:05Z'); // 5 seconds in the future
+      const notifyBeforeSeconds = 10; // Would require notification 5 seconds ago
 
       let notifyBeforeTime = new Date(boardingTime.getTime() - notifyBeforeSeconds * 1000);
       const earliestNotificationTime = notifyBeforeTime;
 
-      // Check if adjustment is needed (10s ahead - 10s before = 0s, which is < 15s buffer)
-      const needsAdjustment = earliestNotificationTime.getTime() < now.getTime() + minTimeBuffer;
+      // Check if adjustment is needed (notification time is in the past)
+      const needsAdjustment = earliestNotificationTime.getTime() < now.getTime();
 
       expect(needsAdjustment).toBe(true);
 
@@ -69,23 +67,36 @@ describe('Travel Notification Fixes', () => {
 
         // Verify the adjustment
         expect(adjustedBoardingTime.getTime() - boardingTime.getTime()).toBe(15 * 60 * 1000);
-        expect(notifyBeforeTime.getTime() > now.getTime() + minTimeBuffer).toBe(true);
+        expect(notifyBeforeTime.getTime() > now.getTime()).toBe(true);
       }
     });
 
-    it('should move boarding time forward if notification time is in the past', () => {
+    it('should keep boarding time if notification is only a few seconds away but still in future', () => {
       const now = new Date('2024-01-10T10:00:00Z');
-      const boardingTime = new Date('2024-01-10T10:00:05Z'); // 5 seconds in the future
-      const notifyBeforeSeconds = 10; // Would require notification 5 seconds ago
-      const minTimeBuffer = 15 * 1000; // 15 seconds
+      const boardingTime = new Date('2024-01-10T10:00:20Z'); // 20 seconds in the future
+      const notifyBeforeSeconds = 10; // Notification at 10:00:10 (10s in future)
+
+      const notifyBeforeTime = new Date(boardingTime.getTime() - notifyBeforeSeconds * 1000);
+      const earliestNotificationTime = notifyBeforeTime;
+
+      // Notification is still in the future, so no adjustment needed
+      const needsAdjustment = earliestNotificationTime.getTime() < now.getTime();
+
+      expect(needsAdjustment).toBe(false);
+    });
+
+    it('should adjust if user requested 60s notification but boarding is only 30s away', () => {
+      const now = new Date('2024-01-10T10:00:00Z');
+      const boardingTime = new Date('2024-01-10T10:00:30Z'); // 30 seconds in the future
+      const notifyBeforeSeconds = 60; // User wants 60s warning
 
       let notifyBeforeTime = new Date(boardingTime.getTime() - notifyBeforeSeconds * 1000);
       const earliestNotificationTime = notifyBeforeTime;
 
-      // Notification time is in the past
+      // Notification time is 30s in the PAST
       expect(earliestNotificationTime.getTime() < now.getTime()).toBe(true);
 
-      const needsAdjustment = earliestNotificationTime.getTime() < now.getTime() + minTimeBuffer;
+      const needsAdjustment = earliestNotificationTime.getTime() < now.getTime();
       expect(needsAdjustment).toBe(true);
 
       // Adjust boarding time
@@ -103,7 +114,6 @@ describe('Travel Notification Fixes', () => {
       const boardingTime = new Date('2024-01-10T10:00:20Z');
       const notifyBeforeSeconds = 10; // First notification at 10:00:10
       const notifyBeforeSeconds2 = 5; // Second notification at 10:00:15 (closer to boarding, so LATER)
-      const minTimeBuffer = 15 * 1000;
 
       let notifyBeforeTime = new Date(boardingTime.getTime() - notifyBeforeSeconds * 1000); // 10:00:10
       let notifyBeforeTime2 = new Date(boardingTime.getTime() - notifyBeforeSeconds2 * 1000); // 10:00:15
@@ -114,20 +124,9 @@ describe('Travel Notification Fixes', () => {
         ? notifyBeforeTime2
         : notifyBeforeTime;
 
-      // earliestNotificationTime is 10:00:10, which is 10s in the future (< 15s buffer)
-      const needsAdjustment = earliestNotificationTime.getTime() < now.getTime() + minTimeBuffer;
-      expect(needsAdjustment).toBe(true);
-
-      // Adjust if needed
-      if (needsAdjustment) {
-        const adjustedBoardingTime = new Date(boardingTime.getTime() + 15 * 60 * 1000);
-        notifyBeforeTime = new Date(adjustedBoardingTime.getTime() - notifyBeforeSeconds * 1000);
-        notifyBeforeTime2 = new Date(adjustedBoardingTime.getTime() - notifyBeforeSeconds2 * 1000);
-
-        // Both notification times should now be in the future with buffer
-        expect(notifyBeforeTime.getTime() > now.getTime() + minTimeBuffer).toBe(true);
-        expect(notifyBeforeTime2.getTime() > now.getTime() + minTimeBuffer).toBe(true);
-      }
+      // earliestNotificationTime is 10:00:10, which is 10s in the future (not in the past)
+      const needsAdjustment = earliestNotificationTime.getTime() < now.getTime();
+      expect(needsAdjustment).toBe(false);
     });
   });
 });
