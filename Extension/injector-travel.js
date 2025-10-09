@@ -217,7 +217,13 @@
     const section = document.querySelector(".flightProgressSection___fhrD5");
     if (!section) return;
     const txt = (section.textContent || "").toLowerCase();
-    const matchedKey = Object.keys(DESTINATIONS).find(k => txt.includes(k));
+    
+    // ✅ Only match if destination comes AFTER "to" (not flying back to Torn)
+    const toMatch = txt.match(/to\s+([^.]+)/);
+    if (!toMatch) return;
+    const destination = toMatch[1].trim();
+    
+    const matchedKey = Object.keys(DESTINATIONS).find(k => destination.includes(k));
     if (!matchedKey) return;
 
     const ITEM_SET = DESTINATIONS[matchedKey];
