@@ -146,13 +146,20 @@
     // ✅ Compute so that we LAND on the next 15-minute mark
     const nowDate = new Date();
     const estLanding = new Date(nowDate.getTime() + flightMinutes * 60000);
-    const roundedLanding = new Date(estLanding);
-    const mins = roundedLanding.getMinutes();
-    const roundedMins = Math.ceil(mins / 15) * 15;
+    let roundedLanding = new Date(estLanding);
+    let mins = roundedLanding.getMinutes();
+    let roundedMins = Math.ceil(mins / 15) * 15;
     roundedLanding.setMinutes(roundedMins, 0, 0);
 
     // Boarding = roundedLanding − flight duration
-    const boarding = new Date(roundedLanding.getTime() - flightMinutes * 60000);
+    let boarding = new Date(roundedLanding.getTime() - flightMinutes * 60000);
+
+    // ⚠️ If boarding time is in the past, push landing to the *next* 15-min mark
+    if (boarding <= nowDate) {
+      roundedLanding = new Date(roundedLanding.getTime() + 15 * 60000);
+      boarding = new Date(roundedLanding.getTime() - flightMinutes * 60000);
+    }
+
     const boardingEpoch = Math.floor(boarding.getTime() / 1000);
 
     console.log(`[TornTravel] Flight → ${country}, ~${flightMinutes} min`);
@@ -180,7 +187,12 @@
   // MODE D — in-flight auto-arming for Mexico (no params)
   // ───────────────────────────────
   const ARMED_KEY = "torn_flyshop_autoarmed";
-  const MEXICO_ITEM_SET = { item1: "1429", item2: "258", item3: "259", amount: "19" };
+  const DESTINATIONS = {
+    "mexico": { item1: "1429", item2: "258", item3: "259", amount: "19" },
+    "ciudad juarez": { item1: "1429", item2: "258", item3: "259", amount: "19" },
+    "uk": { item1: "268", item2: "266", item3: "267", amount: "18" },
+    "london": { item1: "268", item2: "266", item3: "267", amount: "19" },
+  };
 
   const parseRemaining = (container) => {
     const t = container.querySelector("time")?.textContent?.trim();
@@ -205,18 +217,21 @@
     const section = document.querySelector(".flightProgressSection___fhrD5");
     if (!section) return;
     const txt = (section.textContent || "").toLowerCase();
-    if (!/ciudad juarez|mexico/.test(txt)) return;
+    const matchedKey = Object.keys(DESTINATIONS).find(k => txt.includes(k));
+    if (!matchedKey) return;
+
+    const ITEM_SET = DESTINATIONS[matchedKey];
 
     const remaining = parseRemaining(section);
     if (!remaining) return;
 
     const arrival = nowSec() + remaining - 1;
-    const args = { ...MEXICO_ITEM_SET, arrival: String(arrival) };
+    const args = { ...ITEM_SET, arrival: String(arrival) };
     localStorage.setItem("torn_flyshop_args", JSON.stringify(args));
     localStorage.setItem(ARMED_KEY, String(arrival));
 
-    console.log(`[TornTravel] Mexico flight detected. Remaining ${remaining}s → arrival ${arrival}`);
-    notify("✈️ Torn Flight", "Auto-buy armed for Mexico. Shop will open on landing.");
+    console.log(`[TornTravel] ${matchedKey} flight detected. Remaining ${remaining}s → arrival ${arrival}`);
+    notify("✈️ Torn Flight", `Auto-buy armed for ${matchedKey}. Shop will open on landing.`);
   };
 
   // 🩵 Strengthened observer patch (robust detection)
