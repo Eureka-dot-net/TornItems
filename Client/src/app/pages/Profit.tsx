@@ -859,7 +859,7 @@ export default function Profit() {
                                         </Grid>
                                         <Grid size={{ xs: 6, sm: 1.5 }}>
                                             <Typography variant="body2" sx={{ color: (item.profit_per_minute ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
-                                                {formatCurrency(applyMultiplier(item.profit_per_minute))}
+                                                {formatCurrency(item.profit_per_minute)}
                                             </Typography>
                                         </Grid>
                                         <Grid size={{ xs: 6, sm: 1.5 }}>
@@ -942,7 +942,7 @@ export default function Profit() {
                                                     <Grid size={{ xs: 6, sm: 4 }}>
                                                         <Typography variant="body2" color="text.secondary">Profit/Min:</Typography>
                                                         <Typography variant="body1" sx={{ color: (item.profit_per_minute ?? 0) > 0 ? '#4caf50' : 'inherit' }}>
-                                                            {formatCurrency(applyMultiplier(item.profit_per_minute))}
+                                                            {formatCurrency(item.profit_per_minute)}
                                                         </Typography>
                                                     </Grid>
                                                     {item.travel_time_minutes && item.travel_time_minutes > 0 && (
