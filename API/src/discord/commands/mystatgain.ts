@@ -176,7 +176,20 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       }
 
       const perTrain = result.perTrain;
-      const totalGainForStat = perTrain * trainsCount;
+      
+      // Calculate cumulative gain accounting for stat increases during training
+      const { computeCumulativeStatGain } = await import('../../utils/statGainCalculator');
+      const cumulativeResult = computeCumulativeStatGain(
+        stat,
+        statValue,
+        adjustedHappy,
+        perkPerc,
+        dots,
+        energyPerTrain,
+        trainsCount
+      );
+      
+      const totalGainForStat = cumulativeResult.totalGain;
       totalGain += totalGainForStat;
 
       const statName = stat.charAt(0).toUpperCase() + stat.slice(1);

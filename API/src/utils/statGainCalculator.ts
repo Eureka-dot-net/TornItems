@@ -97,3 +97,39 @@ export function computeStatGainWithCurrentEnergy(
     perCurrentEnergy: baseResult.perTrain * (currentEnergy / energyPerTrain),
   };
 }
+
+/**
+ * Compute cumulative stat gain over multiple training sessions
+ * This accounts for the stat value increasing after each train
+ * @param stat - The stat being trained
+ * @param initialStatTotal - Starting stat value
+ * @param happy - Current happy value
+ * @param perkPerc - Total perk percentage bonus
+ * @param dots - Gym dots for this stat
+ * @param energyPerTrain - Energy cost per train
+ * @param trainsCount - Number of training sessions
+ * @returns Total cumulative gain and average gain per train
+ */
+export function computeCumulativeStatGain(
+  stat: string,
+  initialStatTotal: number,
+  happy: number,
+  perkPerc: number,
+  dots: number,
+  energyPerTrain: number,
+  trainsCount: number
+): { totalGain: number; averagePerTrain: number } {
+  let currentStatTotal = initialStatTotal;
+  let totalGain = 0;
+  
+  for (let i = 0; i < trainsCount; i++) {
+    const result = computeStatGain(stat, currentStatTotal, happy, perkPerc, dots, energyPerTrain);
+    totalGain += result.perTrain;
+    currentStatTotal += result.perTrain;
+  }
+  
+  return {
+    totalGain,
+    averagePerTrain: trainsCount > 0 ? totalGain / trainsCount : 0
+  };
+}
