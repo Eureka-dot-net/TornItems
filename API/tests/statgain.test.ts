@@ -84,13 +84,17 @@ describe('Gym Model and Stat Gain Tests', () => {
       // Perk bonus multiplier
       const perkBonus = 1 + perkPerc / 100;
 
-      // Vladar's formula components
-      const baseTerm = (1 / 200000) * dots * gym.energyPerTrain * perkBonus * adjustedStat * happyMult;
-      const happyPowerTerm = (8 * Math.pow(happy, 1.05)) / 10000;
-      const lookup2Term = (lookup2 * (1 - Math.pow(happy / 99999, 2))) / 10000;
-      const lookup3Term = lookup3 / 10000;
+      // Vladar's formula
+      // The entire expression (adjustedStat * happyMult + 8*happy^1.05 + lookup2*(1-(happy/99999)^2) + lookup3)
+      // is multiplied by (1/200000) * dots * energyPerTrain * perkBonus
+      const multiplier = (1 / 200000) * dots * gym.energyPerTrain * perkBonus;
+      const innerExpression = 
+        adjustedStat * happyMult + 
+        8 * Math.pow(happy, 1.05) + 
+        lookup2 * (1 - Math.pow(happy / 99999, 2)) + 
+        lookup3;
 
-      const gain = baseTerm + happyPowerTerm + lookup2Term + lookup3Term;
+      const gain = multiplier * innerExpression;
 
       return {
         perTrain: gain,
@@ -111,12 +115,11 @@ describe('Gym Model and Stat Gain Tests', () => {
 
       const result = computeStatGain('strength', 3000, 4000, 2, mockGym);
 
-      // Result should be in the ballpark of 4-6
-      expect(result.perTrain).toBeGreaterThan(4);
-      expect(result.perTrain).toBeLessThan(6);
+      // Exact value from problem statement
+      expect(result.perTrain).toBeCloseTo(4.8, 1);
     });
 
-    it('should match expected values: 3k strength & 30k happy (~35 per train)', () => {
+    it('should match expected values: 3k strength & 30k happy (~35.46 per train)', () => {
       const mockGym: IGym = {
         name: 'pourfemme',
         displayName: 'Pour Femme [L]',
@@ -129,9 +132,42 @@ describe('Gym Model and Stat Gain Tests', () => {
 
       const result = computeStatGain('strength', 3000, 30000, 2, mockGym);
 
-      // Result should be in the range of 30-45
-      expect(result.perTrain).toBeGreaterThan(30);
-      expect(result.perTrain).toBeLessThan(45);
+      // Exact value from problem statement
+      expect(result.perTrain).toBeCloseTo(35.46, 1);
+    });
+
+    it('should match expected values: 3m strength & 4k happy (~316.16 per train)', () => {
+      const mockGym: IGym = {
+        name: 'pourfemme',
+        displayName: 'Pour Femme [L]',
+        strength: 3.4,
+        speed: 3.6,
+        defense: 3.6,
+        dexterity: 3.8,
+        energyPerTrain: 5,
+      } as IGym;
+
+      const result = computeStatGain('strength', 3000000, 4000, 2, mockGym);
+
+      // Exact value from problem statement
+      expect(result.perTrain).toBeCloseTo(316.16, 1);
+    });
+
+    it('should match expected values: 3m strength & 30k happy (~382.53 per train)', () => {
+      const mockGym: IGym = {
+        name: 'pourfemme',
+        displayName: 'Pour Femme [L]',
+        strength: 3.4,
+        speed: 3.6,
+        defense: 3.6,
+        dexterity: 3.8,
+        energyPerTrain: 5,
+      } as IGym;
+
+      const result = computeStatGain('strength', 3000000, 30000, 2, mockGym);
+
+      // Exact value from problem statement
+      expect(result.perTrain).toBeCloseTo(382.53, 1);
     });
 
     it('should compute stat gain for basic stats', () => {

@@ -161,13 +161,17 @@ function computeStatGain(
   // Perk bonus multiplier
   const perkBonus = 1 + perkPerc / 100;
 
-  // Vladar's formula components
-  const baseTerm = (1 / 200000) * dots * gym.energyPerTrain * perkBonus * adjustedStat * happyMult;
-  const happyPowerTerm = (8 * Math.pow(happy, 1.05)) / 10000;
-  const lookup2Term = (lookup2 * (1 - Math.pow(happy / 99999, 2))) / 10000;
-  const lookup3Term = lookup3 / 10000;
+  // Vladar's formula
+  // The entire expression (adjustedStat * happyMult + 8*happy^1.05 + lookup2*(1-(happy/99999)^2) + lookup3)
+  // is multiplied by (1/200000) * dots * energyPerTrain * perkBonus
+  const multiplier = (1 / 200000) * dots * gym.energyPerTrain * perkBonus;
+  const innerExpression = 
+    adjustedStat * happyMult + 
+    8 * Math.pow(happy, 1.05) + 
+    lookup2 * (1 - Math.pow(happy / 99999, 2)) + 
+    lookup3;
 
-  const gain = baseTerm + happyPowerTerm + lookup2Term + lookup3Term;
+  const gain = multiplier * innerExpression;
 
   return {
     perTrain: gain,
