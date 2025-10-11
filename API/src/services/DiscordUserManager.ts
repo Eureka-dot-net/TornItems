@@ -4,115 +4,14 @@ import { BattleStats } from '../models/BattleStats';
 import { decrypt } from '../utils/encryption';
 import { logInfo, logError } from '../utils/logger';
 import { computeStatGain, computeStatGainWithCurrentEnergy, StatGainResult, StatGainResultWithCurrentEnergy } from '../utils/statGainCalculator';
-
-/**
- * Torn API Response Types
- */
-export interface TornBarsResponse {
-  bars: {
-    energy: {
-      current: number;
-      maximum: number;
-      increment: number;
-      interval: number;
-      tick_time: number;
-      full_time: number;
-    };
-    happy: {
-      current: number;
-      maximum: number;
-      increment: number;
-      interval: number;
-      tick_time: number;
-      full_time: number;
-    };
-    nerve: {
-      current: number;
-      maximum: number;
-      increment: number;
-      interval: number;
-      tick_time: number;
-      full_time: number;
-    };
-    life: {
-      current: number;
-      maximum: number;
-      increment: number;
-      interval: number;
-      tick_time: number;
-      full_time: number;
-    };
-    chain: {
-      id: number;
-      current: number;
-      max: number;
-      timeout: number;
-      modifier: number;
-      cooldown: number;
-      start: number;
-      end: number;
-    };
-  };
-}
-
-export interface TornBattleStatsResponse {
-  battlestats: {
-    strength: {
-      value: number;
-      modifier: number;
-      modifiers?: Array<{ effect: string; value: number; type: string }>;
-    };
-    defense: {
-      value: number;
-      modifier: number;
-      modifiers?: Array<{ effect: string; value: number; type: string }>;
-    };
-    speed: {
-      value: number;
-      modifier: number;
-      modifiers?: Array<{ effect: string; value: number; type: string }>;
-    };
-    dexterity: {
-      value: number;
-      modifier: number;
-      modifiers?: Array<{ effect: string; value: number; type: string }>;
-    };
-    total: number;
-  };
-}
-
-export interface TornPerksResponse {
-  faction_perks: string[];
-  job_perks: string[];
-  property_perks: string[];
-  education_perks: string[];
-  enhancer_perks: string[];
-  book_perks: string[];
-  stock_perks: string[];
-  merit_perks: string[];
-}
-
-export interface TornGymResponse {
-  active_gym: number;
-}
-
-export interface TornGymData {
-  name: string;
-  stage: number;
-  cost: number;
-  energy: number;
-  strength: number;
-  speed: number;
-  defense: number;
-  dexterity: number;
-  note: string;
-}
-
-export interface TornGymsResponse {
-  gyms: {
-    [key: string]: TornGymData;
-  };
-}
+import { 
+  TornBarsResponse, 
+  TornBattleStatsResponse, 
+  TornPerksResponse, 
+  TornGymResponse, 
+  TornGymData, 
+  TornGymsResponse 
+} from '../types/tornApiTypes';
 
 /**
  * User Data Aggregation

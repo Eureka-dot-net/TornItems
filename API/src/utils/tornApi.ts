@@ -1,40 +1,10 @@
 import axios from 'axios';
 import { BattleStats } from '../models/BattleStats';
 import { logInfo, logError } from './logger';
+import { TornBattleStatsResponse, TornTravelResponse, TravelStatus } from '../types/tornApiTypes';
 
-interface TornBattleStatsResponse {
-  battlestats: {
-    strength: {
-      value: number;
-      modifier: number;
-    };
-    defense: {
-      value: number;
-      modifier: number;
-    };
-    speed: {
-      value: number;
-      modifier: number;
-    };
-    dexterity: {
-      value: number;
-      modifier: number;
-    };
-    total: number;
-  };
-}
-
-export interface TravelStatus {
-  destination: string;
-  method: string;
-  departed_at: number;
-  arrival_at: number;
-  time_left: number;
-}
-
-interface TornTravelResponse {
-  travel?: TravelStatus;
-}
+// Re-export TravelStatus for backward compatibility
+export { TravelStatus } from '../types/tornApiTypes';
 
 /**
  * Fetch and store battle stats for a user from the Torn API
