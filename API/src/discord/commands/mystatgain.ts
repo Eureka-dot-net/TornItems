@@ -191,6 +191,29 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       });
     }
 
+    // Calculate leftover energy and add it to the stat with the highest weight
+    const totalEnergySpent = statResults.reduce((sum, r) => sum + r.energySpent, 0);
+    const leftoverEnergy = estimatedEnergy - totalEnergySpent;
+    
+    if (leftoverEnergy >= energyPerTrain) {
+      // Find the stat with the highest weight
+      const highestWeightStat = trainableStats.reduce((max, current) => 
+        current.weight > max.weight ? current : max
+      );
+      
+      // Find the corresponding result
+      const statResultIndex = statResults.findIndex(r => r.stat === highestWeightStat.stat);
+      if (statResultIndex !== -1) {
+        const extraTrains = Math.floor(leftoverEnergy / energyPerTrain);
+        const extraEnergy = extraTrains * energyPerTrain;
+        
+        statResults[statResultIndex].trainsCount += extraTrains;
+        statResults[statResultIndex].energySpent += extraEnergy;
+        statResults[statResultIndex].totalGain += statResults[statResultIndex].perTrain * extraTrains;
+        totalGain += statResults[statResultIndex].perTrain * extraTrains;
+      }
+    }
+
     // Get estimated cost including Xanax and points refill
     let costInfo: { total: number; breakdown: string } | null = null;
     if (type !== 1 || numXanax > 0 || pointsRefill) {
