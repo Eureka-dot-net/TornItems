@@ -370,14 +370,104 @@ export class DiscordUserManager {
   }
 
   /**
+   * Calculate adjusted happiness based on happiness boost type
+   * @param currentHappiness - Current happiness value
+   * @param type - Type of happiness boost (1-4)
+   * @returns Adjusted happiness value
+   */
+  static calculateAdjustedHappiness(currentHappiness: number, type: number): number {
+    switch (type) {
+      case 1: // None
+        return currentHappiness;
+      case 2: // eDvD jump
+        return (currentHappiness + 52500) * 2;
+      case 3: // Lollipop / e jump
+        return (currentHappiness + 49 * 25) * 2;
+      case 4: // Box of chocolates / e jump
+        return (currentHappiness + 49 * 35) * 2;
+      default:
+        return currentHappiness;
+    }
+  }
+
+  /**
+   * Calculate estimated cost for happiness boost type
+   * @param type - Type of happiness boost (1-4)
+   * @returns Estimated cost or null if type is 1, object with cost and breakdown
+   */
+  static async calculateEstimatedCost(type: number): Promise<{ 
+    total: number; 
+    breakdown: string;
+  } | null> {
+    if (type === 1) {
+      return null;
+    }
+
+    const { TornItem } = await import('../models/TornItem');
+    
+    let itemIds: number[] = [];
+    let quantities: number[] = [];
+    let itemNames: string[] = [];
+    
+    switch (type) {
+      case 2: // 5 * item 366 + item 197
+        itemIds = [366, 197];
+        quantities = [5, 1];
+        itemNames = ['eDvD (x5)', 'Energy Drink'];
+        break;
+      case 3: // 49 * item 310 + item 197
+        itemIds = [310, 197];
+        quantities = [49, 1];
+        itemNames = ['Lollipop (x49)', 'Energy Drink'];
+        break;
+      case 4: // 49 * item 36 + item 197
+        itemIds = [36, 197];
+        quantities = [49, 1];
+        itemNames = ['Box of Chocolates (x49)', 'Energy Drink'];
+        break;
+      default:
+        return null;
+    }
+
+    try {
+      const items = await TornItem.find({ itemId: { $in: itemIds } });
+      let total = 0;
+      const breakdownParts: string[] = [];
+
+      for (let i = 0; i < itemIds.length; i++) {
+        const item = items.find(it => it.itemId === itemIds[i]);
+        if (item && item.market_price) {
+          const cost = item.market_price * quantities[i];
+          total += cost;
+          breakdownParts.push(`${itemNames[i]}: $${cost.toLocaleString()}`);
+        } else {
+          breakdownParts.push(`${itemNames[i]}: Price unavailable`);
+        }
+      }
+
+      return {
+        total,
+        breakdown: breakdownParts.join('\n')
+      };
+    } catch (error) {
+      logError('Failed to calculate estimated cost', error instanceof Error ? error : new Error(String(error)), {
+        type
+      });
+      return null;
+    }
+  }
+
+  /**
    * Calculate predicted stat gains for a user
    * @param discordId - Discord user ID
    * @param stat - The stat to calculate gains for
+   * @param type - Optional happiness boost type (1-4)
    * @returns Stat gain predictions or null if user not found
    */
   static async getPredictedStatGains(
     discordId: string, 
-    stat: string
+    stat: string,
+    type: number = 1
   ): Promise<StatGainResultWithCurrentEnergy | null> {
     try {
       const data = await this.getUserStatGainData(discordId);
@@ -390,8 +480,11 @@ export class DiscordUserManager {
 
       // Get stat value
       const statValue = battleStats[stat as keyof typeof battleStats] as number;
-      const happy = bars.happy.current;
+      let happy = bars.happy.current;
       const currentEnergy = bars.energy.current;
+
+      // Adjust happiness based on type
+      happy = this.calculateAdjustedHappiness(happy, type);
 
       // Parse perk percentage
       const perkPerc = this.parsePerkPercentage(perks, stat);

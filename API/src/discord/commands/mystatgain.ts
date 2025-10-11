@@ -18,10 +18,23 @@ export const data = new SlashCommandBuilder()
         { name: 'Defense', value: 'defense' },
         { name: 'Dexterity', value: 'dexterity' }
       )
+  )
+  .addIntegerOption(option =>
+    option
+      .setName('type')
+      .setDescription('Happiness boost type')
+      .setRequired(false)
+      .addChoices(
+        { name: 'None', value: 1 },
+        { name: 'eDvD jump', value: 2 },
+        { name: 'Lollipop / e jump', value: 3 },
+        { name: 'Box of chocolates / e jump', value: 4 }
+      )
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   const stat = interaction.options.getString('stat', true);
+  const type = interaction.options.getInteger('type') || 1;
   const discordId = interaction.user.id;
 
   await interaction.deferReply({ ephemeral: true });
@@ -37,8 +50,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       return;
     }
 
-    // Get predicted stat gains using DiscordUserManager
-    const result = await DiscordUserManager.getPredictedStatGains(discordId, stat);
+    // Get predicted stat gains using DiscordUserManager with type
+    const result = await DiscordUserManager.getPredictedStatGains(discordId, stat, type);
     
     if (!result) {
       await interaction.editReply({
@@ -61,11 +74,18 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     // Get values for display
     const statValue = battleStats[stat as keyof typeof battleStats] as number;
-    const happy = bars.happy.current;
+    const originalHappy = bars.happy.current;
+    const adjustedHappy = DiscordUserManager.calculateAdjustedHappiness(originalHappy, type);
     const currentEnergy = bars.energy.current;
     const perkPerc = DiscordUserManager.parsePerkPercentage(perks, stat);
     const statDots = gymDetails[stat as keyof typeof gymDetails] as number;
     const dots = statDots / 10;
+
+    // Get estimated cost if type is not "none"
+    let costInfo: { total: number; breakdown: string } | null = null;
+    if (type !== 1) {
+      costInfo = await DiscordUserManager.calculateEstimatedCost(type);
+    }
 
     // Format numbers with commas
     const formatNumber = (num: number): string => {
@@ -86,7 +106,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         { name: 'Stat', value: statName, inline: true },
         { name: 'Gym', value: `${gymDetails.name} (${dots} dots, ${gymDetails.energy}E)`, inline: false },
         { name: 'Stat Total', value: formatNumber(statValue), inline: true },
-        { name: 'Happy', value: formatNumber(happy), inline: true },
+        { name: 'Happy', value: type === 1 ? formatNumber(originalHappy) : `${formatNumber(originalHappy)} → ${formatNumber(adjustedHappy)}`, inline: true },
         { name: 'Current Energy', value: formatNumber(currentEnergy), inline: true },
         { name: 'Perks', value: `+${perkPerc.toFixed(2)}%`, inline: true },
         { name: '\u200B', value: '\u200B', inline: false }
@@ -106,6 +126,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       );
     }
 
+    // Add cost information if available
+    if (costInfo) {
+      embed.addFields(
+        { name: '\u200B', value: '\u200B', inline: false },
+        { name: '💰 Estimated Cost', value: `**Total: $${formatNumber(costInfo.total)}**\n${costInfo.breakdown}`, inline: false }
+      );
+    }
+
     embed.setTimestamp();
 
     await interaction.editReply({
@@ -116,8 +144,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       discordUserId: interaction.user.id,
       tornId: user.tornId,
       stat,
+      type,
       statValue,
-      happy,
+      originalHappy,
+      adjustedHappy,
       currentEnergy,
       perkPerc,
       gym: gymDetails.name,
