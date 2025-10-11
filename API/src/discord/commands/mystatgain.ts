@@ -2,6 +2,7 @@ import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from '
 import { DiscordUser } from '../../models/DiscordUser';
 import { DiscordUserManager } from '../../services/DiscordUserManager';
 import { logInfo, logError } from '../../utils/logger';
+import axios from 'axios';
 
 export const data = new SlashCommandBuilder()
   .setName('mystatgain')
