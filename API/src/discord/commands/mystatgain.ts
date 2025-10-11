@@ -109,8 +109,16 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const energyPerTrain = gymDetails.energy;
 
     // Calculate estimated energy
-    // Cap Xanax energy at 1000, then add points refill (can reach 1150)
-    let estimatedEnergy = Math.min(currentEnergy + (numXanax * 250), 1000);
+    // If not using Xanax, assume full natural energy bar (150)
+    // Otherwise, cap Xanax energy at 1000, then add points refill (can reach 1150)
+    let estimatedEnergy;
+    if (numXanax === 0) {
+      // No Xanax: use full natural energy (150)
+      estimatedEnergy = 150;
+    } else {
+      // With Xanax: cap at 1000
+      estimatedEnergy = Math.min(currentEnergy + (numXanax * 250), 1000);
+    }
     if (pointsRefill) {
       estimatedEnergy += 150;
     }
