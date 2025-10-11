@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
 import { DiscordUser } from '../../models/DiscordUser';
-import { DiscordUserManager, TornPerksResponse } from '../../services/DiscordUserManager';
+import { DiscordUserManager } from '../../services/DiscordUserManager';
 import { logInfo, logError } from '../../utils/logger';
 
 export const data = new SlashCommandBuilder()
@@ -19,112 +19,6 @@ export const data = new SlashCommandBuilder()
       )
   );
 
-interface StatGainResult {
-  perTrain: number;
-  per150Energy: number;
-  perCurrentEnergy: number;
-}
-
-/**
- * Parse perk percentage from perk strings
- * @param perks - All perks from the user
- * @param stat - The stat to filter for
- * @returns The total perk percentage bonus
- */
-function parsePerkPercentage(perks: TornPerksResponse, stat: string): number {
-  // Combine all perk arrays
-  const allPerks = [
-    ...perks.faction_perks,
-    ...perks.property_perks,
-    ...perks.merit_perks,
-    ...perks.education_perks,
-    ...perks.job_perks,
-    ...perks.book_perks,
-    ...perks.stock_perks,
-    ...perks.enhancer_perks
-  ];
-
-  let totalMultiplier = 1;
-
-  // Look for gym gain perks
-  const gymGainPattern = /\+\s*(\d+)%\s+gym\s+gains/i;
-  const statGymGainPattern = new RegExp(`\\+\\s*(\\d+)%\\s+${stat}\\s+gym\\s+gains`, 'i');
-
-  for (const perk of allPerks) {
-    // Check for general gym gains
-    const generalMatch = perk.match(gymGainPattern);
-    if (generalMatch) {
-      const percentage = parseInt(generalMatch[1], 10);
-      totalMultiplier *= (1 + percentage / 100);
-    }
-
-    // Check for stat-specific gym gains
-    const statMatch = perk.match(statGymGainPattern);
-    if (statMatch) {
-      const percentage = parseInt(statMatch[1], 10);
-      totalMultiplier *= (1 + percentage / 100);
-    }
-  }
-
-  // Convert multiplier back to percentage (e.g., 1.02 * 1.01 = 1.0302 -> 3.02%)
-  const totalPercentage = (totalMultiplier - 1) * 100;
-  
-  return totalPercentage;
-}
-
-/**
- * Compute stat gain using Vladar's formula
- */
-function computeStatGain(
-  stat: string,
-  statTotal: number,
-  happy: number,
-  perkPerc: number,
-  dots: number,
-  energyPerTrain: number,
-  currentEnergy: number
-): StatGainResult {
-  const lookupTable: Record<string, [number, number]> = {
-    strength: [1600, 1700],
-    speed: [1600, 2000],
-    defense: [2100, -600],
-    dexterity: [1800, 1500],
-  };
-  
-  const [lookup2, lookup3] = lookupTable[stat];
-
-  // Adjusted stat for values over 50M (cap adjustment)
-  const adjustedStat =
-    statTotal < 50_000_000
-      ? statTotal
-      : (statTotal - 50_000_000) / (8.77635 * Math.log(statTotal)) + 50_000_000;
-
-  // Happy multiplier with proper rounding as in spreadsheet
-  const innerRound = Math.round(Math.log(1 + happy / 250) * 10000) / 10000;
-  const happyMult = Math.round((1 + 0.07 * innerRound) * 10000) / 10000;
-  
-  // Perk bonus multiplier
-  const perkBonus = 1 + perkPerc / 100;
-
-  // Vladar's formula
-  // The entire expression (adjustedStat * happyMult + 8*happy^1.05 + lookup2*(1-(happy/99999)^2) + lookup3)
-  // is multiplied by (1/200000) * dots * energyPerTrain * perkBonus
-  const multiplier = (1 / 200000) * dots * energyPerTrain * perkBonus;
-  const innerExpression = 
-    adjustedStat * happyMult + 
-    8 * Math.pow(happy, 1.05) + 
-    lookup2 * (1 - Math.pow(happy / 99999, 2)) + 
-    lookup3;
-
-  const gain = multiplier * innerExpression;
-
-  return {
-    perTrain: gain,
-    per150Energy: gain * (150 / energyPerTrain),
-    perCurrentEnergy: gain * (currentEnergy / energyPerTrain),
-  };
-}
-
 export async function execute(interaction: ChatInputCommandInteraction) {
   const stat = interaction.options.getString('stat', true);
   const discordId = interaction.user.id;
@@ -142,12 +36,21 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       return;
     }
 
-    // Fetch all required data using DiscordUserManager
-    const userData = await DiscordUserManager.getUserStatGainData(discordId);
+    // Get predicted stat gains using DiscordUserManager
+    const result = await DiscordUserManager.getPredictedStatGains(discordId, stat);
     
-    if (!userData) {
+    if (!result) {
       await interaction.editReply({
         content: '❌ Failed to fetch your data from Torn API. Please make sure your API key is valid.',
+      });
+      return;
+    }
+
+    // Fetch user data for display purposes
+    const userData = await DiscordUserManager.getUserStatGainData(discordId);
+    if (!userData) {
+      await interaction.editReply({
+        content: '❌ Failed to fetch your data from Torn API.',
       });
       return;
     }
@@ -155,29 +58,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const { bars, battleStats, perks, gymInfo } = userData;
     const { gymDetails } = gymInfo;
 
-    // Get the stat value
+    // Get values for display
     const statValue = battleStats[stat as keyof typeof battleStats] as number;
     const happy = bars.happy.current;
     const currentEnergy = bars.energy.current;
-
-    // Parse perk percentage
-    const perkPerc = parsePerkPercentage(perks, stat);
-
-    // Get the dots value for this stat (convert from Torn API format to dots)
+    const perkPerc = DiscordUserManager.parsePerkPercentage(perks, stat);
     const statDots = gymDetails[stat as keyof typeof gymDetails] as number;
-    if (statDots === 0) {
-      await interaction.editReply({
-        content: `❌ ${gymDetails.name} does not support training ${stat}.`,
-      });
-      return;
-    }
-
-    // Convert Torn API gym value to dots (divide by 10)
     const dots = statDots / 10;
-    const energyPerTrain = gymDetails.energy;
-
-    // Compute stat gain
-    const result = computeStatGain(stat, statValue, happy, perkPerc, dots, energyPerTrain, currentEnergy);
 
     // Format numbers with commas
     const formatNumber = (num: number): string => {
@@ -196,7 +83,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .setTitle('🏋️ Your Stat Gain Prediction')
       .addFields(
         { name: 'Stat', value: statName, inline: true },
-        { name: 'Gym', value: `${gymDetails.name} (${dots} dots, ${energyPerTrain}E)`, inline: false },
+        { name: 'Gym', value: `${gymDetails.name} (${dots} dots, ${gymDetails.energy}E)`, inline: false },
         { name: 'Stat Total', value: formatNumber(statValue), inline: true },
         { name: 'Happy', value: formatNumber(happy), inline: true },
         { name: 'Current Energy', value: formatNumber(currentEnergy), inline: true },

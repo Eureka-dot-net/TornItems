@@ -1,5 +1,6 @@
 import { Gym, IGym } from '../src/models/Gym';
 import { connectDB, closeDB } from '../src/config/db';
+import { computeStatGain } from '../src/utils/statGainCalculator';
 
 describe('Gym Model and Stat Gain Tests', () => {
   beforeAll(async () => {
@@ -48,58 +49,19 @@ describe('Gym Model and Stat Gain Tests', () => {
   });
 
   describe('Stat Gain Computation', () => {
-    // Replicate the computeStatGain function for testing
-    function computeStatGain(
+    // Helper function to call computeStatGain with gym object
+    function computeStatGainFromGym(
       stat: string,
       statTotal: number,
       happy: number,
       perkPerc: number,
       gym: IGym
     ): { perTrain: number; per150Energy: number } {
-      const lookupTable: Record<string, [number, number]> = {
-        strength: [1600, 1700],
-        speed: [1600, 2000],
-        defense: [2100, -600],
-        dexterity: [1800, 1500],
-      };
-
-      const [lookup2, lookup3] = lookupTable[stat];
-
-      // Get the dots value for this stat from the gym
       const dots = (gym as any)[stat];
       if (dots === null || dots === undefined) {
         throw new Error(`This gym does not support training ${stat}`);
       }
-
-      // Adjusted stat for values over 50M (cap adjustment)
-      const adjustedStat =
-        statTotal < 50_000_000
-          ? statTotal
-          : (statTotal - 50_000_000) / (8.77635 * Math.log(statTotal)) + 50_000_000;
-
-      // Happy multiplier with proper rounding as in spreadsheet
-      const innerRound = Math.round(Math.log(1 + happy / 250) * 10000) / 10000;
-      const happyMult = Math.round((1 + 0.07 * innerRound) * 10000) / 10000;
-      
-      // Perk bonus multiplier
-      const perkBonus = 1 + perkPerc / 100;
-
-      // Vladar's formula
-      // The entire expression (adjustedStat * happyMult + 8*happy^1.05 + lookup2*(1-(happy/99999)^2) + lookup3)
-      // is multiplied by (1/200000) * dots * energyPerTrain * perkBonus
-      const multiplier = (1 / 200000) * dots * gym.energyPerTrain * perkBonus;
-      const innerExpression = 
-        adjustedStat * happyMult + 
-        8 * Math.pow(happy, 1.05) + 
-        lookup2 * (1 - Math.pow(happy / 99999, 2)) + 
-        lookup3;
-
-      const gain = multiplier * innerExpression;
-
-      return {
-        perTrain: gain,
-        per150Energy: gain * (150 / gym.energyPerTrain),
-      };
+      return computeStatGainFromGym(stat, statTotal, happy, perkPerc, dots, gym.energyPerTrain);
     }
 
     it('should match expected values: 3k strength & 4k happy (~4.8 per train)', () => {
@@ -113,7 +75,7 @@ describe('Gym Model and Stat Gain Tests', () => {
         energyPerTrain: 5,
       } as IGym;
 
-      const result = computeStatGain('strength', 3000, 4000, 2, mockGym);
+      const result = computeStatGainFromGym('strength', 3000, 4000, 2, mockGym);
 
       // Exact value from problem statement
       expect(result.perTrain).toBeCloseTo(4.8, 1);
@@ -130,7 +92,7 @@ describe('Gym Model and Stat Gain Tests', () => {
         energyPerTrain: 5,
       } as IGym;
 
-      const result = computeStatGain('strength', 3000, 30000, 2, mockGym);
+      const result = computeStatGainFromGym('strength', 3000, 30000, 2, mockGym);
 
       // Exact value from problem statement
       expect(result.perTrain).toBeCloseTo(35.46, 1);
@@ -147,7 +109,7 @@ describe('Gym Model and Stat Gain Tests', () => {
         energyPerTrain: 5,
       } as IGym;
 
-      const result = computeStatGain('strength', 3000000, 4000, 2, mockGym);
+      const result = computeStatGainFromGym('strength', 3000000, 4000, 2, mockGym);
 
       // Exact value from problem statement
       expect(result.perTrain).toBeCloseTo(316.16, 1);
@@ -164,7 +126,7 @@ describe('Gym Model and Stat Gain Tests', () => {
         energyPerTrain: 5,
       } as IGym;
 
-      const result = computeStatGain('strength', 3000000, 30000, 2, mockGym);
+      const result = computeStatGainFromGym('strength', 3000000, 30000, 2, mockGym);
 
       // Exact value from problem statement
       expect(result.perTrain).toBeCloseTo(382.53, 1);
@@ -181,7 +143,7 @@ describe('Gym Model and Stat Gain Tests', () => {
         energyPerTrain: 5,
       } as IGym;
 
-      const result = computeStatGain('strength', 3479, 4175, 2, mockGym);
+      const result = computeStatGainFromGym('strength', 3479, 4175, 2, mockGym);
 
       expect(result.perTrain).toBeGreaterThan(0);
       expect(result.per150Energy).toBeGreaterThan(0);
@@ -209,8 +171,8 @@ describe('Gym Model and Stat Gain Tests', () => {
         energyPerTrain: 25,
       } as IGym;
 
-      const lowResult = computeStatGain('strength', 10000, 5000, 2, lowGym);
-      const highResult = computeStatGain('strength', 10000, 5000, 2, highGym);
+      const lowResult = computeStatGainFromGym('strength', 10000, 5000, 2, lowGym);
+      const highResult = computeStatGainFromGym('strength', 10000, 5000, 2, highGym);
 
       // Higher dot value and energy should give more gain per train
       expect(highResult.perTrain).toBeGreaterThan(lowResult.perTrain);
@@ -228,7 +190,7 @@ describe('Gym Model and Stat Gain Tests', () => {
       } as IGym;
 
       expect(() => {
-        computeStatGain('speed', 10000, 5000, 2, mockGym);
+        computeStatGainFromGym('speed', 10000, 5000, 2, mockGym);
       }).toThrow('This gym does not support training speed');
     });
 
@@ -243,7 +205,7 @@ describe('Gym Model and Stat Gain Tests', () => {
         energyPerTrain: 5,
       } as IGym;
 
-      const result = computeStatGain('strength', 10000, 5000, 0, mockGym);
+      const result = computeStatGainFromGym('strength', 10000, 5000, 0, mockGym);
 
       expect(result.perTrain).toBeGreaterThan(0);
       expect(result.per150Energy).toBeGreaterThan(0);
@@ -260,8 +222,8 @@ describe('Gym Model and Stat Gain Tests', () => {
         energyPerTrain: 5,
       } as IGym;
 
-      const noPerkResult = computeStatGain('strength', 10000, 5000, 0, mockGym);
-      const withPerkResult = computeStatGain('strength', 10000, 5000, 10, mockGym);
+      const noPerkResult = computeStatGainFromGym('strength', 10000, 5000, 0, mockGym);
+      const withPerkResult = computeStatGainFromGym('strength', 10000, 5000, 10, mockGym);
 
       // With 10% perk bonus, gain should be higher (though the difference may be small)
       expect(withPerkResult.perTrain).toBeGreaterThanOrEqual(noPerkResult.perTrain);
@@ -279,7 +241,7 @@ describe('Gym Model and Stat Gain Tests', () => {
       } as IGym;
 
       // Test with stat over 50 million to ensure adjusted stat formula is applied
-      const result = computeStatGain('strength', 60_000_000, 5000, 2, mockGym);
+      const result = computeStatGainFromGym('strength', 60_000_000, 5000, 2, mockGym);
 
       expect(result.perTrain).toBeGreaterThan(0);
       expect(result.per150Energy).toBeGreaterThan(0);

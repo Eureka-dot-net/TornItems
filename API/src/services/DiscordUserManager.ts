@@ -3,6 +3,7 @@ import { DiscordUser } from '../models/DiscordUser';
 import { BattleStats } from '../models/BattleStats';
 import { decrypt } from '../utils/encryption';
 import { logInfo, logError } from '../utils/logger';
+import { computeStatGain, computeStatGainWithCurrentEnergy, StatGainResult, StatGainResultWithCurrentEnergy } from '../utils/statGainCalculator';
 
 /**
  * Torn API Response Types
@@ -417,6 +418,109 @@ export class DiscordUserManager {
     } catch (error) {
       logError('Failed to fetch user stat gain data', error instanceof Error ? error : new Error(String(error)), {
         discordId
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Parse perk percentage from user's perks
+   * @param perks - User's perks from Torn API
+   * @param stat - The stat to calculate perks for
+   * @returns Total perk percentage bonus
+   */
+  static parsePerkPercentage(perks: TornPerksResponse, stat: string): number {
+    // Combine all perk arrays
+    const allPerks = [
+      ...perks.faction_perks,
+      ...perks.property_perks,
+      ...perks.merit_perks,
+      ...perks.education_perks,
+      ...perks.job_perks,
+      ...perks.book_perks,
+      ...perks.stock_perks,
+      ...perks.enhancer_perks
+    ];
+
+    let totalMultiplier = 1;
+
+    // Look for gym gain perks
+    const gymGainPattern = /\+\s*(\d+)%\s+gym\s+gains/i;
+    const statGymGainPattern = new RegExp(`\\+\\s*(\\d+)%\\s+${stat}\\s+gym\\s+gains`, 'i');
+
+    for (const perk of allPerks) {
+      // Check for general gym gains
+      const generalMatch = perk.match(gymGainPattern);
+      if (generalMatch) {
+        const percentage = parseInt(generalMatch[1], 10);
+        totalMultiplier *= (1 + percentage / 100);
+      }
+
+      // Check for stat-specific gym gains
+      const statMatch = perk.match(statGymGainPattern);
+      if (statMatch) {
+        const percentage = parseInt(statMatch[1], 10);
+        totalMultiplier *= (1 + percentage / 100);
+      }
+    }
+
+    // Convert multiplier back to percentage (e.g., 1.02 * 1.01 = 1.0302 -> 3.02%)
+    const totalPercentage = (totalMultiplier - 1) * 100;
+    
+    return totalPercentage;
+  }
+
+  /**
+   * Calculate predicted stat gains for a user
+   * @param discordId - Discord user ID
+   * @param stat - The stat to calculate gains for
+   * @returns Stat gain predictions or null if user not found
+   */
+  static async getPredictedStatGains(
+    discordId: string, 
+    stat: string
+  ): Promise<StatGainResultWithCurrentEnergy | null> {
+    try {
+      const data = await this.getUserStatGainData(discordId);
+      if (!data) {
+        return null;
+      }
+
+      const { bars, battleStats, perks, gymInfo } = data;
+      const { gymDetails } = gymInfo;
+
+      // Get stat value
+      const statValue = battleStats[stat as keyof typeof battleStats] as number;
+      const happy = bars.happy.current;
+      const currentEnergy = bars.energy.current;
+
+      // Parse perk percentage
+      const perkPerc = this.parsePerkPercentage(perks, stat);
+
+      // Get dots value for this stat (convert from Torn API format to dots)
+      const statDots = gymDetails[stat as keyof typeof gymDetails] as number;
+      if (statDots === 0) {
+        throw new Error(`${gymDetails.name} does not support training ${stat}`);
+      }
+
+      // Convert Torn API gym value to dots (divide by 10)
+      const dots = statDots / 10;
+      const energyPerTrain = gymDetails.energy;
+
+      // Compute stat gain
+      return computeStatGainWithCurrentEnergy(
+        stat, 
+        statValue, 
+        happy, 
+        perkPerc, 
+        dots, 
+        energyPerTrain, 
+        currentEnergy
+      );
+    } catch (error) {
+      logError('Failed to get predicted stat gains', error instanceof Error ? error : new Error(String(error)), {
+        discordId,
+        stat
       });
       throw error;
     }
