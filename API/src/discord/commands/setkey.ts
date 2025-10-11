@@ -2,7 +2,7 @@ import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import axios from 'axios';
 import { DiscordUser } from '../../models/DiscordUser';
 import { encrypt } from '../../utils/encryption';
-import { fetchAndStoreBattleStats } from '../../utils/tornApi';
+import { DiscordUserManager } from '../../services/DiscordUserManager';
 import { logInfo, logError } from '../../utils/logger';
 
 export const data = new SlashCommandBuilder()
@@ -113,7 +113,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     // Fetch and store battle stats
     try {
-      await fetchAndStoreBattleStats(tornId, apiKey);
+      await DiscordUserManager.fetchAndStoreBattleStats(discordId);
     } catch (error) {
       // Log the error but don't fail the request
       logError('Failed to fetch battle stats, but user was saved', error instanceof Error ? error : new Error(String(error)), {

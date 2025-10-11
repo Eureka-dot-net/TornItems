@@ -121,18 +121,23 @@ const adjustedStat = statTotal < 50_000_000
   ? statTotal
   : (statTotal - 50_000_000) / (8.77635 * Math.log(statTotal)) + 50_000_000;
 
-// Apply happy multiplier
-const happyMult = 1 + 0.07 * Math.log(1 + happy / 250);
+// Apply happy multiplier with proper rounding
+const innerRound = Math.round(Math.log(1 + happy / 250) * 10000) / 10000;
+const happyMult = Math.round((1 + 0.07 * innerRound) * 10000) / 10000;
 
 // Apply perk bonus
 const perkBonus = 1 + perkPerc / 100;
 
 // Calculate gain using stat-specific lookup values
-const gain = 
-  (1 / 200000) * dots * energyPerTrain * perkBonus * adjustedStat * happyMult +
-  8 * Math.pow(happy, 1.05) +
-  lookup2 * (1 - Math.pow(happy / 99999, 2)) +
+// The entire inner expression is multiplied by the base multiplier
+const multiplier = (1 / 200000) * dots * energyPerTrain * perkBonus;
+const innerExpression = 
+  adjustedStat * happyMult + 
+  8 * Math.pow(happy, 1.05) + 
+  lookup2 * (1 - Math.pow(happy / 99999, 2)) + 
   lookup3;
+
+const gain = multiplier * innerExpression;
 ```
 
 ### Lookup Values by Stat
