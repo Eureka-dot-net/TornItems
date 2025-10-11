@@ -1,8 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
-import axios from 'axios';
 import { DiscordUser } from '../../models/DiscordUser';
-import { Gym } from '../../models/Gym';
-import { decrypt } from '../../utils/encryption';
+import { DiscordUserManager, TornPerksResponse } from '../../services/DiscordUserManager';
 import { logInfo, logError } from '../../utils/logger';
 
 export const data = new SlashCommandBuilder()
@@ -20,76 +18,6 @@ export const data = new SlashCommandBuilder()
         { name: 'Dexterity', value: 'dexterity' }
       )
   );
-
-interface TornBarsResponse {
-  bars: {
-    energy: {
-      current: number;
-      maximum: number;
-    };
-    happy: {
-      current: number;
-      maximum: number;
-    };
-  };
-}
-
-interface TornBattleStatsResponse {
-  battlestats: {
-    strength: {
-      value: number;
-      modifier: number;
-      modifiers?: Array<{ effect: string; value: number; type: string }>;
-    };
-    defense: {
-      value: number;
-      modifier: number;
-      modifiers?: Array<{ effect: string; value: number; type: string }>;
-    };
-    speed: {
-      value: number;
-      modifier: number;
-      modifiers?: Array<{ effect: string; value: number; type: string }>;
-    };
-    dexterity: {
-      value: number;
-      modifier: number;
-      modifiers?: Array<{ effect: string; value: number; type: string }>;
-    };
-    total: number;
-  };
-}
-
-interface TornPerksResponse {
-  faction_perks: string[];
-  job_perks: string[];
-  property_perks: string[];
-  education_perks: string[];
-  enhancer_perks: string[];
-  book_perks: string[];
-  stock_perks: string[];
-  merit_perks: string[];
-}
-
-interface TornGymResponse {
-  active_gym: number;
-}
-
-interface TornGymsResponse {
-  gyms: {
-    [key: string]: {
-      name: string;
-      stage: number;
-      cost: number;
-      energy: number;
-      strength: number;
-      speed: number;
-      defense: number;
-      dexterity: number;
-      note: string;
-    };
-  };
-}
 
 interface StatGainResult {
   perTrain: number;
@@ -204,7 +132,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply({ ephemeral: true });
 
   try {
-    // Get the user from the database
+    // Check if user exists
     const user = await DiscordUser.findOne({ discordId });
     
     if (!user) {
@@ -214,37 +142,21 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       return;
     }
 
-    // Decrypt the API key
-    const apiKey = decrypt(user.apiKey);
-
-    // Fetch all required data from Torn API
-    const [barsResponse, battleStatsResponse, perksResponse, gymResponse] = await Promise.all([
-      axios.get<TornBarsResponse>(`https://api.torn.com/v2/user/bars?key=${apiKey}`),
-      axios.get<TornBattleStatsResponse>(`https://api.torn.com/v2/user/battlestats?key=${apiKey}`),
-      axios.get<TornPerksResponse>(`https://api.torn.com/v2/user?selections=perks&key=${apiKey}`),
-      axios.get<TornGymResponse>(`https://api.torn.com/v2/user?selections=gym&key=${apiKey}`),
-    ]);
-
-    const { bars } = barsResponse.data;
-    const { battlestats } = battleStatsResponse.data;
-    const perks = perksResponse.data;
-    const { active_gym } = gymResponse.data;
-
-    // Get gym data from Torn API
-    const gymsResponse = await axios.get<TornGymsResponse>(
-      `https://api.torn.com/v2/torn?selections=gyms&key=${apiKey}`
-    );
-    const tornGym = gymsResponse.data.gyms[active_gym.toString()];
-
-    if (!tornGym) {
+    // Fetch all required data using DiscordUserManager
+    const userData = await DiscordUserManager.getUserStatGainData(discordId);
+    
+    if (!userData) {
       await interaction.editReply({
-        content: `❌ Could not find your active gym (ID: ${active_gym}).`,
+        content: '❌ Failed to fetch your data from Torn API. Please make sure your API key is valid.',
       });
       return;
     }
 
+    const { bars, battleStats, perks, gymInfo } = userData;
+    const { gymDetails } = gymInfo;
+
     // Get the stat value
-    const statValue = battlestats[stat as keyof typeof battlestats].value;
+    const statValue = battleStats[stat as keyof typeof battleStats] as number;
     const happy = bars.happy.current;
     const currentEnergy = bars.energy.current;
 
@@ -252,17 +164,17 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const perkPerc = parsePerkPercentage(perks, stat);
 
     // Get the dots value for this stat (convert from Torn API format to dots)
-    const statDots = tornGym[stat as keyof typeof tornGym] as number;
+    const statDots = gymDetails[stat as keyof typeof gymDetails] as number;
     if (statDots === 0) {
       await interaction.editReply({
-        content: `❌ ${tornGym.name} does not support training ${stat}.`,
+        content: `❌ ${gymDetails.name} does not support training ${stat}.`,
       });
       return;
     }
 
     // Convert Torn API gym value to dots (divide by 10)
     const dots = statDots / 10;
-    const energyPerTrain = tornGym.energy;
+    const energyPerTrain = gymDetails.energy;
 
     // Compute stat gain
     const result = computeStatGain(stat, statValue, happy, perkPerc, dots, energyPerTrain, currentEnergy);
@@ -284,7 +196,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .setTitle('🏋️ Your Stat Gain Prediction')
       .addFields(
         { name: 'Stat', value: statName, inline: true },
-        { name: 'Gym', value: `${tornGym.name} (${dots} dots, ${energyPerTrain}E)`, inline: false },
+        { name: 'Gym', value: `${gymDetails.name} (${dots} dots, ${energyPerTrain}E)`, inline: false },
         { name: 'Stat Total', value: formatNumber(statValue), inline: true },
         { name: 'Happy', value: formatNumber(happy), inline: true },
         { name: 'Current Energy', value: formatNumber(currentEnergy), inline: true },
@@ -320,7 +232,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       happy,
       currentEnergy,
       perkPerc,
-      gym: tornGym.name,
+      gym: gymDetails.name,
       perTrain: result.perTrain,
       per150Energy: result.per150Energy,
     });
