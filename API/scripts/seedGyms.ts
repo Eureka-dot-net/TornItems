@@ -12,7 +12,6 @@ const gyms = [
   { name: "pourfemme", displayName: "Pour Femme [L]", strength: 3.4, speed: 3.6, defense: 3.6, dexterity: 3.8, energyPerTrain: 5 },
   { name: "daviesden", displayName: "Davies Den [L]", strength: 3.7, speed: null, defense: 3.7, dexterity: 3.7, energyPerTrain: 5 },
   { name: "globalgym", displayName: "Global Gym [L]", strength: 4, speed: 4, defense: 4, dexterity: 4, energyPerTrain: 5 },
-  { name: "london", displayName: "London [L]", strength: 3.0, speed: 3.0, defense: 3.0, dexterity: 3.0, energyPerTrain: 5 },
   
   // Medium Gyms (10 energy)
   { name: "knuckleheads", displayName: "Knuckle Heads [M]", strength: 4.8, speed: 4.4, defense: 4, dexterity: 4.2, energyPerTrain: 10 },
