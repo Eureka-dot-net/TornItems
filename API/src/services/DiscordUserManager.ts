@@ -392,15 +392,17 @@ export class DiscordUserManager {
   }
 
   /**
-   * Calculate estimated cost for happiness boost type
+   * Calculate estimated cost for happiness boost type, Xanax, and points refill
    * @param type - Type of happiness boost (1-4)
-   * @returns Estimated cost or null if type is 1, object with cost and breakdown
+   * @param numXanax - Number of Xanax to use (0-4)
+   * @param pointsRefill - Whether to use points refill
+   * @returns Estimated cost or null if no items needed, object with cost and breakdown
    */
-  static async calculateEstimatedCost(type: number): Promise<{ 
+  static async calculateEstimatedCost(type: number, numXanax: number = 0, pointsRefill: boolean = false): Promise<{ 
     total: number; 
     breakdown: string;
   } | null> {
-    if (type === 1) {
+    if (type === 1 && numXanax === 0 && !pointsRefill) {
       return null;
     }
 
@@ -410,24 +412,30 @@ export class DiscordUserManager {
     let quantities: number[] = [];
     let itemNames: string[] = [];
     
+    // Add happiness boost items based on type
     switch (type) {
       case 2: // 5 * item 366 + item 197
-        itemIds = [366, 197];
-        quantities = [5, 1];
-        itemNames = ['eDvD (x5)', 'Energy Drink'];
+        itemIds.push(366, 197);
+        quantities.push(5, 1);
+        itemNames.push('eDvD (x5)', 'Energy Drink');
         break;
       case 3: // 49 * item 310 + item 197
-        itemIds = [310, 197];
-        quantities = [49, 1];
-        itemNames = ['Lollipop (x49)', 'Energy Drink'];
+        itemIds.push(310, 197);
+        quantities.push(49, 1);
+        itemNames.push('Lollipop (x49)', 'Energy Drink');
         break;
       case 4: // 49 * item 36 + item 197
-        itemIds = [36, 197];
-        quantities = [49, 1];
-        itemNames = ['Box of Chocolates (x49)', 'Energy Drink'];
+        itemIds.push(36, 197);
+        quantities.push(49, 1);
+        itemNames.push('Box of Chocolates (x49)', 'Energy Drink');
         break;
-      default:
-        return null;
+    }
+
+    // Add Xanax if needed (item 206)
+    if (numXanax > 0) {
+      itemIds.push(206);
+      quantities.push(numXanax);
+      itemNames.push(`Xanax (x${numXanax})`);
     }
 
     try {
@@ -446,13 +454,22 @@ export class DiscordUserManager {
         }
       }
 
+      // Add points refill cost (30 points at 30k each)
+      if (pointsRefill) {
+        const pointsCost = 30 * 30000;
+        total += pointsCost;
+        breakdownParts.push(`Points Refill (30 pts): $${pointsCost.toLocaleString()}`);
+      }
+
       return {
         total,
         breakdown: breakdownParts.join('\n')
       };
     } catch (error) {
       logError('Failed to calculate estimated cost', error instanceof Error ? error : new Error(String(error)), {
-        type
+        type,
+        numXanax,
+        pointsRefill
       });
       return null;
     }

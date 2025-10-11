@@ -23,18 +23,39 @@ export const data = new SlashCommandBuilder()
     option
       .setName('type')
       .setDescription('Happiness boost type')
-      .setRequired(false)
+      .setRequired(true)
       .addChoices(
         { name: 'None', value: 1 },
         { name: 'eDvD jump', value: 2 },
         { name: 'Lollipop / e jump', value: 3 },
         { name: 'Box of chocolates / e jump', value: 4 }
       )
+  )
+  .addIntegerOption(option =>
+    option
+      .setName('numxanax')
+      .setDescription('Number of Xanax to use')
+      .setRequired(true)
+      .addChoices(
+        { name: '0', value: 0 },
+        { name: '1', value: 1 },
+        { name: '2', value: 2 },
+        { name: '3', value: 3 },
+        { name: '4', value: 4 }
+      )
+  )
+  .addBooleanOption(option =>
+    option
+      .setName('pointsrefill')
+      .setDescription('Use points refill for energy (adds 150E)')
+      .setRequired(true)
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   const stat = interaction.options.getString('stat', true);
-  const type = interaction.options.getInteger('type') || 1;
+  const type = interaction.options.getInteger('type', true);
+  const numXanax = interaction.options.getInteger('numxanax', true);
+  const pointsRefill = interaction.options.getBoolean('pointsrefill', true);
   const discordId = interaction.user.id;
 
   await interaction.deferReply({ ephemeral: true });
@@ -81,10 +102,18 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const statDots = gymDetails[stat as keyof typeof gymDetails] as number;
     const dots = statDots / 10;
 
-    // Get estimated cost if type is not "none"
+    // Calculate estimated energy
+    let estimatedEnergy = currentEnergy + (numXanax * 250);
+    if (pointsRefill) {
+      estimatedEnergy += 150;
+    }
+    // Cap at 1000 for display purposes, but can go up to 1150 with points refill
+    const cappedEstimatedEnergy = estimatedEnergy;
+
+    // Get estimated cost including Xanax and points refill
     let costInfo: { total: number; breakdown: string } | null = null;
-    if (type !== 1) {
-      costInfo = await DiscordUserManager.calculateEstimatedCost(type);
+    if (type !== 1 || numXanax > 0 || pointsRefill) {
+      costInfo = await DiscordUserManager.calculateEstimatedCost(type, numXanax, pointsRefill);
     }
 
     // Format numbers with commas
@@ -108,6 +137,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         { name: 'Stat Total', value: formatNumber(statValue), inline: true },
         { name: 'Happy', value: type === 1 ? formatNumber(originalHappy) : `${formatNumber(originalHappy)} → ${formatNumber(adjustedHappy)}`, inline: true },
         { name: 'Current Energy', value: formatNumber(currentEnergy), inline: true },
+        { name: 'Estimated Energy', value: formatNumber(cappedEstimatedEnergy), inline: true },
         { name: 'Perks', value: `+${perkPerc.toFixed(2)}%`, inline: true },
         { name: '\u200B', value: '\u200B', inline: false }
       );
@@ -145,10 +175,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       tornId: user.tornId,
       stat,
       type,
+      numXanax,
+      pointsRefill,
       statValue,
       originalHappy,
       adjustedHappy,
       currentEnergy,
+      estimatedEnergy: cappedEstimatedEnergy,
       perkPerc,
       gym: gymDetails.name,
       perTrain: result.perTrain,
