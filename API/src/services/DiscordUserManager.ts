@@ -380,7 +380,8 @@ export class DiscordUserManager {
       case 1: // None
         return currentHappiness;
       case 2: // eDvD jump
-        return (currentHappiness + 52500) * 2;
+      //note that it is 5 * 2500 NOT 52500
+        return (currentHappiness + 12500) * 2;
       case 3: // Lollipop / e jump
         return (currentHappiness + 49 * 25) * 2;
       case 4: // Box of chocolates / e jump
