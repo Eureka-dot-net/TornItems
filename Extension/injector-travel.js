@@ -53,7 +53,7 @@
   }
 
   // ───────────────────────────────
-  // Countdown UI helper
+  // Countdown UI helper  (patched for background-tab accuracy)
   // ───────────────────────────────
   const runCountdown = (boardingEpoch, labelText) => {
     document.querySelectorAll("#tornCountdownBox").forEach(el => el.remove());
@@ -73,23 +73,38 @@
     });
     document.body.appendChild(box);
 
+    let notified60 = false;
+    let notified20 = false;
+
     const fmt = (s) => (s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`);
-    const tick = () => {
+
+    const loop = () => {
       const remain = Math.max(0, boardingEpoch - nowSec());
       if (remain <= 0) {
         box.textContent = `🛫 Ready to board${labelText ? ` (${labelText})` : ""}!`;
         box.style.background = "rgba(0,150,0,0.8)";
-        clearInterval(timer);
-      } else {
-        box.textContent = `🕒 Boarding in ${fmt(remain)}${labelText ? ` (${labelText})` : ""}`;
-        if (remain === 20) {
-          box.style.background = "rgba(255,0,0,0.8)";
-          notify("⏰ Boarding soon", `Boarding for ${labelText || "flight"} in 20 seconds!`);
-        }
+        return; // stop
       }
+
+      box.textContent = `🕒 Boarding in ${fmt(remain)}${labelText ? ` (${labelText})` : ""}`;
+
+      if (remain <= 60 && !notified60) {
+        notified60 = true;
+        box.style.background = "rgba(255,0,0,0.8)";
+        notify("⏰ Boarding in one minute", `Boarding for ${labelText || "flight"} in 60 seconds!`);
+      }
+      if (remain <= 20 && !notified20) {
+        notified20 = true;
+        box.style.background = "rgba(255,0,0,0.8)";
+        notify("⏰ Boarding soon", `Boarding for ${labelText || "flight"} in 20 seconds!`);
+      }
+
+      // next loop aligned to wall clock
+      const nextDelay = 1000 - (Date.now() % 1000);
+      setTimeout(loop, nextDelay);
     };
-    const timer = setInterval(tick, 1000);
-    tick();
+
+    loop();
   };
 
   // ───────────────────────────────
@@ -136,7 +151,6 @@
     // Torn normally uses mm:ss or hh:mm
     if (parts.length === 2) {
       const [a, b] = parts;
-      // if the first segment is hours (>=1 hour flight)
       flightMinutes = a * 60 + b;
     } else if (parts.length === 3) {
       const [h, m, s] = parts;
@@ -168,6 +182,7 @@
 
     return { country, boardingEpoch };
   };
+
   const applyCountdownIfAvailable = () => {
     const result = computeBoardingForPanel();
     if (!result) return false;
@@ -192,6 +207,7 @@
     "ciudad juarez": { item1: "1429", item2: "258", item3: "259", amount: "19" },
     "uk": { item1: "268", item2: "266", item3: "267", amount: "18" },
     "london": { item1: "268", item2: "266", item3: "267", amount: "19" },
+    "toronto": { item1: "1361", item2: "261", item3: "263", amount: "19" },
   };
 
   const parseRemaining = (container) => {
@@ -217,12 +233,12 @@
     const section = document.querySelector(".flightProgressSection___fhrD5");
     if (!section) return;
     const txt = (section.textContent || "").toLowerCase();
-    
+
     // ✅ Only match if destination comes AFTER "to" (not flying back to Torn)
     const toMatch = txt.match(/to\s+([^.]+)/);
     if (!toMatch) return;
     const destination = toMatch[1].trim();
-    
+
     const matchedKey = Object.keys(DESTINATIONS).find(k => destination.includes(k));
     if (!matchedKey) return;
 
