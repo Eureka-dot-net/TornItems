@@ -101,14 +101,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const perkPerc = DiscordUserManager.parsePerkPercentage(perks, stat);
     const statDots = gymDetails[stat as keyof typeof gymDetails] as number;
     const dots = statDots / 10;
+    const energyPerTrain = gymDetails.energy;
 
     // Calculate estimated energy
-    let estimatedEnergy = currentEnergy + (numXanax * 250);
+    // Cap Xanax energy at 1000, then add points refill (can reach 1150)
+    let estimatedEnergy = Math.min(currentEnergy + (numXanax * 250), 1000);
     if (pointsRefill) {
       estimatedEnergy += 150;
     }
-    // Cap at 1000 for display purposes, but can go up to 1150 with points refill
-    const cappedEstimatedEnergy = estimatedEnergy;
 
     // Get estimated cost including Xanax and points refill
     let costInfo: { total: number; breakdown: string } | null = null;
@@ -137,24 +137,16 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         { name: 'Stat Total', value: formatNumber(statValue), inline: true },
         { name: 'Happy', value: type === 1 ? formatNumber(originalHappy) : `${formatNumber(originalHappy)} → ${formatNumber(adjustedHappy)}`, inline: true },
         { name: 'Current Energy', value: formatNumber(currentEnergy), inline: true },
-        { name: 'Estimated Energy', value: formatNumber(cappedEstimatedEnergy), inline: true },
+        { name: 'Estimated Energy', value: formatNumber(estimatedEnergy), inline: true },
         { name: 'Perks', value: `+${perkPerc.toFixed(2)}%`, inline: true },
         { name: '\u200B', value: '\u200B', inline: false }
       );
 
     // Add energy-specific calculations
-    if (currentEnergy > 0 && currentEnergy !== 150) {
-      embed.addFields(
-        { name: 'Per Train', value: `+${result.perTrain.toFixed(2)} ${statName}`, inline: true },
-        { name: `Per ${formatNumber(currentEnergy)} Energy`, value: `+${result.perCurrentEnergy.toFixed(2)} ${statName}`, inline: true },
-        { name: 'Per 150 Energy', value: `+${result.per150Energy.toFixed(2)} ${statName}`, inline: true }
-      );
-    } else {
-      embed.addFields(
-        { name: 'Per Train', value: `+${result.perTrain.toFixed(2)} ${statName}`, inline: true },
-        { name: 'Per 150 Energy', value: `+${result.per150Energy.toFixed(2)} ${statName}`, inline: true }
-      );
-    }
+    embed.addFields(
+      { name: 'Per Train', value: `+${result.perTrain.toFixed(2)} ${statName}`, inline: true },
+      { name: `Per ${formatNumber(estimatedEnergy)} Energy`, value: `+${(result.perTrain * (estimatedEnergy / energyPerTrain)).toFixed(2)} ${statName}`, inline: true }
+    );
 
     // Add cost information if available
     if (costInfo) {
@@ -181,11 +173,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       originalHappy,
       adjustedHappy,
       currentEnergy,
-      estimatedEnergy: cappedEstimatedEnergy,
+      estimatedEnergy,
       perkPerc,
       gym: gymDetails.name,
       perTrain: result.perTrain,
-      per150Energy: result.per150Energy,
     });
   } catch (err: any) {
     logError('Error in /mystatgain command', err instanceof Error ? err : new Error(String(err)));
