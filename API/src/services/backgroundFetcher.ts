@@ -1638,8 +1638,8 @@ export function startScheduler(): void {
     fetchForeignStock();
   });
 
-  // Schedule monitored items update every 10 minutes
-  cron.schedule('*/10 * * * *', () => {
+  // Schedule monitored items update every 1 minutes
+  cron.schedule('*/1 * * * *', () => {
     logInfo('Running scheduled monitored items update...');
     updateMonitoredItems();
   });
