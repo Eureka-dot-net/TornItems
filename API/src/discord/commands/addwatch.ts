@@ -81,28 +81,39 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     // Look up missing information from TornItem table
     if (itemId && !name) {
-      // User provided ID, look up name
-      const tornItem = await TornItem.findOne({ itemId });
-      if (tornItem) {
-        name = tornItem.name;
+      // Special handling for points market (itemId 0)
+      if (itemId === 0) {
+        name = 'Points';
       } else {
-        await interaction.editReply({
-          content: `❌ Item ID ${itemId} not found in the database.\nTo find the correct item ID:\n1. Go to https://www.torn.com/page.php?sid=ItemMarket\n2. Search for the item\n3. The item ID will be in the URL (e.g., itemID=123)`,
-        });
-        return;
+        // User provided ID, look up name
+        const tornItem = await TornItem.findOne({ itemId });
+        if (tornItem) {
+          name = tornItem.name;
+        } else {
+          await interaction.editReply({
+            content: `❌ Item ID ${itemId} not found in the database.\nTo find the correct item ID:\n1. Go to https://www.torn.com/page.php?sid=ItemMarket\n2. Search for the item\n3. The item ID will be in the URL (e.g., itemID=123)`,
+          });
+          return;
+        }
       }
     } else if (name && !itemId) {
-      // User provided name, look up ID
-      const tornItem = await TornItem.findOne({ 
-        name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } 
-      });
-      if (tornItem) {
-        itemId = tornItem.itemId;
+      // Special handling for points market
+      if (name.toLowerCase() === 'points' || name.toLowerCase() === 'point') {
+        itemId = 0;
+        name = 'Points';
       } else {
-        await interaction.editReply({
-          content: `❌ Item "${name}" not found in the database.\nPlease check the spelling or provide the item ID instead.\n\nTo find the item ID:\n1. Go to https://www.torn.com/page.php?sid=ItemMarket\n2. Search for the item\n3. The item ID will be in the URL (e.g., itemID=123)`,
+        // User provided name, look up ID
+        const tornItem = await TornItem.findOne({ 
+          name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } 
         });
-        return;
+        if (tornItem) {
+          itemId = tornItem.itemId;
+        } else {
+          await interaction.editReply({
+            content: `❌ Item "${name}" not found in the database.\nPlease check the spelling or provide the item ID instead.\n\nTo find the item ID:\n1. Go to https://www.torn.com/page.php?sid=ItemMarket\n2. Search for the item\n3. The item ID will be in the URL (e.g., itemID=123)`,
+          });
+          return;
+        }
       }
     }
     // If both are provided, use the user-supplied values without checking
