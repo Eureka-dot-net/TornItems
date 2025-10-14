@@ -62,6 +62,20 @@ export async function startDiscordBot(): Promise<void> {
     });
 
     client.on('interactionCreate', async (interaction) => {
+      // Handle autocomplete interactions
+      if (interaction.isAutocomplete()) {
+        const command = client.commands.get(interaction.commandName);
+        if (!command || !command.autocomplete) return;
+
+        try {
+          await command.autocomplete(interaction);
+        } catch (error) {
+          logError('Error handling autocomplete', error instanceof Error ? error : new Error(String(error)));
+        }
+        return;
+      }
+
+      // Handle command interactions
       if (!interaction.isChatInputCommand()) return;
 
       const command = client.commands.get(interaction.commandName);

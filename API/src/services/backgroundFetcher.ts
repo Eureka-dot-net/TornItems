@@ -23,6 +23,7 @@ import {
 import { aggregateMarketHistory } from '../jobs/aggregateMarketHistory';
 import { monitorMarketPrices } from '../jobs/monitorMarketPrices';
 import { roundUpToNextQuarterHour, minutesBetween } from '../utils/dateHelpers';
+import { Job } from '../models/Job';
 
 const API_KEY = process.env.TORN_API_KEY;
 
@@ -34,6 +35,40 @@ const CURIOSITY_RATE = parseFloat(process.env.CURIOSITY_RATE || '0.05');
 
 // Enable/disable background jobs (default: enabled)
 const ENABLE_BACKGROUND_JOBS = process.env.ENABLE_BACKGROUND_JOBS !== 'false';
+
+/**
+ * Checks if a job is enabled in the database
+ * Falls back to true if the job is not found or if there's an error
+ */
+async function isJobEnabled(jobName: string): Promise<boolean> {
+  try {
+    const job = await Job.findOne({ name: jobName });
+    if (!job) {
+      // If job doesn't exist, assume it's enabled (backward compatibility)
+      return true;
+    }
+    return job.enabled;
+  } catch (error) {
+    logError(`Error checking job status for ${jobName}`, error instanceof Error ? error : new Error(String(error)));
+    // On error, assume enabled (fail-safe)
+    return true;
+  }
+}
+
+/**
+ * Updates the lastRun timestamp for a job
+ */
+async function updateJobLastRun(jobName: string): Promise<void> {
+  try {
+    await Job.updateOne(
+      { name: jobName },
+      { $set: { lastRun: new Date() } }
+    );
+  } catch (error) {
+    // Log but don't throw - this is not critical
+    logError(`Error updating lastRun for job ${jobName}`, error instanceof Error ? error : new Error(String(error)));
+  }
+}
 
 // Country code mapping
 const COUNTRY_CODE_MAP: Record<string, string> = {
@@ -974,6 +1009,17 @@ async function incrementCycleCounters(): Promise<void> {
 
 // Fetch and store detailed market snapshots for monitored items (self-scheduling with adaptive monitoring)
 export async function fetchMarketSnapshots(): Promise<void> {
+  // Check if the job is enabled before running
+  if (!(await isJobEnabled('adaptive_market_snapshots'))) {
+    logInfo('Skipping adaptive_market_snapshots - job is disabled. Will retry in 1 minute.');
+    setTimeout(() => {
+      fetchMarketSnapshots();
+    }, 60 * 1000);
+    return;
+  }
+  
+  await updateJobLastRun('adaptive_market_snapshots');
+  
   try {
     const startTime = Date.now();
     logInfo('=== Starting adaptive monitoring cycle ===');
@@ -1623,38 +1669,58 @@ export function startScheduler(): void {
   });
 
   // Schedule daily item fetch at 3 AM
-  cron.schedule('0 3 * * *', () => {
-    logInfo('Running scheduled Torn items fetch...');
-    fetchTornItems();
+  cron.schedule('0 3 * * *', async () => {
+    if (await isJobEnabled('fetch_torn_items')) {
+      logInfo('Running scheduled Torn items fetch...');
+      await updateJobLastRun('fetch_torn_items');
+      fetchTornItems();
+    } else {
+      logInfo('Skipping fetch_torn_items - job is disabled');
+    }
   });
 
   // Schedule city shop stock fetch every minute
-  cron.schedule('* * * * *', () => {
-    fetchCityShopStock();
+  cron.schedule('* * * * *', async () => {
+    if (await isJobEnabled('fetch_city_shop_stock')) {
+      await updateJobLastRun('fetch_city_shop_stock');
+      fetchCityShopStock();
+    }
   });
 
   // Schedule foreign stock fetch every minute
-  cron.schedule('* * * * *', () => {
-    fetchForeignStock();
+  cron.schedule('* * * * *', async () => {
+    if (await isJobEnabled('fetch_foreign_stock')) {
+      await updateJobLastRun('fetch_foreign_stock');
+      fetchForeignStock();
+    }
   });
 
   // Schedule monitored items update every 1 minutes
-  cron.schedule('*/1 * * * *', () => {
-    logInfo('Running scheduled monitored items update...');
-    updateMonitoredItems();
+  cron.schedule('*/1 * * * *', async () => {
+    if (await isJobEnabled('update_monitored_items')) {
+      logInfo('Running scheduled monitored items update...');
+      await updateJobLastRun('update_monitored_items');
+      updateMonitoredItems();
+    }
   });
 
   // Schedule market history aggregation (default: every 30 minutes)
   const historyAggregationCron = process.env.HISTORY_AGGREGATION_CRON || '*/30 * * * *';
-  cron.schedule(historyAggregationCron, () => {
-    logInfo('Running scheduled market history aggregation...');
-    aggregateMarketHistory();
+  cron.schedule(historyAggregationCron, async () => {
+    if (await isJobEnabled('aggregate_market_history')) {
+      logInfo('Running scheduled market history aggregation...');
+      await updateJobLastRun('aggregate_market_history');
+      aggregateMarketHistory();
+    }
   });
 
   // Schedule stock price fetch every 1 minute (for transaction tracking)
-  cron.schedule('* * * * *', () => {
-    logInfo('Running scheduled stock price fetch...');
-    fetchStockPrices();
+  cron.schedule('* * * * *', async () => {
+    if (await isJobEnabled('fetch_stock_prices')) {
+      logInfo('Running scheduled stock price fetch...');
+      await updateJobLastRun('fetch_stock_prices');
+      fetchStockPrices();
+    }
   });
 
   // Fetch stock prices immediately on startup
@@ -1664,10 +1730,13 @@ export function startScheduler(): void {
 
   // Schedule market price monitoring every 30 seconds
   // This monitors watchlist items for price alerts
-  cron.schedule('*/30 * * * * *', () => {
-    monitorMarketPrices().catch((error) => {
-      logError('Error in market price monitoring', error instanceof Error ? error : new Error(String(error)));
-    });
+  cron.schedule('*/30 * * * * *', async () => {
+    if (await isJobEnabled('monitor_market_prices')) {
+      await updateJobLastRun('monitor_market_prices');
+      monitorMarketPrices().catch((error) => {
+        logError('Error in market price monitoring', error instanceof Error ? error : new Error(String(error)));
+      });
+    }
   });
 
   // Run market price monitoring immediately on startup

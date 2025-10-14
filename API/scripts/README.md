@@ -1,11 +1,30 @@
-# Stock Lot Initialization Script
+# Migration Scripts
 
-This directory contains migration scripts for the stock tracking system.
+This directory contains migration and initialization scripts for various system features.
 
-## initializeStockLots.ts
+## Available Scripts
 
-### Purpose
-Creates `StockHoldingLot` records for all stocks you currently own in your Torn portfolio. This is a **one-time migration** script that should be run before the FIFO tracking system starts operating.
+### initializeJobs.ts
+
+**Purpose:** Creates job records in MongoDB for job control via Discord commands.
+
+**Description:** Initializes the Jobs collection with all background jobs (fetch_torn_items, monitor_market_prices, etc.). This is required before using the `/listjobs`, `/enablejob`, and `/disablejob` Discord commands.
+
+**How to Run:**
+```bash
+cd API
+npm run init-jobs
+```
+
+**When to Run:** Once after pulling the job control feature. Safe to run multiple times (idempotent).
+
+**Documentation:** See [JOB_CONTROL_QUICK_START.md](../JOB_CONTROL_QUICK_START.md) for complete guide.
+
+---
+
+### initializeStockLots.ts
+
+**Purpose:** Creates `StockHoldingLot` records for all stocks you currently own in your Torn portfolio. This is a **one-time migration** script that should be run before the FIFO tracking system starts operating.
 
 ### What It Does
 1. Fetches your current stock holdings from Torn API
