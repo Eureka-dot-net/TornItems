@@ -15,6 +15,7 @@
     "kill": "taskkill /IM node.exe /F",
     "init-travel-times": "ts-node scripts/initializeTravelTimes.ts",
     "seed-gyms": "ts-node scripts/seedGyms.ts",
+    "init-jobs": "ts-node scripts/initializeJobs.ts",
     "register-commands-prod": "node dist/src/register-commands.js",
     "register-commands": "ts-node src/register-commands.ts"
   }, 
