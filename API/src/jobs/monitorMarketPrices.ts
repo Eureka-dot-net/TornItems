@@ -100,26 +100,56 @@ export async function monitorMarketPrices(): Promise<void> {
         const randomWatch = watches[Math.floor(Math.random() * watches.length)];
         const apiKey = decrypt(randomWatch.apiKey);
         
-        // Fetch market data for this item using rate limiter
-        const response = await retryWithBackoff(() =>
-          limiter.schedule(() =>
-            axios.get(`https://api.torn.com/v2/market/${itemId}/itemmarket?limit=20&key=${apiKey}`)
-          )
-        ) as { data: { itemmarket: any } };
+        let lowestPrice: number;
+        let availableQuantity: number;
+        let isPointsMarket = false;
         
-        const itemmarket = response.data?.itemmarket;
-        if (!itemmarket || !itemmarket.listings || itemmarket.listings.length === 0) {
-          continue;
+        // Check if this is the points market (itemId 0)
+        if (itemId === 0) {
+          isPointsMarket = true;
+          // Fetch points market data using different endpoint
+          const response = await retryWithBackoff(() =>
+            limiter.schedule(() =>
+              axios.get(`https://api.torn.com/v2/market?selections=pointsmarket&limit=20&key=${apiKey}`)
+            )
+          ) as { data: { pointsmarket: any } };
+          
+          const pointsmarket = response.data?.pointsmarket;
+          if (!pointsmarket || Object.keys(pointsmarket).length === 0) {
+            continue;
+          }
+          
+          // Find the lowest cost per point from the listings
+          // pointsmarket format: { "listingId": { cost: 30350, quantity: 30, total_cost: 910500 }, ... }
+          const listings = Object.values(pointsmarket) as Array<{ cost: number; quantity: number; total_cost: number }>;
+          const lowestListing = listings.reduce((min, listing) => 
+            listing.cost < min.cost ? listing : min
+          , listings[0]);
+          
+          lowestPrice = lowestListing.cost;
+          availableQuantity = lowestListing.quantity;
+        } else {
+          // Fetch regular item market data
+          const response = await retryWithBackoff(() =>
+            limiter.schedule(() =>
+              axios.get(`https://api.torn.com/v2/market/${itemId}/itemmarket?limit=20&key=${apiKey}`)
+            )
+          ) as { data: { itemmarket: any } };
+          
+          const itemmarket = response.data?.itemmarket;
+          if (!itemmarket || !itemmarket.listings || itemmarket.listings.length === 0) {
+            continue;
+          }
+          
+          // Find the lowest priced listing
+          const listings = itemmarket.listings;
+          const lowestListing = listings.reduce((min: any, listing: any) => 
+            listing.price < min.price ? listing : min
+          , listings[0]);
+          
+          lowestPrice = lowestListing.price;
+          availableQuantity = lowestListing.amount || 1;
         }
-        
-        // Find the lowest priced listing
-        const listings = itemmarket.listings;
-        const lowestListing = listings.reduce((min: any, listing: any) => 
-          listing.price < min.price ? listing : min
-        , listings[0]);
-        
-        const lowestPrice = lowestListing.price;
-        const availableQuantity = lowestListing.amount || 1;
         
         // Check each watch for this item
         for (const watch of watches) {
@@ -139,8 +169,9 @@ export async function monitorMarketPrices(): Promise<void> {
               const userApiKey = decrypt(watch.apiKey);
               const quantityOptions: Array<{ qty: number; recommendation: any }> = [];
               
-              // Calculate smart quantity intervals (max 5 options)
-              const quantities = calculateQuantityIntervals(availableQuantity);
+              // For points market, only show full quantity option
+              // For regular items, calculate smart quantity intervals (max 5 options)
+              const quantities = isPointsMarket ? [availableQuantity] : calculateQuantityIntervals(availableQuantity);
               
               for (const qty of quantities) {
                 const totalCost = lowestPrice * qty;
@@ -151,11 +182,16 @@ export async function monitorMarketPrices(): Promise<void> {
                 }
               }
               
+              // Generate appropriate URL based on item type
+              const itemUrl = isPointsMarket 
+                ? 'https://www.torn.com/pmarket.php'
+                : `https://www.torn.com/page.php?sid=ItemMarket#/market/view=search&itemID=${encodeURIComponent(itemId)}`;
+              
               const messageParts = [
                 '🚨 Cheap item found!',
                 `💊 ${availableQuantity}x ${watch.name} at $${lowestPrice.toLocaleString()} each (below $${watch.alert_below.toLocaleString()})`,
                 userMention,
-                `https://www.torn.com/page.php?sid=ItemMarket#/market/view=search&itemID=${encodeURIComponent(itemId)}`
+                itemUrl
               ];
               
               // Add stock sell recommendations for each quantity
