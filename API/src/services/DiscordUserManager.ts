@@ -3,6 +3,7 @@ import { DiscordUser } from '../models/DiscordUser';
 import { BattleStats } from '../models/BattleStats';
 import { decrypt } from '../utils/encryption';
 import { logInfo, logError } from '../utils/logger';
+import { logApiCall } from '../utils/apiCallLogger';
 import { computeStatGain, computeStatGainWithCurrentEnergy, StatGainResult, StatGainResultWithCurrentEnergy } from '../utils/statGainCalculator';
 import { 
   TornBarsResponse, 
@@ -267,6 +268,14 @@ export class DiscordUserManager {
         axios.get<TornGymResponse>(`https://api.torn.com/v2/user?selections=gym&key=${apiKey}`),
       ]);
 
+      // Log all API calls
+      await Promise.all([
+        logApiCall('user/bars', 'DiscordUserManager'),
+        logApiCall('user/battlestats', 'DiscordUserManager'),
+        logApiCall('user/perks', 'DiscordUserManager'),
+        logApiCall('user/gym', 'DiscordUserManager'),
+      ]);
+
       const { bars } = barsResponse.data;
       const { battlestats } = battleStatsResponse.data;
       const perks = perksResponse.data;
@@ -276,6 +285,7 @@ export class DiscordUserManager {
       const gymsResponse = await axios.get<TornGymsResponse>(
         `https://api.torn.com/v2/torn?selections=gyms&key=${apiKey}`
       );
+      await logApiCall('torn/gyms', 'DiscordUserManager');
       const gymDetails = gymsResponse.data.gyms[active_gym.toString()];
 
       if (!gymDetails) {

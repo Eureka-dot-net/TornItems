@@ -2,6 +2,7 @@ import axios from 'axios';
 import Bottleneck from 'bottleneck';
 import { MarketWatchlistItem } from '../models/MarketWatchlistItem';
 import { logInfo, logError } from '../utils/logger';
+import { logApiCall } from '../utils/apiCallLogger';
 import { sendDiscordChannelAlert } from '../utils/discord';
 import { calculateBestStockToSell } from '../utils/stockSellHelper';
 import { decrypt } from '../utils/encryption';
@@ -114,6 +115,9 @@ export async function monitorMarketPrices(): Promise<void> {
             )
           ) as { data: { pointsmarket: any } };
           
+          // Log the API call
+          await logApiCall('market/pointsmarket', 'monitorMarketPrices');
+          
           const pointsmarket = response.data?.pointsmarket;
           if (!pointsmarket || Object.keys(pointsmarket).length === 0) {
             continue;
@@ -135,6 +139,9 @@ export async function monitorMarketPrices(): Promise<void> {
               axios.get(`https://api.torn.com/v2/market/${itemId}/itemmarket?limit=20&key=${apiKey}`)
             )
           ) as { data: { itemmarket: any } };
+          
+          // Log the API call
+          await logApiCall('market/itemmarket', 'monitorMarketPrices');
           
           const itemmarket = response.data?.itemmarket;
           if (!itemmarket || !itemmarket.listings || itemmarket.listings.length === 0) {

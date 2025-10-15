@@ -135,7 +135,7 @@ Returns detailed statistics including:
 
 ## Where API Calls Are Logged
 
-All Torn API calls are now tracked:
+All Torn API calls are now tracked (17 logging points):
 
 1. **tornApi.ts**
    - `user/battlestats` (source: tornApi)
@@ -156,6 +156,17 @@ All Torn API calls are now tracked:
 
 5. **discord/commands/setkey.ts**
    - `user/basic` (source: discord-command)
+
+6. **services/DiscordUserManager.ts**
+   - `user/bars` (source: DiscordUserManager)
+   - `user/battlestats` (source: DiscordUserManager)
+   - `user/perks` (source: DiscordUserManager)
+   - `user/gym` (source: DiscordUserManager)
+   - `torn/gyms` (source: DiscordUserManager)
+
+7. **jobs/monitorMarketPrices.ts**
+   - `market/pointsmarket` (source: monitorMarketPrices)
+   - `market/itemmarket` (source: monitorMarketPrices)
 
 ## Monitoring Rate Limits
 
