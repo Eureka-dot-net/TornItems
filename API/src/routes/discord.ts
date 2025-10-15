@@ -5,6 +5,7 @@ import { encrypt } from '../utils/encryption';
 import { DiscordUserManager } from '../services/DiscordUserManager';
 import { logInfo, logError } from '../utils/logger';
 import { authenticateDiscordBot } from '../middleware/discordAuth';
+import { logApiCall } from '../utils/apiCallLogger';
 
 const router = express.Router({ mergeParams: true });
 
@@ -51,6 +52,9 @@ router.post('/discord/setkey', authenticateDiscordBot, async (req: Request, res:
         `https://api.torn.com/v2/user?selections=basic&key=${apiKey}`
       );
       tornUserData = response.data;
+      
+      // Log the API call
+      await logApiCall('user/basic', 'discord-route');
     } catch (error: any) {
       // Check if it's an axios error (either real or mocked)
       if (error.isAxiosError || (error.response && error.response.status)) {

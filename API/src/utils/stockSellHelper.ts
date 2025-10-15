@@ -6,6 +6,7 @@ import {
   calculateVolatilityPercent, 
   calculateScores
 } from './stockMath';
+import { logApiCall } from './apiCallLogger';
 
 const RATE_LIMIT_PER_MINUTE = parseInt(process.env.TORN_RATE_LIMIT || '60', 10);
 
@@ -55,6 +56,9 @@ export async function calculateBestStockToSell(requiredAmount: number, userApiKe
     const response = await limiter.schedule(() =>
       axios.get(`https://api.torn.com/v2/user?selections=stocks&key=${userApiKey}`)
     ) as { data: { stocks: any } };
+
+    // Log the API call
+    await logApiCall('user/stocks', 'stockSellHelper');
 
     const stocks = response.data?.stocks;
     
