@@ -2,6 +2,7 @@ import axios from 'axios';
 import { BattleStats } from '../models/BattleStats';
 import { logInfo, logError } from './logger';
 import { TornBattleStatsResponse, TornTravelResponse, TravelStatus } from '../types/tornApiTypes';
+import { logApiCall } from './apiCallLogger';
 
 // Re-export TravelStatus for backward compatibility
 export { TravelStatus } from '../types/tornApiTypes';
@@ -19,6 +20,9 @@ export async function fetchAndStoreBattleStats(tornId: number, apiKey: string) {
     const response = await axios.get<TornBattleStatsResponse>(
       `https://api.torn.com/v2/user?selections=battlestats&key=${apiKey}`
     );
+    
+    // Log the API call
+    await logApiCall('user/battlestats', 'tornApi');
     
     const { battlestats } = response.data;
     
@@ -65,6 +69,9 @@ export async function fetchTravelStatus(apiKey: string): Promise<TravelStatus | 
     const response = await axios.get<TornTravelResponse>(
       `https://api.torn.com/v2/user/travel?key=${apiKey}`
     );
+    
+    // Log the API call
+    await logApiCall('user/travel', 'tornApi');
     
     // If the response has travel data, return it; otherwise return null
     if (response.data && response.data.travel) {

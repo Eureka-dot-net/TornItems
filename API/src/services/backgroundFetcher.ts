@@ -14,6 +14,7 @@ import { UserStockHoldingSnapshot } from '../models/UserStockHoldingSnapshot';
 import { StockTransactionHistory } from '../models/StockTransactionHistory';
 import { StockHoldingLot } from '../models/StockHoldingLot';
 import { logInfo, logError } from '../utils/logger';
+import { logApiCall } from '../utils/apiCallLogger';
 import { 
   calculate7DayPercentChange, 
   calculateVolatilityPercent, 
@@ -139,6 +140,9 @@ export async function fetchTornItems(): Promise<void> {
       )
     ) as { data: { items: any[] } };
 
+    // Log the API call
+    await logApiCall('torn/items', 'backgroundFetcher');
+
     const items = response.data.items;
     if (!items?.length) {
       logError('No items found in Torn v2 response', new Error('Empty items array'));
@@ -189,6 +193,9 @@ export async function fetchCityShopStock(): Promise<void> {
         axios.get(`https://api.torn.com/v2/torn?selections=cityshops&key=${API_KEY}`)
       )
     ) as { data: { cityshops: any } };
+
+    // Log the API call
+    await logApiCall('torn/cityshops', 'backgroundFetcher');
 
     const cityshops = response.data.cityshops;
     if (!cityshops) {
@@ -1107,6 +1114,9 @@ export async function fetchMarketSnapshots(): Promise<void> {
         ) as { data: { itemmarket: any } };
 
         totalApiCalls++;
+        
+        // Log the API call
+        await logApiCall('market/itemmarket', 'backgroundFetcher');
 
         const itemmarket = response.data.itemmarket;
         if (!itemmarket) {
@@ -1322,6 +1332,9 @@ async function fetchUserStockHoldings(): Promise<void> {
         axios.get(`https://api.torn.com/v2/user?selections=stocks&key=${API_KEY}`)
       )
     ) as { data: { stocks: any } };
+
+    // Log the API call
+    await logApiCall('user/stocks', 'backgroundFetcher');
 
     const stocks = response.data?.stocks;
     const bulkOps: any[] = [];
@@ -1584,6 +1597,9 @@ export async function fetchStockPrices(): Promise<void> {
         axios.get(`https://api.torn.com/v2/torn?selections=stocks&key=${API_KEY}`)
       )
     ) as { data: { stocks: any } };
+
+    // Log the API call
+    await logApiCall('torn/stocks', 'backgroundFetcher');
 
     const stocks = response.data.stocks;
     if (!stocks) {

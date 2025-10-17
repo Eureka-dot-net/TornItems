@@ -4,6 +4,7 @@ import { DiscordUser } from '../../models/DiscordUser';
 import { encrypt } from '../../utils/encryption';
 import { DiscordUserManager } from '../../services/DiscordUserManager';
 import { logInfo, logError } from '../../utils/logger';
+import { logApiCall } from '../../utils/apiCallLogger';
 
 export const data = new SlashCommandBuilder()
   .setName('setkey')
@@ -47,6 +48,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         `https://api.torn.com/v2/user?selections=basic&key=${apiKey}`
       );
       tornUserData = response.data;
+      
+      // Log the API call
+      await logApiCall('user/basic', 'discord-command');
     } catch (error: any) {
       logError('Invalid Torn API key provided', error instanceof Error ? error : new Error(String(error)), {
         status: error.response?.status,
