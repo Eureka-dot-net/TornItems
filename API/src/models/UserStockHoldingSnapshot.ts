@@ -19,7 +19,8 @@ const UserStockHoldingSnapshotSchema = new Schema<IUserStockHoldingSnapshot>({
 // Compound index on { stock_id, timestamp } to optimize queries
 UserStockHoldingSnapshotSchema.index({ stock_id: 1, timestamp: -1 });
 
-// TTL index to automatically delete records older than 14 days (14 days * 24 hours * 60 minutes * 60 seconds)
-UserStockHoldingSnapshotSchema.index({ timestamp: 1 }, { expireAfterSeconds: 14 * 24 * 60 * 60 });
+// TTL index to automatically delete records older than 24 hours (24 hours * 60 minutes * 60 seconds)
+// Only the most recent snapshot per stock is used, so we don't need long history
+UserStockHoldingSnapshotSchema.index({ timestamp: 1 }, { expireAfterSeconds: 24 * 60 * 60 });
 
 export const UserStockHoldingSnapshot = mongoose.model<IUserStockHoldingSnapshot>('UserStockHoldingSnapshot', UserStockHoldingSnapshotSchema);

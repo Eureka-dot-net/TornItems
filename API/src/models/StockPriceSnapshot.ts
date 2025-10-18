@@ -21,7 +21,8 @@ const StockPriceSnapshotSchema = new Schema<IStockPriceSnapshot>({
 // Compound index on { ticker, timestamp } to avoid duplicates and optimize queries
 StockPriceSnapshotSchema.index({ ticker: 1, timestamp: -1 });
 
-// TTL index to automatically delete records older than 14 days (14 days * 24 hours * 60 minutes * 60 seconds)
-StockPriceSnapshotSchema.index({ timestamp: 1 }, { expireAfterSeconds: 14 * 24 * 60 * 60 });
+// TTL index to automatically delete records older than 24 hours (24 hours * 60 minutes * 60 seconds)
+// Historical data is now maintained in StockMarketHistory, so we only need recent snapshots
+StockPriceSnapshotSchema.index({ timestamp: 1 }, { expireAfterSeconds: 24 * 60 * 60 });
 
 export const StockPriceSnapshot = mongoose.model<IStockPriceSnapshot>('StockPriceSnapshot', StockPriceSnapshotSchema);

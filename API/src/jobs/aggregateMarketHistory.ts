@@ -710,8 +710,8 @@ async function cleanupOldData(currentDate: string): Promise<void> {
     const fortyEightHoursAgo = new Date(currentDate);
     fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
     
-    const eightDaysAgo = new Date(currentDate);
-    eightDaysAgo.setDate(eightDaysAgo.getDate() - 8);
+    const twentyFourHoursAgo = new Date(currentDate);
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
     // Delete old MarketSnapshots (older than 48 hours)
     // We only need 48 hours for profit calculations (24h current + 24h previous for trends)
@@ -735,19 +735,28 @@ async function cleanupOldData(currentDate: string): Promise<void> {
 
     logInfo(`Deleted ${foreignStockResult.deletedCount} old ForeignStockHistory records (>48 hours)`);
     
-    // Delete old StockPriceSnapshot records (older than 8 days)
-    // We need 7 days for the 7-day change calculation in stock recommendations
+    // Delete old StockPriceSnapshot records (older than 24 hours)
+    // Historical data is now maintained in StockMarketHistory, so we only need recent snapshots
     const stockPriceResult = await StockPriceSnapshot.deleteMany({
-      timestamp: { $lt: eightDaysAgo }
+      timestamp: { $lt: twentyFourHoursAgo }
     });
 
-    logInfo(`Deleted ${stockPriceResult.deletedCount} old StockPriceSnapshot records (>8 days)`);
+    logInfo(`Deleted ${stockPriceResult.deletedCount} old StockPriceSnapshot records (>24 hours)`);
+    
+    // Delete old UserStockHoldingSnapshot records (older than 24 hours)
+    // Only the most recent snapshot per stock is used, so we don't need long history
+    const userStockHoldingResult = await UserStockHoldingSnapshot.deleteMany({
+      timestamp: { $lt: twentyFourHoursAgo }
+    });
+
+    logInfo(`Deleted ${userStockHoldingResult.deletedCount} old UserStockHoldingSnapshot records (>24 hours)`);
 
     logInfo('=== Cleanup of old transactional data completed ===', {
       marketSnapshotsDeleted: marketSnapshotResult.deletedCount,
       cityStockHistoryDeleted: cityStockResult.deletedCount,
       foreignStockHistoryDeleted: foreignStockResult.deletedCount,
-      stockPriceSnapshotsDeleted: stockPriceResult.deletedCount
+      stockPriceSnapshotsDeleted: stockPriceResult.deletedCount,
+      userStockHoldingSnapshotsDeleted: userStockHoldingResult.deletedCount
     });
 
   } catch (error) {
