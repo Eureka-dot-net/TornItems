@@ -215,6 +215,15 @@ describe('MongoDB Models', () => {
       
       expect(hasCompoundIndex || indexes['ticker_1_timestamp_-1']).toBeTruthy();
     });
+
+    it('should have TTL index set to 24 hours', async () => {
+      const indexInfo = await StockPriceSnapshot.collection.listIndexes().toArray();
+      
+      // Check if TTL index exists with correct expireAfterSeconds value
+      const ttlIndex = indexInfo.find(idx => idx.name === 'timestamp_1');
+      expect(ttlIndex).toBeDefined();
+      expect(ttlIndex?.expireAfterSeconds).toBe(24 * 60 * 60); // 24 hours in seconds
+    });
   });
 
   describe('UserStockHoldingSnapshot Model', () => {
@@ -261,6 +270,15 @@ describe('MongoDB Models', () => {
       );
       
       expect(hasCompoundIndex || indexes['stock_id_1_timestamp_-1']).toBeTruthy();
+    });
+
+    it('should have TTL index set to 24 hours', async () => {
+      const indexInfo = await UserStockHoldingSnapshot.collection.listIndexes().toArray();
+      
+      // Check if TTL index exists with correct expireAfterSeconds value
+      const ttlIndex = indexInfo.find(idx => idx.name === 'timestamp_1');
+      expect(ttlIndex).toBeDefined();
+      expect(ttlIndex?.expireAfterSeconds).toBe(24 * 60 * 60); // 24 hours in seconds
     });
   });
 
