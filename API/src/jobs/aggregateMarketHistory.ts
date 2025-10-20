@@ -84,7 +84,7 @@ export async function aggregateMarketHistory(): Promise<void> {
 
     if (snapshots.length === 0) {
       logInfo('No snapshots found in the last 24 hours, skipping aggregation');
-      return;
+    //  return;
     }
 
     // Create lookup maps
