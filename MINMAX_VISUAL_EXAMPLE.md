@@ -174,46 +174,38 @@ Response (partial):
 }
 ```
 
-### Step 2: Fetch Midnight Stats
+### Step 2: Fetch Midnight Stats (Baseline)
 ```
 Request:
 GET https://api.torn.com/v2/user/3926388/personalstats?
-    cat=all&
-    timestamp=1760745600&
+    stat=cityitemsbought,xantaken,refills&
     key=YOUR_API_KEY
 
-Response (partial):
+Response:
 {
-  "personalstats": {
-    "trading": {
-      "items": {
-        "bought": {
-          "market": 636,
-          "shops": 2706
-        }
-      }
-    },
-    "drugs": {
-      "xanax": 37
-    },
-    "other": {
-      "refills": {
-        "energy": 11
-      }
-    }
-  }
+  "personalstats": [
+    { "name": "cityitemsbought", "value": 2706, "timestamp": 1760832000 },
+    { "name": "xantaken", "value": 37, "timestamp": 1760832000 },
+    { "name": "refills", "value": 11, "timestamp": 1760832000 }
+  ]
 }
 ```
 
 ### Step 3: Calculate Daily Progress
 ```javascript
-// City Items Bought (shops)
+// Extract current values from nested structure
+currentShops = 2856  // from personalstats.trading.items.bought.shops
+currentXanax = 40    // from personalstats.drugs.xanax
+currentRefills = 12  // from personalstats.other.refills.energy
+
+// Extract midnight values from flat array
+midnightShops = 2706    // from personalstats array where name='cityitemsbought'
+midnightXanax = 37      // from personalstats array where name='xantaken'
+midnightRefills = 11    // from personalstats array where name='refills'
+
+// Calculate daily progress
 itemsBoughtToday = 2856 - 2706 = 150 ✅ (>= 100)
-
-// Xanax Taken
 xanTakenToday = 40 - 37 = 3 ✅ (>= 3)
-
-// Energy Refills
 refillsToday = 12 - 11 = 1 ✅ (>= 1)
 ```
 

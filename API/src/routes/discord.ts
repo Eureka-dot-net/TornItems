@@ -35,7 +35,8 @@ interface MinMaxRequestBody {
   userId?: number;
 }
 
-interface PersonalStatsResponse {
+// Response format for current stats (cat=all)
+interface PersonalStatsCurrentResponse {
   personalstats: {
     trading: {
       items: {
@@ -54,6 +55,15 @@ interface PersonalStatsResponse {
       };
     };
   };
+}
+
+// Response format for midnight stats (stat=cityitemsbought,xantaken,refills)
+interface PersonalStatsMidnightResponse {
+  personalstats: Array<{
+    name: string;
+    value: number;
+    timestamp: number;
+  }>;
 }
 
 // POST /discord/setkey
@@ -217,10 +227,10 @@ router.post('/discord/minmax', authenticateDiscordBot, async (req: Request, res:
     const midnightUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
     const midnightTimestamp = Math.floor(midnightUTC.getTime() / 1000);
 
-    // Fetch current stats
-    let currentStats: PersonalStatsResponse;
+    // Fetch current stats (using cat=all for current data)
+    let currentStats: PersonalStatsCurrentResponse;
     try {
-      const response = await axios.get<PersonalStatsResponse>(
+      const response = await axios.get<PersonalStatsCurrentResponse>(
         `https://api.torn.com/v2/user/${targetUserId}/personalstats?cat=all&key=${apiKey}`
       );
       currentStats = response.data;
@@ -240,11 +250,11 @@ router.post('/discord/minmax', authenticateDiscordBot, async (req: Request, res:
       throw error;
     }
 
-    // Fetch stats at midnight UTC
-    let midnightStats: PersonalStatsResponse;
+    // Fetch stats at midnight UTC (using stat=cityitemsbought,xantaken,refills for historical data)
+    let midnightStats: PersonalStatsMidnightResponse;
     try {
-      const response = await axios.get<PersonalStatsResponse>(
-        `https://api.torn.com/v2/user/${targetUserId}/personalstats?cat=all&timestamp=${midnightTimestamp}&key=${apiKey}`
+      const response = await axios.get<PersonalStatsMidnightResponse>(
+        `https://api.torn.com/v2/user/${targetUserId}/personalstats?stat=cityitemsbought,xantaken,refills&key=${apiKey}`
       );
       midnightStats = response.data;
       await logApiCall('user/personalstats', 'discord-minmax');
@@ -264,17 +274,25 @@ router.post('/discord/minmax', authenticateDiscordBot, async (req: Request, res:
       throw error;
     }
 
-    // Extract values from the nested structure
+    // Helper function to find stat value from midnight stats array
+    const getStatValue = (stats: PersonalStatsMidnightResponse, statName: string): number => {
+      const stat = stats.personalstats.find(s => s.name === statName);
+      return stat ? stat.value : 0;
+    };
+
+    // Extract current values from nested structure
     const currentItemsBought = currentStats.personalstats.trading.items.bought.shops;
-    const midnightItemsBought = midnightStats.personalstats.trading.items.bought.shops;
-    const itemsBoughtToday = currentItemsBought - midnightItemsBought;
-
     const currentXanTaken = currentStats.personalstats.drugs.xanax;
-    const midnightXanTaken = midnightStats.personalstats.drugs.xanax;
-    const xanTakenToday = currentXanTaken - midnightXanTaken;
-
     const currentRefills = currentStats.personalstats.other.refills.energy;
-    const midnightRefills = midnightStats.personalstats.other.refills.energy;
+
+    // Extract midnight values from flat array
+    const midnightItemsBought = getStatValue(midnightStats, 'cityitemsbought');
+    const midnightXanTaken = getStatValue(midnightStats, 'xantaken');
+    const midnightRefills = getStatValue(midnightStats, 'refills');
+
+    // Calculate daily progress
+    const itemsBoughtToday = currentItemsBought - midnightItemsBought;
+    const xanTakenToday = currentXanTaken - midnightXanTaken;
     const refillsToday = currentRefills - midnightRefills;
 
     res.status(200).json({

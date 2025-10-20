@@ -76,27 +76,39 @@ The `/minmax` command allows Discord users to check their daily task completion 
 ## API Integration
 
 ### Torn API v2 Endpoints Used
-1. **Current Stats:**
+1. **Current Stats (uses cat=all for real-time data):**
    ```
    GET https://api.torn.com/v2/user/{userId}/personalstats?cat=all&key={apiKey}
    ```
+   Returns a nested object with comprehensive stats including:
+   - `personalstats.trading.items.bought.shops` for city items bought
+   - `personalstats.drugs.xanax` for xanax taken
+   - `personalstats.other.refills.energy` for energy refills
 
-2. **Historical Stats (Midnight UTC):**
+2. **Historical Stats (uses stat parameter for midnight baseline):**
    ```
-   GET https://api.torn.com/v2/user/{userId}/personalstats?cat=all&timestamp={midnightTimestamp}&key={apiKey}
+   GET https://api.torn.com/v2/user/{userId}/personalstats?stat=cityitemsbought,xantaken,refills&key={apiKey}
+   ```
+   Returns a flat array:
+   ```json
+   {
+     "personalstats": [
+       { "name": "cityitemsbought", "value": 2856, "timestamp": 1760832000 },
+       { "name": "xantaken", "value": 37, "timestamp": 1760832000 },
+       { "name": "refills", "value": 11, "timestamp": 1760832000 }
+     ]
+   }
    ```
 
 ### Data Extraction
-The API returns a comprehensive nested object. We extract the following values:
-- **City Items Bought**: `personalstats.trading.items.bought.shops`
-- **Xanax Taken**: `personalstats.drugs.xanax`
-- **Energy Refills**: `personalstats.other.refills.energy`
+- **Current Stats**: Extract from nested object structure
+- **Midnight Stats**: Extract from flat array by finding stat by name
 
 ### Calculation Logic
 Daily progress is calculated by subtracting midnight values from current values:
-- `itemsBoughtToday = currentStats.shops - midnightStats.shops`
-- `xanTakenToday = currentStats.xanax - midnightStats.xanax`
-- `refillsToday = currentStats.energy - midnightStats.energy`
+- `itemsBoughtToday = currentStats.trading.items.bought.shops - midnightStats['cityitemsbought']`
+- `xanTakenToday = currentStats.drugs.xanax - midnightStats['xantaken']`
+- `refillsToday = currentStats.other.refills.energy - midnightStats['refills']`
 
 ## Error Handling
 

@@ -106,6 +106,7 @@ describe('Discord API Endpoints', () => {
         });
 
       // Now mock the personal stats responses
+      // Current stats use cat=all (nested structure)
       const mockCurrentStats = {
         personalstats: {
           trading: {
@@ -127,25 +128,13 @@ describe('Discord API Endpoints', () => {
         }
       };
 
+      // Midnight stats use stat=cityitemsbought,xantaken,refills (flat array)
       const mockMidnightStats = {
-        personalstats: {
-          trading: {
-            items: {
-              bought: {
-                market: 636,
-                shops: 100
-              }
-            }
-          },
-          drugs: {
-            xanax: 37
-          },
-          other: {
-            refills: {
-              energy: 11
-            }
-          }
-        }
+        personalstats: [
+          { name: 'cityitemsbought', value: 100, timestamp: 1760745600 },
+          { name: 'xantaken', value: 37, timestamp: 1760745600 },
+          { name: 'refills', value: 11, timestamp: 1760745600 }
+        ]
       };
 
       mockedAxios.get
@@ -222,6 +211,7 @@ describe('Discord API Endpoints', () => {
         });
 
       // Now mock the personal stats responses for a different user
+      // Current stats use cat=all (nested structure)
       const mockCurrentStats = {
         personalstats: {
           trading: {
@@ -243,25 +233,13 @@ describe('Discord API Endpoints', () => {
         }
       };
 
+      // Midnight stats use stat=cityitemsbought,xantaken,refills (flat array)
       const mockMidnightStats = {
-        personalstats: {
-          trading: {
-            items: {
-              bought: {
-                market: 0,
-                shops: 0
-              }
-            }
-          },
-          drugs: {
-            xanax: 37
-          },
-          other: {
-            refills: {
-              energy: 11
-            }
-          }
-        }
+        personalstats: [
+          { name: 'cityitemsbought', value: 0, timestamp: 1760745600 },
+          { name: 'xantaken', value: 37, timestamp: 1760745600 },
+          { name: 'refills', value: 11, timestamp: 1760745600 }
+        ]
       };
 
       mockedAxios.get
