@@ -410,6 +410,7 @@ async function aggregateStockMarketHistory(currentDate: string): Promise<void> {
 
   } catch (error) {
     logError('Stock Market History aggregation failed', error instanceof Error ? error : new Error(String(error)));
+    throw error;
   }
 }
 
@@ -474,6 +475,7 @@ async function aggregateShopItemStockHistory(currentDate: string): Promise<void>
 
   } catch (error) {
     logError('Shop Item Stock History aggregation failed', error instanceof Error ? error : new Error(String(error)));
+    throw error;
   }
 }
 
@@ -514,7 +516,7 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
     }
 
     // Use aggregation to get all data efficiently from snapshots
-    let stockData = await StockPriceSnapshot.aggregate([
+    const stockData = await StockPriceSnapshot.aggregate([
       {
         $match: {
           timestamp: { $gte: sevenDaysAgo }
@@ -538,80 +540,9 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
       }
     ]);
 
-    // If no recent snapshots exist, fall back to StockMarketHistory
     if (!stockData || stockData.length === 0) {
-      logInfo('No recent StockPriceSnapshot data found, falling back to StockMarketHistory');
-      
-      const sevenDaysAgoDate = new Date(sevenDaysAgo);
-      sevenDaysAgoDate.setHours(0, 0, 0, 0);
-      const sevenDaysAgoDateStr = sevenDaysAgoDate.toISOString().split('T')[0];
-      
-      // Get data from StockMarketHistory for the last 7 days
-      const historicalData = await StockMarketHistory.aggregate([
-        {
-          $match: {
-            date: { $gte: sevenDaysAgoDateStr }
-          }
-        },
-        {
-          $sort: { ticker: 1, date: -1 }
-        },
-        {
-          $group: {
-            _id: '$ticker',
-            name: { $first: '$name' },
-            currentPrice: { $first: '$closing_price' },
-            oldestPrice: { $last: '$closing_price' },
-            prices: { $push: '$closing_price' },
-            oldestDate: { $last: '$date' },
-            newestDate: { $first: '$date' }
-          }
-        }
-      ]);
-      
-      if (!historicalData || historicalData.length === 0) {
-        logInfo('No stock data found in StockMarketHistory either, skipping recommendations aggregation');
-        return;
-      }
-      
-      // Get latest stock price snapshot to get stock_id and benefit_requirement
-      const latestSnapshots = await StockPriceSnapshot.aggregate([
-        {
-          $sort: { ticker: 1, timestamp: -1 }
-        },
-        {
-          $group: {
-            _id: '$ticker',
-            stock_id: { $first: '$stock_id' },
-            benefit_requirement: { $first: '$benefit_requirement' }
-          }
-        }
-      ]);
-      
-      const snapshotMap = new Map(latestSnapshots.map(s => [s._id, s]));
-      
-      // Transform historical data to match snapshot format
-      stockData = historicalData.map((hist: any) => {
-        const snapshot = snapshotMap.get(hist._id);
-        return {
-          _id: hist._id,
-          stock_id: snapshot?.stock_id || 0,
-          name: hist.name,
-          currentPrice: hist.currentPrice,
-          oldestPrice: hist.oldestPrice,
-          prices: hist.prices,
-          benefit_requirement: snapshot?.benefit_requirement || null,
-          oldestTimestamp: new Date(hist.oldestDate),
-          newestTimestamp: new Date(hist.newestDate)
-        };
-      }).filter((s: any) => s.stock_id !== 0); // Filter out stocks we couldn't find stock_id for
-      
-      if (stockData.length === 0) {
-        logInfo('No valid stock data after transformation, skipping recommendations aggregation');
-        return;
-      }
-      
-      logInfo(`Using ${stockData.length} stocks from StockMarketHistory for recommendations`);
+      logInfo('No stock data found for recommendations aggregation');
+      return;
     }
 
     logInfo(`Processing ${stockData.length} stocks for recommendations...`);
@@ -765,6 +696,7 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
 
   } catch (error) {
     logError('Stock Recommendations aggregation failed', error instanceof Error ? error : new Error(String(error)));
+    throw error;
   }
 }
 
@@ -777,12 +709,10 @@ async function cleanupOldData(currentDate: string): Promise<void> {
   logInfo('=== Starting cleanup of old transactional data ===');
   
   try {
-    // Calculate cutoff dates
-    const fortyEightHoursAgo = new Date(currentDate);
-    fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
-    
-    const twentyFourHoursAgo = new Date(currentDate);
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+    // Calculate cutoff dates using proper date arithmetic
+    const now = new Date();
+    const fortyEightHoursAgo = new Date(now.getTime() - (48 * 60 * 60 * 1000));
+    const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
 
     // Delete old MarketSnapshots (older than 48 hours)
     // We only need 48 hours for profit calculations (24h current + 24h previous for trends)
@@ -832,5 +762,6 @@ async function cleanupOldData(currentDate: string): Promise<void> {
 
   } catch (error) {
     logError('Cleanup of old data failed', error instanceof Error ? error : new Error(String(error)));
+    throw error;
   }
 }
