@@ -27,6 +27,318 @@ describe('Discord API Endpoints', () => {
     await BattleStats.deleteMany({});
   });
 
+  describe('POST /api/discord/minmax', () => {
+    describe('Authentication', () => {
+      it('should return 401 when Authorization header is missing', async () => {
+        const response = await request(app)
+          .post('/api/discord/minmax')
+          .send({
+            discordId: '123456789'
+          });
+
+        expect(response.status).toBe(401);
+        expect(response.body.error).toContain('Authorization');
+      });
+
+      it('should return 401 when Bearer token is invalid', async () => {
+        const response = await request(app)
+          .post('/api/discord/minmax')
+          .set('Authorization', 'Bearer invalid-token')
+          .send({
+            discordId: '123456789'
+          });
+
+        expect(response.status).toBe(401);
+        expect(response.body.error).toContain('Invalid token');
+      });
+    });
+
+    it('should return error when user has no API key', async () => {
+      const response = await request(app)
+        .post('/api/discord/minmax')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
+        .send({
+          discordId: '123456789'
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('set your API key');
+    });
+
+    it('should return daily task completion status for user', async () => {
+      // First, create a user with API key
+      const mockUserData = {
+        profile: {
+          id: 3926388,
+          name: 'TestUser',
+          level: 15,
+          gender: 'Female',
+          status: {
+            description: 'Idle',
+            details: null,
+            state: 'Okay',
+            color: 'green',
+            until: null
+          }
+        }
+      };
+
+      const mockBattleStats = {
+        battlestats: {
+          strength: { value: 3308, modifier: -32 },
+          defense: { value: 3245, modifier: -35 },
+          speed: { value: 3203, modifier: -34 },
+          dexterity: { value: 3204, modifier: -35 },
+          total: 12960
+        }
+      };
+
+      mockedAxios.get
+        .mockResolvedValueOnce({ data: mockUserData })
+        .mockResolvedValueOnce({ data: mockBattleStats });
+
+      await request(app)
+        .post('/api/discord/setkey')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
+        .send({
+          discordId: '123456789',
+          apiKey: 'test-api-key'
+        });
+
+      // Now mock the personal stats responses
+      // Current stats use cat=all (nested structure)
+      const mockCurrentStats = {
+        personalstats: {
+          trading: {
+            items: {
+              bought: {
+                market: 636,
+                shops: 250
+              }
+            }
+          },
+          drugs: {
+            xanax: 40
+          },
+          other: {
+            refills: {
+              energy: 12
+            }
+          }
+        }
+      };
+
+      // Midnight stats use stat=cityitemsbought,xantaken,refills (flat array)
+      const mockMidnightStats = {
+        personalstats: [
+          { name: 'cityitemsbought', value: 100, timestamp: 1760745600 },
+          { name: 'xantaken', value: 37, timestamp: 1760745600 },
+          { name: 'refills', value: 11, timestamp: 1760745600 }
+        ]
+      };
+
+      mockedAxios.get
+        .mockResolvedValueOnce({ data: mockCurrentStats })
+        .mockResolvedValueOnce({ data: mockMidnightStats });
+
+      const response = await request(app)
+        .post('/api/discord/minmax')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
+        .send({
+          discordId: '123456789'
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toMatchObject({
+        userId: 3926388,
+        cityItemsBought: {
+          current: 150,
+          target: 100,
+          completed: true
+        },
+        xanaxTaken: {
+          current: 3,
+          target: 3,
+          completed: true
+        },
+        energyRefill: {
+          current: 1,
+          target: 1,
+          completed: true
+        }
+      });
+    });
+
+    it('should check other user status when userId is provided', async () => {
+      // First, create a user with API key
+      const mockUserData = {
+        profile: {
+          id: 3926388,
+          name: 'TestUser',
+          level: 15,
+          gender: 'Female',
+          status: {
+            description: 'Idle',
+            details: null,
+            state: 'Okay',
+            color: 'green',
+            until: null
+          }
+        }
+      };
+
+      const mockBattleStats = {
+        battlestats: {
+          strength: { value: 3308, modifier: -32 },
+          defense: { value: 3245, modifier: -35 },
+          speed: { value: 3203, modifier: -34 },
+          dexterity: { value: 3204, modifier: -35 },
+          total: 12960
+        }
+      };
+
+      mockedAxios.get
+        .mockResolvedValueOnce({ data: mockUserData })
+        .mockResolvedValueOnce({ data: mockBattleStats });
+
+      await request(app)
+        .post('/api/discord/setkey')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
+        .send({
+          discordId: '123456789',
+          apiKey: 'test-api-key'
+        });
+
+      // Now mock the personal stats responses for a different user
+      // Current stats use cat=all (nested structure)
+      const mockCurrentStats = {
+        personalstats: {
+          trading: {
+            items: {
+              bought: {
+                market: 0,
+                shops: 50
+              }
+            }
+          },
+          drugs: {
+            xanax: 38
+          },
+          other: {
+            refills: {
+              energy: 11
+            }
+          }
+        }
+      };
+
+      // Midnight stats use stat=cityitemsbought,xantaken,refills (flat array)
+      const mockMidnightStats = {
+        personalstats: [
+          { name: 'cityitemsbought', value: 0, timestamp: 1760745600 },
+          { name: 'xantaken', value: 37, timestamp: 1760745600 },
+          { name: 'refills', value: 11, timestamp: 1760745600 }
+        ]
+      };
+
+      mockedAxios.get
+        .mockResolvedValueOnce({ data: mockCurrentStats })
+        .mockResolvedValueOnce({ data: mockMidnightStats });
+
+      const response = await request(app)
+        .post('/api/discord/minmax')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
+        .send({
+          discordId: '123456789',
+          userId: 1234567
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toMatchObject({
+        userId: 1234567,
+        cityItemsBought: {
+          current: 50,
+          target: 100,
+          completed: false
+        },
+        xanaxTaken: {
+          current: 1,
+          target: 3,
+          completed: false
+        },
+        energyRefill: {
+          current: 0,
+          target: 1,
+          completed: false
+        }
+      });
+    });
+
+    it('should return error when API call fails', async () => {
+      // First, create a user with API key
+      const mockUserData = {
+        profile: {
+          id: 3926388,
+          name: 'TestUser',
+          level: 15,
+          gender: 'Female',
+          status: {
+            description: 'Idle',
+            details: null,
+            state: 'Okay',
+            color: 'green',
+            until: null
+          }
+        }
+      };
+
+      const mockBattleStats = {
+        battlestats: {
+          strength: { value: 3308, modifier: -32 },
+          defense: { value: 3245, modifier: -35 },
+          speed: { value: 3203, modifier: -34 },
+          dexterity: { value: 3204, modifier: -35 },
+          total: 12960
+        }
+      };
+
+      mockedAxios.get
+        .mockResolvedValueOnce({ data: mockUserData })
+        .mockResolvedValueOnce({ data: mockBattleStats });
+
+      await request(app)
+        .post('/api/discord/setkey')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
+        .send({
+          discordId: '123456789',
+          apiKey: 'test-api-key'
+        });
+
+      // Mock API failure
+      const axiosError = Object.assign(new Error('Request failed'), {
+        isAxiosError: true,
+        response: {
+          status: 403,
+          data: { error: 'Invalid API key' }
+        }
+      });
+
+      mockedAxios.get.mockRejectedValueOnce(axiosError);
+
+      const response = await request(app)
+        .post('/api/discord/minmax')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
+        .send({
+          discordId: '123456789'
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('Failed to fetch');
+    });
+  });
+
   describe('POST /api/discord/setkey', () => {
     describe('Authentication', () => {
       it('should return 401 when Authorization header is missing', async () => {
