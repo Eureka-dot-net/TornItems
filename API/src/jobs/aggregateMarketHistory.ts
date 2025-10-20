@@ -561,7 +561,7 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
             _id: '$ticker',
             name: { $first: '$name' },
             currentPrice: { $first: '$closing_price' },
-            oldestPrice: { $last: '$opening_price' },
+            oldestPrice: { $last: '$closing_price' },
             prices: { $push: '$closing_price' },
             oldestDate: { $last: '$date' },
             newestDate: { $first: '$date' }
