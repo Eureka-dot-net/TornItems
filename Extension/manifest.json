@@ -3,7 +3,13 @@
   "name": "Torn Helper Tools",
   "version": "1.4",
   "description": "Auto-opens Torn stocks and shop items for convenience, plus checks for $1 items on Weaver's page.",
-  "permissions": ["tabs", "notifications", "activeTab", "scripting", "storage"],
+  "permissions": [
+    "tabs",
+    "notifications",
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
   "host_permissions": [
     "https://www.torn.com/*",
     "https://weav3r.dev/dollar-items"
@@ -62,6 +68,14 @@
         "content.js"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://www.torn.com/page.php?sid=racing*"
+      ],
+      "js": [
+        "content-racing-skill.js"
+      ]
     }
   ],
   "background": {

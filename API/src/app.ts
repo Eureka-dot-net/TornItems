@@ -4,6 +4,7 @@ import express from 'express';
 import profit from './routes/profit';
 import stocks from './routes/stocks';
 import discord from './routes/discord';
+import { aggregateMarketHistory } from './jobs/aggregateMarketHistory';
 
 export const app = express();
 
@@ -29,6 +30,8 @@ app.use((req, res, next) => {
 app.get('/api/', (req, res) => {
     res.json({ message: 'API is running' });
 });
+
+aggregateMarketHistory();
 
 app.use('/api', profit);
 app.use('/api', stocks);

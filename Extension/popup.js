@@ -3,9 +3,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const checkButton = document.getElementById('checkItems');
   const stopButton = document.getElementById('stopCheck');
   const continueButton = document.getElementById('continueCheck');
+  const testButton = document.getElementById('testBazaar');
   const statusElement = document.getElementById('status');
 
-  console.log('[Popup] DOM elements:', { checkButton, stopButton, continueButton, statusElement });
+  console.log('[Popup] DOM elements:', { checkButton, stopButton, continueButton, testButton, statusElement });
 
   // Load initial state
   chrome.storage.local.get(['checking', 'currentIndex', 'status'], (data) => {
@@ -28,6 +29,72 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // TEST BUTTON
+  testButton.addEventListener('click', () => {
+    console.log('[Popup] Test button clicked');
+    statusElement.textContent = 'Testing...';
+    
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs[0]) {
+        console.log('[Popup] No active tab');
+        statusElement.textContent = 'No active tab';
+        return;
+      }
+      
+      chrome.scripting.executeScript({
+        target: { tabId: tabs[0].id },
+        function: () => {
+          console.log('=== BAZAAR TEST START ===');
+          console.log('URL:', window.location.href);
+          
+          const loginForm = document.querySelector('form#loginForm');
+          const captcha = document.querySelector('.captcha');
+          console.log('Login form:', !!loginForm);
+          console.log('Captcha:', !!captcha);
+          
+          const items = document.querySelectorAll('div.itemDescription___j4EfE');
+          console.log('Items (div.itemDescription___j4EfE):', items.length);
+          
+          let unlockedCount = 0;
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const name = item.querySelector('p.name___B0RW3')?.textContent || 'Unknown';
+            const priceElement = item.querySelector('div.price___dJqda');
+            const price = priceElement ? priceElement.textContent.trim().replace(/[^$0-9]/g, '') : null;
+            const buyBtn = item.querySelector('button[aria-label^="Buy:"]') || item.querySelector('div.controlPanel___LDuvi button.controlPanelButton___MSBz0:not([aria-label^="Show info:"])');
+            const lockCanvas = item.querySelector('canvas.isBlockedForBuying___dv7DR');
+            const lockContainer = item.querySelector('div.lockContainer___iCLqC');
+            
+            console.log(`Item ${i}: ${name}`);
+            console.log(`  Price: ${price}`);
+            console.log(`  Buy button: ${buyBtn ? (buyBtn.getAttribute('aria-label') || 'Found') : 'None'}`);
+            console.log(`  Locked: ${!!lockCanvas || !!lockContainer}`);
+            
+            if (price === '$1' && buyBtn && !lockCanvas && !lockContainer) {
+              console.log(`  **UNLOCKED $1 ITEM DETECTED**: ${name}`);
+              console.log(`  HTML: ${item.outerHTML.substring(0, 200)}...`);
+              item.style.border = '2px solid red';
+              unlockedCount++;
+            }
+          }
+          
+          console.log(`=== BAZAAR TEST END === Found ${unlockedCount} unlocked $1 item(s)`);
+          return { items: items.length, unlockedCount };
+        }
+      }, (results) => {
+        if (chrome.runtime.lastError) {
+          console.error('[Popup] Test error:', chrome.runtime.lastError);
+          statusElement.textContent = 'Test error - check console';
+          return;
+        }
+        const result = results[0]?.result;
+        console.log('[Popup] Test result:', result);
+        statusElement.textContent = `Tested: ${result?.items || 0} items, ${result?.unlockedCount || 0} unlocked $1`;
+      });
+    });
+  });
+
+  // Check Items button
   checkButton.addEventListener('click', () => {
     console.log('[Popup] Check Items clicked at', new Date().toISOString());
     checkButton.disabled = true;
@@ -91,6 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Stop button
   stopButton.addEventListener('click', () => {
     console.log('[Popup] Stop button clicked at', new Date().toISOString());
     checkButton.disabled = false;
@@ -103,6 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Continue button
   continueButton.addEventListener('click', () => {
     console.log('[Popup] Continue button clicked at', new Date().toISOString());
     checkButton.disabled = true;
@@ -166,20 +235,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
-});
 
-// Listen for status updates
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('[Popup] Received message:', request);
-  if (request.action === 'updateStatus') {
-    console.log('[Popup] Updating status:', request.status);
-    document.getElementById('status').textContent = request.status;
-    chrome.storage.local.set({ status: request.status });
-    if (request.status.includes('Found') || request.status.includes('No unlocked') || request.status.includes('Not logged in') || request.status.includes('CAPTCHA') || request.status.includes('Content script not loaded') || request.status.includes('Error')) {
-      document.getElementById('checkItems').disabled = false;
-      document.getElementById('stopCheck').disabled = true;
-      document.getElementById('continueCheck').disabled = true;
-      chrome.storage.local.set({ checking: false, currentIndex: 0 });
+  // Listen for status updates
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('[Popup] Received message:', request);
+    if (request.action === 'updateStatus') {
+      console.log('[Popup] Updating status:', request.status);
+      document.getElementById('status').textContent = request.status;
+      chrome.storage.local.set({ status: request.status });
+      if (request.status.includes('Found') || request.status.includes('No unlocked') || request.status.includes('Not logged in') || request.status.includes('CAPTCHA') || request.status.includes('Content script not loaded') || request.status.includes('Error')) {
+        document.getElementById('checkItems').disabled = false;
+        document.getElementById('stopCheck').disabled = true;
+        document.getElementById('continueCheck').disabled = true;
+        chrome.storage.local.set({ checking: false, currentIndex: 0 });
+      }
     }
-  }
+  });
 });

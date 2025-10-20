@@ -84,7 +84,7 @@ export async function aggregateMarketHistory(): Promise<void> {
 
     if (snapshots.length === 0) {
       logInfo('No snapshots found in the last 24 hours, skipping aggregation');
-      return;
+    //  return;
     }
 
     // Create lookup maps
@@ -410,6 +410,7 @@ async function aggregateStockMarketHistory(currentDate: string): Promise<void> {
 
   } catch (error) {
     logError('Stock Market History aggregation failed', error instanceof Error ? error : new Error(String(error)));
+    throw error;
   }
 }
 
@@ -474,6 +475,7 @@ async function aggregateShopItemStockHistory(currentDate: string): Promise<void>
 
   } catch (error) {
     logError('Shop Item Stock History aggregation failed', error instanceof Error ? error : new Error(String(error)));
+    throw error;
   }
 }
 
@@ -694,6 +696,7 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
 
   } catch (error) {
     logError('Stock Recommendations aggregation failed', error instanceof Error ? error : new Error(String(error)));
+    throw error;
   }
 }
 
@@ -706,12 +709,10 @@ async function cleanupOldData(currentDate: string): Promise<void> {
   logInfo('=== Starting cleanup of old transactional data ===');
   
   try {
-    // Calculate cutoff dates
-    const fortyEightHoursAgo = new Date(currentDate);
-    fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
-    
-    const twentyFourHoursAgo = new Date(currentDate);
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+    // Calculate cutoff dates using proper date arithmetic
+    const now = new Date();
+    const fortyEightHoursAgo = new Date(now.getTime() - (48 * 60 * 60 * 1000));
+    const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
 
     // Delete old MarketSnapshots (older than 48 hours)
     // We only need 48 hours for profit calculations (24h current + 24h previous for trends)
@@ -761,5 +762,6 @@ async function cleanupOldData(currentDate: string): Promise<void> {
 
   } catch (error) {
     logError('Cleanup of old data failed', error instanceof Error ? error : new Error(String(error)));
+    throw error;
   }
 }

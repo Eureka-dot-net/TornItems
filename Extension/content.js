@@ -54,7 +54,7 @@ async function checkDollarItems(startIndex) {
   }
 
   const links = Array.from(rows).map(row => row.href).filter(Boolean);
-  console.log('[Content] Found bazaar links:', links);
+  console.log('[Content] Found bazaar links:', links.length, links);
 
   if (links.length === 0) {
     console.log('[Content] No bazaar links found');
@@ -74,6 +74,21 @@ async function checkDollarItems(startIndex) {
         return;
       }
 
+      const userId = links[index].match(/userId=(\d+)/)?.[1];
+      if (!userId) {
+        console.log('[Content] No userId in link:', links[index]);
+        continue;
+      }
+
+      // Check cache
+      const { bazaarCache } = await new Promise(resolve => chrome.storage.local.get(['bazaarCache'], resolve));
+      const cache = bazaarCache || {};
+      const now = Date.now() / 1000;
+      if (cache[userId] && now - cache[userId] < 3600) {
+        console.log(`[Content] Skipping cached bazaar userId=${userId}, checked ${Math.round(now - cache[userId])}s ago`);
+        continue;
+      }
+
       chrome.runtime.sendMessage({ action: 'updateStatus', status: `Checking bazaar ${index + 1}/${links.length}...` });
       console.log('[Content] Checking bazaar:', links[index]);
 
@@ -85,10 +100,8 @@ async function checkDollarItems(startIndex) {
       });
 
       if (!tab) {
-        console.log('[Content] Failed to open tab');
-        chrome.runtime.sendMessage({ action: 'updateStatus', status: 'Failed to open bazaar tab' });
-        chrome.storage.local.set({ checking: false, currentIndex: 0 });
-        return;
+        console.log('[Content] Failed to open tab for:', links[index]);
+        continue;
       }
 
       const loadResult = await new Promise(resolve => {
@@ -100,10 +113,8 @@ async function checkDollarItems(startIndex) {
 
       if (!loadResult.loaded) {
         console.log('[Content] Tab failed to load:', loadResult.error);
-        chrome.runtime.sendMessage({ action: 'updateStatus', status: `Tab load failed: ${loadResult.error}` });
         await new Promise(resolve => chrome.runtime.sendMessage({ action: 'closeTab', tabId: tab.id }, resolve));
-        chrome.storage.local.set({ checking: false, currentIndex: 0 });
-        return;
+        continue;
       }
 
       const result = await new Promise(resolve => {
@@ -118,19 +129,22 @@ async function checkDollarItems(startIndex) {
         alert(result.error);
         chrome.runtime.sendMessage({ action: 'updateStatus', status: result.error });
         await new Promise(resolve => chrome.runtime.sendMessage({ action: 'closeTab', tabId: tab.id }, resolve));
-        chrome.storage.local.set({ checking: false, currentIndex: 0 });
-        return;
+        continue;
       }
+
+      // Update cache
+      cache[userId] = now;
+      Object.keys(cache).forEach(id => {
+        if (now - cache[id] > 24 * 3600) delete cache[id];
+      });
+      await new Promise(resolve => chrome.storage.local.set({ bazaarCache: cache }, resolve));
+      console.log(`[Content] Cached userId=${userId} at ${now}`);
 
       if (result.found) {
         console.log('[Content] Found unlocked item at index:', index, 'keeping tab open:', result.tabId);
         chrome.storage.local.set({ openBazaarTabId: result.tabId, currentIndex: index + 1 });
-        await notify('Unlocked Item Found!', `Unlocked item found in bazaar: ${links[index]}`);
-        chrome.runtime.sendMessage({ action: 'updateStatus', status: 'Found unlocked item!' }, () => {
-          if (chrome.runtime.lastError) {
-            console.error('[Content] Status update message failed:', chrome.runtime.lastError);
-          }
-        });
+        await notify('Unlocked Item Found!', `Found ${result.unlockedCount} unlocked $1 item(s) in bazaar: ${links[index]}`);
+        chrome.runtime.sendMessage({ action: 'updateStatus', status: `Found ${result.unlockedCount} unlocked $1 item(s)` });
         chrome.storage.local.set({ checking: false });
         return;
       }
@@ -146,8 +160,7 @@ async function checkDollarItems(startIndex) {
     } catch (e) {
       console.error('[Content] Error in loop at index', index, ':', e);
       chrome.runtime.sendMessage({ action: 'updateStatus', status: `Error checking bazaar: ${e.message}` });
-      chrome.storage.local.set({ checking: false, currentIndex: 0 });
-      return;
+      continue;
     }
   }
 
