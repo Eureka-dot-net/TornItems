@@ -107,19 +107,45 @@ describe('Discord API Endpoints', () => {
 
       // Now mock the personal stats responses
       const mockCurrentStats = {
-        personalstats: [
-          { name: 'cityitemsbought', value: 250, timestamp: 1760832000 },
-          { name: 'xantaken', value: 40, timestamp: 1760832000 },
-          { name: 'refills', value: 12, timestamp: 1760832000 }
-        ]
+        personalstats: {
+          trading: {
+            items: {
+              bought: {
+                market: 636,
+                shops: 250
+              }
+            }
+          },
+          drugs: {
+            xanax: 40
+          },
+          other: {
+            refills: {
+              energy: 12
+            }
+          }
+        }
       };
 
       const mockMidnightStats = {
-        personalstats: [
-          { name: 'cityitemsbought', value: 100, timestamp: 1760745600 },
-          { name: 'xantaken', value: 37, timestamp: 1760745600 },
-          { name: 'refills', value: 11, timestamp: 1760745600 }
-        ]
+        personalstats: {
+          trading: {
+            items: {
+              bought: {
+                market: 636,
+                shops: 100
+              }
+            }
+          },
+          drugs: {
+            xanax: 37
+          },
+          other: {
+            refills: {
+              energy: 11
+            }
+          }
+        }
       };
 
       mockedAxios.get
@@ -197,19 +223,45 @@ describe('Discord API Endpoints', () => {
 
       // Now mock the personal stats responses for a different user
       const mockCurrentStats = {
-        personalstats: [
-          { name: 'cityitemsbought', value: 50, timestamp: 1760832000 },
-          { name: 'xantaken', value: 38, timestamp: 1760832000 },
-          { name: 'refills', value: 11, timestamp: 1760832000 }
-        ]
+        personalstats: {
+          trading: {
+            items: {
+              bought: {
+                market: 0,
+                shops: 50
+              }
+            }
+          },
+          drugs: {
+            xanax: 38
+          },
+          other: {
+            refills: {
+              energy: 11
+            }
+          }
+        }
       };
 
       const mockMidnightStats = {
-        personalstats: [
-          { name: 'cityitemsbought', value: 0, timestamp: 1760745600 },
-          { name: 'xantaken', value: 37, timestamp: 1760745600 },
-          { name: 'refills', value: 11, timestamp: 1760745600 }
-        ]
+        personalstats: {
+          trading: {
+            items: {
+              bought: {
+                market: 0,
+                shops: 0
+              }
+            }
+          },
+          drugs: {
+            xanax: 37
+          },
+          other: {
+            refills: {
+              energy: 11
+            }
+          }
+        }
       };
 
       mockedAxios.get

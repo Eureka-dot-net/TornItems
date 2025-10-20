@@ -148,16 +148,29 @@ Use `/setkey` to store your Torn API key.
 ```
 Request:
 GET https://api.torn.com/v2/user/3926388/personalstats?
-    stat=cityitemsbought,xantaken,refills&
+    cat=all&
     key=YOUR_API_KEY
 
-Response:
+Response (partial):
 {
-  "personalstats": [
-    { "name": "cityitemsbought", "value": 2856, "timestamp": 1760832000 },
-    { "name": "xantaken", "value": 40, "timestamp": 1760832000 },
-    { "name": "refills", "value": 12, "timestamp": 1760832000 }
-  ]
+  "personalstats": {
+    "trading": {
+      "items": {
+        "bought": {
+          "market": 636,
+          "shops": 2856
+        }
+      }
+    },
+    "drugs": {
+      "xanax": 40
+    },
+    "other": {
+      "refills": {
+        "energy": 12
+      }
+    }
+  }
 }
 ```
 
@@ -165,23 +178,36 @@ Response:
 ```
 Request:
 GET https://api.torn.com/v2/user/3926388/personalstats?
-    stat=cityitemsbought,xantaken,refills&
+    cat=all&
     timestamp=1760745600&
     key=YOUR_API_KEY
 
-Response:
+Response (partial):
 {
-  "personalstats": [
-    { "name": "cityitemsbought", "value": 2706, "timestamp": 1760745600 },
-    { "name": "xantaken", "value": 37, "timestamp": 1760745600 },
-    { "name": "refills", "value": 11, "timestamp": 1760745600 }
-  ]
+  "personalstats": {
+    "trading": {
+      "items": {
+        "bought": {
+          "market": 636,
+          "shops": 2706
+        }
+      }
+    },
+    "drugs": {
+      "xanax": 37
+    },
+    "other": {
+      "refills": {
+        "energy": 11
+      }
+    }
+  }
 }
 ```
 
 ### Step 3: Calculate Daily Progress
 ```javascript
-// City Items Bought
+// City Items Bought (shops)
 itemsBoughtToday = 2856 - 2706 = 150 ✅ (>= 100)
 
 // Xanax Taken

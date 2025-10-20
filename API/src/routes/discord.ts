@@ -35,14 +35,25 @@ interface MinMaxRequestBody {
   userId?: number;
 }
 
-interface PersonalStat {
-  name: string;
-  value: number;
-  timestamp: number;
-}
-
 interface PersonalStatsResponse {
-  personalstats: PersonalStat[];
+  personalstats: {
+    trading: {
+      items: {
+        bought: {
+          market: number;
+          shops: number;
+        };
+      };
+    };
+    drugs: {
+      xanax: number;
+    };
+    other: {
+      refills: {
+        energy: number;
+      };
+    };
+  };
 }
 
 // POST /discord/setkey
@@ -210,7 +221,7 @@ router.post('/discord/minmax', authenticateDiscordBot, async (req: Request, res:
     let currentStats: PersonalStatsResponse;
     try {
       const response = await axios.get<PersonalStatsResponse>(
-        `https://api.torn.com/v2/user/${targetUserId}/personalstats?stat=cityitemsbought,xantaken,refills&key=${apiKey}`
+        `https://api.torn.com/v2/user/${targetUserId}/personalstats?cat=all&key=${apiKey}`
       );
       currentStats = response.data;
       await logApiCall('user/personalstats', 'discord-minmax');
@@ -233,7 +244,7 @@ router.post('/discord/minmax', authenticateDiscordBot, async (req: Request, res:
     let midnightStats: PersonalStatsResponse;
     try {
       const response = await axios.get<PersonalStatsResponse>(
-        `https://api.torn.com/v2/user/${targetUserId}/personalstats?stat=cityitemsbought,xantaken,refills&timestamp=${midnightTimestamp}&key=${apiKey}`
+        `https://api.torn.com/v2/user/${targetUserId}/personalstats?cat=all&timestamp=${midnightTimestamp}&key=${apiKey}`
       );
       midnightStats = response.data;
       await logApiCall('user/personalstats', 'discord-minmax');
@@ -253,23 +264,17 @@ router.post('/discord/minmax', authenticateDiscordBot, async (req: Request, res:
       throw error;
     }
 
-    // Helper function to find stat value
-    const getStatValue = (stats: PersonalStatsResponse, statName: string): number => {
-      const stat = stats.personalstats.find(s => s.name === statName);
-      return stat ? stat.value : 0;
-    };
-
-    // Calculate daily progress
-    const currentItemsBought = getStatValue(currentStats, 'cityitemsbought');
-    const midnightItemsBought = getStatValue(midnightStats, 'cityitemsbought');
+    // Extract values from the nested structure
+    const currentItemsBought = currentStats.personalstats.trading.items.bought.shops;
+    const midnightItemsBought = midnightStats.personalstats.trading.items.bought.shops;
     const itemsBoughtToday = currentItemsBought - midnightItemsBought;
 
-    const currentXanTaken = getStatValue(currentStats, 'xantaken');
-    const midnightXanTaken = getStatValue(midnightStats, 'xantaken');
+    const currentXanTaken = currentStats.personalstats.drugs.xanax;
+    const midnightXanTaken = midnightStats.personalstats.drugs.xanax;
     const xanTakenToday = currentXanTaken - midnightXanTaken;
 
-    const currentRefills = getStatValue(currentStats, 'refills');
-    const midnightRefills = getStatValue(midnightStats, 'refills');
+    const currentRefills = currentStats.personalstats.other.refills.energy;
+    const midnightRefills = midnightStats.personalstats.other.refills.energy;
     const refillsToday = currentRefills - midnightRefills;
 
     res.status(200).json({

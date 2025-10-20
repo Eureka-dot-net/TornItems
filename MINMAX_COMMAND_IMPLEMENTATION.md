@@ -78,19 +78,25 @@ The `/minmax` command allows Discord users to check their daily task completion 
 ### Torn API v2 Endpoints Used
 1. **Current Stats:**
    ```
-   GET https://api.torn.com/v2/user/{userId}/personalstats?stat=cityitemsbought,xantaken,refills&key={apiKey}
+   GET https://api.torn.com/v2/user/{userId}/personalstats?cat=all&key={apiKey}
    ```
 
 2. **Historical Stats (Midnight UTC):**
    ```
-   GET https://api.torn.com/v2/user/{userId}/personalstats?stat=cityitemsbought,xantaken,refills&timestamp={midnightTimestamp}&key={apiKey}
+   GET https://api.torn.com/v2/user/{userId}/personalstats?cat=all&timestamp={midnightTimestamp}&key={apiKey}
    ```
+
+### Data Extraction
+The API returns a comprehensive nested object. We extract the following values:
+- **City Items Bought**: `personalstats.trading.items.bought.shops`
+- **Xanax Taken**: `personalstats.drugs.xanax`
+- **Energy Refills**: `personalstats.other.refills.energy`
 
 ### Calculation Logic
 Daily progress is calculated by subtracting midnight values from current values:
-- `itemsBoughtToday = currentItemsBought - midnightItemsBought`
-- `xanTakenToday = currentXanTaken - midnightXanTaken`
-- `refillsToday = currentRefills - midnightRefills`
+- `itemsBoughtToday = currentStats.shops - midnightStats.shops`
+- `xanTakenToday = currentStats.xanax - midnightStats.xanax`
+- `refillsToday = currentStats.energy - midnightStats.energy`
 
 ## Error Handling
 
