@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import axios from 'axios';
 import { DiscordUser } from '../models/DiscordUser';
-import { encrypt } from '../utils/encryption';
+import { encrypt, decrypt } from '../utils/encryption';
 import { DiscordUserManager } from '../services/DiscordUserManager';
 import { logInfo, logError } from '../utils/logger';
 import { authenticateDiscordBot } from '../middleware/discordAuth';
@@ -28,6 +28,21 @@ interface TornUserBasicResponse {
 interface SetKeyRequestBody {
   discordId: string;
   apiKey: string;
+}
+
+interface MinMaxRequestBody {
+  discordId: string;
+  userId?: number;
+}
+
+interface PersonalStat {
+  name: string;
+  value: number;
+  timestamp: number;
+}
+
+interface PersonalStatsResponse {
+  personalstats: PersonalStat[];
 }
 
 // POST /discord/setkey
@@ -152,6 +167,140 @@ router.post('/discord/setkey', authenticateDiscordBot, async (req: Request, res:
     }
 
     res.status(500).json({ error: 'Failed to set API key' });
+  }
+});
+
+// POST /discord/minmax
+router.post('/discord/minmax', authenticateDiscordBot, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { discordId, userId } = req.body as MinMaxRequestBody;
+
+    // Validate input
+    if (!discordId) {
+      res.status(400).json({ 
+        error: 'Missing required field: discordId' 
+      });
+      return;
+    }
+
+    logInfo('Fetching minmax stats', { discordId, userId });
+
+    // Get the user's API key from the database
+    const user = await DiscordUser.findOne({ discordId });
+    
+    if (!user || !user.apiKey) {
+      res.status(400).json({
+        error: 'You need to set your API key first. Use `/setkey` to store your Torn API key.'
+      });
+      return;
+    }
+
+    // Decrypt the API key
+    const apiKey = decrypt(user.apiKey);
+
+    // Determine which user's stats to fetch (default to the user's own tornId)
+    const targetUserId = userId || user.tornId;
+
+    // Get current UTC midnight timestamp
+    const now = new Date();
+    const midnightUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+    const midnightTimestamp = Math.floor(midnightUTC.getTime() / 1000);
+
+    // Fetch current stats
+    let currentStats: PersonalStatsResponse;
+    try {
+      const response = await axios.get<PersonalStatsResponse>(
+        `https://api.torn.com/v2/user/${targetUserId}/personalstats?stat=cityitemsbought,xantaken,refills&key=${apiKey}`
+      );
+      currentStats = response.data;
+      await logApiCall('user/personalstats', 'discord-minmax');
+    } catch (error: any) {
+      if (error.isAxiosError || (error.response && error.response.status)) {
+        logError('Failed to fetch current personal stats', error instanceof Error ? error : new Error(String(error)), {
+          status: error.response?.status,
+          discordId,
+          targetUserId
+        });
+        res.status(400).json({ 
+          error: 'Failed to fetch personal stats from Torn API. Please check your API key and user ID.' 
+        });
+        return;
+      }
+      throw error;
+    }
+
+    // Fetch stats at midnight UTC
+    let midnightStats: PersonalStatsResponse;
+    try {
+      const response = await axios.get<PersonalStatsResponse>(
+        `https://api.torn.com/v2/user/${targetUserId}/personalstats?stat=cityitemsbought,xantaken,refills&timestamp=${midnightTimestamp}&key=${apiKey}`
+      );
+      midnightStats = response.data;
+      await logApiCall('user/personalstats', 'discord-minmax');
+    } catch (error: any) {
+      if (error.isAxiosError || (error.response && error.response.status)) {
+        logError('Failed to fetch midnight personal stats', error instanceof Error ? error : new Error(String(error)), {
+          status: error.response?.status,
+          discordId,
+          targetUserId,
+          midnightTimestamp
+        });
+        res.status(400).json({ 
+          error: 'Failed to fetch historical personal stats from Torn API.' 
+        });
+        return;
+      }
+      throw error;
+    }
+
+    // Helper function to find stat value
+    const getStatValue = (stats: PersonalStatsResponse, statName: string): number => {
+      const stat = stats.personalstats.find(s => s.name === statName);
+      return stat ? stat.value : 0;
+    };
+
+    // Calculate daily progress
+    const currentItemsBought = getStatValue(currentStats, 'cityitemsbought');
+    const midnightItemsBought = getStatValue(midnightStats, 'cityitemsbought');
+    const itemsBoughtToday = currentItemsBought - midnightItemsBought;
+
+    const currentXanTaken = getStatValue(currentStats, 'xantaken');
+    const midnightXanTaken = getStatValue(midnightStats, 'xantaken');
+    const xanTakenToday = currentXanTaken - midnightXanTaken;
+
+    const currentRefills = getStatValue(currentStats, 'refills');
+    const midnightRefills = getStatValue(midnightStats, 'refills');
+    const refillsToday = currentRefills - midnightRefills;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        userId: targetUserId,
+        cityItemsBought: {
+          current: itemsBoughtToday,
+          target: 100,
+          completed: itemsBoughtToday >= 100
+        },
+        xanaxTaken: {
+          current: xanTakenToday,
+          target: 3,
+          completed: xanTakenToday >= 3
+        },
+        energyRefill: {
+          current: refillsToday,
+          target: 1,
+          completed: refillsToday >= 1
+        }
+      }
+    });
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      logError('Error fetching minmax stats', err);
+    } else {
+      logError('Unknown error fetching minmax stats', new Error(String(err)));
+    }
+
+    res.status(500).json({ error: 'Failed to fetch minmax stats' });
   }
 });
 
