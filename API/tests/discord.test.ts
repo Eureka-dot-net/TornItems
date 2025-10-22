@@ -2,6 +2,7 @@ import request from 'supertest';
 import { app } from '../src/app';
 import { DiscordUser } from '../src/models/DiscordUser';
 import { BattleStats } from '../src/models/BattleStats';
+import { UserActivityCache } from '../src/models/UserActivityCache';
 import { decrypt } from '../src/utils/encryption';
 import axios from 'axios';
 
@@ -18,6 +19,7 @@ describe('Discord API Endpoints', () => {
     // Clear the database before each test
     await DiscordUser.deleteMany({});
     await BattleStats.deleteMany({});
+    await UserActivityCache.deleteMany({});
     jest.clearAllMocks();
   });
 
@@ -25,6 +27,7 @@ describe('Discord API Endpoints', () => {
     // Clean up after all tests
     await DiscordUser.deleteMany({});
     await BattleStats.deleteMany({});
+    await UserActivityCache.deleteMany({});
   });
 
   describe('POST /api/discord/minmax', () => {
@@ -274,6 +277,272 @@ describe('Discord API Endpoints', () => {
           completed: false
         }
       });
+    });
+
+    it('should include activity data (education, investment, virus coding) for own user', async () => {
+      // First, create a user with API key
+      const mockUserData = {
+        profile: {
+          id: 3926388,
+          name: 'TestUser',
+          level: 15,
+          gender: 'Female',
+          status: {
+            description: 'Idle',
+            details: null,
+            state: 'Okay',
+            color: 'green',
+            until: null
+          }
+        }
+      };
+
+      const mockBattleStats = {
+        battlestats: {
+          strength: { value: 3308, modifier: -32 },
+          defense: { value: 3245, modifier: -35 },
+          speed: { value: 3203, modifier: -34 },
+          dexterity: { value: 3204, modifier: -35 },
+          total: 12960
+        }
+      };
+
+      mockedAxios.get
+        .mockResolvedValueOnce({ data: mockUserData })
+        .mockResolvedValueOnce({ data: mockBattleStats });
+
+      await request(app)
+        .post('/api/discord/setkey')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
+        .send({
+          discordId: '123456789',
+          apiKey: 'test-api-key'
+        });
+
+      // Mock personal stats responses
+      const mockCurrentStats = {
+        personalstats: {
+          trading: {
+            items: {
+              bought: {
+                market: 636,
+                shops: 250
+              }
+            }
+          },
+          drugs: {
+            xanax: 40
+          },
+          other: {
+            refills: {
+              energy: 12
+            }
+          }
+        }
+      };
+
+      const mockMidnightStats = {
+        personalstats: [
+          { name: 'cityitemsbought', value: 100, timestamp: 1760745600 },
+          { name: 'xantaken', value: 37, timestamp: 1760745600 },
+          { name: 'refills', value: 11, timestamp: 1760745600 }
+        ]
+      };
+
+      // Mock activity data responses
+      const mockEducationData = {
+        education: {
+          complete: [1, 2, 3],
+          current: {
+            id: 127,
+            until: 1761197904
+          }
+        }
+      };
+
+      const mockMoneyData = {
+        money: {
+          points: 1000,
+          wallet: 5000,
+          company: 0,
+          vault: 0,
+          cayman_bank: 0,
+          city_bank: {
+            amount: 100000,
+            until: 1761200000
+          },
+          faction: {
+            money: 0,
+            points: 0
+          },
+          daily_networth: 105000
+        }
+      };
+
+      const mockVirusData = {
+        virus: {
+          item: {
+            id: 500,
+            name: 'Computer Virus'
+          },
+          until: 1761197904
+        }
+      };
+
+      mockedAxios.get
+        .mockResolvedValueOnce({ data: mockCurrentStats })
+        .mockResolvedValueOnce({ data: mockMidnightStats })
+        .mockResolvedValueOnce({ data: mockEducationData })
+        .mockResolvedValueOnce({ data: mockMoneyData })
+        .mockResolvedValueOnce({ data: mockVirusData });
+
+      const response = await request(app)
+        .post('/api/discord/minmax')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
+        .send({
+          discordId: '123456789'
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toMatchObject({
+        userId: 3926388,
+        cityItemsBought: {
+          current: 150,
+          target: 100,
+          completed: true
+        },
+        xanaxTaken: {
+          current: 3,
+          target: 3,
+          completed: true
+        },
+        energyRefill: {
+          current: 1,
+          target: 1,
+          completed: true
+        },
+        education: {
+          active: true,
+          until: 1761197904
+        },
+        investment: {
+          active: true,
+          until: 1761200000
+        },
+        virusCoding: {
+          active: true,
+          until: 1761197904
+        }
+      });
+    });
+
+    it('should not include activity data when checking other user', async () => {
+      // First, create a user with API key
+      const mockUserData = {
+        profile: {
+          id: 3926388,
+          name: 'TestUser',
+          level: 15,
+          gender: 'Female',
+          status: {
+            description: 'Idle',
+            details: null,
+            state: 'Okay',
+            color: 'green',
+            until: null
+          }
+        }
+      };
+
+      const mockBattleStats = {
+        battlestats: {
+          strength: { value: 3308, modifier: -32 },
+          defense: { value: 3245, modifier: -35 },
+          speed: { value: 3203, modifier: -34 },
+          dexterity: { value: 3204, modifier: -35 },
+          total: 12960
+        }
+      };
+
+      mockedAxios.get
+        .mockResolvedValueOnce({ data: mockUserData })
+        .mockResolvedValueOnce({ data: mockBattleStats });
+
+      await request(app)
+        .post('/api/discord/setkey')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
+        .send({
+          discordId: '123456789',
+          apiKey: 'test-api-key'
+        });
+
+      // Mock personal stats responses for a different user
+      const mockCurrentStats = {
+        personalstats: {
+          trading: {
+            items: {
+              bought: {
+                market: 0,
+                shops: 50
+              }
+            }
+          },
+          drugs: {
+            xanax: 38
+          },
+          other: {
+            refills: {
+              energy: 11
+            }
+          }
+        }
+      };
+
+      const mockMidnightStats = {
+        personalstats: [
+          { name: 'cityitemsbought', value: 0, timestamp: 1760745600 },
+          { name: 'xantaken', value: 37, timestamp: 1760745600 },
+          { name: 'refills', value: 11, timestamp: 1760745600 }
+        ]
+      };
+
+      mockedAxios.get
+        .mockResolvedValueOnce({ data: mockCurrentStats })
+        .mockResolvedValueOnce({ data: mockMidnightStats });
+
+      const response = await request(app)
+        .post('/api/discord/minmax')
+        .set('Authorization', `Bearer ${TEST_BOT_SECRET}`)
+        .send({
+          discordId: '123456789',
+          userId: 1234567  // Different user ID
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toMatchObject({
+        userId: 1234567,
+        cityItemsBought: {
+          current: 50,
+          target: 100,
+          completed: false
+        },
+        xanaxTaken: {
+          current: 1,
+          target: 3,
+          completed: false
+        },
+        energyRefill: {
+          current: 0,
+          target: 1,
+          completed: false
+        }
+      });
+      // Should not have activity data when checking other users
+      expect(response.body.data.education).toBeUndefined();
+      expect(response.body.data.investment).toBeUndefined();
+      expect(response.body.data.virusCoding).toBeUndefined();
     });
 
     it('should return error when API call fails', async () => {

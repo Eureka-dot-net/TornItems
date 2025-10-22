@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 
 export const data = new SlashCommandBuilder()
-  .setName("setkey")
+  .setName("minmaxsetkey")
   .setDescription("Privately store your Torn API key for bot features.")
   .addStringOption(option =>
     option
@@ -36,7 +36,7 @@ export async function execute(interaction: any) {
       content: `✅ Your Torn API key was saved successfully.\nLinked to **${data.data.name}** (ID: ${data.data.tornId})`,
     });
   } catch (err) {
-    console.error("❌ Error in /setkey:", err);
+    console.error("❌ Error in /minmaxsetkey:", err);
     await interaction.editReply({
       content: "❌ Failed to save your key. Please make sure it’s valid and try again.",
     });
