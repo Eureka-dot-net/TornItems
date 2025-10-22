@@ -191,79 +191,130 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const shouldFetchActivityData = !userId || userId === user.tornId;
 
     if (shouldFetchActivityData) {
-      // Check if we have cached data that is still valid
+      // Check if we have cached data
       const cachedData = await UserActivityCache.findOne({ discordId });
       const currentTime = new Date();
+      const currentTimestamp = currentTime.getTime();
+      const oneHourAgo = currentTimestamp - 3600000; // 1 hour in milliseconds
       
-      let needsRefresh = true;
-      if (cachedData && cachedData.expiresAt > currentTime) {
-        needsRefresh = false;
-        activityData = {
-          education: cachedData.education ? cachedData.education : undefined,
-          investment: cachedData.investment ? cachedData.investment : undefined,
-          virusCoding: cachedData.virusCoding ? cachedData.virusCoding : undefined
-        };
-      }
+      // Helper function to check if we need to refresh an activity
+      const needsRefresh = (activity: { active: boolean; until: number | null; lastFetched: Date | null } | null): boolean => {
+        if (!activity || !activity.lastFetched) {
+          return true; // Never fetched before
+        }
+        
+        // If not active, always refresh (no caching for inactive activities)
+        if (!activity.active) {
+          return true;
+        }
+        
+        // If active, check if we're past the until time
+        if (activity.until && currentTimestamp > activity.until * 1000) {
+          return true;
+        }
+        
+        // Refresh if data is older than 1 hour
+        if (activity.lastFetched.getTime() < oneHourAgo) {
+          return true;
+        }
+        
+        return false;
+      };
 
-      if (needsRefresh) {
+      // Determine which activities need to be fetched
+      const fetchEducation = !cachedData || needsRefresh(cachedData.education);
+      const fetchInvestment = !cachedData || needsRefresh(cachedData.investment);
+      const fetchVirusCoding = !cachedData || needsRefresh(cachedData.virusCoding);
+
+      // Initialize activity data from cache if available
+      activityData = {
+        education: cachedData?.education && !fetchEducation ? { active: cachedData.education.active, until: cachedData.education.until } : undefined,
+        investment: cachedData?.investment && !fetchInvestment ? { active: cachedData.investment.active, until: cachedData.investment.until } : undefined,
+        virusCoding: cachedData?.virusCoding && !fetchVirusCoding ? { active: cachedData.virusCoding.active, until: cachedData.virusCoding.until } : undefined
+      };
+
+      // Fetch only the activities that need refreshing
+      if (fetchEducation || fetchInvestment || fetchVirusCoding) {
         try {
-          // Fetch all three APIs in parallel
-          const [educationResponse, moneyResponse, virusResponse] = await Promise.all([
-            axios.get<EducationResponse>(`https://api.torn.com/v2/user/education?key=${apiKey}`).catch(() => ({ data: {} as EducationResponse })),
-            axios.get<MoneyResponse>(`https://api.torn.com/v2/user/money?key=${apiKey}`).catch(() => ({ data: {} as MoneyResponse })),
-            axios.get<VirusResponse>(`https://api.torn.com/v2/user/virus?key=${apiKey}`).catch(() => ({ data: {} as VirusResponse }))
-          ]);
+          const apiCalls: Promise<any>[] = [];
+          
+          if (fetchEducation) {
+            apiCalls.push(
+              axios.get<EducationResponse>(`https://api.torn.com/v2/user/education?key=${apiKey}`)
+                .then(response => ({ type: 'education', data: response.data }))
+                .catch(() => ({ type: 'education', data: {} as EducationResponse }))
+            );
+          }
+          
+          if (fetchInvestment) {
+            apiCalls.push(
+              axios.get<MoneyResponse>(`https://api.torn.com/v2/user/money?key=${apiKey}`)
+                .then(response => ({ type: 'investment', data: response.data }))
+                .catch(() => ({ type: 'investment', data: {} as MoneyResponse }))
+            );
+          }
+          
+          if (fetchVirusCoding) {
+            apiCalls.push(
+              axios.get<VirusResponse>(`https://api.torn.com/v2/user/virus?key=${apiKey}`)
+                .then(response => ({ type: 'virusCoding', data: response.data }))
+                .catch(() => ({ type: 'virusCoding', data: {} as VirusResponse }))
+            );
+          }
 
-          // Log the API calls
-          await logApiCall('user/education', 'discord-command-minmax');
-          await logApiCall('user/money', 'discord-command-minmax');
-          await logApiCall('user/virus', 'discord-command-minmax');
+          const responses = await Promise.all(apiCalls);
 
-          // Process education data
-          const educationActive = !!(educationResponse.data.education?.current && educationResponse.data.education.current.id > 0);
-          const educationUntil = educationActive ? (educationResponse.data.education?.current?.until || null) : null;
+          // Process each response
+          for (const response of responses as Array<{ type: string; data: any }>) {
+            if (response.type === 'education') {
+              await logApiCall('user/education', 'discord-command-minmax');
+              const educationResponse = response.data as EducationResponse;
+              const educationActive = !!(educationResponse.education?.current && educationResponse.education.current.id > 0);
+              const educationUntil = educationActive ? (educationResponse.education?.current?.until || null) : null;
+              
+              activityData!.education = { active: educationActive, until: educationUntil };
+              
+              // Update cache for education
+              if (cachedData) {
+                cachedData.education = { active: educationActive, until: educationUntil, lastFetched: currentTime };
+              }
+            } else if (response.type === 'investment') {
+              await logApiCall('user/money', 'discord-command-minmax');
+              const moneyResponse = response.data as MoneyResponse;
+              const investmentActive = !!(moneyResponse.money?.city_bank && moneyResponse.money.city_bank.amount > 0);
+              const investmentUntil = investmentActive ? (moneyResponse.money?.city_bank?.until || null) : null;
+              
+              activityData!.investment = { active: investmentActive, until: investmentUntil };
+              
+              // Update cache for investment
+              if (cachedData) {
+                cachedData.investment = { active: investmentActive, until: investmentUntil, lastFetched: currentTime };
+              }
+            } else if (response.type === 'virusCoding') {
+              await logApiCall('user/virus', 'discord-command-minmax');
+              const virusResponse = response.data as VirusResponse;
+              const virusActive = !!(virusResponse.virus?.item && virusResponse.virus.item.id > 0);
+              const virusUntil = virusActive ? (virusResponse.virus?.until || null) : null;
+              
+              activityData!.virusCoding = { active: virusActive, until: virusUntil };
+              
+              // Update cache for virus coding
+              if (cachedData) {
+                cachedData.virusCoding = { active: virusActive, until: virusUntil, lastFetched: currentTime };
+              }
+            }
+          }
 
-          // Process investment data (city_bank)
-          const investmentActive = !!(moneyResponse.data.money?.city_bank && moneyResponse.data.money.city_bank.amount > 0);
-          const investmentUntil = investmentActive ? (moneyResponse.data.money?.city_bank?.until || null) : null;
-
-          // Process virus coding data
-          const virusActive = !!(virusResponse.data.virus?.item && virusResponse.data.virus.item.id > 0);
-          const virusUntil = virusActive ? (virusResponse.data.virus?.until || null) : null;
-
-          // Calculate expiration time: minimum of 1 hour from now and the earliest "until" time
-          const oneHourFromNow = Date.now() + 3600000; // 1 hour in milliseconds
-          const untilTimes = [
-            educationUntil ? educationUntil * 1000 : Infinity,
-            investmentUntil ? investmentUntil * 1000 : Infinity,
-            virusUntil ? virusUntil * 1000 : Infinity
-          ];
-          const earliestUntil = Math.min(...untilTimes);
-          const expiresAtTimestamp = Math.min(oneHourFromNow, earliestUntil === Infinity ? oneHourFromNow : earliestUntil);
-
-          // Save to cache
-          activityData = {
-            education: { active: educationActive, until: educationUntil },
-            investment: { active: investmentActive, until: investmentUntil },
-            virusCoding: { active: virusActive, until: virusUntil }
-          };
-
+          // Save or create cache
           if (cachedData) {
-            cachedData.education = activityData.education || null;
-            cachedData.investment = activityData.investment || null;
-            cachedData.virusCoding = activityData.virusCoding || null;
-            cachedData.lastFetched = currentTime;
-            cachedData.expiresAt = new Date(expiresAtTimestamp);
             await cachedData.save();
           } else {
             const newCache = new UserActivityCache({
               discordId,
               tornId: user.tornId,
-              education: activityData.education || null,
-              investment: activityData.investment || null,
-              virusCoding: activityData.virusCoding || null,
-              lastFetched: currentTime,
-              expiresAt: new Date(expiresAtTimestamp)
+              education: activityData.education ? { ...activityData.education, lastFetched: currentTime } : null,
+              investment: activityData.investment ? { ...activityData.investment, lastFetched: currentTime } : null,
+              virusCoding: activityData.virusCoding ? { ...activityData.virusCoding, lastFetched: currentTime } : null
             });
             await newCache.save();
           }

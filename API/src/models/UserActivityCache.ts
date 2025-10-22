@@ -6,17 +6,18 @@ export interface IUserActivityCache extends Document {
   education: {
     active: boolean;
     until: number | null;
+    lastFetched: Date | null;
   } | null;
   investment: {
     active: boolean;
     until: number | null;
+    lastFetched: Date | null;
   } | null;
   virusCoding: {
     active: boolean;
     until: number | null;
+    lastFetched: Date | null;
   } | null;
-  lastFetched: Date;
-  expiresAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,18 +27,19 @@ const UserActivityCacheSchema = new Schema<IUserActivityCache>({
   tornId: { type: Number, required: true, index: true },
   education: {
     active: { type: Boolean, default: false },
-    until: { type: Number, default: null }
+    until: { type: Number, default: null },
+    lastFetched: { type: Date, default: null }
   },
   investment: {
     active: { type: Boolean, default: false },
-    until: { type: Number, default: null }
+    until: { type: Number, default: null },
+    lastFetched: { type: Date, default: null }
   },
   virusCoding: {
     active: { type: Boolean, default: false },
-    until: { type: Number, default: null }
-  },
-  lastFetched: { type: Date, required: true },
-  expiresAt: { type: Date, required: true, index: true }
+    until: { type: Number, default: null },
+    lastFetched: { type: Date, default: null }
+  }
 }, {
   timestamps: true
 });
