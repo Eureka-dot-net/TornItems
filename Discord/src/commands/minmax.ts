@@ -55,7 +55,7 @@ export async function execute(interaction: any) {
     
     let errorMessage = "❌ Failed to fetch daily task status.";
     if (err.message && err.message.includes("set your API key")) {
-      errorMessage = "❌ You need to set your API key first.\nUse `/setkey` to store your Torn API key.";
+      errorMessage = "❌ You need to set your API key first.\nUse `/minmaxsetkey` to store your Torn API key.\n\n**Note:** Please use a limited API key for security purposes.";
     }
     
     await interaction.editReply({

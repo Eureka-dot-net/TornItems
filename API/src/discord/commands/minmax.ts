@@ -60,7 +60,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     
     if (!user || !user.apiKey) {
       await interaction.editReply({
-        content: '❌ You need to set your API key first.\nUse `/setkey` to store your Torn API key.',
+        content: '❌ You need to set your API key first.\nUse `/minmaxsetkey` to store your Torn API key.\n\n**Note:** Please use a limited API key for security purposes.',
       });
       return;
     }

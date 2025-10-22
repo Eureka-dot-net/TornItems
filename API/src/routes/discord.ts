@@ -211,7 +211,7 @@ router.post('/discord/minmax', authenticateDiscordBot, async (req: Request, res:
     
     if (!user || !user.apiKey) {
       res.status(400).json({
-        error: 'You need to set your API key first. Use `/setkey` to store your Torn API key.'
+        error: 'You need to set your API key first. Use `/minmaxsetkey` to store your Torn API key. Note: Please use a limited API key for security purposes.'
       });
       return;
     }

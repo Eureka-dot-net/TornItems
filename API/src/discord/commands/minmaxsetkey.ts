@@ -7,7 +7,7 @@ import { logInfo, logError } from '../../utils/logger';
 import { logApiCall } from '../../utils/apiCallLogger';
 
 export const data = new SlashCommandBuilder()
-  .setName('setkey')
+  .setName('minmaxsetkey')
   .setDescription('Privately store your Torn API key for bot features.')
   .addStringOption(option =>
     option
@@ -130,7 +130,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       content: `✅ Your Torn API key was saved successfully.\nLinked to **${name}** (ID: ${tornId})`,
     });
   } catch (err) {
-    logError('Error in /setkey command', err instanceof Error ? err : new Error(String(err)));
+    logError('Error in /minmaxsetkey command', err instanceof Error ? err : new Error(String(err)));
     await interaction.editReply({
       content: '❌ Failed to save your key. Please try again later.',
     });
