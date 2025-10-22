@@ -9,12 +9,6 @@ import { logApiCall } from '../../utils/apiCallLogger';
 export const data = new SlashCommandBuilder()
   .setName('minmax')
   .setDescription('Check daily task completion status (market items, xanax, energy refill).')
-  .addIntegerOption(option =>
-    option
-      .setName('userid')
-      .setDescription('Torn user ID to check (optional, defaults to yourself).')
-      .setRequired(false)
-  );
 
 // Response format for current stats (cat=all)
 interface PersonalStatsCurrentResponse {
@@ -90,7 +84,6 @@ interface VirusResponse {
 }
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  const userId = interaction.options.getInteger('userid');
   const discordId = interaction.user.id;
 
   await interaction.reply({ content: '📊 Fetching daily task status...', ephemeral: true });
@@ -100,10 +93,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     // Get the user's API key from the database
     const user = await DiscordUser.findOne({ discordId });
-    
+
     if (!user || !user.apiKey) {
       await interaction.editReply({
-        content: '❌ You need to set your API key first.\nUse `/minmaxsetkey` to store your Torn API key.\n\n**Note:** Please use a limited API key for security purposes.',
+        content: '❌ You need to set your API key first.\nUse `/minmaxsetkey` to store your Torn API key.\n\n**Note:** Please use a limited API key to ensure you can get current data.',
       });
       return;
     }
@@ -112,7 +105,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const apiKey = decrypt(user.apiKey);
 
     // Determine which user's stats to fetch (default to the user's own tornId)
-    const targetUserId = userId || user.tornId;
+    const targetUserId = || user.tornId;
 
     // Get current UTC midnight timestamp
     const now = new Date();
@@ -188,146 +181,141 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       virusCoding?: { active: boolean; until: number | null };
     } | undefined;
 
-    const shouldFetchActivityData = !userId || userId === user.tornId;
+    // Check if we have cached data
+    const cachedData = await UserActivityCache.findOne({ discordId });
+    const currentTime = new Date();
+    const currentTimestamp = currentTime.getTime();
+    const oneHourAgo = currentTimestamp - 3600000; // 1 hour in milliseconds
 
-    if (shouldFetchActivityData) {
-      // Check if we have cached data
-      const cachedData = await UserActivityCache.findOne({ discordId });
-      const currentTime = new Date();
-      const currentTimestamp = currentTime.getTime();
-      const oneHourAgo = currentTimestamp - 3600000; // 1 hour in milliseconds
-      
-      // Helper function to check if we need to refresh an activity
-      const needsRefresh = (activity: { active: boolean; until: number | null; lastFetched: Date | null } | null): boolean => {
-        if (!activity || !activity.lastFetched) {
-          return true; // Never fetched before
+    // Helper function to check if we need to refresh an activity
+    const needsRefresh = (activity: { active: boolean; until: number | null; lastFetched: Date | null } | null): boolean => {
+      if (!activity || !activity.lastFetched) {
+        return true; // Never fetched before
+      }
+
+      // If not active, always refresh (no caching for inactive activities)
+      if (!activity.active) {
+        return true;
+      }
+
+      // If active, check if we're past the until time
+      if (activity.until && currentTimestamp > activity.until * 1000) {
+        return true;
+      }
+
+      // Refresh if data is older than 1 hour
+      if (activity.lastFetched.getTime() < oneHourAgo) {
+        return true;
+      }
+
+      return false;
+    };
+
+    // Determine which activities need to be fetched
+    const fetchEducation = !cachedData || needsRefresh(cachedData.education);
+    const fetchInvestment = !cachedData || needsRefresh(cachedData.investment);
+    const fetchVirusCoding = !cachedData || needsRefresh(cachedData.virusCoding);
+
+    // Initialize activity data from cache if available
+    activityData = {
+      education: cachedData?.education && !fetchEducation ? { active: cachedData.education.active, until: cachedData.education.until } : undefined,
+      investment: cachedData?.investment && !fetchInvestment ? { active: cachedData.investment.active, until: cachedData.investment.until } : undefined,
+      virusCoding: cachedData?.virusCoding && !fetchVirusCoding ? { active: cachedData.virusCoding.active, until: cachedData.virusCoding.until } : undefined
+    };
+
+    // Fetch only the activities that need refreshing
+    if (fetchEducation || fetchInvestment || fetchVirusCoding) {
+      try {
+        const apiCalls: Promise<any>[] = [];
+
+        if (fetchEducation) {
+          apiCalls.push(
+            axios.get<EducationResponse>(`https://api.torn.com/v2/user/education?key=${apiKey}`)
+              .then(response => ({ type: 'education', data: response.data }))
+              .catch(() => ({ type: 'education', data: {} as EducationResponse }))
+          );
         }
-        
-        // If not active, always refresh (no caching for inactive activities)
-        if (!activity.active) {
-          return true;
+
+        if (fetchInvestment) {
+          apiCalls.push(
+            axios.get<MoneyResponse>(`https://api.torn.com/v2/user/money?key=${apiKey}`)
+              .then(response => ({ type: 'investment', data: response.data }))
+              .catch(() => ({ type: 'investment', data: {} as MoneyResponse }))
+          );
         }
-        
-        // If active, check if we're past the until time
-        if (activity.until && currentTimestamp > activity.until * 1000) {
-          return true;
+
+        if (fetchVirusCoding) {
+          apiCalls.push(
+            axios.get<VirusResponse>(`https://api.torn.com/v2/user/virus?key=${apiKey}`)
+              .then(response => ({ type: 'virusCoding', data: response.data }))
+              .catch(() => ({ type: 'virusCoding', data: {} as VirusResponse }))
+          );
         }
-        
-        // Refresh if data is older than 1 hour
-        if (activity.lastFetched.getTime() < oneHourAgo) {
-          return true;
-        }
-        
-        return false;
-      };
 
-      // Determine which activities need to be fetched
-      const fetchEducation = !cachedData || needsRefresh(cachedData.education);
-      const fetchInvestment = !cachedData || needsRefresh(cachedData.investment);
-      const fetchVirusCoding = !cachedData || needsRefresh(cachedData.virusCoding);
+        const responses = await Promise.all(apiCalls);
 
-      // Initialize activity data from cache if available
-      activityData = {
-        education: cachedData?.education && !fetchEducation ? { active: cachedData.education.active, until: cachedData.education.until } : undefined,
-        investment: cachedData?.investment && !fetchInvestment ? { active: cachedData.investment.active, until: cachedData.investment.until } : undefined,
-        virusCoding: cachedData?.virusCoding && !fetchVirusCoding ? { active: cachedData.virusCoding.active, until: cachedData.virusCoding.until } : undefined
-      };
+        // Process each response
+        for (const response of responses as Array<{ type: string; data: any }>) {
+          if (response.type === 'education') {
+            await logApiCall('user/education', 'discord-command-minmax');
+            const educationResponse = response.data as EducationResponse;
+            const educationActive = !!(educationResponse.education?.current && educationResponse.education.current.id > 0);
+            const educationUntil = educationActive ? (educationResponse.education?.current?.until || null) : null;
 
-      // Fetch only the activities that need refreshing
-      if (fetchEducation || fetchInvestment || fetchVirusCoding) {
-        try {
-          const apiCalls: Promise<any>[] = [];
-          
-          if (fetchEducation) {
-            apiCalls.push(
-              axios.get<EducationResponse>(`https://api.torn.com/v2/user/education?key=${apiKey}`)
-                .then(response => ({ type: 'education', data: response.data }))
-                .catch(() => ({ type: 'education', data: {} as EducationResponse }))
-            );
-          }
-          
-          if (fetchInvestment) {
-            apiCalls.push(
-              axios.get<MoneyResponse>(`https://api.torn.com/v2/user/money?key=${apiKey}`)
-                .then(response => ({ type: 'investment', data: response.data }))
-                .catch(() => ({ type: 'investment', data: {} as MoneyResponse }))
-            );
-          }
-          
-          if (fetchVirusCoding) {
-            apiCalls.push(
-              axios.get<VirusResponse>(`https://api.torn.com/v2/user/virus?key=${apiKey}`)
-                .then(response => ({ type: 'virusCoding', data: response.data }))
-                .catch(() => ({ type: 'virusCoding', data: {} as VirusResponse }))
-            );
-          }
+            activityData!.education = { active: educationActive, until: educationUntil };
 
-          const responses = await Promise.all(apiCalls);
+            // Update cache for education
+            if (cachedData) {
+              cachedData.education = { active: educationActive, until: educationUntil, lastFetched: currentTime };
+            }
+          } else if (response.type === 'investment') {
+            await logApiCall('user/money', 'discord-command-minmax');
+            const moneyResponse = response.data as MoneyResponse;
+            const investmentActive = !!(moneyResponse.money?.city_bank && moneyResponse.money.city_bank.amount > 0);
+            const investmentUntil = investmentActive ? (moneyResponse.money?.city_bank?.until || null) : null;
 
-          // Process each response
-          for (const response of responses as Array<{ type: string; data: any }>) {
-            if (response.type === 'education') {
-              await logApiCall('user/education', 'discord-command-minmax');
-              const educationResponse = response.data as EducationResponse;
-              const educationActive = !!(educationResponse.education?.current && educationResponse.education.current.id > 0);
-              const educationUntil = educationActive ? (educationResponse.education?.current?.until || null) : null;
-              
-              activityData!.education = { active: educationActive, until: educationUntil };
-              
-              // Update cache for education
-              if (cachedData) {
-                cachedData.education = { active: educationActive, until: educationUntil, lastFetched: currentTime };
-              }
-            } else if (response.type === 'investment') {
-              await logApiCall('user/money', 'discord-command-minmax');
-              const moneyResponse = response.data as MoneyResponse;
-              const investmentActive = !!(moneyResponse.money?.city_bank && moneyResponse.money.city_bank.amount > 0);
-              const investmentUntil = investmentActive ? (moneyResponse.money?.city_bank?.until || null) : null;
-              
-              activityData!.investment = { active: investmentActive, until: investmentUntil };
-              
-              // Update cache for investment
-              if (cachedData) {
-                cachedData.investment = { active: investmentActive, until: investmentUntil, lastFetched: currentTime };
-              }
-            } else if (response.type === 'virusCoding') {
-              await logApiCall('user/virus', 'discord-command-minmax');
-              const virusResponse = response.data as VirusResponse;
-              const virusActive = !!(virusResponse.virus?.item && virusResponse.virus.item.id > 0);
-              const virusUntil = virusActive ? (virusResponse.virus?.until || null) : null;
-              
-              activityData!.virusCoding = { active: virusActive, until: virusUntil };
-              
-              // Update cache for virus coding
-              if (cachedData) {
-                cachedData.virusCoding = { active: virusActive, until: virusUntil, lastFetched: currentTime };
-              }
+            activityData!.investment = { active: investmentActive, until: investmentUntil };
+
+            // Update cache for investment
+            if (cachedData) {
+              cachedData.investment = { active: investmentActive, until: investmentUntil, lastFetched: currentTime };
+            }
+          } else if (response.type === 'virusCoding') {
+            await logApiCall('user/virus', 'discord-command-minmax');
+            const virusResponse = response.data as VirusResponse;
+            const virusActive = !!(virusResponse.virus?.item && virusResponse.virus.item.id > 0);
+            const virusUntil = virusActive ? (virusResponse.virus?.until || null) : null;
+
+            activityData!.virusCoding = { active: virusActive, until: virusUntil };
+
+            // Update cache for virus coding
+            if (cachedData) {
+              cachedData.virusCoding = { active: virusActive, until: virusUntil, lastFetched: currentTime };
             }
           }
-
-          // Save or create cache
-          if (cachedData) {
-            await cachedData.save();
-          } else {
-            const newCache = new UserActivityCache({
-              discordId,
-              tornId: user.tornId,
-              education: activityData.education ? { ...activityData.education, lastFetched: currentTime } : null,
-              investment: activityData.investment ? { ...activityData.investment, lastFetched: currentTime } : null,
-              virusCoding: activityData.virusCoding ? { ...activityData.virusCoding, lastFetched: currentTime } : null
-            });
-            await newCache.save();
-          }
-        } catch (error) {
-          // Log error but don't fail the request
-          logError('Failed to fetch activity data, continuing without it', error instanceof Error ? error : new Error(String(error)), {
-            discordId,
-            targetUserId
-          });
         }
+
+        // Save or create cache
+        if (cachedData) {
+          await cachedData.save();
+        } else {
+          const newCache = new UserActivityCache({
+            discordId,
+            tornId: user.tornId,
+            education: activityData.education ? { ...activityData.education, lastFetched: currentTime } : null,
+            investment: activityData.investment ? { ...activityData.investment, lastFetched: currentTime } : null,
+            virusCoding: activityData.virusCoding ? { ...activityData.virusCoding, lastFetched: currentTime } : null
+          });
+          await newCache.save();
+        }
+      } catch (error) {
+        // Log error but don't fail the request
+        logError('Failed to fetch activity data, continuing without it', error instanceof Error ? error : new Error(String(error)), {
+          discordId,
+          targetUserId
+        });
       }
     }
-
     // Format the response
     const itemsIcon = itemsBoughtToday >= 100 ? '✅' : '❌';
     const xanIcon = xanTakenToday >= 3 ? '✅' : '❌';
@@ -345,17 +333,17 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     if (activityData && (activityData.education || activityData.investment || activityData.virusCoding)) {
       messageParts.push('');
       messageParts.push('**Active Activities:**');
-      
+
       if (activityData.education) {
         const educationIcon = activityData.education.active ? '✅' : '❌';
         messageParts.push(`${educationIcon} **Education:** ${activityData.education.active ? 'Yes' : 'No'}`);
       }
-      
+
       if (activityData.investment) {
         const investmentIcon = activityData.investment.active ? '✅' : '❌';
         messageParts.push(`${investmentIcon} **Investment:** ${activityData.investment.active ? 'Yes' : 'No'}`);
       }
-      
+
       if (activityData.virusCoding) {
         const virusIcon = activityData.virusCoding.active ? '✅' : '❌';
         messageParts.push(`${virusIcon} **Virus Coding:** ${activityData.virusCoding.active ? 'Yes' : 'No'}`);
