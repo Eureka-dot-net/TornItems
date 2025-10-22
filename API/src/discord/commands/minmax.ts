@@ -86,10 +86,10 @@ interface VirusResponse {
 export async function execute(interaction: ChatInputCommandInteraction) {
   const discordId = interaction.user.id;
 
-  await interaction.reply({ content: '📊 Fetching daily task status...', ephemeral: true });
+  await interaction.reply({ content: '📊 Fetching daily task status...' });
 
   try {
-    logInfo('Fetching minmax stats via bot command', { discordId, userId });
+    logInfo('Fetching minmax stats via bot command', { discordId });
 
     // Get the user's API key from the database
     const user = await DiscordUser.findOne({ discordId });
@@ -105,7 +105,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const apiKey = decrypt(user.apiKey);
 
     // Determine which user's stats to fetch (default to the user's own tornId)
-    const targetUserId = || user.tornId;
+    const targetUserId = user.tornId;
 
     // Get current UTC midnight timestamp
     const now = new Date();
@@ -322,11 +322,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const refillIcon = refillsToday >= 1 ? '✅' : '❌';
 
     const messageParts = [
-      `**Daily Task Completion${userId ? ` for User ID ${userId}` : ''}:**`,
-      '',
-      `${itemsIcon} **City Items Bought:** ${itemsBoughtToday}/100`,
-      `${xanIcon} **Xanax Taken:** ${xanTakenToday}/3`,
-      `${refillIcon} **Energy Refill:** ${refillsToday}/1`,
+      `**Daily Task Completion:**`,
+      `${itemsIcon} ** City Items Bought:** ${itemsBoughtToday}/100`,
+      `${xanIcon} ** Xanax Taken:** ${xanTakenToday}/3`,
+      `${refillIcon} ** Energy Refill:** ${refillsToday}/1`,
     ];
 
     // Add activity data if available
@@ -336,17 +335,17 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
       if (activityData.education) {
         const educationIcon = activityData.education.active ? '✅' : '❌';
-        messageParts.push(`${educationIcon} **Education:** ${activityData.education.active ? 'Yes' : 'No'}`);
+        messageParts.push(`${educationIcon} ** Education:** ${activityData.education.active ? 'Yes' : 'No'}`);
       }
 
       if (activityData.investment) {
         const investmentIcon = activityData.investment.active ? '✅' : '❌';
-        messageParts.push(`${investmentIcon} **Investment:** ${activityData.investment.active ? 'Yes' : 'No'}`);
+        messageParts.push(`${investmentIcon} ** Investment:** ${activityData.investment.active ? 'Yes' : 'No'}`);
       }
 
       if (activityData.virusCoding) {
         const virusIcon = activityData.virusCoding.active ? '✅' : '❌';
-        messageParts.push(`${virusIcon} **Virus Coding:** ${activityData.virusCoding.active ? 'Yes' : 'No'}`);
+        messageParts.push(`${virusIcon} ** Virus Coding:** ${activityData.virusCoding.active ? 'Yes' : 'No'}`);
       }
     }
 
