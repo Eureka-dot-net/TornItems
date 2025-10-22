@@ -33,19 +33,42 @@ export async function execute(interaction: any) {
     }
 
     // Format the response
-    const { cityItemsBought, xanaxTaken, energyRefill } = data.data;
+    const { cityItemsBought, xanaxTaken, energyRefill, education, investment, virusCoding } = data.data;
     
     const itemsIcon = cityItemsBought.completed ? "✅" : "❌";
     const xanIcon = xanaxTaken.completed ? "✅" : "❌";
     const refillIcon = energyRefill.completed ? "✅" : "❌";
 
-    const message = [
+    const messageParts = [
       `**Daily Task Completion${userId ? ` for User ID ${userId}` : ""}:**`,
       "",
       `${itemsIcon} **City Items Bought:** ${cityItemsBought.current}/${cityItemsBought.target}`,
       `${xanIcon} **Xanax Taken:** ${xanaxTaken.current}/${xanaxTaken.target}`,
       `${refillIcon} **Energy Refill:** ${energyRefill.current}/${energyRefill.target}`,
-    ].join("\n");
+    ];
+
+    // Add activity data if available
+    if (education || investment || virusCoding) {
+      messageParts.push("");
+      messageParts.push("**Active Activities:**");
+      
+      if (education) {
+        const educationIcon = education.active ? "✅" : "❌";
+        messageParts.push(`${educationIcon} **Education:** ${education.active ? "Yes" : "No"}`);
+      }
+      
+      if (investment) {
+        const investmentIcon = investment.active ? "✅" : "❌";
+        messageParts.push(`${investmentIcon} **Investment:** ${investment.active ? "Yes" : "No"}`);
+      }
+      
+      if (virusCoding) {
+        const virusIcon = virusCoding.active ? "✅" : "❌";
+        messageParts.push(`${virusIcon} **Virus Coding:** ${virusCoding.active ? "Yes" : "No"}`);
+      }
+    }
+
+    const message = messageParts.join("\n");
 
     await interaction.editReply({
       content: message,

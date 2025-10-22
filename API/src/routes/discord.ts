@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import axios from 'axios';
 import { DiscordUser } from '../models/DiscordUser';
+import { UserActivityCache } from '../models/UserActivityCache';
 import { encrypt, decrypt } from '../utils/encryption';
 import { DiscordUserManager } from '../services/DiscordUserManager';
 import { logInfo, logError } from '../utils/logger';
@@ -64,6 +65,48 @@ interface PersonalStatsMidnightResponse {
     value: number;
     timestamp: number;
   }>;
+}
+
+// Response format for education API
+interface EducationResponse {
+  education?: {
+    complete?: number[];
+    current?: {
+      id: number;
+      until: number;
+    } | null;
+  };
+}
+
+// Response format for money API (city_bank)
+interface MoneyResponse {
+  money?: {
+    points?: number;
+    wallet?: number;
+    company?: number;
+    vault?: number;
+    cayman_bank?: number;
+    city_bank?: {
+      amount: number;
+      until: number;
+    } | null;
+    faction?: {
+      money: number;
+      points: number;
+    };
+    daily_networth?: number;
+  };
+}
+
+// Response format for virus API
+interface VirusResponse {
+  virus?: {
+    item?: {
+      id: number;
+      name: string;
+    } | null;
+    until?: number;
+  } | null;
 }
 
 // POST /discord/setkey
@@ -295,26 +338,137 @@ router.post('/discord/minmax', authenticateDiscordBot, async (req: Request, res:
     const xanTakenToday = currentXanTaken - midnightXanTaken;
     const refillsToday = currentRefills - midnightRefills;
 
-    res.status(200).json({
-      success: true,
-      data: {
-        userId: targetUserId,
-        cityItemsBought: {
-          current: itemsBoughtToday,
-          target: 100,
-          completed: itemsBoughtToday >= 100
-        },
-        xanaxTaken: {
-          current: xanTakenToday,
-          target: 3,
-          completed: xanTakenToday >= 3
-        },
-        energyRefill: {
-          current: refillsToday,
-          target: 1,
-          completed: refillsToday >= 1
+    // Fetch education, investment, and virus data only if userId is not provided or matches the calling user
+    let activityData: {
+      education?: { active: boolean; until: number | null };
+      investment?: { active: boolean; until: number | null };
+      virusCoding?: { active: boolean; until: number | null };
+    } | undefined;
+
+    const shouldFetchActivityData = !userId || userId === user.tornId;
+
+    if (shouldFetchActivityData) {
+      // Check if we have cached data that is still valid
+      const cachedData = await UserActivityCache.findOne({ discordId });
+      const currentTime = new Date();
+      
+      let needsRefresh = true;
+      if (cachedData && cachedData.expiresAt > currentTime) {
+        needsRefresh = false;
+        activityData = {
+          education: cachedData.education ? cachedData.education : undefined,
+          investment: cachedData.investment ? cachedData.investment : undefined,
+          virusCoding: cachedData.virusCoding ? cachedData.virusCoding : undefined
+        };
+      }
+
+      if (needsRefresh) {
+        try {
+          // Fetch all three APIs in parallel
+          const [educationResponse, moneyResponse, virusResponse] = await Promise.all([
+            axios.get<EducationResponse>(`https://api.torn.com/v2/user/education?key=${apiKey}`).catch(() => ({ data: {} as EducationResponse })),
+            axios.get<MoneyResponse>(`https://api.torn.com/v2/user/money?key=${apiKey}`).catch(() => ({ data: {} as MoneyResponse })),
+            axios.get<VirusResponse>(`https://api.torn.com/v2/user/virus?key=${apiKey}`).catch(() => ({ data: {} as VirusResponse }))
+          ]);
+
+          // Log the API calls
+          await logApiCall('user/education', 'discord-minmax');
+          await logApiCall('user/money', 'discord-minmax');
+          await logApiCall('user/virus', 'discord-minmax');
+
+          // Process education data
+          const educationActive = !!(educationResponse.data.education?.current && educationResponse.data.education.current.id > 0);
+          const educationUntil = educationActive ? (educationResponse.data.education?.current?.until || null) : null;
+
+          // Process investment data (city_bank)
+          const investmentActive = !!(moneyResponse.data.money?.city_bank && moneyResponse.data.money.city_bank.amount > 0);
+          const investmentUntil = investmentActive ? (moneyResponse.data.money?.city_bank?.until || null) : null;
+
+          // Process virus coding data
+          const virusActive = !!(virusResponse.data.virus?.item && virusResponse.data.virus.item.id > 0);
+          const virusUntil = virusActive ? (virusResponse.data.virus?.until || null) : null;
+
+          // Calculate expiration time: minimum of 1 hour from now and the earliest "until" time
+          const oneHourFromNow = Date.now() + 3600000; // 1 hour in milliseconds
+          const untilTimes = [
+            educationUntil ? educationUntil * 1000 : Infinity,
+            investmentUntil ? investmentUntil * 1000 : Infinity,
+            virusUntil ? virusUntil * 1000 : Infinity
+          ];
+          const earliestUntil = Math.min(...untilTimes);
+          const expiresAtTimestamp = Math.min(oneHourFromNow, earliestUntil === Infinity ? oneHourFromNow : earliestUntil);
+
+          // Save to cache
+          activityData = {
+            education: { active: educationActive, until: educationUntil },
+            investment: { active: investmentActive, until: investmentUntil },
+            virusCoding: { active: virusActive, until: virusUntil }
+          };
+
+          if (cachedData) {
+            cachedData.education = activityData.education || null;
+            cachedData.investment = activityData.investment || null;
+            cachedData.virusCoding = activityData.virusCoding || null;
+            cachedData.lastFetched = currentTime;
+            cachedData.expiresAt = new Date(expiresAtTimestamp);
+            await cachedData.save();
+          } else {
+            const newCache = new UserActivityCache({
+              discordId,
+              tornId: user.tornId,
+              education: activityData.education || null,
+              investment: activityData.investment || null,
+              virusCoding: activityData.virusCoding || null,
+              lastFetched: currentTime,
+              expiresAt: new Date(expiresAtTimestamp)
+            });
+            await newCache.save();
+          }
+        } catch (error) {
+          // Log error but don't fail the request
+          logError('Failed to fetch activity data, continuing without it', error instanceof Error ? error : new Error(String(error)), {
+            discordId,
+            targetUserId
+          });
         }
       }
+    }
+
+    const responseData: any = {
+      userId: targetUserId,
+      cityItemsBought: {
+        current: itemsBoughtToday,
+        target: 100,
+        completed: itemsBoughtToday >= 100
+      },
+      xanaxTaken: {
+        current: xanTakenToday,
+        target: 3,
+        completed: xanTakenToday >= 3
+      },
+      energyRefill: {
+        current: refillsToday,
+        target: 1,
+        completed: refillsToday >= 1
+      }
+    };
+
+    // Add activity data if available
+    if (activityData) {
+      if (activityData.education) {
+        responseData.education = activityData.education;
+      }
+      if (activityData.investment) {
+        responseData.investment = activityData.investment;
+      }
+      if (activityData.virusCoding) {
+        responseData.virusCoding = activityData.virusCoding;
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      data: responseData
     });
   } catch (err: unknown) {
     if (err instanceof Error) {
