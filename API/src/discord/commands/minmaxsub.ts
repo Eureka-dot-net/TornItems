@@ -5,11 +5,11 @@ import { logInfo, logError } from '../../utils/logger';
 
 export const data = new SlashCommandBuilder()
   .setName('minmaxsub')
-  .setDescription('Subscribe to daily minmax reminder notifications before server reset.')
+  .setDescription('Subscribe to daily minmax reminder notifications before 00:00 tct.')
   .addIntegerOption(option =>
     option
-      .setName('hours-before-reset')
-      .setDescription('Hours before UTC midnight (server reset) to notify you')
+      .setName('hours-before-midnight-tct')
+      .setDescription('Hours before tct midnight to notify you')
       .setRequired(true)
       .setMinValue(1)
       .setMaxValue(23)
@@ -34,7 +34,7 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  const hoursBeforeReset = interaction.options.getInteger('hours-before-reset', true);
+  const hoursBeforeReset = interaction.options.getInteger('hours-before-midnight-tct', true);
   const notifyEducation = interaction.options.getBoolean('notifyeducation');
   const notifyInvestment = interaction.options.getBoolean('notifyinvestment');
   const notifyVirus = interaction.options.getBoolean('notifyvirus');
@@ -135,7 +135,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .addFields(
         { name: '📅 Local Time', value: localTimeTag, inline: true },
         { name: '⏱ When', value: relativeTimeTag, inline: true },
-        { name: '🌐 Offset', value: `${hoursBeforeReset} hours before reset`, inline: true },
+        { name: '🌐 Offset', value: `${hoursBeforeReset} hours before 00:00 tct`, inline: true },
         { name: '📍 Channel', value: `<#${channelId}>`, inline: false },
         {
           name: 'What we’ll check',
