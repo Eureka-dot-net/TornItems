@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
 import { MinMaxSubscription } from '../../models/MinMaxSubscription';
 import { DiscordUser } from '../../models/DiscordUser';
 import { logInfo, logError } from '../../utils/logger';
@@ -46,7 +46,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   try {
     // Check if user has registered their API key
     const user = await DiscordUser.findOne({ discordId: discordUserId });
-    
+
     if (!user) {
       await interaction.editReply({
         content: '❌ You must first set your API key using `/minmaxsetkey` before setting up minmax notifications.',
@@ -104,34 +104,52 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       });
     }
 
-    // Calculate notification time
     const notificationHour = (24 - hoursBeforeReset) % 24;
-    const notificationTimeStr = `${notificationHour.toString().padStart(2, '0')}:00 UTC`;
 
-    // Build notification settings message
+    const now = new Date();
+    let notificationDateUTC = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      notificationHour,
+      0,
+      0
+    ));
+
+    if (notificationDateUTC.getTime() < now.getTime()) {
+      notificationDateUTC = new Date(notificationDateUTC.getTime() + 24 * 60 * 60 * 1000);
+    }
+
+    const unixTimestamp = Math.floor(notificationDateUTC.getTime() / 1000);
+    const localTimeTag = `<t:${unixTimestamp}:t>`;
+    const relativeTimeTag = `<t:${unixTimestamp}:R>`;
+
     const notificationSettings = [];
     if (effectiveNotifyEducation) notificationSettings.push('Education');
     if (effectiveNotifyInvestment) notificationSettings.push('Investment');
     if (effectiveNotifyVirus) notificationSettings.push('Virus Coding');
 
-    const message = [
-      `✅ **Minmax Subscription Active**`,
-      '',
-      `📅 **Notification Time:** ${notificationTimeStr} (${hoursBeforeReset} hours before reset)`,
-      `📍 **Channel:** <#${channelId}>`,
-      '',
-      `**What we'll check:**`,
-      `• ✅ City items bought (100/day)`,
-      `• ✅ Energy refills (1/day)`,
-      notificationSettings.length > 0 ? `• ✅ Activities: ${notificationSettings.join(', ')}` : '',
-      '',
-      `You'll receive ONE notification per day if you haven't completed these tasks.`,
-      '',
-      `To unsubscribe, use \`/minmaxunsub\``
-    ].filter(line => line !== '').join('\n');
+    const embed = new EmbedBuilder()
+      .setTitle('✅ Minmax Subscription Active')
+      .setColor(0x2ecc71)
+      .addFields(
+        { name: '📅 Local Time', value: localTimeTag, inline: true },
+        { name: '⏱ When', value: relativeTimeTag, inline: true },
+        { name: '🌐 Offset', value: `${hoursBeforeReset} hours before reset`, inline: true },
+        { name: '📍 Channel', value: `<#${channelId}>`, inline: false },
+        {
+          name: 'What we’ll check',
+          value: [
+            '• ✅ City items bought (100/day)',
+            '• ✅ Energy refills (1/day)',
+            notificationSettings.length > 0 ? `• ✅ Activities: ${notificationSettings.join(', ')}` : ''
+          ].filter(Boolean).join('\n')
+        },
+        { name: '\u200B', value: "You'll receive ONE notification per day if you haven't completed these tasks.\n\nTo unsubscribe, use `/minmaxunsub`" }
+      );
 
     await interaction.editReply({
-      content: message,
+      embeds: [embed], 
     });
   } catch (err) {
     logError('Error in /minmaxsub command', err instanceof Error ? err : new Error(String(err)));
