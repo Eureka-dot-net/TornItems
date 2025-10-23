@@ -55,12 +55,9 @@ export async function checkMinMaxSubscriptions() {
         // Check if user needs to be notified
         const incompleteTasks = [];
         
-        // Check basic tasks
+        // Check basic tasks (excluding xanax as it requires planning throughout the day)
         if (!status.cityItemsBought.completed) {
           incompleteTasks.push(`❌ **City Items:** ${status.cityItemsBought.current}/${status.cityItemsBought.target}`);
-        }
-        if (!status.xanaxTaken.completed) {
-          incompleteTasks.push(`❌ **Xanax:** ${status.xanaxTaken.current}/${status.xanaxTaken.target}`);
         }
         if (!status.energyRefill.completed) {
           incompleteTasks.push(`❌ **Energy Refill:** ${status.energyRefill.current}/${status.energyRefill.target}`);

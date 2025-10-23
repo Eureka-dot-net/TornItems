@@ -15,9 +15,10 @@ Bot Response:
 
 **What we'll check:**
 • ✅ City items bought (100/day)
-• ✅ Xanax taken (3/day)
 • ✅ Energy refills (1/day)
 • ✅ Activities: Education, Investment, Virus Coding
+
+(Note: Xanax is not checked as it requires planning throughout the day)
 
 You'll receive ONE notification per day if you haven't completed these tasks.
 
@@ -34,7 +35,6 @@ Bot:
 
 **Incomplete tasks:**
 ❌ **City Items:** 45/100
-❌ **Xanax:** 1/3
 ❌ **Investment:** No city bank investment
 
 Use `/minmax` to check your progress.

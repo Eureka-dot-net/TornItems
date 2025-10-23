@@ -33,11 +33,12 @@ Unsubscribe from daily minmax reminder notifications.
 1. **Daily Notifications**: Receive ONE notification per day at your specified time
 2. **Task Checking**: The system checks:
    - City items bought (100/day)
-   - Xanax taken (3/day)
    - Energy refills (1/day)
    - Education enrollment (optional)
    - City bank investment (optional)
    - Virus coding (optional)
+   
+   Note: Xanax is NOT checked by subscriptions as it requires planning throughout the day and cannot be rushed if forgotten.
 3. **Channel-based**: Notifications are sent to the channel where you subscribed
 4. **Smart Notifications**: Only sends notifications if you have incomplete tasks
 5. **No Duplicates**: Uses last notification tracking to ensure you only get one notification per day

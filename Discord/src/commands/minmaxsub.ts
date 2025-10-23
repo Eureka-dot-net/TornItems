@@ -81,7 +81,6 @@ export async function execute(interaction: any) {
       "",
       `**What we'll check:**`,
       `• ✅ City items bought (100/day)`,
-      `• ✅ Xanax taken (3/day)`,
       `• ✅ Energy refills (1/day)`,
       notificationSettings.length > 0 ? `• ✅ Activities: ${notificationSettings.join(", ")}` : "",
       "",

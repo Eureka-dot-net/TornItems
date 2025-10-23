@@ -6,9 +6,10 @@ This PR implements two new Discord commands (`/minmaxsub` and `/minmaxunsub`) th
 ## Problem Solved
 Users want to receive automated reminders before the server reset (UTC midnight) to complete their daily tasks:
 - Buy 100 city items
-- Take 3 xanax
 - Use 1 energy refill
 - Optionally: check education enrollment, city bank investment, and virus coding
+
+Note: Xanax is NOT included in subscription checks as it requires planning throughout the day and cannot be rushed if forgotten.
 
 ## Solution
 
