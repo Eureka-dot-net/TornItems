@@ -41,7 +41,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const discordUserId = interaction.user.id;
   const channelId = interaction.channelId;
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply();
 
   try {
     // Check if user has registered their API key
@@ -57,9 +57,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     // Check if subscription already exists
     let subscription = await MinMaxSubscription.findOne({ discordUserId });
 
-    const effectiveNotifyEducation = notifyEducation !== null ? notifyEducation : true;
-    const effectiveNotifyInvestment = notifyInvestment !== null ? notifyInvestment : true;
-    const effectiveNotifyVirus = notifyVirus !== null ? notifyVirus : true;
+    const effectiveNotifyEducation = notifyEducation !== null ? notifyEducation : false;
+    const effectiveNotifyInvestment = notifyInvestment !== null ? notifyInvestment : false;
+    const effectiveNotifyVirus = notifyVirus !== null ? notifyVirus : false;
 
     if (subscription) {
       // Update existing subscription
