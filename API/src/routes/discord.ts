@@ -1,7 +1,6 @@
 import express, { Request, Response } from 'express';
 import axios from 'axios';
 import { DiscordUser } from '../models/DiscordUser';
-import { MinMaxSubscription } from '../models/MinMaxSubscription';
 import { encrypt } from '../utils/encryption';
 import { DiscordUserManager } from '../services/DiscordUserManager';
 import { logInfo, logError } from '../utils/logger';
@@ -35,19 +34,6 @@ interface SetKeyRequestBody {
 interface MinMaxRequestBody {
   discordId: string;
   userId?: number;
-}
-
-interface MinMaxSubRequestBody {
-  discordId: string;
-  channelId: string;
-  hoursBeforeReset: number;
-  notifyEducation?: boolean;
-  notifyInvestment?: boolean;
-  notifyVirus?: boolean;
-}
-
-interface MinMaxUnsubRequestBody {
-  discordId: string;
 }
 
 // POST /discord/setkey
@@ -237,163 +223,6 @@ router.post('/discord/minmax', authenticateDiscordBot, async (req: Request, res:
     }
 
     res.status(500).json({ error: 'Failed to fetch minmax stats' });
-  }
-});
-
-// POST /discord/minmaxsub
-router.post('/discord/minmaxsub', authenticateDiscordBot, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { discordId, channelId, hoursBeforeReset, notifyEducation, notifyInvestment, notifyVirus } = req.body as MinMaxSubRequestBody;
-
-    // Validate input
-    if (!discordId || !channelId || hoursBeforeReset === undefined) {
-      res.status(400).json({ 
-        error: 'Missing required fields: discordId, channelId, and hoursBeforeReset are required' 
-      });
-      return;
-    }
-
-    // Validate hoursBeforeReset range
-    if (hoursBeforeReset < 1 || hoursBeforeReset > 23) {
-      res.status(400).json({ 
-        error: 'hoursBeforeReset must be between 1 and 23' 
-      });
-      return;
-    }
-
-    logInfo('Setting minmax subscription', { discordId, channelId, hoursBeforeReset });
-
-    // Check if user has API key
-    const user = await DiscordUser.findOne({ discordId });
-    
-    if (!user || !user.apiKey) {
-      res.status(400).json({
-        error: 'You need to set your API key first. Use `/minmaxsetkey` to store your Torn API key.'
-      });
-      return;
-    }
-
-    // Check if subscription already exists
-    let subscription = await MinMaxSubscription.findOne({ discordUserId: discordId });
-
-    if (subscription) {
-      // Update existing subscription
-      subscription.channelId = channelId;
-      subscription.hoursBeforeReset = hoursBeforeReset;
-      subscription.notifyEducation = notifyEducation !== undefined ? notifyEducation : true;
-      subscription.notifyInvestment = notifyInvestment !== undefined ? notifyInvestment : true;
-      subscription.notifyVirus = notifyVirus !== undefined ? notifyVirus : true;
-      subscription.enabled = true;
-      subscription.lastNotificationSent = null; // Reset to ensure notification is sent
-      await subscription.save();
-
-      logInfo('Updated minmax subscription', {
-        discordId,
-        channelId,
-        hoursBeforeReset,
-        notifyEducation: subscription.notifyEducation,
-        notifyInvestment: subscription.notifyInvestment,
-        notifyVirus: subscription.notifyVirus
-      });
-
-      res.status(200).json({
-        success: true,
-        message: 'Minmax subscription updated successfully',
-        data: {
-          discordId,
-          channelId,
-          hoursBeforeReset,
-          notifyEducation: subscription.notifyEducation,
-          notifyInvestment: subscription.notifyInvestment,
-          notifyVirus: subscription.notifyVirus
-        }
-      });
-    } else {
-      // Create new subscription
-      subscription = new MinMaxSubscription({
-        discordUserId: discordId,
-        channelId,
-        hoursBeforeReset,
-        notifyEducation: notifyEducation !== undefined ? notifyEducation : true,
-        notifyInvestment: notifyInvestment !== undefined ? notifyInvestment : true,
-        notifyVirus: notifyVirus !== undefined ? notifyVirus : true,
-        enabled: true,
-        lastNotificationSent: null
-      });
-      await subscription.save();
-
-      logInfo('Created minmax subscription', {
-        discordId,
-        channelId,
-        hoursBeforeReset,
-        notifyEducation: subscription.notifyEducation,
-        notifyInvestment: subscription.notifyInvestment,
-        notifyVirus: subscription.notifyVirus
-      });
-
-      res.status(200).json({
-        success: true,
-        message: 'Minmax subscription created successfully',
-        data: {
-          discordId,
-          channelId,
-          hoursBeforeReset,
-          notifyEducation: subscription.notifyEducation,
-          notifyInvestment: subscription.notifyInvestment,
-          notifyVirus: subscription.notifyVirus
-        }
-      });
-    }
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      logError('Error setting minmax subscription', err);
-    } else {
-      logError('Unknown error setting minmax subscription', new Error(String(err)));
-    }
-
-    res.status(500).json({ error: 'Failed to set minmax subscription' });
-  }
-});
-
-// POST /discord/minmaxunsub
-router.post('/discord/minmaxunsub', authenticateDiscordBot, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { discordId } = req.body as MinMaxUnsubRequestBody;
-
-    // Validate input
-    if (!discordId) {
-      res.status(400).json({ 
-        error: 'Missing required field: discordId' 
-      });
-      return;
-    }
-
-    logInfo('Removing minmax subscription', { discordId });
-
-    // Find and delete subscription
-    const subscription = await MinMaxSubscription.findOneAndDelete({ discordUserId: discordId });
-
-    if (!subscription) {
-      res.status(404).json({
-        error: 'No minmax subscription found for this user'
-      });
-      return;
-    }
-
-    logInfo('Deleted minmax subscription', { discordId });
-
-    res.status(200).json({
-      success: true,
-      message: 'Minmax subscription removed successfully'
-    });
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      logError('Error removing minmax subscription', err);
-    } else {
-      logError('Unknown error removing minmax subscription', new Error(String(err)));
-    }
-
-    res.status(500).json({ error: 'Failed to remove minmax subscription' });
   }
 });
 
