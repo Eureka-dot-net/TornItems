@@ -2,6 +2,8 @@ import { REST, Routes } from "discord.js";
 import { config } from "dotenv";
 import { data as minMaxSetKeyCommand } from "./commands/minmaxsetkey.ts";
 import { data as minMaxCommand } from "./commands/minmax.ts";
+import { data as minMaxSubCommand } from "./commands/minmaxsub.ts";
+import { data as minMaxUnsubCommand } from "./commands/minmaxunsub.ts";
 
 // Load your environment variables
 config();
@@ -17,7 +19,12 @@ if (!TOKEN || !CLIENT_ID || !GUILD_ID) {
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 async function registerCommands() {
-  const commands = [minMaxSetKeyCommand.toJSON(), minMaxCommand.toJSON()];
+  const commands = [
+    minMaxSetKeyCommand.toJSON(), 
+    minMaxCommand.toJSON(),
+    minMaxSubCommand.toJSON(),
+    minMaxUnsubCommand.toJSON()
+  ];
 
   try {
     console.log("📡 Registering slash commands...");
