@@ -1,9 +1,8 @@
 import express, { Request, Response } from 'express';
 import axios from 'axios';
 import { DiscordUser } from '../models/DiscordUser';
-import { UserActivityCache } from '../models/UserActivityCache';
 import { MinMaxSubscription } from '../models/MinMaxSubscription';
-import { encrypt, decrypt } from '../utils/encryption';
+import { encrypt } from '../utils/encryption';
 import { DiscordUserManager } from '../services/DiscordUserManager';
 import { logInfo, logError } from '../utils/logger';
 import { authenticateDiscordBot } from '../middleware/discordAuth';
@@ -49,79 +48,6 @@ interface MinMaxSubRequestBody {
 
 interface MinMaxUnsubRequestBody {
   discordId: string;
-}
-
-// Response format for current stats (cat=all)
-interface PersonalStatsCurrentResponse {
-  personalstats: {
-    trading: {
-      items: {
-        bought: {
-          market: number;
-          shops: number;
-        };
-      };
-    };
-    drugs: {
-      xanax: number;
-    };
-    other: {
-      refills: {
-        energy: number;
-      };
-    };
-  };
-}
-
-// Response format for midnight stats (stat=cityitemsbought,xantaken,refills)
-interface PersonalStatsMidnightResponse {
-  personalstats: Array<{
-    name: string;
-    value: number;
-    timestamp: number;
-  }>;
-}
-
-// Response format for education API
-interface EducationResponse {
-  education?: {
-    complete?: number[];
-    current?: {
-      id: number;
-      until: number;
-    } | null;
-  };
-}
-
-// Response format for money API (city_bank)
-interface MoneyResponse {
-  money?: {
-    points?: number;
-    wallet?: number;
-    company?: number;
-    vault?: number;
-    cayman_bank?: number;
-    city_bank?: {
-      amount: number;
-      until: number;
-    } | null;
-    faction?: {
-      money: number;
-      points: number;
-    };
-    daily_networth?: number;
-  };
-}
-
-// Response format for virus API
-interface VirusResponse {
-  virus?: {
-    item?: {
-      id: number;
-      name: string;
-    } | null;
-    until?: number;
-  } | null;
 }
 
 // POST /discord/setkey

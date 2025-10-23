@@ -134,11 +134,6 @@ export async function fetchMinMaxStatus(
   // Determine which user's stats to fetch (default to the user's own tornId)
   const userId = targetUserId || user.tornId;
 
-  // Get current UTC midnight timestamp
-  const now = new Date();
-  const midnightUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
-  const midnightTimestamp = Math.floor(midnightUTC.getTime() / 1000);
-
   // Fetch current stats (using cat=all for current data)
   let currentStats: PersonalStatsCurrentResponse;
   try {
