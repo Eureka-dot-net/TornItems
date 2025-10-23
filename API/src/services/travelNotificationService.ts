@@ -5,6 +5,7 @@ import { fetchTravelStatus } from '../utils/tornApi';
 import { decrypt } from '../utils/encryption';
 import { sendDirectMessageWithFallback } from '../utils/discord';
 import { logInfo, logError } from '../utils/logger';
+import { checkMinMaxSubscriptions } from './minmaxNotificationService';
 
 const COUNTRY_CODE_MAP: Record<string, string> = {
   mex: 'Mexico',
@@ -130,6 +131,9 @@ async function checkTravelNotifications() {
 
     // Check for users who just started travelling and send them shop URLs
     await checkTravelStart();
+    
+    // Check minmax subscriptions and send notifications
+    await checkMinMaxSubscriptions();
   } catch (error) {
     logError('Error in travel notification check', error instanceof Error ? error : new Error(String(error)));
   }
