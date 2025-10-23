@@ -291,7 +291,12 @@ export async function fetchMinMaxStatus(
           if (response.type === 'education') {
             await logApiCall('user/education', 'minmax-helper');
             const educationResponse = response.data as EducationResponse;
-            const educationActive = !!(educationResponse.education?.current && educationResponse.education.current.id > 0);
+            // Check if education is active AND not expired
+            const educationActive = !!(
+              educationResponse.education?.current && 
+              educationResponse.education.current.id > 0 &&
+              educationResponse.education.current.until > Math.floor(currentTimestamp / 1000)
+            );
             const educationUntil = educationActive ? (educationResponse.education?.current?.until || null) : null;
             
             activityData.education = { active: educationActive, until: educationUntil };
@@ -303,7 +308,12 @@ export async function fetchMinMaxStatus(
           } else if (response.type === 'investment') {
             await logApiCall('user/money', 'minmax-helper');
             const moneyResponse = response.data as MoneyResponse;
-            const investmentActive = !!(moneyResponse.money?.city_bank && moneyResponse.money.city_bank.amount > 0);
+            // Check if investment is active AND not expired
+            const investmentActive = !!(
+              moneyResponse.money?.city_bank && 
+              moneyResponse.money.city_bank.amount > 0 &&
+              moneyResponse.money.city_bank.until > Math.floor(currentTimestamp / 1000)
+            );
             const investmentUntil = investmentActive ? (moneyResponse.money?.city_bank?.until || null) : null;
             
             activityData.investment = { active: investmentActive, until: investmentUntil };
@@ -315,7 +325,13 @@ export async function fetchMinMaxStatus(
           } else if (response.type === 'virusCoding') {
             await logApiCall('user/virus', 'minmax-helper');
             const virusResponse = response.data as VirusResponse;
-            const virusActive = !!(virusResponse.virus?.item && virusResponse.virus.item.id > 0);
+            // Check if virus is active AND not expired
+            const virusActive = !!(
+              virusResponse.virus?.item && 
+              virusResponse.virus.item.id > 0 &&
+              virusResponse.virus?.until && 
+              virusResponse.virus.until > Math.floor(currentTimestamp / 1000)
+            );
             const virusUntil = virusActive ? (virusResponse.virus?.until || null) : null;
             
             activityData.virusCoding = { active: virusActive, until: virusUntil };
