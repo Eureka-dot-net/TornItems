@@ -5,6 +5,7 @@ import { encrypt } from '../../utils/encryption';
 import { DiscordUserManager } from '../../services/DiscordUserManager';
 import { logInfo, logError } from '../../utils/logger';
 import { logApiCall } from '../../utils/apiCallLogger';
+import { detectApiKeyType } from '../../utils/minmaxHelper';
 
 export const data = new SlashCommandBuilder()
   .setName('minmaxsetkey')
@@ -76,6 +77,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     const { id: tornId, name, level } = tornUserData.profile;
 
+    // Detect API key type (full vs limited)
+    const apiKeyType = await detectApiKeyType(apiKey);
+
     // Encrypt the API key before storing
     const encryptedApiKey = encrypt(apiKey);
 
@@ -87,6 +91,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       existingUser.tornId = tornId;
       existingUser.name = name;
       existingUser.apiKey = encryptedApiKey;
+      existingUser.apiKeyType = apiKeyType;
       existingUser.level = level;
       await existingUser.save();
 
@@ -94,7 +99,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         discordId,
         tornId,
         name,
-        level
+        level,
+        apiKeyType
       });
     } else {
       // Create new user
@@ -103,6 +109,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         tornId,
         name,
         apiKey: encryptedApiKey,
+        apiKeyType,
         level
       });
       await newUser.save();
@@ -111,7 +118,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         discordId,
         tornId,
         name,
-        level
+        level,
+        apiKeyType
       });
     }
 
@@ -126,8 +134,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       });
     }
 
+    const keyTypeMessage = apiKeyType === 'full' 
+      ? '\n\n✅ **Full API key detected** - You can use all minmax features including casino tickets and wheel spins.'
+      : '\n\n⚠️ **Limited API key detected** - Some features (casino tickets, wheel spins) require a full API key.';
+
     await interaction.editReply({
-      content: `✅ Your Torn API key was saved successfully.\nLinked to **${name}** (ID: ${tornId})`,
+      content: `✅ Your Torn API key was saved successfully.\nLinked to **${name}** (ID: ${tornId})${keyTypeMessage}`,
     });
   } catch (err) {
     logError('Error in /minmaxsetkey command', err instanceof Error ? err : new Error(String(err)));

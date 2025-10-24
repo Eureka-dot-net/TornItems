@@ -5,7 +5,7 @@ import { DiscordUser } from '../../models/DiscordUser';
 
 export const data = new SlashCommandBuilder()
   .setName('minmax')
-  .setDescription('Check daily task completion status (market items, xanax, energy refill).');
+  .setDescription('Check daily task completion status (market items, xanax, energy refill, casino, wheels, etc).');
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   const discordId = interaction.user.id;
@@ -50,6 +50,29 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       activities.push(`${status.investment.active ? '✅' : '❌'} **Investment:** ${status.investment.active ? 'Yes' : 'No'}`);
     if (status.virusCoding)
       activities.push(`${status.virusCoding.active ? '✅' : '❌'} **Virus Coding:** ${status.virusCoding.active ? 'Yes' : 'No'}`);
+    if (status.factionOC)
+      activities.push(`${status.factionOC.active ? '✅' : '❌'} **Faction OC:** ${status.factionOC.active ? 'Yes' : 'No'}`);
+    
+    const casinoActivities = [];
+    let needsFullKeyMessage = false;
+    
+    if (status.casinoTickets) {
+      const ticketIcon = status.casinoTickets.completed ? '✅' : '❌';
+      casinoActivities.push(`${ticketIcon} **Casino Tickets:** ${status.casinoTickets.used}/${status.casinoTickets.target}`);
+    } else if (user.apiKeyType !== 'full') {
+      needsFullKeyMessage = true;
+    }
+    
+    if (status.wheels) {
+      const lameIcon = status.wheels.lame.spun ? '✅' : '❌';
+      const mediocreIcon = status.wheels.mediocre.spun ? '✅' : '❌';
+      const awesomenessIcon = status.wheels.awesomeness.spun ? '✅' : '❌';
+      casinoActivities.push(`${lameIcon} **Wheel of Lame:** ${status.wheels.lame.spun ? 'Yes' : 'No'}`);
+      casinoActivities.push(`${mediocreIcon} **Wheel of Mediocre:** ${status.wheels.mediocre.spun ? 'Yes' : 'No'}`);
+      casinoActivities.push(`${awesomenessIcon} **Wheel of Awesomeness:** ${status.wheels.awesomeness.spun ? 'Yes' : 'No'}`);
+    } else if (user.apiKeyType !== 'full') {
+      needsFullKeyMessage = true;
+    }
 
     const embed = new EmbedBuilder()
       .setTitle('🧭 Daily Minmax Check')
@@ -72,6 +95,34 @@ export async function execute(interaction: ChatInputCommandInteraction) {
             value: activities.join('\n'),
             inline: false,
           }]
+          : []),
+        ...(casinoActivities.length
+          ? [
+            {
+              name: '',
+              value: '\u00A0',
+              inline: false,
+            },
+            {
+              name: '🎰 Casino Activities',
+              value: casinoActivities.join('\n'),
+              inline: false,
+            }
+          ]
+          : []),
+        ...(needsFullKeyMessage
+          ? [
+            {
+              name: '',
+              value: '\u00A0',
+              inline: false,
+            },
+            {
+              name: 'ℹ️ Want Casino & Wheel Tracking?',
+              value: 'To see casino tickets and wheel spin tracking, you need a **full API key**.\n\nRun `/minmaxsetkey` with a full API key to enable these features.',
+              inline: false,
+            }
+          ]
           : [])
       )
       .setFooter({ text: 'Use /minmaxsub to get notified automatically each day.' });
