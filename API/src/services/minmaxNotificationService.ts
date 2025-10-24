@@ -101,7 +101,7 @@ export async function checkMinMaxSubscriptions() {
           const resetTimeUTC = '00:00 UTC';
           
           const message = `🔔 **Daily Task Reminder** (<@${subscription.discordUserId}>)\n\n` +
-            `⏰ **${hoursUntilReset} hours until server reset** (${resetTimeUTC})\n\n` +
+            `⏰ **${hoursUntilReset} hours until 00:00 tct** (${resetTimeUTC})\n\n` +
             `**Incomplete tasks:**\n` +
             incompleteTasks.join('\n') + '\n\n' +
             `Use \`/minmax\` to check your progress.\n` +
