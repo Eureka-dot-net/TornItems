@@ -31,6 +31,30 @@ export const data = new SlashCommandBuilder()
       .setName('notifyvirus')
       .setDescription('Notify if not coding a virus (default: true)')
       .setRequired(false)
+  )
+  .addBooleanOption(option =>
+    option
+      .setName('notifyoc')
+      .setDescription('Notify if not in faction OC (default: true)')
+      .setRequired(false)
+  )
+  .addBooleanOption(option =>
+    option
+      .setName('notifywheellame')
+      .setDescription('Notify if Wheel of Lame not spun (default: true)')
+      .setRequired(false)
+  )
+  .addBooleanOption(option =>
+    option
+      .setName('notifywheelmediocre')
+      .setDescription('Notify if Wheel of Mediocre not spun (default: true)')
+      .setRequired(false)
+  )
+  .addBooleanOption(option =>
+    option
+      .setName('notifywheelawesomeness')
+      .setDescription('Notify if Wheel of Awesomeness not spun (default: true)')
+      .setRequired(false)
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -38,6 +62,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const notifyEducation = interaction.options.getBoolean('notifyeducation');
   const notifyInvestment = interaction.options.getBoolean('notifyinvestment');
   const notifyVirus = interaction.options.getBoolean('notifyvirus');
+  const notifyOC = interaction.options.getBoolean('notifyoc');
+  const notifyWheelLame = interaction.options.getBoolean('notifywheellame');
+  const notifyWheelMediocre = interaction.options.getBoolean('notifywheelmediocre');
+  const notifyWheelAwesomeness = interaction.options.getBoolean('notifywheelawesomeness');
   const discordUserId = interaction.user.id;
   const channelId = interaction.channelId;
 
@@ -60,6 +88,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const effectiveNotifyEducation = notifyEducation !== null ? notifyEducation : false;
     const effectiveNotifyInvestment = notifyInvestment !== null ? notifyInvestment : false;
     const effectiveNotifyVirus = notifyVirus !== null ? notifyVirus : false;
+    const effectiveNotifyOC = notifyOC !== null ? notifyOC : false;
+    const effectiveNotifyWheelLame = notifyWheelLame !== null ? notifyWheelLame : false;
+    const effectiveNotifyWheelMediocre = notifyWheelMediocre !== null ? notifyWheelMediocre : false;
+    const effectiveNotifyWheelAwesomeness = notifyWheelAwesomeness !== null ? notifyWheelAwesomeness : false;
 
     if (subscription) {
       // Update existing subscription
@@ -68,6 +100,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       subscription.notifyEducation = effectiveNotifyEducation;
       subscription.notifyInvestment = effectiveNotifyInvestment;
       subscription.notifyVirus = effectiveNotifyVirus;
+      subscription.notifyOC = effectiveNotifyOC;
+      subscription.notifyWheelLame = effectiveNotifyWheelLame;
+      subscription.notifyWheelMediocre = effectiveNotifyWheelMediocre;
+      subscription.notifyWheelAwesomeness = effectiveNotifyWheelAwesomeness;
       subscription.enabled = true;
       subscription.lastNotificationSent = null; // Reset to ensure notification is sent
       await subscription.save();
@@ -78,7 +114,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         hoursBeforeReset,
         notifyEducation: effectiveNotifyEducation,
         notifyInvestment: effectiveNotifyInvestment,
-        notifyVirus: effectiveNotifyVirus
+        notifyVirus: effectiveNotifyVirus,
+        notifyOC: effectiveNotifyOC,
+        notifyWheelLame: effectiveNotifyWheelLame,
+        notifyWheelMediocre: effectiveNotifyWheelMediocre,
+        notifyWheelAwesomeness: effectiveNotifyWheelAwesomeness
       });
     } else {
       // Create new subscription
@@ -89,6 +129,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         notifyEducation: effectiveNotifyEducation,
         notifyInvestment: effectiveNotifyInvestment,
         notifyVirus: effectiveNotifyVirus,
+        notifyOC: effectiveNotifyOC,
+        notifyWheelLame: effectiveNotifyWheelLame,
+        notifyWheelMediocre: effectiveNotifyWheelMediocre,
+        notifyWheelAwesomeness: effectiveNotifyWheelAwesomeness,
         enabled: true,
         lastNotificationSent: null
       });
@@ -100,7 +144,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         hoursBeforeReset,
         notifyEducation: effectiveNotifyEducation,
         notifyInvestment: effectiveNotifyInvestment,
-        notifyVirus: effectiveNotifyVirus
+        notifyVirus: effectiveNotifyVirus,
+        notifyOC: effectiveNotifyOC,
+        notifyWheelLame: effectiveNotifyWheelLame,
+        notifyWheelMediocre: effectiveNotifyWheelMediocre,
+        notifyWheelAwesomeness: effectiveNotifyWheelAwesomeness
       });
     }
 
@@ -128,6 +176,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     if (effectiveNotifyEducation) notificationSettings.push('Education');
     if (effectiveNotifyInvestment) notificationSettings.push('Investment');
     if (effectiveNotifyVirus) notificationSettings.push('Virus Coding');
+    if (effectiveNotifyOC) notificationSettings.push('Faction OC');
+    if (effectiveNotifyWheelLame) notificationSettings.push('Wheel of Lame');
+    if (effectiveNotifyWheelMediocre) notificationSettings.push('Wheel of Mediocre');
+    if (effectiveNotifyWheelAwesomeness) notificationSettings.push('Wheel of Awesomeness');
 
     const embed = new EmbedBuilder()
       .setTitle('✅ Minmax Subscription Active')
@@ -142,7 +194,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           value: [
             '• ✅ City items bought (100/day)',
             '• ✅ Energy refills (1/day)',
-            notificationSettings.length > 0 ? `• ✅ Activities: ${notificationSettings.join(', ')}` : ''
+            '• ✅ Casino tickets (75/day) - requires full API key',
+            notificationSettings.length > 0 ? `• ✅ Optional: ${notificationSettings.join(', ')}` : ''
           ].filter(Boolean).join('\n')
         },
         { name: '\u200B', value: "You'll receive ONE notification per day if you haven't completed these tasks.\n\nTo unsubscribe, use `/minmaxunsub`" }

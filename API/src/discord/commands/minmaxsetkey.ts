@@ -76,6 +76,31 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     const { id: tornId, name, level } = tornUserData.profile;
 
+    // Detect API key type (full vs limited)
+    let apiKeyType: 'full' | 'limited' = 'limited';
+    try {
+      const logResponse = await axios.get(
+        `https://api.torn.com/v2/user/log?limit=1&key=${apiKey}`
+      );
+      // If we can access logs, it's a full key
+      if (logResponse.data && !logResponse.data.error) {
+        apiKeyType = 'full';
+        await logApiCall('user/log', 'discord-command');
+      }
+    } catch (error: any) {
+      // Check if it's a permission error (error code 16)
+      if (error.response?.data?.error?.code === 16) {
+        apiKeyType = 'limited';
+      } else {
+        // Some other error, log it but assume limited
+        logError('Error detecting API key type', error instanceof Error ? error : new Error(String(error)), {
+          discordId,
+          tornId
+        });
+        apiKeyType = 'limited';
+      }
+    }
+
     // Encrypt the API key before storing
     const encryptedApiKey = encrypt(apiKey);
 
@@ -87,6 +112,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       existingUser.tornId = tornId;
       existingUser.name = name;
       existingUser.apiKey = encryptedApiKey;
+      existingUser.apiKeyType = apiKeyType;
       existingUser.level = level;
       await existingUser.save();
 
@@ -94,7 +120,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         discordId,
         tornId,
         name,
-        level
+        level,
+        apiKeyType
       });
     } else {
       // Create new user
@@ -103,6 +130,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         tornId,
         name,
         apiKey: encryptedApiKey,
+        apiKeyType,
         level
       });
       await newUser.save();
@@ -111,7 +139,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         discordId,
         tornId,
         name,
-        level
+        level,
+        apiKeyType
       });
     }
 
@@ -126,8 +155,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       });
     }
 
+    const keyTypeMessage = apiKeyType === 'full' 
+      ? '\n\n✅ **Full API key detected** - You can use all minmax features including casino tickets and wheel spins.'
+      : '\n\n⚠️ **Limited API key detected** - Some features (casino tickets, wheel spins) require a full API key.';
+
     await interaction.editReply({
-      content: `✅ Your Torn API key was saved successfully.\nLinked to **${name}** (ID: ${tornId})`,
+      content: `✅ Your Torn API key was saved successfully.\nLinked to **${name}** (ID: ${tornId})${keyTypeMessage}`,
     });
   } catch (err) {
     logError('Error in /minmaxsetkey command', err instanceof Error ? err : new Error(String(err)));

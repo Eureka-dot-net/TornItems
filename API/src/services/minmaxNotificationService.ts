@@ -63,6 +63,11 @@ export async function checkMinMaxSubscriptions() {
           incompleteTasks.push(`❌ **Energy Refill:** ${status.energyRefill.current}/${status.energyRefill.target}`);
         }
         
+        // Check casino tickets (non-optional, but only if user has full key)
+        if (status.casinoTickets && !status.casinoTickets.completed) {
+          incompleteTasks.push(`❌ **Casino Tickets:** ${status.casinoTickets.used}/${status.casinoTickets.target}`);
+        }
+        
         // Check optional activities
         if (subscription.notifyEducation && status.education && !status.education.active) {
           incompleteTasks.push(`❌ **Education:** Not enrolled`);
@@ -72,6 +77,22 @@ export async function checkMinMaxSubscriptions() {
         }
         if (subscription.notifyVirus && status.virusCoding && !status.virusCoding.active) {
           incompleteTasks.push(`❌ **Virus Coding:** Not coding`);
+        }
+        if (subscription.notifyOC && status.factionOC && !status.factionOC.active) {
+          incompleteTasks.push(`❌ **Faction OC:** Not in OC`);
+        }
+        
+        // Check wheel spins (optional)
+        if (status.wheels) {
+          if (subscription.notifyWheelLame && !status.wheels.lame.spun) {
+            incompleteTasks.push(`❌ **Wheel of Lame:** Not spun`);
+          }
+          if (subscription.notifyWheelMediocre && !status.wheels.mediocre.spun) {
+            incompleteTasks.push(`❌ **Wheel of Mediocre:** Not spun`);
+          }
+          if (subscription.notifyWheelAwesomeness && !status.wheels.awesomeness.spun) {
+            incompleteTasks.push(`❌ **Wheel of Awesomeness:** Not spun`);
+          }
         }
         
         // Only send notification if there are incomplete tasks

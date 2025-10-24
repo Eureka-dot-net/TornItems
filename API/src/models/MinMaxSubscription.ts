@@ -11,6 +11,10 @@ export interface IMinMaxSubscription extends Document {
   notifyEducation: boolean; // Whether to notify about missing education
   notifyInvestment: boolean; // Whether to notify about missing investment
   notifyVirus: boolean; // Whether to notify about missing virus coding
+  notifyOC: boolean; // Whether to notify about missing faction OC
+  notifyWheelLame: boolean; // Whether to notify about Wheel of Lame not spun
+  notifyWheelMediocre: boolean; // Whether to notify about Wheel of Mediocre not spun
+  notifyWheelAwesomeness: boolean; // Whether to notify about Wheel of Awesomeness not spun
   lastNotificationSent?: Date | null; // Track when last notification was sent (date only, no time)
   enabled: boolean;
   createdAt: Date;
@@ -24,6 +28,10 @@ const MinMaxSubscriptionSchema = new Schema<IMinMaxSubscription>({
   notifyEducation: { type: Boolean, default: true },
   notifyInvestment: { type: Boolean, default: true },
   notifyVirus: { type: Boolean, default: true },
+  notifyOC: { type: Boolean, default: true },
+  notifyWheelLame: { type: Boolean, default: true },
+  notifyWheelMediocre: { type: Boolean, default: true },
+  notifyWheelAwesomeness: { type: Boolean, default: true },
   lastNotificationSent: { type: Date, default: null },
   enabled: { type: Boolean, default: true, index: true },
 }, {
