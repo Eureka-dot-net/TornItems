@@ -54,10 +54,15 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       activities.push(`${status.factionOC.active ? '✅' : '❌'} **Faction OC:** ${status.factionOC.active ? 'Yes' : 'No'}`);
     
     const casinoActivities = [];
+    let needsFullKeyMessage = false;
+    
     if (status.casinoTickets) {
       const ticketIcon = status.casinoTickets.completed ? '✅' : '❌';
       casinoActivities.push(`${ticketIcon} **Casino Tickets:** ${status.casinoTickets.used}/${status.casinoTickets.target}`);
+    } else if (user.apiKeyType !== 'full') {
+      needsFullKeyMessage = true;
     }
+    
     if (status.wheels) {
       const lameIcon = status.wheels.lame.spun ? '✅' : '❌';
       const mediocreIcon = status.wheels.mediocre.spun ? '✅' : '❌';
@@ -65,6 +70,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       casinoActivities.push(`${lameIcon} **Wheel of Lame:** ${status.wheels.lame.spun ? 'Yes' : 'No'}`);
       casinoActivities.push(`${mediocreIcon} **Wheel of Mediocre:** ${status.wheels.mediocre.spun ? 'Yes' : 'No'}`);
       casinoActivities.push(`${awesomenessIcon} **Wheel of Awesomeness:** ${status.wheels.awesomeness.spun ? 'Yes' : 'No'}`);
+    } else if (user.apiKeyType !== 'full') {
+      needsFullKeyMessage = true;
     }
 
     const embed = new EmbedBuilder()
@@ -99,6 +106,20 @@ export async function execute(interaction: ChatInputCommandInteraction) {
             {
               name: '🎰 Casino Activities',
               value: casinoActivities.join('\n'),
+              inline: false,
+            }
+          ]
+          : []),
+        ...(needsFullKeyMessage
+          ? [
+            {
+              name: '',
+              value: '\u00A0',
+              inline: false,
+            },
+            {
+              name: 'ℹ️ Want Casino & Wheel Tracking?',
+              value: 'To see casino tickets and wheel spin tracking, you need a **full API key**.\n\nRun `/minmaxsetkey` with a full API key to enable these features.',
               inline: false,
             }
           ]

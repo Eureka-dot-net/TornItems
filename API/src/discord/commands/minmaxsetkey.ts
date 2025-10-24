@@ -5,6 +5,7 @@ import { encrypt } from '../../utils/encryption';
 import { DiscordUserManager } from '../../services/DiscordUserManager';
 import { logInfo, logError } from '../../utils/logger';
 import { logApiCall } from '../../utils/apiCallLogger';
+import { detectApiKeyType } from '../../utils/minmaxHelper';
 
 export const data = new SlashCommandBuilder()
   .setName('minmaxsetkey')
@@ -77,29 +78,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const { id: tornId, name, level } = tornUserData.profile;
 
     // Detect API key type (full vs limited)
-    let apiKeyType: 'full' | 'limited' = 'limited';
-    try {
-      const logResponse = await axios.get(
-        `https://api.torn.com/v2/user/log?limit=1&key=${apiKey}`
-      );
-      // If we can access logs, it's a full key
-      if (logResponse.data && !logResponse.data.error) {
-        apiKeyType = 'full';
-        await logApiCall('user/log', 'discord-command');
-      }
-    } catch (error: any) {
-      // Check if it's a permission error (error code 16)
-      if (error.response?.data?.error?.code === 16) {
-        apiKeyType = 'limited';
-      } else {
-        // Some other error, log it but assume limited
-        logError('Error detecting API key type', error instanceof Error ? error : new Error(String(error)), {
-          discordId,
-          tornId
-        });
-        apiKeyType = 'limited';
-      }
-    }
+    const apiKeyType = await detectApiKeyType(apiKey);
 
     // Encrypt the API key before storing
     const encryptedApiKey = encrypt(apiKey);

@@ -3,7 +3,7 @@ import { DiscordUser } from '../models/DiscordUser';
 import { UserActivityCache } from '../models/UserActivityCache';
 import { decrypt } from '../utils/encryption';
 import { logApiCall } from '../utils/apiCallLogger';
-import { logError } from '../utils/logger';
+import { logError, logInfo } from '../utils/logger';
 
 // Response format for current stats (cat=all)
 interface PersonalStatsCurrentResponse {
@@ -156,6 +156,32 @@ export interface MinMaxStatus {
 }
 
 /**
+ * Detect if an API key has full or limited access
+ * @param apiKey - The Torn API key to test
+ * @returns 'full' if the key can access logs, 'limited' otherwise
+ */
+export async function detectApiKeyType(apiKey: string): Promise<'full' | 'limited'> {
+  try {
+    const logResponse = await axios.get(
+      `https://api.torn.com/v2/user/log?limit=1&key=${apiKey}`
+    );
+    // If we can access logs, it's a full key
+    if (logResponse.data && !logResponse.data.error) {
+      await logApiCall('user/log', 'api-key-detection');
+      return 'full';
+    }
+  } catch (error: any) {
+    // Check if it's a permission error (error code 16)
+    if (error.response?.data?.error?.code === 16) {
+      return 'limited';
+    }
+    // Some other error, log it but assume limited
+    logError('Error detecting API key type', error instanceof Error ? error : new Error(String(error)));
+  }
+  return 'limited';
+}
+
+/**
  * Fetch minmax status for a user
  * @param discordId - Discord user ID
  * @param targetUserId - Optional target user ID (defaults to user's own tornId)
@@ -176,6 +202,15 @@ export async function fetchMinMaxStatus(
 
   // Decrypt the API key
   const apiKey = decrypt(user.apiKey);
+
+  // Check if API key type is not set and detect it
+  if (!user.apiKeyType) {
+    logInfo('API key type not set, detecting...', { discordId, tornId: user.tornId });
+    const detectedType = await detectApiKeyType(apiKey);
+    user.apiKeyType = detectedType;
+    await user.save();
+    logInfo('API key type detected and saved', { discordId, tornId: user.tornId, apiKeyType: detectedType });
+  }
 
   // Determine which user's stats to fetch (default to the user's own tornId)
   const userId = targetUserId || user.tornId;
