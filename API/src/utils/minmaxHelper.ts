@@ -423,8 +423,9 @@ export async function fetchMinMaxStatus(
       investment: cachedData?.investment && !fetchInvestment ? { active: cachedData.investment.active, until: cachedData.investment.until } : undefined,
       virusCoding: cachedData?.virusCoding && !fetchVirusCoding ? { active: cachedData.virusCoding.active, until: cachedData.virusCoding.until } : undefined,
       factionOC: cachedData?.factionOC && !fetchFactionOC ? { active: cachedData.factionOC.active } : undefined,
-      casinoTickets: cachedData?.casinoTickets && !fetchCasinoTickets ? { used: cachedData.casinoTickets.used, target: 75, completed: cachedData.casinoTickets.completedToday } : undefined,
-      wheels: cachedData?.wheels && !fetchWheels ? {
+      // Only use cached casino/wheel data if user has full key
+      casinoTickets: hasFullKey && cachedData?.casinoTickets && !fetchCasinoTickets ? { used: cachedData.casinoTickets.used, target: 75, completed: cachedData.casinoTickets.completedToday } : undefined,
+      wheels: hasFullKey && cachedData?.wheels && !fetchWheels ? {
         lame: { spun: cachedData.wheels.lame.spun },
         mediocre: { spun: cachedData.wheels.mediocre.spun },
         awesomeness: { spun: cachedData.wheels.awesomeness.spun }
