@@ -7,6 +7,7 @@ export interface IDiscordUser extends Document {
   apiKey: string; // Encrypted
   apiKeyType?: 'full' | 'limited'; // Type of API key (full allows log access, limited does not)
   level: number;
+  factionId?: number; // User's faction ID
   hasPrivateIsland: boolean; // Global setting for travel notifications
   itemsToBuy: number; // Global setting for travel notifications
   createdAt: Date;
@@ -20,6 +21,7 @@ const DiscordUserSchema = new Schema<IDiscordUser>({
   apiKey: { type: String, required: true }, // Stored encrypted
   apiKeyType: { type: String, enum: ['full', 'limited'], default: 'limited' },
   level: { type: Number, required: true },
+  factionId: { type: Number, index: true },
   hasPrivateIsland: { type: Boolean, default: false },
   itemsToBuy: { type: Number, default: 19 }
 }, {
