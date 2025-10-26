@@ -26,7 +26,8 @@ interface FactionChainResponse {
 }
 
 // Track notifications sent to avoid spamming
-const notificationCache = new Map<string, number>();
+// Key format: "discordId-factionId", Value: { timestamp, chainCurrent }
+const notificationCache = new Map<string, { timestamp: number; chainCurrent: number }>();
 const NOTIFICATION_COOLDOWN_MS = 60000; // 1 minute cooldown between notifications per user
 
 // Track which user's API key was used last for each faction (for round-robin)
@@ -113,12 +114,17 @@ async function checkChainWatches() {
           // Notify users whose threshold is above current timeout
           for (const watch of watches) {
             if (timeout <= watch.secondsBeforeFail) {
-              // Check notification cooldown
               const cacheKey = `${watch.discordId}-${factionId}`;
               const lastNotification = notificationCache.get(cacheKey);
               
-              if (lastNotification && (now - lastNotification) < NOTIFICATION_COOLDOWN_MS) {
-                // Skip notification due to cooldown
+              // Check if we should send a notification:
+              // 1. No previous notification, OR
+              // 2. Chain current has changed (increased), meaning chain was extended
+              const shouldNotify = !lastNotification || 
+                                   lastNotification.chainCurrent !== chainData.current;
+              
+              if (!shouldNotify) {
+                // Already notified for this chain current value
                 continue;
               }
               
@@ -131,8 +137,11 @@ async function checkChainWatches() {
               
               await sendDiscordChannelAlert(watch.channelId, message);
               
-              // Update notification cache
-              notificationCache.set(cacheKey, now);
+              // Update notification cache with timestamp and chain current value
+              notificationCache.set(cacheKey, { 
+                timestamp: now, 
+                chainCurrent: chainData.current 
+              });
               
               logInfo('Sent chain timeout notification', {
                 discordId: watch.discordId,
@@ -153,8 +162,8 @@ async function checkChainWatches() {
     
     // Clean up old notification cache entries (older than 5 minutes)
     const cleanupTime = now - 300000;
-    for (const [key, timestamp] of notificationCache.entries()) {
-      if (timestamp < cleanupTime) {
+    for (const [key, value] of notificationCache.entries()) {
+      if (value.timestamp < cleanupTime) {
         notificationCache.delete(key);
       }
     }
@@ -169,8 +178,8 @@ async function checkChainWatches() {
 export function startChainWatchService() {
   logInfo('Starting chain watch service...');
   
-  // Run every 10 seconds to check chain timeouts
-  cron.schedule('*/10 * * * * *', () => {
+  // Run every 5 seconds to check chain timeouts
+  cron.schedule('*/5 * * * * *', () => {
     checkChainWatches().catch(error => {
       logError('Unhandled error in chain watch service', error instanceof Error ? error : new Error(String(error)));
     });
