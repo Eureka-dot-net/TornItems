@@ -621,7 +621,7 @@ export async function fetchMinMaxStatus(
                     const wheelName = entry.data.wheel.toLowerCase();
                     if (wheelName.includes('lame')) {
                       wheelsSpun.lame = true;
-                    } else if (wheelName.includes('mediocre')) {
+                    } else if (wheelName.includes('mediocr')) {
                       wheelsSpun.mediocre = true;
                     } else if (wheelName.includes('awesome')) {
                       wheelsSpun.awesomeness = true;

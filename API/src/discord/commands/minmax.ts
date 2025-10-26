@@ -58,7 +58,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     
     if (status.casinoTickets) {
       const ticketIcon = status.casinoTickets.completed ? '✅' : '❌';
-      casinoActivities.push(`${ticketIcon} **Casino Tickets:** ${status.casinoTickets.used}/${status.casinoTickets.target}`);
+      casinoActivities.push(`${ticketIcon} **Tokens Used:** ${status.casinoTickets.used}/${status.casinoTickets.target}`);
     } else if (user.apiKeyType !== 'full') {
       needsFullKeyMessage = true;
     }
@@ -68,7 +68,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       const mediocreIcon = status.wheels.mediocre.spun ? '✅' : '❌';
       const awesomenessIcon = status.wheels.awesomeness.spun ? '✅' : '❌';
       casinoActivities.push(`${lameIcon} **Wheel of Lame:** ${status.wheels.lame.spun ? 'Yes' : 'No'}`);
-      casinoActivities.push(`${mediocreIcon} **Wheel of Mediocre:** ${status.wheels.mediocre.spun ? 'Yes' : 'No'}`);
+      casinoActivities.push(`${mediocreIcon} **Wheel of Mediocrity:** ${status.wheels.mediocre.spun ? 'Yes' : 'No'}`);
       casinoActivities.push(`${awesomenessIcon} **Wheel of Awesomeness:** ${status.wheels.awesomeness.spun ? 'Yes' : 'No'}`);
     } else if (user.apiKeyType !== 'full') {
       needsFullKeyMessage = true;
