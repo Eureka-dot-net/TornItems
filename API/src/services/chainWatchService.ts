@@ -29,6 +29,9 @@ interface FactionChainResponse {
 const notificationCache = new Map<string, number>();
 const NOTIFICATION_COOLDOWN_MS = 60000; // 1 minute cooldown between notifications per user
 
+// Track which user's API key was used last for each faction (for round-robin)
+const lastUsedKeyIndex = new Map<number, number>();
+
 /**
  * Monitor faction chains and send notifications when timeout is low
  */
@@ -54,9 +57,10 @@ async function checkChainWatches() {
     // Process each faction
     for (const [factionId, watches] of factionWatches.entries()) {
       try {
-        // Get ALL users in this faction (not just those with chain watches)
-        // This allows us to rotate through all faction members' API keys
+        // Get users who have chain watches enabled in this faction
+        const userIds = watches.map(w => w.discordId);
         const users = await DiscordUser.find({ 
+          discordId: { $in: userIds },
           factionId: factionId 
         }).lean();
         
@@ -65,42 +69,41 @@ async function checkChainWatches() {
           continue;
         }
         
-        // Round-robin through API keys to distribute load
+        // Round-robin: Get the next user's API key to use
+        const lastIndex = lastUsedKeyIndex.get(factionId) || 0;
+        const nextIndex = (lastIndex + 1) % users.length;
+        const userToUse = users[nextIndex];
+        
+        // Update the index for next time
+        lastUsedKeyIndex.set(factionId, nextIndex);
+        
+        // Fetch chain data using this user's API key
         let chainData: FactionChainResponse['chain'] = null;
-        let apiSuccess = false;
         
-        for (const user of users) {
-          try {
-            const apiKey = decrypt(user.apiKey);
-            const response = await axios.get<FactionChainResponse>(
-              `https://api.torn.com/v2/faction/chain?key=${apiKey}`
-            );
-            
-            await logApiCall('faction/chain', 'chain-watch-service');
-            
-            if (response.data.error) {
-              logError('Torn API error for faction chain', new Error(response.data.error.error), { 
-                factionId,
-                errorCode: response.data.error.code 
-              });
-              continue; // Try next API key
-            }
-            
-            chainData = response.data.chain || null;
-            apiSuccess = true;
-            break; // Successfully got data, stop trying other keys
-          } catch (error: any) {
-            logError('Failed to fetch faction chain', error instanceof Error ? error : new Error(String(error)), {
+        try {
+          const apiKey = decrypt(userToUse.apiKey);
+          const response = await axios.get<FactionChainResponse>(
+            `https://api.torn.com/v2/faction/chain?key=${apiKey}`
+          );
+          
+          await logApiCall('faction/chain', 'chain-watch-service');
+          
+          if (response.data.error) {
+            logError('Torn API error for faction chain', new Error(response.data.error.error), { 
               factionId,
-              tornId: user.tornId
+              errorCode: response.data.error.code,
+              tornId: userToUse.tornId
             });
-            // Continue to next API key
+            continue; // Skip this faction this cycle
           }
-        }
-        
-        if (!apiSuccess) {
-          logError('Failed to fetch chain data for faction', new Error('All API calls failed'), { factionId });
-          continue;
+          
+          chainData = response.data.chain || null;
+        } catch (error: any) {
+          logError('Failed to fetch faction chain', error instanceof Error ? error : new Error(String(error)), {
+            factionId,
+            tornId: userToUse.tornId
+          });
+          continue; // Skip this faction this cycle
         }
         
         // Check if chain is active and timeout is low
