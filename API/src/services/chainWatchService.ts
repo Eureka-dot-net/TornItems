@@ -54,10 +54,9 @@ async function checkChainWatches() {
     // Process each faction
     for (const [factionId, watches] of factionWatches.entries()) {
       try {
-        // Get API keys from users in this faction
-        const userIds = watches.map(w => w.discordId);
+        // Get ALL users in this faction (not just those with chain watches)
+        // This allows us to rotate through all faction members' API keys
         const users = await DiscordUser.find({ 
-          discordId: { $in: userIds },
           factionId: factionId 
         }).lean();
         
