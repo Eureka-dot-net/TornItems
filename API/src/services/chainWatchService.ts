@@ -33,6 +33,10 @@ const NOTIFICATION_COOLDOWN_MS = 60000; // 1 minute cooldown between notificatio
 // Track which user's API key was used last for each faction (for round-robin)
 const lastUsedKeyIndex = new Map<number, number>();
 
+// Track next check time per faction for smart API call optimization
+// Key: factionId, Value: timestamp when we should next check this faction
+const nextCheckTime = new Map<number, number>();
+
 /**
  * Monitor faction chains and send notifications when timeout is low
  */
@@ -58,6 +62,13 @@ async function checkChainWatches() {
     // Process each faction
     for (const [factionId, watches] of factionWatches.entries()) {
       try {
+        // Check if we should skip this faction based on smart scheduling
+        const scheduledCheckTime = nextCheckTime.get(factionId);
+        if (scheduledCheckTime && now < scheduledCheckTime) {
+          // Not time to check this faction yet
+          continue;
+        }
+        
         // Get users who have chain watches enabled in this faction
         const userIds = watches.map(w => w.discordId);
         const users = await DiscordUser.find({ 
@@ -69,6 +80,9 @@ async function checkChainWatches() {
           logError('No users found for faction chain watch', new Error('No users'), { factionId });
           continue;
         }
+        
+        // Find the minimum (most aggressive) threshold among all watchers
+        const minThreshold = Math.min(...watches.map(w => w.secondsBeforeFail));
         
         // Round-robin: Get the next user's API key to use
         const lastIndex = lastUsedKeyIndex.get(factionId) || 0;
@@ -111,6 +125,28 @@ async function checkChainWatches() {
         if (chainData && chainData.timeout > 0) {
           const timeout = chainData.timeout;
           
+          // Calculate next check time based on current timeout and minimum threshold
+          // If timeout is well above the threshold, we don't need to check every 5 seconds
+          // Formula: if timeout > minThreshold, check when timeout gets close to minThreshold
+          // Add a 10-second buffer to ensure we don't miss the threshold
+          const bufferSeconds = 10;
+          if (timeout > minThreshold + bufferSeconds) {
+            // Schedule next check for when timeout will be close to threshold
+            const secondsUntilCheck = timeout - minThreshold - bufferSeconds;
+            const nextCheck = now + (secondsUntilCheck * 1000);
+            nextCheckTime.set(factionId, nextCheck);
+            
+            logInfo('Scheduled next chain check', {
+              factionId,
+              currentTimeout: timeout,
+              minThreshold,
+              secondsUntilNextCheck: secondsUntilCheck
+            });
+          } else {
+            // We're in the danger zone, check every cycle
+            nextCheckTime.delete(factionId);
+          }
+          
           // Notify users whose threshold is above current timeout
           for (const watch of watches) {
             if (timeout <= watch.secondsBeforeFail) {
@@ -152,6 +188,9 @@ async function checkChainWatches() {
               });
             }
           }
+        } else {
+          // Chain is not active or timeout is 0, clear any scheduled check
+          nextCheckTime.delete(factionId);
         }
       } catch (error) {
         logError('Error processing faction chain watches', error instanceof Error ? error : new Error(String(error)), {
