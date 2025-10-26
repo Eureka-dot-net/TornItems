@@ -13,7 +13,7 @@ export interface IMinMaxSubscription extends Document {
   notifyVirus: boolean; // Whether to notify about missing virus coding
   notifyOC: boolean; // Whether to notify about missing faction OC
   notifyWheelLame: boolean; // Whether to notify about Wheel of Lame not spun
-  notifyWheelMediocre: boolean; // Whether to notify about Wheel of Mediocre not spun
+  notifyWheelMediocre: boolean; // Whether to notify about Wheel of Mediocrity not spun
   notifyWheelAwesomeness: boolean; // Whether to notify about Wheel of Awesomeness not spun
   lastNotificationSent?: Date | null; // Track when last notification was sent (date only, no time)
   enabled: boolean;

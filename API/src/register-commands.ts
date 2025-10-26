@@ -9,7 +9,7 @@ import { join } from 'path';
 
 const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
-const GUILD_ID = process.env.DISCORD_GUILD_ID;
+const GUILD_IDS = process.env.DISCORD_GUILD_ID; // Can be comma-separated list
 
 if (!TOKEN || !CLIENT_ID) {
   throw new Error('Missing DISCORD_TOKEN or DISCORD_CLIENT_ID in .env');
@@ -43,12 +43,17 @@ async function registerCommands() {
   try {
     console.log(`📡 Registering ${commands.length} slash commands...`);
 
-    if (GUILD_ID && CLIENT_ID) {
+    if (GUILD_IDS && CLIENT_ID) {
       // Guild commands (instant update for testing)
-      await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), {
-        body: commands,
-      });
-      console.log(`✅ Registered guild commands for ${GUILD_ID}`);
+      // Support comma-separated list of guild IDs
+      const guildIdList = GUILD_IDS.split(',').map(id => id.trim()).filter(id => id);
+      
+      for (const guildId of guildIdList) {
+        await rest.put(Routes.applicationGuildCommands(CLIENT_ID, guildId), {
+          body: commands,
+        });
+        console.log(`✅ Registered guild commands for ${guildId}`);
+      }
     } else if (CLIENT_ID) {
       // Global commands (takes up to 1 hour to show)
       await rest.put(Routes.applicationCommands(CLIENT_ID), {

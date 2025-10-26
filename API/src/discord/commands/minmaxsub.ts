@@ -47,7 +47,7 @@ export const data = new SlashCommandBuilder()
   .addBooleanOption(option =>
     option
       .setName('notifywheelmediocre')
-      .setDescription('Notify if Wheel of Mediocre not spun (default: true)')
+      .setDescription('Notify if Wheel of Mediocrity not spun (default: true)')
       .setRequired(false)
   )
   .addBooleanOption(option =>
@@ -178,7 +178,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     if (effectiveNotifyVirus) notificationSettings.push('Virus Coding');
     if (effectiveNotifyOC) notificationSettings.push('Faction OC');
     if (effectiveNotifyWheelLame) notificationSettings.push('Wheel of Lame');
-    if (effectiveNotifyWheelMediocre) notificationSettings.push('Wheel of Mediocre');
+    if (effectiveNotifyWheelMediocre) notificationSettings.push('Wheel of Mediocrity');
     if (effectiveNotifyWheelAwesomeness) notificationSettings.push('Wheel of Awesomeness');
 
     const embed = new EmbedBuilder()

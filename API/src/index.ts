@@ -13,6 +13,7 @@ import { logInfo, logError } from './utils/logger';
 import { startScheduler } from './services/backgroundFetcher';
 import { startDiscordBot } from './services/discordBot';
 import { startTravelNotificationService } from './services/travelNotificationService';
+import { startChainWatchService } from './services/chainWatchService';
 
 const PORT = process.env.PORT || 3000;
 
@@ -64,6 +65,9 @@ connectDB()
         
         // Start the travel notification service
         startTravelNotificationService();
+        
+        // Start the chain watch service
+        startChainWatchService();
     })
     .catch((error) => {
         logError('Database connection failed', error);

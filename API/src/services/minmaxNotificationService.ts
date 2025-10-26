@@ -88,7 +88,7 @@ export async function checkMinMaxSubscriptions() {
             incompleteTasks.push(`❌ **Wheel of Lame:** Not spun`);
           }
           if (subscription.notifyWheelMediocre && !status.wheels.mediocre.spun) {
-            incompleteTasks.push(`❌ **Wheel of Mediocre:** Not spun`);
+            incompleteTasks.push(`❌ **Wheel of Mediocrity:** Not spun`);
           }
           if (subscription.notifyWheelAwesomeness && !status.wheels.awesomeness.spun) {
             incompleteTasks.push(`❌ **Wheel of Awesomeness:** Not spun`);
