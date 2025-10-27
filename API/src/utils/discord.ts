@@ -27,13 +27,14 @@ export async function sendDiscordAlert(message: string): Promise<void> {
  * Sends a message to a specific Discord channel using the bot client
  * @param channelId - The Discord channel ID
  * @param message - The message content to send
+ * @returns true if the message was sent successfully, false otherwise
  */
-export async function sendDiscordChannelAlert(channelId: string, message: string): Promise<void> {
+export async function sendDiscordChannelAlert(channelId: string, message: string): Promise<boolean> {
   const client = getDiscordClient();
   
   if (!client || !client.isReady()) {
     logError('Discord bot not ready', new Error('Discord client is not initialized or not ready'));
-    return;
+    return false;
   }
   
   try {
@@ -41,18 +42,21 @@ export async function sendDiscordChannelAlert(channelId: string, message: string
     
     if (!channel || !channel.isTextBased()) {
       logError('Invalid channel or not a text channel', new Error(`Channel ${channelId} is not a text channel`));
-      return;
+      return false;
     }
     
     // Type guard to ensure we have a sendable channel
     if (channel instanceof TextChannel || 'send' in channel) {
       await (channel as any).send({ content: message.substring(0, 2000) }); // Discord message limit
       logInfo('Discord channel alert sent successfully', { channelId });
+      return true;
     } else {
       logError('Channel does not support sending messages', new Error(`Channel ${channelId} cannot send messages`));
+      return false;
     }
   } catch (error) {
     logError('Failed to send Discord channel alert', error instanceof Error ? error : new Error(String(error)), { channelId });
+    return false;
   }
 }
 

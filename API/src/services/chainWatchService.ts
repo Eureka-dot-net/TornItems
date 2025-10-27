@@ -155,12 +155,9 @@ async function checkChainWatches() {
               
               // Check if we should send a notification:
               // 1. No previous notification, OR
-              // 2. Chain current has changed (increased), meaning chain was extended, OR
-              // 3. Cooldown period has expired (chain is still in danger, send periodic reminders)
-              const cooldownExpired = lastNotification && (now - lastNotification.timestamp) >= NOTIFICATION_COOLDOWN_MS;
+              // 2. Chain current has changed (increased), meaning chain was extended
               const shouldNotify = !lastNotification || 
-                                   lastNotification.chainCurrent !== chainData.current ||
-                                   cooldownExpired;
+                                   lastNotification.chainCurrent !== chainData.current;
               
               if (!shouldNotify) {
                 // Already notified for this chain current value
@@ -174,21 +171,29 @@ async function checkChainWatches() {
                 `📊 **Modifier:** ${chainData.modifier.toFixed(2)}x\n\n` +
                 `Someone needs to attack to keep the chain alive!`;
               
-              await sendDiscordChannelAlert(watch.channelId, message);
+              const notificationSent = await sendDiscordChannelAlert(watch.channelId, message);
               
-              // Update notification cache with timestamp and chain current value
-              notificationCache.set(cacheKey, { 
-                timestamp: now, 
-                chainCurrent: chainData.current 
-              });
-              
-              logInfo('Sent chain timeout notification', {
-                discordId: watch.discordId,
-                factionId,
-                timeout,
-                threshold: watch.secondsBeforeFail,
-                chainCurrent: chainData.current
-              });
+              // Only update cache if notification was successfully sent
+              if (notificationSent) {
+                notificationCache.set(cacheKey, { 
+                  timestamp: now, 
+                  chainCurrent: chainData.current 
+                });
+                
+                logInfo('Sent chain timeout notification', {
+                  discordId: watch.discordId,
+                  factionId,
+                  timeout,
+                  threshold: watch.secondsBeforeFail,
+                  chainCurrent: chainData.current
+                });
+              } else {
+                logError('Failed to send chain notification, cache not updated', new Error('Notification delivery failed'), {
+                  discordId: watch.discordId,
+                  factionId,
+                  chainCurrent: chainData.current
+                });
+              }
             }
           }
         } else {

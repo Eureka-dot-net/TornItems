@@ -217,18 +217,26 @@ export async function monitorMarketPrices(): Promise<void> {
               const message = messageParts.filter(Boolean).join('\n');
               
               // Send Discord alert to user's channel
-              await sendDiscordChannelAlert(watch.channelId, message);
+              const notificationSent = await sendDiscordChannelAlert(watch.channelId, message);
               
-              // Update last alert info to prevent duplicate alerts
-              await MarketWatchlistItem.updateOne(
-                { _id: watch._id },
-                { 
-                  lastAlertPrice: lowestPrice,
-                  lastAlertTimestamp: new Date()
-                }
-              );
-              
-              logInfo(`Alert sent for ${watch.name} at $${lowestPrice.toLocaleString()} to user ${watch.discordUserId}`);
+              // Only update database if notification was successfully sent
+              if (notificationSent) {
+                await MarketWatchlistItem.updateOne(
+                  { _id: watch._id },
+                  { 
+                    lastAlertPrice: lowestPrice,
+                    lastAlertTimestamp: new Date()
+                  }
+                );
+                
+                logInfo(`Alert sent for ${watch.name} at $${lowestPrice.toLocaleString()} to user ${watch.discordUserId}`);
+              } else {
+                logError('Failed to send market price alert, database not updated', new Error('Notification delivery failed'), {
+                  discordUserId: watch.discordUserId,
+                  itemName: watch.name,
+                  price: lowestPrice
+                });
+              }
             } else {
               // Price is above threshold, reset last alert price so we can alert again if it drops
               if (watch.lastAlertPrice !== null) {

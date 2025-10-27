@@ -107,20 +107,27 @@ export async function checkMinMaxSubscriptions() {
             `Use \`/minmax\` to check your progress.\n` +
             `Use \`/minmaxunsub\` to unsubscribe from these reminders.`;
           
-          await sendDiscordChannelAlert(subscription.channelId, message);
+          const notificationSent = await sendDiscordChannelAlert(subscription.channelId, message);
           
-          // Update last notification sent date
-          await MinMaxSubscription.updateOne(
-            { _id: subscription._id },
-            { lastNotificationSent: now }
-          );
-          
-          logInfo('Sent minmax notification', {
-            discordUserId: subscription.discordUserId,
-            channelId: subscription.channelId,
-            incompleteTasks: incompleteTasks.length,
-            hoursBeforeReset: subscription.hoursBeforeReset
-          });
+          // Only update database if notification was successfully sent
+          if (notificationSent) {
+            await MinMaxSubscription.updateOne(
+              { _id: subscription._id },
+              { lastNotificationSent: now }
+            );
+            
+            logInfo('Sent minmax notification', {
+              discordUserId: subscription.discordUserId,
+              channelId: subscription.channelId,
+              incompleteTasks: incompleteTasks.length,
+              hoursBeforeReset: subscription.hoursBeforeReset
+            });
+          } else {
+            logError('Failed to send minmax notification, database not updated', new Error('Notification delivery failed'), {
+              discordUserId: subscription.discordUserId,
+              channelId: subscription.channelId
+            });
+          }
         } else {
           // All tasks completed - update last notification sent to prevent checking again today
           await MinMaxSubscription.updateOne(
