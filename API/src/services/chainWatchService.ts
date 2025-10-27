@@ -144,6 +144,7 @@ async function checkChainWatches() {
           }
           
           // Notify users whose threshold is above current timeout
+          const notifiedDiscordIds: string[] = [];
           for (const watch of watches) {
             if (timeout <= watch.secondsBeforeFail) {
               // Check if we should send a notification:
@@ -166,14 +167,8 @@ async function checkChainWatches() {
               
               await sendDiscordChannelAlert(watch.channelId, message);
               
-              // Update notification tracking in database
-              await ChainWatch.updateOne(
-                { discordId: watch.discordId },
-                { 
-                  lastNotificationTimestamp: now, 
-                  lastNotificationChainCurrent: chainData.current 
-                }
-              );
+              // Track which users were notified for batch update
+              notifiedDiscordIds.push(watch.discordId);
               
               logInfo('Sent chain timeout notification', {
                 discordId: watch.discordId,
@@ -183,6 +178,17 @@ async function checkChainWatches() {
                 chainCurrent: chainData.current
               });
             }
+          }
+          
+          // Batch update notification tracking for all notified users
+          if (notifiedDiscordIds.length > 0) {
+            await ChainWatch.updateMany(
+              { discordId: { $in: notifiedDiscordIds } },
+              { 
+                lastNotificationTimestamp: now, 
+                lastNotificationChainCurrent: chainData.current 
+              }
+            );
           }
         } else {
           // Chain is not active or timeout is 0, clear any scheduled check
