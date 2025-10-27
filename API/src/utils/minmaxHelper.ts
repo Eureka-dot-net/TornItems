@@ -585,8 +585,8 @@ export async function fetchMinMaxStatus(
               ) / 1000);
               
               ticketsUsed = logResponse.log.filter(entry => 
-                entry.timestamp >= startOfDayTimestamp &&
-                entry.details.title === 'Casino lottery bet'
+                entry.timestamp >= startOfDayTimestamp // &&
+               // entry.details.title === 'Casino lottery bet'
               ).length;
             }
             
