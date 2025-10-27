@@ -155,9 +155,12 @@ async function checkChainWatches() {
               
               // Check if we should send a notification:
               // 1. No previous notification, OR
-              // 2. Chain current has changed (increased), meaning chain was extended
+              // 2. Chain current has changed (increased), meaning chain was extended, OR
+              // 3. Cooldown period has expired (chain is still in danger, send periodic reminders)
+              const cooldownExpired = lastNotification && (now - lastNotification.timestamp) >= NOTIFICATION_COOLDOWN_MS;
               const shouldNotify = !lastNotification || 
-                                   lastNotification.chainCurrent !== chainData.current;
+                                   lastNotification.chainCurrent !== chainData.current ||
+                                   cooldownExpired;
               
               if (!shouldNotify) {
                 // Already notified for this chain current value
