@@ -25,14 +25,6 @@ interface FactionChainResponse {
   };
 }
 
-// Track notifications sent to avoid spamming
-// Key format: "discordId-factionId", Value: { timestamp, chainCurrent }
-const notificationCache = new Map<string, { timestamp: number; chainCurrent: number }>();
-const NOTIFICATION_COOLDOWN_MS = 60000; // 1 minute cooldown between notifications per user
-
-// Track which user's API key was used last for each faction (for round-robin)
-const lastUsedKeyIndex = new Map<number, number>();
-
 // Track next check time per faction for smart API call optimization
 // Key: factionId, Value: timestamp when we should next check this faction
 const nextCheckTime = new Map<number, number>();
@@ -85,12 +77,16 @@ async function checkChainWatches() {
         const minThreshold = Math.min(...watches.map(w => w.secondsBeforeFail));
         
         // Round-robin: Get the next user's API key to use
-        const lastIndex = lastUsedKeyIndex.get(factionId) || 0;
+        // Get lastUsedKeyIndex from any watch in this faction (they should all have the same value)
+        const lastIndex = watches[0].lastUsedKeyIndex || 0;
         const nextIndex = (lastIndex + 1) % users.length;
         const userToUse = users[nextIndex];
         
-        // Update the index for next time
-        lastUsedKeyIndex.set(factionId, nextIndex);
+        // Update the index for all watches in this faction
+        await ChainWatch.updateMany(
+          { factionId },
+          { lastUsedKeyIndex: nextIndex }
+        );
         
         // Fetch chain data using this user's API key
         let chainData: FactionChainResponse['chain'] = null;
@@ -150,14 +146,11 @@ async function checkChainWatches() {
           // Notify users whose threshold is above current timeout
           for (const watch of watches) {
             if (timeout <= watch.secondsBeforeFail) {
-              const cacheKey = `${watch.discordId}-${factionId}`;
-              const lastNotification = notificationCache.get(cacheKey);
-              
               // Check if we should send a notification:
               // 1. No previous notification, OR
               // 2. Chain current has changed (increased), meaning chain was extended
-              const shouldNotify = !lastNotification || 
-                                   lastNotification.chainCurrent !== chainData.current;
+              const shouldNotify = !watch.lastNotificationTimestamp || 
+                                   watch.lastNotificationChainCurrent !== chainData.current;
               
               if (!shouldNotify) {
                 // Already notified for this chain current value
@@ -173,11 +166,14 @@ async function checkChainWatches() {
               
               await sendDiscordChannelAlert(watch.channelId, message);
               
-              // Update notification cache with timestamp and chain current value
-              notificationCache.set(cacheKey, { 
-                timestamp: now, 
-                chainCurrent: chainData.current 
-              });
+              // Update notification tracking in database
+              await ChainWatch.updateOne(
+                { discordId: watch.discordId },
+                { 
+                  lastNotificationTimestamp: now, 
+                  lastNotificationChainCurrent: chainData.current 
+                }
+              );
               
               logInfo('Sent chain timeout notification', {
                 discordId: watch.discordId,
@@ -196,14 +192,6 @@ async function checkChainWatches() {
         logError('Error processing faction chain watches', error instanceof Error ? error : new Error(String(error)), {
           factionId
         });
-      }
-    }
-    
-    // Clean up old notification cache entries (older than 5 minutes)
-    const cleanupTime = now - 300000;
-    for (const [key, value] of notificationCache.entries()) {
-      if (value.timestamp < cleanupTime) {
-        notificationCache.delete(key);
       }
     }
   } catch (error) {

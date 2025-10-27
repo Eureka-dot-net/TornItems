@@ -63,6 +63,42 @@ describe('Chain Watch', () => {
       expect(savedWatch?.enabled).toBe(true);
     });
 
+    it('should store notification tracking fields', async () => {
+      const chainWatch = new ChainWatch({
+        discordId: testDiscordId,
+        channelId: 'test-channel-123',
+        secondsBeforeFail: 120,
+        factionId: testFactionId,
+        enabled: true,
+        lastNotificationTimestamp: Date.now(),
+        lastNotificationChainCurrent: 42
+      });
+
+      await chainWatch.save();
+
+      const savedWatch = await ChainWatch.findOne({ discordId: testDiscordId });
+      expect(savedWatch).toBeDefined();
+      expect(savedWatch?.lastNotificationTimestamp).toBeDefined();
+      expect(savedWatch?.lastNotificationChainCurrent).toBe(42);
+    });
+
+    it('should store lastUsedKeyIndex field', async () => {
+      const chainWatch = new ChainWatch({
+        discordId: testDiscordId,
+        channelId: 'test-channel-123',
+        secondsBeforeFail: 120,
+        factionId: testFactionId,
+        enabled: true,
+        lastUsedKeyIndex: 1
+      });
+
+      await chainWatch.save();
+
+      const savedWatch = await ChainWatch.findOne({ discordId: testDiscordId });
+      expect(savedWatch).toBeDefined();
+      expect(savedWatch?.lastUsedKeyIndex).toBe(1);
+    });
+
     it('should not allow negative secondsBeforeFail', async () => {
       const chainWatch = new ChainWatch({
         discordId: testDiscordId,

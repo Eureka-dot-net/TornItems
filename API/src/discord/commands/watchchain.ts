@@ -137,7 +137,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       content: `✅ **Chain Watch Enabled**\n\n` +
         `You will be notified in <#${channelId}> when your faction's chain timeout is below **${secondsBeforeFail} seconds**.\n\n` +
         `Please do not rely on this value alone to maintain your faction chain. Always monitor your chain status actively.\n\n` +
-        `Run \`/watchchain\` again to update your settings or disable with \`/disablewatch\`.`
+        `Run \`/watchchain\` again to update your settings or disable with \`/disablewatchchain\`.`
     });
   } catch (err) {
     logError('Error in /watchchain command', err instanceof Error ? err : new Error(String(err)));
