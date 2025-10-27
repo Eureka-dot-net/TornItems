@@ -182,13 +182,21 @@ async function checkChainWatches() {
           
           // Batch update notification tracking for all notified users
           if (notifiedDiscordIds.length > 0) {
-            await ChainWatch.updateMany(
-              { discordId: { $in: notifiedDiscordIds } },
-              { 
-                lastNotificationTimestamp: now, 
-                lastNotificationChainCurrent: chainData.current 
-              }
-            );
+            try {
+              await ChainWatch.updateMany(
+                { discordId: { $in: notifiedDiscordIds } },
+                { 
+                  lastNotificationTimestamp: now, 
+                  lastNotificationChainCurrent: chainData.current 
+                }
+              );
+            } catch (updateError) {
+              logError('Failed to update notification tracking', updateError instanceof Error ? updateError : new Error(String(updateError)), {
+                factionId,
+                notifiedCount: notifiedDiscordIds.length
+              });
+              // Continue processing - notification tracking failure shouldn't stop the service
+            }
           }
         } else {
           // Chain is not active or timeout is 0, clear any scheduled check
