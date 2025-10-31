@@ -195,10 +195,34 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       return;
     }
     
-    const notifyBeforeTime = new Date(boardingTime.getTime() - actualNotifyBeforeSeconds * 1000);
-    const notifyBeforeTime2 = actualNotifyBeforeSeconds2 !== null 
+    // Calculate initial notification times
+    let finalBoardingTime = boardingTime;
+    let notifyBeforeTime = new Date(boardingTime.getTime() - actualNotifyBeforeSeconds * 1000);
+    let notifyBeforeTime2 = actualNotifyBeforeSeconds2 !== null 
       ? new Date(boardingTime.getTime() - actualNotifyBeforeSeconds2 * 1000)
       : null;
+    
+    // Check if we can send the first notification (must have enough time before boarding)
+    // The buffer should be based on the user's requested notification time, not a fixed 15 seconds
+    const earliestNotificationTime = notifyBeforeTime2 && notifyBeforeTime2.getTime() < notifyBeforeTime.getTime()
+      ? notifyBeforeTime2
+      : notifyBeforeTime;
+    
+    if (earliestNotificationTime.getTime() < now.getTime()) {
+      // Move boarding time forward by 15 minutes to the next slot
+      finalBoardingTime = new Date(boardingTime.getTime() + 15 * 60 * 1000);
+      const nextArrivalSlot = new Date(nextSlot.getTime() + 15 * 60 * 1000);
+      
+      // Recalculate notification times with new boarding time
+      notifyBeforeTime = new Date(finalBoardingTime.getTime() - actualNotifyBeforeSeconds * 1000);
+      notifyBeforeTime2 = actualNotifyBeforeSeconds2 !== null 
+        ? new Date(finalBoardingTime.getTime() - actualNotifyBeforeSeconds2 * 1000)
+        : null;
+      
+      // Update nextSlot to the new arrival time
+      nextSlot.setTime(nextArrivalSlot.getTime());
+      boardingTime.setTime(finalBoardingTime.getTime());
+    }
 
     // Check if notification already exists for this user+country
     let notification = await TravelNotification.findOne({ 
@@ -223,6 +247,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       notification.scheduledBoardingTime = boardingTime;
       notification.scheduledArrivalTime = nextSlot;
       notification.notificationsSent = false;
+      notification.notificationsSent1 = false;
       notification.notificationsSent2 = false;
       await notification.save();
 
@@ -291,6 +316,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         scheduledBoardingTime: boardingTime,
         scheduledArrivalTime: nextSlot,
         notificationsSent: false,
+        notificationsSent1: false,
         notificationsSent2: false,
       });
       await notification.save();
