@@ -210,7 +210,7 @@ export function simulateGymProgression(
   const isManualMode = inputs.manualEnergy !== undefined;
   
   const dailyEnergy: number = isManualMode 
-    ? inputs.manualEnergy! 
+    ? (inputs.manualEnergy ?? 0)
     : calculateDailyEnergy(
         inputs.hoursPlayedPerDay,
         inputs.xanaxPerDay,
