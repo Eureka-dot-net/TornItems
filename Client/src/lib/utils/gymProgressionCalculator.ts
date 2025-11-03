@@ -353,6 +353,8 @@ export function simulateGymProgression(
       // If no stat selected (shouldn't happen), break
       if (!selectedStat) break;
       
+      let trainSuccessful = false;
+      
       try {
         // Determine which gym to use based on mode
         let gym: Gym;
@@ -378,36 +380,40 @@ export function simulateGymProgression(
         }
         
         const statDots = gym[selectedStat as keyof Pick<Gym, 'strength' | 'speed' | 'defense' | 'dexterity'>];
-        if (!statDots) {
-          // Can't train this stat at this gym, remove energy and continue
-          break;
+        if (statDots) {
+          // Check if we have enough energy for one train
+          if (remainingEnergy >= gym.energyPerTrain) {
+            // Get the current value of the stat being trained
+            const currentStatValue = stats[selectedStat];
+            
+            const gain = computeStatGain(
+              selectedStat,
+              currentStatValue,
+              currentHappy,
+              inputs.perkPercs[selectedStat],
+              statDots,
+              gym.energyPerTrain
+            );
+            
+            // Apply gym gain multiplier from company benefit
+            const actualGain = gain * inputs.companyBenefit.gymGainMultiplier;
+            stats[selectedStat] += actualGain;
+            totalEnergySpent += gym.energyPerTrain;
+            remainingEnergy -= gym.energyPerTrain;
+            trainSuccessful = true;
+          }
         }
-        
-        // Check if we have enough energy for one train
-        if (remainingEnergy < gym.energyPerTrain) {
-          // Not enough energy for another train
-          break;
-        }
-        
-        // Get the current value of the stat being trained
-        const currentStatValue = stats[selectedStat];
-        
-        const gain = computeStatGain(
-          selectedStat,
-          currentStatValue,
-          currentHappy,
-          inputs.perkPercs[selectedStat],
-          statDots,
-          gym.energyPerTrain
-        );
-        
-        // Apply gym gain multiplier from company benefit
-        const actualGain = gain * inputs.companyBenefit.gymGainMultiplier;
-        stats[selectedStat] += actualGain;
-        totalEnergySpent += gym.energyPerTrain;
-        remainingEnergy -= gym.energyPerTrain;
       } catch {
-        // Gym not found for this stat, break to avoid infinite loop
+        // Gym not found for this stat, will not train it this iteration
+      }
+      
+      // If we couldn't train the selected stat and it's the only trainable stat, break to avoid infinite loop
+      // Otherwise, we'll try again next iteration and potentially select a different stat
+      if (!trainSuccessful && trainableStats.length === 1) {
+        // Only one stat to train but we can't train it (not enough energy or no gym), so break
+        break;
+      } else if (!trainSuccessful && remainingEnergy < 5) {
+        // Not enough energy for any training (minimum energy per train is typically 5), break
         break;
       }
     }
