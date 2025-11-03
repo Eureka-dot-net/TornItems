@@ -33,6 +33,7 @@ import {
   type CompanyBenefit,
   type SimulationResult,
 } from '../../lib/utils/gymProgressionCalculator';
+import { useGymStats } from '../../lib/hooks/useGymStats';
 
 // Hardcoded gym data (matches seedGyms.ts) - cumulative energyToUnlock values
 const GYMS: Gym[] = [
@@ -117,6 +118,7 @@ export default function GymComparison() {
     loadSavedValue('initialStats', { strength: 1000, speed: 1000, defense: 1000, dexterity: 1000 })
   );
   const [candleShopStars, setCandleShopStars] = useState<number>(() => loadSavedValue('candleShopStars', 10));
+  const [currentGymIndex, setCurrentGymIndex] = useState<number>(() => loadSavedValue('currentGymIndex', 0));
   
   // Save to localStorage whenever values change
   useEffect(() => {
@@ -163,15 +165,42 @@ export default function GymComparison() {
     localStorage.setItem('gymComparison_candleShopStars', JSON.stringify(candleShopStars));
   }, [candleShopStars]);
   
+  useEffect(() => {
+    localStorage.setItem('gymComparison_currentGymIndex', JSON.stringify(currentGymIndex));
+  }, [currentGymIndex]);
+  
   // Results
   const [results, setResults] = useState<Record<string, SimulationResult>>({});
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
-  const [isFetchingStats, setIsFetchingStats] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Use the gym stats hook
+  const { data: gymStatsData, isLoading: isLoadingGymStats, error: gymStatsError, refetch: refetchGymStats } = useGymStats(apiKey || null);
   
   // Calculate and display daily energy (use candleShopStars * 5 if candleShop is selected)
   const candleShopBonus = selectedBenefits.includes('candleShop') ? candleShopStars * 5 : 0;
   const dailyEnergy = calculateDailyEnergy(hoursPlayedPerDay, xanaxPerDay, hasPointsRefill, candleShopBonus);
+  
+  // Auto-populate stats when gym stats are fetched
+  useEffect(() => {
+    if (gymStatsData) {
+      setInitialStats({
+        strength: gymStatsData.battlestats.strength,
+        speed: gymStatsData.battlestats.speed,
+        defense: gymStatsData.battlestats.defense,
+        dexterity: gymStatsData.battlestats.dexterity,
+      });
+      setPerkPerc(gymStatsData.perkPerc);
+      setCurrentGymIndex(Math.max(0, gymStatsData.activeGym - 1)); // Torn gyms are 1-indexed
+    }
+  }, [gymStatsData]);
+  
+  // Show error from gym stats fetch
+  useEffect(() => {
+    if (gymStatsError) {
+      setError(gymStatsError instanceof Error ? gymStatsError.message : 'Failed to fetch gym stats');
+    }
+  }, [gymStatsError]);
   
   // Function to fetch user stats from Torn API
   const handleFetchStats = async () => {
@@ -180,50 +209,17 @@ export default function GymComparison() {
       return;
     }
     
-    setIsFetchingStats(true);
     setError(null);
-    
-    try {
-      const response = await fetch(`https://api.torn.com/user/?selections=battlestats,perks,happy&key=${apiKey}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch stats from Torn API');
-      }
-      
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error.error || 'API Error');
-      }
-      
-      // Update stats from API
-      setInitialStats({
-        strength: data.strength || 1000,
-        speed: data.speed || 1000,
-        defense: data.defense || 1000,
-        dexterity: data.dexterity || 1000,
-      });
-      
-      // Update happy
-      if (data.happy?.current !== undefined) {
-        setHappy(data.happy.current);
-      }
-      
-      // Calculate perk percentage from perks (if available)
-      // Torn API returns perks as an array, we'll assume gym-related perks
-      // For simplicity, we'll leave perkPerc as is since the API structure varies
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch stats');
-    } finally {
-      setIsFetchingStats(false);
-    }
+    refetchGymStats();
   };
   
   // Function to calculate time to unlock George's gym
   const calculateTimeToGeorges = (companyBenefit: CompanyBenefit): string => {
     const georgesGym = GYMS[GYMS.length - 1]; // George's is the last gym
-    const energyNeeded = georgesGym.energyToUnlock / companyBenefit.gymUnlockSpeedMultiplier;
+    const currentGym = GYMS[currentGymIndex];
+    
+    // Calculate energy needed from current gym to George's
+    const energyNeeded = (georgesGym.energyToUnlock - currentGym.energyToUnlock) / companyBenefit.gymUnlockSpeedMultiplier;
     
     // Calculate daily energy for this benefit
     const benefitDailyEnergy = calculateDailyEnergy(
@@ -391,9 +387,9 @@ export default function GymComparison() {
               fullWidth
               sx={{ mt: 1, mb: 2 }}
               onClick={handleFetchStats}
-              disabled={isFetchingStats || !apiKey.trim()}
+              disabled={isLoadingGymStats || !apiKey.trim()}
             >
-              {isFetchingStats ? <CircularProgress size={20} /> : 'Fetch My Stats from Torn'}
+              {isLoadingGymStats ? <CircularProgress size={20} /> : 'Fetch My Stats from Torn'}
             </Button>
             
             {/* Stat Weights */}
@@ -537,6 +533,25 @@ export default function GymComparison() {
               size="small"
               helperText="e.g., 2 for 2%"
             />
+            <TextField
+              label="Current Gym Unlocked"
+              select
+              value={currentGymIndex}
+              onChange={(e) => setCurrentGymIndex(Number(e.target.value))}
+              fullWidth
+              margin="dense"
+              size="small"
+              helperText="Auto-filled if API key is provided"
+              SelectProps={{
+                native: true,
+              }}
+            >
+              {GYMS.map((gym, index) => (
+                <option key={gym.name} value={index}>
+                  {gym.displayName}
+                </option>
+              ))}
+            </TextField>
             
             {/* Company Benefits */}
             <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>

@@ -4,6 +4,7 @@ import express from 'express';
 import profit from './routes/profit';
 import stocks from './routes/stocks';
 import discord from './routes/discord';
+import gym from './routes/gym';
 import { aggregateMarketHistory } from './jobs/aggregateMarketHistory';
 
 export const app = express();
@@ -36,3 +37,5 @@ aggregateMarketHistory();
 app.use('/api', profit);
 app.use('/api', stocks);
 app.use('/api', discord);
+app.use('/api/gym', gym);
+
