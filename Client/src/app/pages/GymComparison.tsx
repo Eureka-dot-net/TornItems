@@ -220,7 +220,7 @@ export default function GymComparison() {
     if (mode === 'future' && comparisonStates.length > 0) {
       handleSimulate();
     }
-  }, [comparisonStates, initialStats, currentGymIndex, months]);
+  }, [comparisonStates, initialStats, months]);
   
   useEffect(() => {
     if (mode === 'manual') {
@@ -324,7 +324,7 @@ export default function GymComparison() {
             initialStats,
             happy: state.happy,
             perkPercs: state.perkPercs,
-            currentGymIndex,
+            currentGymIndex: -1, // Always use auto-upgrade in future mode to allow unlock speed multiplier to work
             happyJump: state.happyJumpEnabled ? {
               enabled: true,
               frequencyDays: state.happyJumpFrequency,
@@ -461,10 +461,6 @@ export default function GymComparison() {
             
             {mode === 'future' && (
               <>
-                <TextField label="Current Gym Unlocked" select value={currentGymIndex} onChange={(e) => setCurrentGymIndex(Number(e.target.value))} fullWidth margin="dense" size="small" SelectProps={{ native: true }}>
-                  {GYMS.map((gym, index) => (<option key={gym.name} value={index}>{gym.displayName}</option>))}
-                </TextField>
-                
                 <TextField label="Simulation Duration (months)" type="number" value={months || ''} onChange={(e) => setMonths(e.target.value === '' ? 1 : Math.max(1, Math.min(36, Number(e.target.value))))} fullWidth margin="dense" size="small" helperText="1-36 months" inputProps={{ step: 'any' }} />
               </>
             )}
