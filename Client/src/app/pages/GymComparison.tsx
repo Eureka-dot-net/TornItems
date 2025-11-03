@@ -84,6 +84,7 @@ interface ComparisonState {
   happyJumpDvds: number;
   companyBenefitKey: string;
   candleShopStars: number;
+  happy: number;
 }
 
 // Get company benefit - keeps Music Store and Fitness Center unchanged
@@ -146,7 +147,6 @@ export default function GymComparison() {
   
   // Shared player stats
   const [apiKey, setApiKey] = useState<string>(() => loadSavedValue('apiKey', ''));
-  const [happy, setHappy] = useState<number>(() => loadSavedValue('happy', 5000));
   const [initialStats, setInitialStats] = useState(() => 
     loadSavedValue('initialStats', { strength: 1000, speed: 1000, defense: 1000, dexterity: 1000 })
   );
@@ -169,6 +169,7 @@ export default function GymComparison() {
         happyJumpDvds: 1,
         companyBenefitKey: 'none',
         candleShopStars: 10,
+        happy: 5000,
       },
     ])
   );
@@ -209,7 +210,6 @@ export default function GymComparison() {
   useEffect(() => { localStorage.setItem('gymComparison_manualEnergy', JSON.stringify(manualEnergy)); }, [manualEnergy]);
   useEffect(() => { localStorage.setItem('gymComparison_autoUpgradeGyms', JSON.stringify(autoUpgradeGyms)); }, [autoUpgradeGyms]);
   useEffect(() => { localStorage.setItem('gymComparison_apiKey', JSON.stringify(apiKey)); }, [apiKey]);
-  useEffect(() => { localStorage.setItem('gymComparison_happy', JSON.stringify(happy)); }, [happy]);
   useEffect(() => { localStorage.setItem('gymComparison_initialStats', JSON.stringify(initialStats)); }, [initialStats]);
   useEffect(() => { localStorage.setItem('gymComparison_currentGymIndex', JSON.stringify(currentGymIndex)); }, [currentGymIndex]);
   useEffect(() => { localStorage.setItem('gymComparison_months', JSON.stringify(months)); }, [months]);
@@ -220,13 +220,13 @@ export default function GymComparison() {
     if (mode === 'future' && comparisonStates.length > 0) {
       handleSimulate();
     }
-  }, [comparisonStates, initialStats, happy, currentGymIndex, months]);
+  }, [comparisonStates, initialStats, currentGymIndex, months]);
   
   useEffect(() => {
     if (mode === 'manual') {
       handleSimulate();
     }
-  }, [manualEnergy, autoUpgradeGyms, initialStats, happy, currentGymIndex]);
+  }, [manualEnergy, autoUpgradeGyms, initialStats, currentGymIndex]);
   
   const handleFetchStats = async () => {
     if (!apiKey.trim()) {
@@ -256,6 +256,7 @@ export default function GymComparison() {
       happyJumpDvds: 1,
       companyBenefitKey: 'none',
       candleShopStars: 10,
+      happy: comparisonStates[0]?.happy || 5000,
     };
     
     setComparisonStates([...comparisonStates, newState]);
@@ -295,7 +296,7 @@ export default function GymComparison() {
           companyBenefit: getCompanyBenefit('none', 0),
           apiKey,
           initialStats,
-          happy,
+          happy: comparisonStates[0]?.happy || 5000,
           perkPercs: { strength: 0, speed: 0, defense: 0, dexterity: 0 },
           currentGymIndex: autoUpgradeGyms ? -1 : currentGymIndex,
           manualEnergy,
@@ -318,7 +319,7 @@ export default function GymComparison() {
             companyBenefit: benefit,
             apiKey,
             initialStats,
-            happy,
+            happy: state.happy,
             perkPercs: state.perkPercs,
             currentGymIndex,
             happyJump: state.happyJumpEnabled ? {
@@ -399,11 +400,10 @@ export default function GymComparison() {
               {isLoadingGymStats ? <CircularProgress size={20} /> : 'Fetch My Stats'}
             </Button>
             
-            <TextField label="Initial Strength" type="number" value={initialStats.strength} onChange={(e) => setInitialStats({ ...initialStats, strength: Math.max(0, Number(e.target.value)) })} fullWidth margin="dense" size="small" />
-            <TextField label="Initial Speed" type="number" value={initialStats.speed} onChange={(e) => setInitialStats({ ...initialStats, speed: Math.max(0, Number(e.target.value)) })} fullWidth margin="dense" size="small" />
-            <TextField label="Initial Defense" type="number" value={initialStats.defense} onChange={(e) => setInitialStats({ ...initialStats, defense: Math.max(0, Number(e.target.value)) })} fullWidth margin="dense" size="small" />
-            <TextField label="Initial Dexterity" type="number" value={initialStats.dexterity} onChange={(e) => setInitialStats({ ...initialStats, dexterity: Math.max(0, Number(e.target.value)) })} fullWidth margin="dense" size="small" />
-            <TextField label="Happy" type="number" value={happy} onChange={(e) => setHappy(Math.max(0, Math.min(99999, Number(e.target.value))))} fullWidth margin="dense" size="small" helperText="Maximum: 99,999" />
+            <TextField label="Initial Strength" type="number" value={initialStats.strength || ''} onChange={(e) => setInitialStats({ ...initialStats, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
+            <TextField label="Initial Speed" type="number" value={initialStats.speed || ''} onChange={(e) => setInitialStats({ ...initialStats, speed: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
+            <TextField label="Initial Defense" type="number" value={initialStats.defense || ''} onChange={(e) => setInitialStats({ ...initialStats, defense: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
+            <TextField label="Initial Dexterity" type="number" value={initialStats.dexterity || ''} onChange={(e) => setInitialStats({ ...initialStats, dexterity: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
             
             {mode === 'future' && (
               <>
@@ -411,13 +411,13 @@ export default function GymComparison() {
                   {GYMS.map((gym, index) => (<option key={gym.name} value={index}>{gym.displayName}</option>))}
                 </TextField>
                 
-                <TextField label="Simulation Duration (months)" type="number" value={months} onChange={(e) => setMonths(Math.max(1, Math.min(36, Number(e.target.value))))} fullWidth margin="dense" size="small" helperText="1-36 months" />
+                <TextField label="Simulation Duration (months)" type="number" value={months || ''} onChange={(e) => setMonths(e.target.value === '' ? 1 : Math.max(1, Math.min(36, Number(e.target.value))))} fullWidth margin="dense" size="small" helperText="1-36 months" inputProps={{ step: 'any' }} />
               </>
             )}
             
             {mode === 'manual' && (
               <>
-                <TextField label="Total Energy" type="number" value={manualEnergy} onChange={(e) => setManualEnergy(Math.max(0, Number(e.target.value)))} fullWidth margin="dense" size="small" helperText="Energy to spend on training" />
+                <TextField label="Total Energy" type="number" value={manualEnergy || ''} onChange={(e) => setManualEnergy(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))} fullWidth margin="dense" size="small" helperText="Energy to spend on training" inputProps={{ step: 'any' }} />
                 <FormControlLabel control={<Switch checked={autoUpgradeGyms} onChange={(e) => setAutoUpgradeGyms(e.target.checked)} />} label="Auto-upgrade gyms" sx={{ mt: 1 }} />
               </>
             )}
@@ -441,28 +441,31 @@ export default function GymComparison() {
                     </Box>
                     
                     <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Stat Training Weights</Typography>
-                    <TextField label="Strength Weight" type="number" value={activeState.statWeights.strength} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, strength: Math.max(0, Number(e.target.value)) }})} fullWidth margin="dense" size="small" />
-                    <TextField label="Speed Weight" type="number" value={activeState.statWeights.speed} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, speed: Math.max(0, Number(e.target.value)) }})} fullWidth margin="dense" size="small" />
-                    <TextField label="Defense Weight" type="number" value={activeState.statWeights.defense} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, defense: Math.max(0, Number(e.target.value)) }})} fullWidth margin="dense" size="small" />
-                    <TextField label="Dexterity Weight" type="number" value={activeState.statWeights.dexterity} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, dexterity: Math.max(0, Number(e.target.value)) }})} fullWidth margin="dense" size="small" />
+                    <TextField label="Strength Weight" type="number" value={activeState.statWeights.strength || ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
+                    <TextField label="Speed Weight" type="number" value={activeState.statWeights.speed || ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
+                    <TextField label="Defense Weight" type="number" value={activeState.statWeights.defense || ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
+                    <TextField label="Dexterity Weight" type="number" value={activeState.statWeights.dexterity || ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, dexterity: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
                     
                     <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Energy Sources</Typography>
-                    <TextField label="Hours Played Per Day" type="number" value={activeState.hoursPlayedPerDay} onChange={(e) => updateState(activeState.id, { hoursPlayedPerDay: Math.max(0, Math.min(24, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="0-24 hours" />
-                    <TextField label="Xanax Per Day" type="number" value={activeState.xanaxPerDay} onChange={(e) => updateState(activeState.id, { xanaxPerDay: Math.max(0, Number(e.target.value))})} fullWidth margin="dense" size="small" helperText="Each xanax = +250 energy" />
+                    <TextField label="Hours Played Per Day" type="number" value={activeState.hoursPlayedPerDay || ''} onChange={(e) => updateState(activeState.id, { hoursPlayedPerDay: e.target.value === '' ? 0 : Math.max(0, Math.min(24, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="0-24 hours" inputProps={{ step: 'any' }} />
+                    <TextField label="Xanax Per Day" type="number" value={activeState.xanaxPerDay || ''} onChange={(e) => updateState(activeState.id, { xanaxPerDay: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value))})} fullWidth margin="dense" size="small" helperText="Each xanax = +250 energy" inputProps={{ step: 'any' }} />
                     <FormControlLabel control={<Switch checked={activeState.hasPointsRefill} onChange={(e) => updateState(activeState.id, { hasPointsRefill: e.target.checked })} />} label="Points Refill (+150 energy)" />
                     
+                    <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Base Happy</Typography>
+                    <TextField label="Happy" type="number" value={activeState.happy || ''} onChange={(e) => updateState(activeState.id, { happy: e.target.value === '' ? 0 : Math.max(0, Math.min(99999, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="Maximum: 99,999" inputProps={{ step: 'any' }} />
+                    
                     <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Perk % Bonus</Typography>
-                    <TextField label="Strength Perk %" type="number" value={activeState.perkPercs.strength} onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, strength: Math.max(0, Number(e.target.value))}})} fullWidth margin="dense" size="small" />
-                    <TextField label="Speed Perk %" type="number" value={activeState.perkPercs.speed} onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, speed: Math.max(0, Number(e.target.value))}})} fullWidth margin="dense" size="small" />
-                    <TextField label="Defense Perk %" type="number" value={activeState.perkPercs.defense} onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, defense: Math.max(0, Number(e.target.value))}})} fullWidth margin="dense" size="small" />
-                    <TextField label="Dexterity Perk %" type="number" value={activeState.perkPercs.dexterity} onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, dexterity: Math.max(0, Number(e.target.value))}})} fullWidth margin="dense" size="small" />
+                    <TextField label="Strength Perk %" type="number" value={activeState.perkPercs.strength || ''} onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, strength: e.target.value === '' ? 0 : Number(e.target.value)}})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
+                    <TextField label="Speed Perk %" type="number" value={activeState.perkPercs.speed || ''} onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, speed: e.target.value === '' ? 0 : Number(e.target.value)}})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
+                    <TextField label="Defense Perk %" type="number" value={activeState.perkPercs.defense || ''} onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, defense: e.target.value === '' ? 0 : Number(e.target.value)}})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
+                    <TextField label="Dexterity Perk %" type="number" value={activeState.perkPercs.dexterity || ''} onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, dexterity: e.target.value === '' ? 0 : Number(e.target.value)}})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
                     
                     <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Happy Jump</Typography>
                     <FormControlLabel control={<Switch checked={activeState.happyJumpEnabled} onChange={(e) => updateState(activeState.id, { happyJumpEnabled: e.target.checked })} />} label="Enable Happy Jumps" />
                     {activeState.happyJumpEnabled && (
                       <>
-                        <TextField label="Jump Frequency (days)" type="number" value={activeState.happyJumpFrequency} onChange={(e) => updateState(activeState.id, { happyJumpFrequency: Math.max(1, Number(e.target.value))})} fullWidth margin="dense" size="small" />
-                        <TextField label="DVDs Used Per Jump" type="number" value={activeState.happyJumpDvds} onChange={(e) => updateState(activeState.id, { happyJumpDvds: Math.max(0, Number(e.target.value))})} fullWidth margin="dense" size="small" />
+                        <TextField label="Jump Frequency (days)" type="number" value={activeState.happyJumpFrequency || ''} onChange={(e) => updateState(activeState.id, { happyJumpFrequency: e.target.value === '' ? 1 : Math.max(1, Number(e.target.value))})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
+                        <TextField label="DVDs Used Per Jump" type="number" value={activeState.happyJumpDvds || ''} onChange={(e) => updateState(activeState.id, { happyJumpDvds: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value))})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
                       </>
                     )}
                     
@@ -478,7 +481,7 @@ export default function GymComparison() {
                     </FormControl>
                     
                     {activeState.companyBenefitKey === 'candleShop' && (
-                      <TextField label="Candle Shop Stars" type="number" value={activeState.candleShopStars} onChange={(e) => updateState(activeState.id, { candleShopStars: Math.max(1, Math.min(10, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="1-10 stars, 5 energy per star" />
+                      <TextField label="Candle Shop Stars" type="number" value={activeState.candleShopStars || ''} onChange={(e) => updateState(activeState.id, { candleShopStars: e.target.value === '' ? 1 : Math.max(1, Math.min(10, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="1-10 stars, 5 energy per star" inputProps={{ step: 'any' }} />
                     )}
                     
                     <Alert severity="info" sx={{ mt: 2 }}>
