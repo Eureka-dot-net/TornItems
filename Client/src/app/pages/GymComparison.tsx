@@ -243,20 +243,23 @@ export default function GymComparison() {
       return;
     }
     
+    // Copy values from the current/last state
+    const sourceState = comparisonStates[activeTabIndex] || comparisonStates[comparisonStates.length - 1];
+    
     const newState: ComparisonState = {
       id: Date.now().toString(),
       name: `State ${comparisonStates.length + 1}`,
-      statWeights: { strength: 1, speed: 1, defense: 1, dexterity: 1 },
-      hoursPlayedPerDay: 8,
-      xanaxPerDay: 0,
-      hasPointsRefill: false,
-      perkPercs: comparisonStates[0]?.perkPercs || { strength: 0, speed: 0, defense: 0, dexterity: 0 },
-      happyJumpEnabled: false,
-      happyJumpFrequency: 7,
-      happyJumpDvds: 1,
-      companyBenefitKey: 'none',
-      candleShopStars: 10,
-      happy: comparisonStates[0]?.happy || 5000,
+      statWeights: { ...sourceState.statWeights },
+      hoursPlayedPerDay: sourceState.hoursPlayedPerDay,
+      xanaxPerDay: sourceState.xanaxPerDay,
+      hasPointsRefill: sourceState.hasPointsRefill,
+      perkPercs: { ...sourceState.perkPercs },
+      happyJumpEnabled: sourceState.happyJumpEnabled,
+      happyJumpFrequency: sourceState.happyJumpFrequency,
+      happyJumpDvds: sourceState.happyJumpDvds,
+      companyBenefitKey: sourceState.companyBenefitKey,
+      candleShopStars: sourceState.candleShopStars,
+      happy: sourceState.happy,
     };
     
     setComparisonStates([...comparisonStates, newState]);
@@ -340,6 +343,57 @@ export default function GymComparison() {
     } finally {
       setIsSimulating(false);
     }
+  };
+  
+  // Helper function to format days into human-readable time
+  const formatDaysToHumanReadable = (days: number): string => {
+    const years = Math.floor(days / 365);
+    const remainingAfterYears = days % 365;
+    const months = Math.floor(remainingAfterYears / 30);
+    const remainingDays = remainingAfterYears % 30;
+    
+    const parts = [];
+    if (years > 0) parts.push(`${years} year${years > 1 ? 's' : ''}`);
+    if (months > 0) parts.push(`${months} month${months > 1 ? 's' : ''}`);
+    if (remainingDays > 0 || parts.length === 0) parts.push(`${remainingDays} day${remainingDays !== 1 ? 's' : ''}`);
+    
+    return parts.join(', ');
+  };
+  
+  // Custom tooltip component for the chart
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { day: number }; name: string; value: number; color: string }> }) => {
+    if (active && payload && payload.length) {
+      const day = payload[0].payload.day;
+      const timeStr = formatDaysToHumanReadable(day);
+      
+      return (
+        <Paper sx={{ p: 2, backgroundColor: 'rgba(0, 0, 0, 0.9)', border: '1px solid #555' }}>
+          <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+            Time: {timeStr}
+          </Typography>
+          {payload.map((entry, index: number) => {
+            // Find the state that matches this entry
+            const state = comparisonStates.find(s => s.name === entry.name);
+            const snapshot = state && results[state.id] ? 
+              results[state.id].dailySnapshots.find(s => s.day === day) : null;
+            
+            return (
+              <Box key={index} sx={{ mb: 1 }}>
+                <Typography variant="body2" style={{ color: entry.color }}>
+                  {entry.name}: {entry.value?.toLocaleString()}
+                </Typography>
+                {snapshot && (
+                  <Typography variant="caption" sx={{ color: '#aaa', display: 'block', ml: 1 }}>
+                    Gym: {snapshot.currentGym}
+                  </Typography>
+                )}
+              </Box>
+            );
+          })}
+        </Paper>
+      );
+    }
+    return null;
   };
   
   const chartData = mode === 'future' && Object.keys(results).length > 0 ? 
@@ -518,7 +572,7 @@ export default function GymComparison() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="day" label={{ value: 'Days', position: 'insideBottom', offset: -5 }} />
                     <YAxis label={{ value: 'Total Battle Stats', angle: -90, position: 'insideLeft' }} />
-                    <Tooltip />
+                    <Tooltip content={<CustomTooltip />} />
                     <Legend />
                     {comparisonStates.map((state, index) => (
                       <Line key={state.id} type="monotone" dataKey={state.name} stroke={CHART_COLORS[index % CHART_COLORS.length]} strokeWidth={2} dot={false} />
