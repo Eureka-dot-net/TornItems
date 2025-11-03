@@ -21,21 +21,27 @@ router.get('/stats', async (req: Request, res: Response) => {
     
     const data = await fetchGymStats(apiKey);
     
-    // Calculate per-stat perk percentages from gym-related perks
-    const perkPercs = {
-      strength: 0,
-      speed: 0,
-      defense: 0,
-      dexterity: 0
+    // Calculate per-stat perk multipliers from gym-related perks
+    // Perks are multiplicative: 5% + 2% = (1.05) * (1.02) = 1.071 = 7.1%
+    const perkMultipliers = {
+      strength: 1,
+      speed: 1,
+      defense: 1,
+      dexterity: 1
     };
     
+    // Include all perk sources EXCEPT merit_perks
     const allPerks = [
       ...data.faction_perks,
       ...data.property_perks,
-      ...data.merit_perks
+      ...data.education_perks,
+      ...data.book_perks,
+      ...data.stock_perks,
+      ...data.enhancer_perks,
+      ...data.job_perks
     ];
     
-    // Extract gym perk percentages per stat
+    // Extract and apply gym perk percentages per stat (multiplicative)
     allPerks.forEach(perk => {
       // Match specific stat gym gains (e.g., "+ 5% strength gym gains")
       const strengthMatch = perk.match(/\+\s*(\d+)%\s+strength\s+gym gains?/i);
@@ -47,27 +53,41 @@ router.get('/stats', async (req: Request, res: Response) => {
       const generalMatch = perk.match(/\+\s*(\d+)%\s+gym gains?$/i);
       
       if (strengthMatch) {
-        perkPercs.strength += parseInt(strengthMatch[1], 10);
+        const perc = parseInt(strengthMatch[1], 10);
+        perkMultipliers.strength *= (1 + perc / 100);
       }
       if (speedMatch) {
-        perkPercs.speed += parseInt(speedMatch[1], 10);
+        const perc = parseInt(speedMatch[1], 10);
+        perkMultipliers.speed *= (1 + perc / 100);
       }
       if (defenseMatch) {
-        perkPercs.defense += parseInt(defenseMatch[1], 10);
+        const perc = parseInt(defenseMatch[1], 10);
+        perkMultipliers.defense *= (1 + perc / 100);
       }
       if (dexterityMatch) {
-        perkPercs.dexterity += parseInt(dexterityMatch[1], 10);
+        const perc = parseInt(dexterityMatch[1], 10);
+        perkMultipliers.dexterity *= (1 + perc / 100);
       }
       
-      // General gym gains apply to all stats
+      // General gym gains apply to all stats (multiplicatively)
       if (generalMatch) {
-        const generalPerc = parseInt(generalMatch[1], 10);
-        perkPercs.strength += generalPerc;
-        perkPercs.speed += generalPerc;
-        perkPercs.defense += generalPerc;
-        perkPercs.dexterity += generalPerc;
+        const perc = parseInt(generalMatch[1], 10);
+        const multiplier = 1 + perc / 100;
+        perkMultipliers.strength *= multiplier;
+        perkMultipliers.speed *= multiplier;
+        perkMultipliers.defense *= multiplier;
+        perkMultipliers.dexterity *= multiplier;
       }
     });
+    
+    // Convert multipliers to percentages for display
+    // e.g., 1.071 becomes 7.1
+    const perkPercs = {
+      strength: (perkMultipliers.strength - 1) * 100,
+      speed: (perkMultipliers.speed - 1) * 100,
+      defense: (perkMultipliers.defense - 1) * 100,
+      dexterity: (perkMultipliers.dexterity - 1) * 100
+    };
     
     // Return formatted response
     res.json({
