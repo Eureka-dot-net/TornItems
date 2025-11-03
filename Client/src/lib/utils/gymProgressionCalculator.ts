@@ -57,6 +57,7 @@ export interface SimulationInputs {
     frequencyDays: number; // e.g., 7 for weekly, 14 for every 2 weeks
     dvdsUsed: number;
   };
+  daysSkippedPerMonth?: number; // Days per month with no energy (wars, vacations)
 }
 
 export interface DailySnapshot {
@@ -135,7 +136,7 @@ export function calculateDailyEnergy(
  */
 function computeStatGain(
   stat: 'strength' | 'speed' | 'defense' | 'dexterity',
-  statTotal: number,
+  currentStatValue: number,
   happy: number,
   perkPercForStat: number,
   dots: number,
@@ -152,10 +153,11 @@ function computeStatGain(
   const perkBonus = 1 + perkPercForStat / 100;
 
   // Vladar's formula
-  // (Modifiers)*(Gym Dots)*(Energy Per Train)*[ (a*ln(Happy+b)+c) * (Stat Total) + d*(Happy+b) + e ]
+  // (Modifiers)*(Gym Dots)*(Energy Per Train)*[ (a*ln(Happy+b)+c) * (S) + d*(Happy+b) + e ]
+  // Where S is the current value of the stat being trained (not Total Battle Stats)
   const multiplier = perkBonus * dots * energyPerTrain;
   const innerExpression = 
-    (a * Math.log(happy + b) + c) * statTotal + 
+    (a * Math.log(happy + b) + c) * currentStatValue + 
     d * (happy + b) + 
     e;
 
@@ -260,17 +262,41 @@ export function simulateGymProgression(
     ? inputs.happyJump.frequencyDays 
     : -1;
   
+  // Calculate which days to skip
+  // Distribute skipped days evenly throughout each month
+  const daysSkippedPerMonth = inputs.daysSkippedPerMonth || 0;
+  const isSkippedDay = (day: number): boolean => {
+    if (daysSkippedPerMonth === 0) return false;
+    
+    // Calculate which month we're in (1-indexed)
+    const monthNumber = Math.floor((day - 1) / 30) + 1;
+    const dayInMonth = ((day - 1) % 30) + 1;
+    
+    // Distribute skipped days evenly throughout the month
+    // e.g., if 2 days skipped per month, skip days 15 and 30
+    // if 3 days skipped per month, skip days 10, 20, and 30
+    const skipInterval = 30 / daysSkippedPerMonth;
+    for (let i = 1; i <= daysSkippedPerMonth; i++) {
+      const skipDay = Math.round(i * skipInterval);
+      if (dayInMonth === skipDay) return true;
+    }
+    return false;
+  };
+  
   // Simulate each day
   for (let day = 1; day <= totalDays; day++) {
     const energySpentOnGymUnlock = 0;
     
+    // Check if this is a skipped day (war, vacation, etc.)
+    const isSkipped = isSkippedDay(day);
+    
     // Check if this is a happy jump day
     const isHappyJumpDay = inputs.happyJump?.enabled && day === nextHappyJumpDay;
     
-    let energyAvailableToday = dailyEnergy;
+    let energyAvailableToday = isSkipped ? 0 : dailyEnergy;
     let currentHappy = inputs.happy;
     
-    if (isHappyJumpDay && inputs.happyJump) {
+    if (isHappyJumpDay && inputs.happyJump && !isSkipped) {
       // Happy jump calculation:
       // 1. User gets energy to 0 and starts taking xanax
       // 2. Takes 4 xanax over ~32 hours (8 hours between each, no natural regen)
@@ -340,12 +366,12 @@ export function simulateGymProgression(
         
         // Calculate stat gain for each train
         for (let i = 0; i < trains; i++) {
-          // Calculate total stats for Vladar's formula
-          const statTotal = stats.strength + stats.speed + stats.defense + stats.dexterity;
+          // Get the current value of the stat being trained
+          const currentStatValue = stats[stat];
           
           const gain = computeStatGain(
             stat,
-            statTotal,
+            currentStatValue, // Use the current value of THIS stat, not total battle stats
             currentHappy, // Use currentHappy (can be boosted during happy jump)
             inputs.perkPercs[stat], // Use the specific stat's perk percentage
             statDots,
