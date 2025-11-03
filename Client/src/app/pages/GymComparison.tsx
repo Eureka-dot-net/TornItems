@@ -119,7 +119,9 @@ export default function GymComparison() {
   const [selectedBenefits, setSelectedBenefits] = useState<string[]>(() => loadSavedValue('selectedBenefits', ['none']));
   const [apiKey, setApiKey] = useState<string>(() => loadSavedValue('apiKey', ''));
   const [happy, setHappy] = useState<number>(() => loadSavedValue('happy', 5000));
-  const [perkPerc, setPerkPerc] = useState<number>(() => loadSavedValue('perkPerc', 0));
+  const [perkPercs, setPerkPercs] = useState(() => 
+    loadSavedValue('perkPercs', { strength: 0, speed: 0, defense: 0, dexterity: 0 })
+  );
   const [initialStats, setInitialStats] = useState(() => 
     loadSavedValue('initialStats', { strength: 1000, speed: 1000, defense: 1000, dexterity: 1000 })
   );
@@ -184,8 +186,8 @@ export default function GymComparison() {
   }, [happy]);
   
   useEffect(() => {
-    localStorage.setItem('gymComparison_perkPerc', JSON.stringify(perkPerc));
-  }, [perkPerc]);
+    localStorage.setItem('gymComparison_perkPercs', JSON.stringify(perkPercs));
+  }, [perkPercs]);
   
   useEffect(() => {
     localStorage.setItem('gymComparison_initialStats', JSON.stringify(initialStats));
@@ -220,7 +222,7 @@ export default function GymComparison() {
         defense: gymStatsData.battlestats.defense,
         dexterity: gymStatsData.battlestats.dexterity,
       });
-      setPerkPerc(gymStatsData.perkPerc);
+      setPerkPercs(gymStatsData.perkPercs);
       setCurrentGymIndex(Math.max(0, gymStatsData.activeGym - 1)); // Torn gyms are 1-indexed
     }
   }, [gymStatsData]);
@@ -280,7 +282,7 @@ export default function GymComparison() {
           apiKey,
           initialStats,
           happy,
-          perkPerc,
+          perkPercs,
           currentGymIndex: autoUpgradeGyms ? -1 : currentGymIndex, // -1 means auto-upgrade
           manualEnergy, // Use manual energy
         };
@@ -306,7 +308,7 @@ export default function GymComparison() {
             apiKey,
             initialStats,
             happy,
-            perkPerc,
+            perkPercs,
             currentGymIndex,
             happyJump: happyJumpEnabled ? {
               enabled: true,
@@ -642,21 +644,64 @@ export default function GymComparison() {
               label="Happy"
               type="number"
               value={happy}
-              onChange={(e) => setHappy(Math.max(0, Math.min(100000, Number(e.target.value))))}
+              onChange={(e) => setHappy(Math.max(0, Math.min(99999, Number(e.target.value))))}
               fullWidth
               margin="dense"
               size="small"
+              helperText="Maximum: 99,999"
+              InputProps={{
+                inputProps: { min: 0, max: 99999 }
+              }}
+            />
+            
+            {/* Perk Percentages - Per Stat */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+              Perk % Bonus (per stat)
+            </Typography>
+            <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+              Gym gain bonuses from faction, property, and merit perks
+            </Typography>
+            <TextField
+              label="Strength Perk %"
+              type="number"
+              value={perkPercs.strength}
+              onChange={(e) => setPerkPercs({ ...perkPercs, strength: Math.max(0, Number(e.target.value)) })}
+              fullWidth
+              margin="dense"
+              size="small"
+              helperText="Auto-filled from API"
             />
             <TextField
-              label="Perk % Bonus"
+              label="Speed Perk %"
               type="number"
-              value={perkPerc}
-              onChange={(e) => setPerkPerc(Math.max(0, Number(e.target.value)))}
+              value={perkPercs.speed}
+              onChange={(e) => setPerkPercs({ ...perkPercs, speed: Math.max(0, Number(e.target.value)) })}
               fullWidth
               margin="dense"
               size="small"
-              helperText="e.g., 2 for 2%"
+              helperText="Auto-filled from API"
             />
+            <TextField
+              label="Defense Perk %"
+              type="number"
+              value={perkPercs.defense}
+              onChange={(e) => setPerkPercs({ ...perkPercs, defense: Math.max(0, Number(e.target.value)) })}
+              fullWidth
+              margin="dense"
+              size="small"
+              helperText="Auto-filled from API"
+            />
+            <TextField
+              label="Dexterity Perk %"
+              type="number"
+              value={perkPercs.dexterity}
+              onChange={(e) => setPerkPercs({ ...perkPercs, dexterity: Math.max(0, Number(e.target.value)) })}
+              fullWidth
+              margin="dense"
+              size="small"
+              helperText="Auto-filled from API"
+            />
+            
             <TextField
               label="Current Gym Unlocked"
               select

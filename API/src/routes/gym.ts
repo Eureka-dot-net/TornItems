@@ -21,19 +21,51 @@ router.get('/stats', async (req: Request, res: Response) => {
     
     const data = await fetchGymStats(apiKey);
     
-    // Calculate total perk percentage from gym-related perks
-    let perkPerc = 0;
+    // Calculate per-stat perk percentages from gym-related perks
+    const perkPercs = {
+      strength: 0,
+      speed: 0,
+      defense: 0,
+      dexterity: 0
+    };
+    
     const allPerks = [
       ...data.faction_perks,
       ...data.property_perks,
       ...data.merit_perks
     ];
     
-    // Extract gym perk percentages
+    // Extract gym perk percentages per stat
     allPerks.forEach(perk => {
-      const gymGainMatch = perk.match(/\+\s*(\d+)%\s+(?:strength|speed|defense|dexterity)?\s*gym gains?/i);
-      if (gymGainMatch) {
-        perkPerc += parseInt(gymGainMatch[1], 10);
+      // Match specific stat gym gains (e.g., "+ 5% strength gym gains")
+      const strengthMatch = perk.match(/\+\s*(\d+)%\s+strength\s+gym gains?/i);
+      const speedMatch = perk.match(/\+\s*(\d+)%\s+speed\s+gym gains?/i);
+      const defenseMatch = perk.match(/\+\s*(\d+)%\s+defense\s+gym gains?/i);
+      const dexterityMatch = perk.match(/\+\s*(\d+)%\s+dexterity\s+gym gains?/i);
+      
+      // Match general gym gains (e.g., "+ 2% gym gains")
+      const generalMatch = perk.match(/\+\s*(\d+)%\s+gym gains?$/i);
+      
+      if (strengthMatch) {
+        perkPercs.strength += parseInt(strengthMatch[1], 10);
+      }
+      if (speedMatch) {
+        perkPercs.speed += parseInt(speedMatch[1], 10);
+      }
+      if (defenseMatch) {
+        perkPercs.defense += parseInt(defenseMatch[1], 10);
+      }
+      if (dexterityMatch) {
+        perkPercs.dexterity += parseInt(dexterityMatch[1], 10);
+      }
+      
+      // General gym gains apply to all stats
+      if (generalMatch) {
+        const generalPerc = parseInt(generalMatch[1], 10);
+        perkPercs.strength += generalPerc;
+        perkPercs.speed += generalPerc;
+        perkPercs.defense += generalPerc;
+        perkPercs.dexterity += generalPerc;
       }
     });
     
@@ -47,7 +79,7 @@ router.get('/stats', async (req: Request, res: Response) => {
         total: data.battlestats.total
       },
       activeGym: data.active_gym,
-      perkPerc: perkPerc
+      perkPercs: perkPercs
     });
   } catch (error) {
     logError('Error fetching gym stats', error instanceof Error ? error : new Error(String(error)));

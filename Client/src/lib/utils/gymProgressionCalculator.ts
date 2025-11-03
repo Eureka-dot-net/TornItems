@@ -44,7 +44,12 @@ export interface SimulationInputs {
     dexterity: number;
   };
   happy: number;
-  perkPerc: number;
+  perkPercs: {
+    strength: number;
+    speed: number;
+    defense: number;
+    dexterity: number;
+  };
   currentGymIndex: number; // >= 0 locks to specific gym, -1 means auto-upgrade
   manualEnergy?: number; // Optional: if specified, use this instead of calculating daily energy
   happyJump?: {
@@ -129,10 +134,10 @@ export function calculateDailyEnergy(
  * e = -0.0301431777
  */
 function computeStatGain(
-  _stat: string,
+  stat: 'strength' | 'speed' | 'defense' | 'dexterity',
   statTotal: number,
   happy: number,
-  perkPerc: number,
+  perkPercForStat: number,
   dots: number,
   energyPerTrain: number
 ): number {
@@ -143,8 +148,8 @@ function computeStatGain(
   const d = 6.82775184551527e-5;
   const e = -0.0301431777;
   
-  // Perk bonus multiplier (modifiers)
-  const perkBonus = 1 + perkPerc / 100;
+  // Perk bonus multiplier (modifiers) - use the specific stat's perk percentage
+  const perkBonus = 1 + perkPercForStat / 100;
 
   // Vladar's formula
   // (Modifiers)*(Gym Dots)*(Energy Per Train)*[ (a*ln(Happy+b)+c) * (Stat Total) + d*(Happy+b) + e ]
@@ -342,7 +347,7 @@ export function simulateGymProgression(
             stat,
             statTotal,
             currentHappy, // Use currentHappy (can be boosted during happy jump)
-            inputs.perkPerc,
+            inputs.perkPercs[stat], // Use the specific stat's perk percentage
             statDots,
             gym.energyPerTrain
           );
