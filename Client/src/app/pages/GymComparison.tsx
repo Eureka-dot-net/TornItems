@@ -119,9 +119,6 @@ export default function GymComparison() {
   );
   const [candleShopStars, setCandleShopStars] = useState<number>(() => loadSavedValue('candleShopStars', 10));
   const [currentGymIndex, setCurrentGymIndex] = useState<number>(() => loadSavedValue('currentGymIndex', 0));
-  const [happyJumpEnabled, setHappyJumpEnabled] = useState<boolean>(() => loadSavedValue('happyJumpEnabled', false));
-  const [happyJumpFrequency, setHappyJumpFrequency] = useState<number>(() => loadSavedValue('happyJumpFrequency', 7));
-  const [happyJumpDvds, setHappyJumpDvds] = useState<number>(() => loadSavedValue('happyJumpDvds', 3));
   
   // Save to localStorage whenever values change
   useEffect(() => {
@@ -171,18 +168,6 @@ export default function GymComparison() {
   useEffect(() => {
     localStorage.setItem('gymComparison_currentGymIndex', JSON.stringify(currentGymIndex));
   }, [currentGymIndex]);
-  
-  useEffect(() => {
-    localStorage.setItem('gymComparison_happyJumpEnabled', JSON.stringify(happyJumpEnabled));
-  }, [happyJumpEnabled]);
-  
-  useEffect(() => {
-    localStorage.setItem('gymComparison_happyJumpFrequency', JSON.stringify(happyJumpFrequency));
-  }, [happyJumpFrequency]);
-  
-  useEffect(() => {
-    localStorage.setItem('gymComparison_happyJumpDvds', JSON.stringify(happyJumpDvds));
-  }, [happyJumpDvds]);
   
   // Results
   const [results, setResults] = useState<Record<string, SimulationResult>>({});
@@ -270,12 +255,6 @@ export default function GymComparison() {
           initialStats,
           happy,
           perkPerc,
-          currentGymIndex,
-          happyJump: happyJumpEnabled ? {
-            enabled: true,
-            frequencyDays: happyJumpFrequency,
-            dvdsUsed: happyJumpDvds,
-          } : undefined,
         };
         
         const result = simulateGymProgression(GYMS, inputs);
@@ -573,47 +552,6 @@ export default function GymComparison() {
                 </option>
               ))}
             </TextField>
-            
-            {/* Happy Jump Settings */}
-            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
-              Happy Jump
-            </Typography>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={happyJumpEnabled}
-                  onChange={(e) => setHappyJumpEnabled(e.target.checked)}
-                />
-              }
-              label="Enable Happy Jumps"
-            />
-            {happyJumpEnabled && (
-              <>
-                <TextField
-                  label="Happy Jump Frequency (days)"
-                  type="number"
-                  value={happyJumpFrequency}
-                  onChange={(e) => setHappyJumpFrequency(Math.max(1, Number(e.target.value)))}
-                  fullWidth
-                  margin="dense"
-                  size="small"
-                  helperText="How often to do happy jumps (e.g., 7 for weekly)"
-                />
-                <TextField
-                  label="DVDs Used Per Jump"
-                  type="number"
-                  value={happyJumpDvds}
-                  onChange={(e) => setHappyJumpDvds(Math.max(0, Number(e.target.value)))}
-                  fullWidth
-                  margin="dense"
-                  size="small"
-                  helperText="Each DVD adds 2,500 happy (doubled by ecstasy)"
-                />
-                <Alert severity="info" sx={{ mt: 1, fontSize: '0.75rem' }}>
-                  Happy jump: 4 xanax (1,000E) + DVDs + ecstasy (2x happy) + refill (150E) = 1,150E total
-                </Alert>
-              </>
-            )}
             
             {/* Company Benefits */}
             <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
