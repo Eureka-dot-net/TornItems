@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppBar, Toolbar, Typography, Button, IconButton, Drawer, List, ListItem, ListItemButton, ListItemText, Box } from '@mui/material';
 import { Menu as MenuIcon } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const navItems = [
+const allNavItems = [
   { label: 'Stock Recommendations', path: '/' },
   { label: 'Profit Analysis', path: '/profit' },
   { label: 'Stock Profit', path: '/stockProfit' },
@@ -12,8 +12,19 @@ const navItems = [
 
 export default function Navigation() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [navItems, setNavItems] = useState(allNavItems);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Check if we should show only gym comparison
+  useEffect(() => {
+    const showOnlyGymComparison = localStorage.getItem('showOnlyGymComparison') === 'true';
+    if (showOnlyGymComparison) {
+      setNavItems([{ label: 'Gym Comparison', path: '/gymComparison' }]);
+    } else {
+      setNavItems(allNavItems);
+    }
+  }, []);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);

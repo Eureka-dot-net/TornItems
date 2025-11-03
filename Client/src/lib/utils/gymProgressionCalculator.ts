@@ -45,6 +45,12 @@ export interface SimulationInputs {
   };
   happy: number;
   perkPerc: number;
+  currentGymIndex: number;
+  happyJump?: {
+    enabled: boolean;
+    frequencyDays: number; // e.g., 7 for weekly, 14 for every 2 weeks
+    dvdsUsed: number;
+  };
 }
 
 export interface DailySnapshot {
@@ -220,18 +226,61 @@ export function simulateGymProgression(
   // Track total energy spent (for gym unlocks)
   let totalEnergySpent = 0;
   
+  // Track current gym based on initial gym
+  if (inputs.currentGymIndex !== undefined && inputs.currentGymIndex >= 0) {
+    const currentGym = gyms[inputs.currentGymIndex];
+    if (currentGym) {
+      totalEnergySpent = currentGym.energyToUnlock;
+    }
+  }
+  
   const dailySnapshots: DailySnapshot[] = [];
+  
+  // Track next happy jump day
+  let nextHappyJumpDay = inputs.happyJump?.enabled && inputs.happyJump.frequencyDays > 0 
+    ? inputs.happyJump.frequencyDays 
+    : -1;
   
   // Simulate each day
   for (let day = 1; day <= totalDays; day++) {
     const energySpentOnGymUnlock = 0;
     
+    // Check if this is a happy jump day
+    const isHappyJumpDay = inputs.happyJump?.enabled && day === nextHappyJumpDay;
+    
+    let energyAvailableToday = dailyEnergy;
+    let currentHappy = inputs.happy;
+    
+    if (isHappyJumpDay && inputs.happyJump) {
+      // Happy jump calculation:
+      // 1. User gets energy to 0 and starts taking xanax
+      // 2. Takes 4 xanax over ~32 hours (8 hours between each, no natural regen)
+      // 3. Waits 8 hours for drug cooldown
+      // 4. Uses DVDs: happy becomes (baseHappy + 2500*numDVDs)
+      // 5. Pops ecstasy: happy doubles to ((baseHappy + 2500*numDVDs)*2)
+      // 6. Trains 1000 energy (4 xanax * 250)
+      // 7. Uses points refill for 150 energy and trains that
+      // 8. Must wait 6 more hours before can use xanax again
+      
+      // Total time for happy jump: 32 + 8 + 6 = 46 hours
+      // During this time: no natural energy generation, loses 1 xanax from daily allowance
+      
+      // Energy available: 1000 (from 4 xanax) + 150 (points refill) = 1150
+      energyAvailableToday = 1150;
+      
+      // Happy during jump
+      currentHappy = (inputs.happy + 2500 * inputs.happyJump.dvdsUsed) * 2;
+      
+      // Schedule next happy jump
+      nextHappyJumpDay = day + inputs.happyJump.frequencyDays;
+    }
+    
     // Distribute energy among stats based on weights
     const energyPerStat = {
-      strength: (dailyEnergy * inputs.statWeights.strength) / totalWeight,
-      speed: (dailyEnergy * inputs.statWeights.speed) / totalWeight,
-      defense: (dailyEnergy * inputs.statWeights.defense) / totalWeight,
-      dexterity: (dailyEnergy * inputs.statWeights.dexterity) / totalWeight,
+      strength: (energyAvailableToday * inputs.statWeights.strength) / totalWeight,
+      speed: (energyAvailableToday * inputs.statWeights.speed) / totalWeight,
+      defense: (energyAvailableToday * inputs.statWeights.defense) / totalWeight,
+      dexterity: (energyAvailableToday * inputs.statWeights.dexterity) / totalWeight,
     };
     
     // Find best gym for each stat and train
@@ -256,10 +305,13 @@ export function simulateGymProgression(
         
         // Calculate stat gain for each train
         for (let i = 0; i < trains; i++) {
+          // Calculate total stats for Vladar's formula
+          const statTotal = stats.strength + stats.speed + stats.defense + stats.dexterity;
+          
           const gain = computeStatGain(
             stat,
-            stats[stat],
-            inputs.happy,
+            statTotal,
+            currentHappy, // Use currentHappy (can be boosted during happy jump)
             inputs.perkPerc,
             statDots,
             gym.energyPerTrain
