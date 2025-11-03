@@ -166,11 +166,76 @@ export default function GymComparison() {
   // Results
   const [results, setResults] = useState<Record<string, SimulationResult>>({});
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
+  const [isFetchingStats, setIsFetchingStats] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   
   // Calculate and display daily energy (use candleShopStars * 5 if candleShop is selected)
   const candleShopBonus = selectedBenefits.includes('candleShop') ? candleShopStars * 5 : 0;
   const dailyEnergy = calculateDailyEnergy(hoursPlayedPerDay, xanaxPerDay, hasPointsRefill, candleShopBonus);
+  
+  // Function to fetch user stats from Torn API
+  const handleFetchStats = async () => {
+    if (!apiKey.trim()) {
+      setError('Please enter your API key');
+      return;
+    }
+    
+    setIsFetchingStats(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`https://api.torn.com/user/?selections=battlestats,perks,happy&key=${apiKey}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch stats from Torn API');
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error.error || 'API Error');
+      }
+      
+      // Update stats from API
+      setInitialStats({
+        strength: data.strength || 1000,
+        speed: data.speed || 1000,
+        defense: data.defense || 1000,
+        dexterity: data.dexterity || 1000,
+      });
+      
+      // Update happy
+      if (data.happy?.current !== undefined) {
+        setHappy(data.happy.current);
+      }
+      
+      // Calculate perk percentage from perks (if available)
+      // Torn API returns perks as an array, we'll assume gym-related perks
+      // For simplicity, we'll leave perkPerc as is since the API structure varies
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch stats');
+    } finally {
+      setIsFetchingStats(false);
+    }
+  };
+  
+  // Function to calculate time to unlock George's gym
+  const calculateTimeToGeorges = (companyBenefit: CompanyBenefit): string => {
+    const georgesGym = GYMS[GYMS.length - 1]; // George's is the last gym
+    const energyNeeded = georgesGym.energyToUnlock / companyBenefit.gymUnlockSpeedMultiplier;
+    
+    // Calculate daily energy for this benefit
+    const benefitDailyEnergy = calculateDailyEnergy(
+      hoursPlayedPerDay, 
+      xanaxPerDay, 
+      hasPointsRefill, 
+      companyBenefit.bonusEnergyPerDay
+    );
+    
+    const daysNeeded = Math.ceil(energyNeeded / benefitDailyEnergy);
+    return formatDaysToHumanReadable(daysNeeded);
+  };
   
   const handleSimulate = () => {
     setIsSimulating(true);
@@ -307,6 +372,30 @@ export default function GymComparison() {
               Training Parameters
             </Typography>
             
+            {/* API Key Section - Moved to top */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+              Torn API Key
+            </Typography>
+            <TextField
+              label="API Key"
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              fullWidth
+              margin="dense"
+              size="small"
+              helperText="Optional: For fetching your current stats"
+            />
+            <Button
+              variant="outlined"
+              fullWidth
+              sx={{ mt: 1, mb: 2 }}
+              onClick={handleFetchStats}
+              disabled={isFetchingStats || !apiKey.trim()}
+            >
+              {isFetchingStats ? <CircularProgress size={20} /> : 'Fetch My Stats from Torn'}
+            </Button>
+            
             {/* Stat Weights */}
             <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
               Stat Training Weights
@@ -349,18 +438,6 @@ export default function GymComparison() {
               fullWidth
               margin="dense"
               size="small"
-            />
-            
-            {/* Time Period */}
-            <TextField
-              label="Number of Months"
-              type="number"
-              value={months}
-              onChange={(e) => setMonths(Math.max(1, Math.min(36, Number(e.target.value))))}
-              fullWidth
-              margin="normal"
-              size="small"
-              helperText="Max 36 months (3 years)"
             />
             
             {/* Energy Sources */}
@@ -467,16 +544,23 @@ export default function GymComparison() {
             </Typography>
             <FormGroup>
               {Object.entries(getCompanyBenefits(candleShopStars)).map(([key, benefit]) => (
-                <FormControlLabel
-                  key={key}
-                  control={
-                    <Checkbox
-                      checked={selectedBenefits.includes(key)}
-                      onChange={() => handleBenefitToggle(key)}
-                    />
-                  }
-                  label={benefit.name}
-                />
+                <Box key={key}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={selectedBenefits.includes(key)}
+                        onChange={() => handleBenefitToggle(key)}
+                      />
+                    }
+                    label={benefit.name}
+                  />
+                  {/* Show time to George's for each benefit */}
+                  {selectedBenefits.includes(key) && (
+                    <Alert severity="success" sx={{ mt: 0.5, mb: 1, ml: 4 }} variant="outlined">
+                      Time to George's: {calculateTimeToGeorges(benefit)}
+                    </Alert>
+                  )}
+                </Box>
               ))}
             </FormGroup>
             
@@ -497,16 +581,16 @@ export default function GymComparison() {
               />
             )}
             
-            {/* API Key (optional) */}
+            {/* Time Period - Moved after company benefits */}
             <TextField
-              label="API Key (Optional)"
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
+              label="Number of Months"
+              type="number"
+              value={months}
+              onChange={(e) => setMonths(Math.max(1, Math.min(36, Number(e.target.value))))}
               fullWidth
               margin="normal"
               size="small"
-              helperText="For fetching current stats (not implemented yet)"
+              helperText="Max 36 months (3 years)"
             />
             
             <Button
