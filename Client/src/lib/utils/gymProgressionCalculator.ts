@@ -407,13 +407,12 @@ export function simulateGymProgression(
         // Gym not found for this stat, will not train it this iteration
       }
       
-      // If we couldn't train the selected stat and it's the only trainable stat, break to avoid infinite loop
-      // Otherwise, we'll try again next iteration and potentially select a different stat
-      if (!trainSuccessful && trainableStats.length === 1) {
-        // Only one stat to train but we can't train it (not enough energy or no gym), so break
-        break;
-      } else if (!trainSuccessful && remainingEnergy < 5) {
-        // Not enough energy for any training (minimum energy per train is typically 5), break
+      // If we couldn't train the selected stat, break to avoid infinite loop
+      // This can happen when:
+      // - Not enough energy for one train
+      // - Locked gym doesn't support the selected stat
+      // - No gym available for the stat
+      if (!trainSuccessful) {
         break;
       }
     }
