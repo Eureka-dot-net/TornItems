@@ -131,6 +131,8 @@ export default function GymComparison() {
   // Save to localStorage whenever values change
   useEffect(() => {
     localStorage.setItem('gymComparison_mode', JSON.stringify(mode));
+    // Clear results when switching modes to avoid stale data
+    setResults({});
   }, [mode]);
   
   useEffect(() => {
@@ -411,8 +413,12 @@ export default function GymComparison() {
       const dataPoint: Record<string, number> = { day: results[Object.keys(results)[0]].dailySnapshots[index].day };
       
       for (const benefitKey of Object.keys(results)) {
-        const snapshot = results[benefitKey].dailySnapshots[index];
         const benefit = COMPANY_BENEFITS[benefitKey];
+        
+        // Skip if benefit doesn't exist (e.g., 'manual' key from manual mode)
+        if (!benefit) continue;
+        
+        const snapshot = results[benefitKey].dailySnapshots[index];
         
         // Calculate total battle stats
         const totalStats = snapshot.strength + snapshot.speed + snapshot.defense + snapshot.dexterity;
