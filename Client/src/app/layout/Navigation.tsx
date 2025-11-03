@@ -7,6 +7,7 @@ const navItems = [
   { label: 'Stock Recommendations', path: '/' },
   { label: 'Profit Analysis', path: '/profit' },
   { label: 'Stock Profit', path: '/stockProfit' },
+  { label: 'Gym Comparison', path: '/gymComparison' },
 ];
 
 export default function Navigation() {

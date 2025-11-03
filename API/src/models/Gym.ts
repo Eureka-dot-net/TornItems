@@ -8,6 +8,8 @@ export interface IGym extends Document {
   defense: number | null;
   dexterity: number | null;
   energyPerTrain: number;
+  energyToUnlock: number;
+  costToUnlock: number;
 }
 
 const GymSchema = new Schema<IGym>({
@@ -18,6 +20,8 @@ const GymSchema = new Schema<IGym>({
   defense: { type: Number, default: null },
   dexterity: { type: Number, default: null },
   energyPerTrain: { type: Number, required: true },
+  energyToUnlock: { type: Number, required: true, default: 0 },
+  costToUnlock: { type: Number, required: true, default: 0 },
 });
 
 export const Gym = mongoose.model<IGym>('Gym', GymSchema);
