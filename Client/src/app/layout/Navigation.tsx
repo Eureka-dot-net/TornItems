@@ -16,16 +16,17 @@ export default function Navigation() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Check URL parameter for hiding navigation (user-controlled for sharing)
+  // Hide navigation items unless user has the flag set in localStorage
+  // Owner sets: localStorage.setItem('showAllNavigation', 'true')
+  // Everyone else (friends) sees only Gym Comparison by default
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const hideNav = searchParams.get('hideNav') === 'true';
-    if (hideNav) {
-      setNavItems([{ label: 'Gym Comparison', path: '/gymComparison' }]);
-    } else {
+    const showAllNav = localStorage.getItem('showAllNavigation') === 'true';
+    if (showAllNav) {
       setNavItems(allNavItems);
+    } else {
+      setNavItems([{ label: 'Gym Comparison', path: '/gymComparison' }]);
     }
-  }, [location.search]);
+  }, []);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
