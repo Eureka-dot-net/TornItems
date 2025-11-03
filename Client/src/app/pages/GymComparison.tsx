@@ -85,6 +85,7 @@ interface ComparisonState {
   companyBenefitKey: string;
   candleShopStars: number;
   happy: number;
+  daysSkippedPerMonth: number;
 }
 
 // Get company benefit - keeps Music Store and Fitness Center unchanged
@@ -170,6 +171,7 @@ export default function GymComparison() {
         companyBenefitKey: 'none',
         candleShopStars: 10,
         happy: 5000,
+        daysSkippedPerMonth: 0,
       },
     ])
   );
@@ -260,6 +262,7 @@ export default function GymComparison() {
       companyBenefitKey: sourceState.companyBenefitKey,
       candleShopStars: sourceState.candleShopStars,
       happy: sourceState.happy,
+      daysSkippedPerMonth: sourceState.daysSkippedPerMonth,
     };
     
     setComparisonStates([...comparisonStates, newState]);
@@ -330,6 +333,7 @@ export default function GymComparison() {
               frequencyDays: state.happyJumpFrequency,
               dvdsUsed: state.happyJumpDvds,
             } : undefined,
+            daysSkippedPerMonth: state.daysSkippedPerMonth,
           };
           
           const result = simulateGymProgression(GYMS, inputs);
@@ -500,6 +504,7 @@ export default function GymComparison() {
                     <TextField label="Hours Played Per Day" type="number" value={activeState.hoursPlayedPerDay || ''} onChange={(e) => updateState(activeState.id, { hoursPlayedPerDay: e.target.value === '' ? 0 : Math.max(0, Math.min(24, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="0-24 hours" inputProps={{ step: 'any' }} />
                     <TextField label="Xanax Per Day" type="number" value={activeState.xanaxPerDay || ''} onChange={(e) => updateState(activeState.id, { xanaxPerDay: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value))})} fullWidth margin="dense" size="small" helperText="Each xanax = +250 energy" inputProps={{ step: 'any' }} />
                     <FormControlLabel control={<Switch checked={activeState.hasPointsRefill} onChange={(e) => updateState(activeState.id, { hasPointsRefill: e.target.checked })} />} label="Points Refill (+150 energy)" />
+                    <TextField label="Days Skipped Per Month" type="number" value={activeState.daysSkippedPerMonth || ''} onChange={(e) => updateState(activeState.id, { daysSkippedPerMonth: e.target.value === '' ? 0 : Math.max(0, Math.min(30, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="0-30 days (wars, vacations, etc.)" inputProps={{ step: 'any' }} />
                     
                     <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Base Happy</Typography>
                     <TextField label="Happy" type="number" value={activeState.happy || ''} onChange={(e) => updateState(activeState.id, { happy: e.target.value === '' ? 0 : Math.max(0, Math.min(99999, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="Maximum: 99,999" inputProps={{ step: 'any' }} />
