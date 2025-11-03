@@ -949,7 +949,9 @@ export default function GymComparison() {
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend />
-                    {Object.keys(results).map((benefitKey, index) => {
+                    {Object.keys(results)
+                      .filter(benefitKey => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys like 'manual'
+                      .map((benefitKey, index) => {
                       const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042'];
                       return (
                         <Line
@@ -976,7 +978,9 @@ export default function GymComparison() {
                     <thead>
                       <tr style={{ borderBottom: '2px solid #555' }}>
                         <th style={{ padding: '12px', textAlign: 'left' }}>Stat</th>
-                        {Object.entries(results).map(([benefitKey]) => {
+                        {Object.entries(results)
+                          .filter(([benefitKey]) => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys like 'manual'
+                          .map(([benefitKey]) => {
                           const benefit = COMPANY_BENEFITS[benefitKey];
                           return (
                             <th key={benefitKey} style={{ padding: '12px', textAlign: 'right' }}>
@@ -989,7 +993,9 @@ export default function GymComparison() {
                     <tbody>
                       <tr style={{ borderBottom: '1px solid #333' }}>
                         <td style={{ padding: '12px', fontWeight: 'bold' }}>Strength</td>
-                        {Object.entries(results).map(([benefitKey, result]) => (
+                        {Object.entries(results)
+                          .filter(([benefitKey]) => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys
+                          .map(([benefitKey, result]) => (
                           <td key={benefitKey} style={{ padding: '12px', textAlign: 'right' }}>
                             {result.finalStats.strength.toLocaleString()}
                           </td>
@@ -997,7 +1003,9 @@ export default function GymComparison() {
                       </tr>
                       <tr style={{ borderBottom: '1px solid #333' }}>
                         <td style={{ padding: '12px', fontWeight: 'bold' }}>Speed</td>
-                        {Object.entries(results).map(([benefitKey, result]) => (
+                        {Object.entries(results)
+                          .filter(([benefitKey]) => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys
+                          .map(([benefitKey, result]) => (
                           <td key={benefitKey} style={{ padding: '12px', textAlign: 'right' }}>
                             {result.finalStats.speed.toLocaleString()}
                           </td>
@@ -1005,7 +1013,9 @@ export default function GymComparison() {
                       </tr>
                       <tr style={{ borderBottom: '1px solid #333' }}>
                         <td style={{ padding: '12px', fontWeight: 'bold' }}>Defense</td>
-                        {Object.entries(results).map(([benefitKey, result]) => (
+                        {Object.entries(results)
+                          .filter(([benefitKey]) => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys
+                          .map(([benefitKey, result]) => (
                           <td key={benefitKey} style={{ padding: '12px', textAlign: 'right' }}>
                             {result.finalStats.defense.toLocaleString()}
                           </td>
@@ -1013,7 +1023,9 @@ export default function GymComparison() {
                       </tr>
                       <tr style={{ borderBottom: '1px solid #333' }}>
                         <td style={{ padding: '12px', fontWeight: 'bold' }}>Dexterity</td>
-                        {Object.entries(results).map(([benefitKey, result]) => (
+                        {Object.entries(results)
+                          .filter(([benefitKey]) => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys
+                          .map(([benefitKey, result]) => (
                           <td key={benefitKey} style={{ padding: '12px', textAlign: 'right' }}>
                             {result.finalStats.dexterity.toLocaleString()}
                           </td>
@@ -1021,7 +1033,9 @@ export default function GymComparison() {
                       </tr>
                       <tr style={{ borderBottom: '2px solid #555', backgroundColor: 'rgba(255, 255, 255, 0.03)' }}>
                         <td style={{ padding: '12px', fontWeight: 'bold' }}>Total Stats</td>
-                        {Object.entries(results).map(([benefitKey, result]) => {
+                        {Object.entries(results)
+                          .filter(([benefitKey]) => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys
+                          .map(([benefitKey, result]) => {
                           const total = result.finalStats.strength + result.finalStats.speed + 
                                       result.finalStats.defense + result.finalStats.dexterity;
                           return (
@@ -1033,7 +1047,9 @@ export default function GymComparison() {
                       </tr>
                       <tr style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                         <td style={{ padding: '12px', fontWeight: 'bold' }}>Total Gain</td>
-                        {Object.entries(results).map(([benefitKey, result]) => {
+                        {Object.entries(results)
+                          .filter(([benefitKey]) => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys
+                          .map(([benefitKey, result]) => {
                           const totalGain = 
                             (result.finalStats.strength - initialStats.strength) +
                             (result.finalStats.speed - initialStats.speed) +
@@ -1052,7 +1068,9 @@ export default function GymComparison() {
               </Paper>
               
               <Grid container spacing={2}>
-                {Object.entries(results).map(([benefitKey, result]) => {
+                {Object.entries(results)
+                  .filter(([benefitKey]) => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys like 'manual'
+                  .map(([benefitKey, result]) => {
                   const benefit = COMPANY_BENEFITS[benefitKey];
                   const totalGain = 
                     (result.finalStats.strength - initialStats.strength) +
