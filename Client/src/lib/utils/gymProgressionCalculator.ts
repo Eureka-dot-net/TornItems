@@ -319,19 +319,39 @@ export function simulateGymProgression(
       nextHappyJumpDay = day + inputs.happyJump.frequencyDays;
     }
     
-    // Distribute energy among stats based on weights
-    const energyPerStat = {
-      strength: (energyAvailableToday * inputs.statWeights.strength) / totalWeight,
-      speed: (energyAvailableToday * inputs.statWeights.speed) / totalWeight,
-      defense: (energyAvailableToday * inputs.statWeights.defense) / totalWeight,
-      dexterity: (energyAvailableToday * inputs.statWeights.dexterity) / totalWeight,
-    };
+    // Train stats based on target ratios (weights represent desired build, not training proportion)
+    // Train one energy at a time, always choosing the stat that is most out of sync with target ratio
+    let remainingEnergy = energyAvailableToday;
     
-    // Find best gym for each stat and train
-    const statOrder: Array<keyof typeof stats> = ['strength', 'speed', 'defense', 'dexterity'];
-    
-    for (const stat of statOrder) {
-      if (energyPerStat[stat] === 0) continue;
+    while (remainingEnergy > 0) {
+      // Determine which stat to train next based on how far each is from its target ratio
+      // For each stat, calculate: currentStat / targetWeight
+      // The stat with the lowest ratio is the most behind and should be trained next
+      
+      const statOrder: Array<keyof typeof stats> = ['strength', 'speed', 'defense', 'dexterity'];
+      
+      // Filter to only stats with non-zero target weights
+      const trainableStats = statOrder.filter(stat => inputs.statWeights[stat] > 0);
+      
+      if (trainableStats.length === 0) {
+        // No stats to train
+        break;
+      }
+      
+      // Find the stat most out of sync (lowest currentStat / targetWeight ratio)
+      let selectedStat: keyof typeof stats | null = null;
+      let lowestRatio = Infinity;
+      
+      for (const stat of trainableStats) {
+        const ratio = stats[stat] / inputs.statWeights[stat];
+        if (ratio < lowestRatio) {
+          lowestRatio = ratio;
+          selectedStat = stat;
+        }
+      }
+      
+      // If no stat selected (shouldn't happen), break
+      if (!selectedStat) break;
       
       try {
         // Determine which gym to use based on mode
@@ -340,7 +360,7 @@ export function simulateGymProgression(
           // Auto-upgrade mode: find best gym based on energy spent
           gym = findBestGym(
             gyms,
-            stat,
+            selectedStat,
             totalEnergySpent,
             inputs.companyBenefit.gymUnlockSpeedMultiplier
           );
@@ -351,39 +371,44 @@ export function simulateGymProgression(
           // Fallback to best gym
           gym = findBestGym(
             gyms,
-            stat,
+            selectedStat,
             totalEnergySpent,
             inputs.companyBenefit.gymUnlockSpeedMultiplier
           );
         }
         
-        const statDots = gym[stat as keyof Pick<Gym, 'strength' | 'speed' | 'defense' | 'dexterity'>];
-        if (!statDots) continue;
-        
-        // Calculate number of trains for this stat
-        const trains = Math.floor(energyPerStat[stat] / gym.energyPerTrain);
-        
-        // Calculate stat gain for each train
-        for (let i = 0; i < trains; i++) {
-          // Get the current value of the stat being trained
-          const currentStatValue = stats[stat];
-          
-          const gain = computeStatGain(
-            stat,
-            currentStatValue, // Use the current value of THIS stat, not total battle stats
-            currentHappy, // Use currentHappy (can be boosted during happy jump)
-            inputs.perkPercs[stat], // Use the specific stat's perk percentage
-            statDots,
-            gym.energyPerTrain
-          );
-          
-          // Apply gym gain multiplier from company benefit
-          const actualGain = gain * inputs.companyBenefit.gymGainMultiplier;
-          stats[stat] += actualGain;
-          totalEnergySpent += gym.energyPerTrain;
+        const statDots = gym[selectedStat as keyof Pick<Gym, 'strength' | 'speed' | 'defense' | 'dexterity'>];
+        if (!statDots) {
+          // Can't train this stat at this gym, remove energy and continue
+          break;
         }
+        
+        // Check if we have enough energy for one train
+        if (remainingEnergy < gym.energyPerTrain) {
+          // Not enough energy for another train
+          break;
+        }
+        
+        // Get the current value of the stat being trained
+        const currentStatValue = stats[selectedStat];
+        
+        const gain = computeStatGain(
+          selectedStat,
+          currentStatValue,
+          currentHappy,
+          inputs.perkPercs[selectedStat],
+          statDots,
+          gym.energyPerTrain
+        );
+        
+        // Apply gym gain multiplier from company benefit
+        const actualGain = gain * inputs.companyBenefit.gymGainMultiplier;
+        stats[selectedStat] += actualGain;
+        totalEnergySpent += gym.energyPerTrain;
+        remainingEnergy -= gym.energyPerTrain;
       } catch {
-        // Gym not found for this stat, skip
+        // Gym not found for this stat, break to avoid infinite loop
+        break;
       }
     }
     

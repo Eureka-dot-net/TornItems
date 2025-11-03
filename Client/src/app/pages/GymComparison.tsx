@@ -442,6 +442,13 @@ export default function GymComparison() {
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>Player Stats</Typography>
             
+            <Alert severity="info" sx={{ mb: 2 }}>
+              A Limited API Key is sufficient for fetching your stats. Get one from{' '}
+              <a href="https://www.torn.com/preferences.php#tab=api" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                Torn Settings → API Key
+              </a>
+            </Alert>
+            
             <TextField
               label="Torn API Key"
               type="password"
@@ -493,11 +500,15 @@ export default function GymComparison() {
                       {comparisonStates.length > 1 && (<IconButton color="error" onClick={() => handleRemoveState(activeState.id)} size="small"><DeleteIcon /></IconButton>)}
                     </Box>
                     
-                    <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Stat Training Weights</Typography>
-                    <TextField label="Strength Weight" type="number" value={activeState.statWeights.strength || ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
-                    <TextField label="Speed Weight" type="number" value={activeState.statWeights.speed || ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
-                    <TextField label="Defense Weight" type="number" value={activeState.statWeights.defense || ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
-                    <TextField label="Dexterity Weight" type="number" value={activeState.statWeights.dexterity || ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, dexterity: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
+                    <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Stat Target Ratios (Desired Build)</Typography>
+                    <TextField label="Strength Target" type="number" value={activeState.statWeights.strength || ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} helperText="Set to 0 to not train this stat" />
+                    <TextField label="Speed Target" type="number" value={activeState.statWeights.speed || ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} helperText="Set to 0 to not train this stat" />
+                    <TextField label="Defense Target" type="number" value={activeState.statWeights.defense || ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} helperText="Set to 0 to not train this stat" />
+                    <TextField label="Dexterity Target" type="number" value={activeState.statWeights.dexterity || ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, dexterity: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} helperText="Set to 0 to not train this stat" />
+                    
+                    <Alert severity="info" sx={{ mt: 2 }}>
+                      These values represent your desired stat ratios (e.g., 1:1:1.25:0 means equal strength/speed, 25% more dex, no defense). Each train goes to the stat furthest from its target ratio.
+                    </Alert>
                     
                     <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Energy Sources</Typography>
                     <TextField label="Hours Played Per Day" type="number" value={activeState.hoursPlayedPerDay || ''} onChange={(e) => updateState(activeState.id, { hoursPlayedPerDay: e.target.value === '' ? 0 : Math.max(0, Math.min(24, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="0-24 hours" inputProps={{ step: 'any' }} />
