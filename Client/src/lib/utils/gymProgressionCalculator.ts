@@ -109,45 +109,40 @@ export function calculateDailyEnergy(
 }
 
 /**
- * Compute stat gain using Vladar's formula (from existing statGainCalculator)
+ * Compute stat gain using Vladar's formula
+ * Formula: (Modifiers)*(Gym Dots)*(Energy Per Train)*[ (a*ln(Happy+b)+c) * (Stat Total) + d*(Happy+b) + e ]
+ * Where:
+ * a = 3.480061091 × 10^-7
+ * b = 250
+ * c = 3.091619094 × 10^-6
+ * d = 6.82775184551527 × 10^-5
+ * e = -0.0301431777
  */
 function computeStatGain(
-  stat: string,
+  _stat: string,
   statTotal: number,
   happy: number,
   perkPerc: number,
   dots: number,
   energyPerTrain: number
 ): number {
-  const lookupTable: Record<string, [number, number]> = {
-    strength: [1600, 1700],
-    speed: [1600, 2000],
-    defense: [2100, -600],
-    dexterity: [1800, 1500],
-  };
+  // Constants from Vladar's formula
+  const a = 3.480061091e-7;
+  const b = 250;
+  const c = 3.091619094e-6;
+  const d = 6.82775184551527e-5;
+  const e = -0.0301431777;
   
-  const [lookup2, lookup3] = lookupTable[stat];
-
-  // Adjusted stat for values over 50M
-  const adjustedStat =
-    statTotal < 50_000_000
-      ? statTotal
-      : (statTotal - 50_000_000) / (8.77635 * Math.log(statTotal)) + 50_000_000;
-
-  // Happy multiplier with proper rounding
-  const innerRound = Math.round(Math.log(1 + happy / 250) * 10000) / 10000;
-  const happyMult = Math.round((1 + 0.07 * innerRound) * 10000) / 10000;
-  
-  // Perk bonus multiplier
+  // Perk bonus multiplier (modifiers)
   const perkBonus = 1 + perkPerc / 100;
 
   // Vladar's formula
-  const multiplier = (1 / 200000) * dots * energyPerTrain * perkBonus;
+  // (Modifiers)*(Gym Dots)*(Energy Per Train)*[ (a*ln(Happy+b)+c) * (Stat Total) + d*(Happy+b) + e ]
+  const multiplier = perkBonus * dots * energyPerTrain;
   const innerExpression = 
-    adjustedStat * happyMult + 
-    8 * Math.pow(happy, 1.05) + 
-    lookup2 * (1 - Math.pow(happy / 99999, 2)) + 
-    lookup3;
+    (a * Math.log(happy + b) + c) * statTotal + 
+    d * (happy + b) + 
+    e;
 
   const gain = multiplier * innerExpression;
   return gain;
