@@ -1,11 +1,43 @@
 import axios from 'axios';
 import { BattleStats } from '../models/BattleStats';
 import { logInfo, logError } from './logger';
-import { TornBattleStatsResponse, TornTravelResponse, TravelStatus } from '../types/tornApiTypes';
+import { TornBattleStatsResponse, TornTravelResponse, TravelStatus, TornGymStatsResponse } from '../types/tornApiTypes';
 import { logApiCall } from './apiCallLogger';
 
 // Re-export TravelStatus for backward compatibility
 export { TravelStatus } from '../types/tornApiTypes';
+
+/**
+ * Fetch gym stats (battlestats, active gym, and perks) from the Torn API
+ * @param apiKey - The user's Torn API key
+ * @returns The gym stats data
+ */
+export async function fetchGymStats(apiKey: string) {
+  try {
+    logInfo('Fetching gym stats from Torn API');
+    
+    const response = await axios.get<TornGymStatsResponse>(
+      `https://api.torn.com/v2/user?selections=battlestats,gym,perks&key=${apiKey}`
+    );
+    
+    // Log the API call
+    await logApiCall('user/gymstats', 'tornApi');
+    
+    logInfo('Gym stats fetched successfully');
+    
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      logError('Failed to fetch gym stats', error, {
+        status: error.response.status,
+        data: error.response.data
+      });
+    } else {
+      logError('Failed to fetch gym stats', error instanceof Error ? error : new Error(String(error)));
+    }
+    throw error;
+  }
+}
 
 /**
  * Fetch and store battle stats for a user from the Torn API

@@ -104,6 +104,44 @@ export interface TornGymResponse {
 }
 
 /**
+ * Combined response from /v2/user?selections=battlestats,gym,perks
+ */
+export interface TornGymStatsResponse {
+  active_gym: number;
+  battlestats: {
+    strength: {
+      value: number;
+      modifier: number;
+      modifiers?: Array<{ effect: string; value: number; type: string }>;
+    };
+    defense: {
+      value: number;
+      modifier: number;
+      modifiers?: Array<{ effect: string; value: number; type: string }>;
+    };
+    speed: {
+      value: number;
+      modifier: number;
+      modifiers?: Array<{ effect: string; value: number; type: string }>;
+    };
+    dexterity: {
+      value: number;
+      modifier: number;
+      modifiers?: Array<{ effect: string; value: number; type: string }>;
+    };
+    total: number;
+  };
+  faction_perks: string[];
+  job_perks: string[];
+  property_perks: string[];
+  education_perks: string[];
+  enhancer_perks: string[];
+  book_perks: string[];
+  stock_perks: string[];
+  merit_perks: string[];
+}
+
+/**
  * Individual gym data from Torn API
  */
 export interface TornGymData {

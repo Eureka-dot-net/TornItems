@@ -4,6 +4,7 @@ import UnderConstruction from "../layout/UnderConstruction";
 import Profit from "../pages/Profit";
 import Recommendations from "../pages/Recommendations";
 import StockProfit from "../pages/StockProfit";
+import GymComparison from "../pages/GymComparison";
 
 const router = createBrowserRouter([
     {
@@ -12,6 +13,7 @@ const router = createBrowserRouter([
             { path: "/", element: <Recommendations /> },
             { path: "/profit", element: <Profit /> },
             { path: "/stockProfit", element: <StockProfit /> },
+            { path: "/gymComparison", element: <GymComparison /> },
             { path: "*", element: <UnderConstruction /> },
         ],
     },

@@ -1,18 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppBar, Toolbar, Typography, Button, IconButton, Drawer, List, ListItem, ListItemButton, ListItemText, Box } from '@mui/material';
 import { Menu as MenuIcon } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const navItems = [
+const allNavItems = [
   { label: 'Stock Recommendations', path: '/' },
   { label: 'Profit Analysis', path: '/profit' },
   { label: 'Stock Profit', path: '/stockProfit' },
+  { label: 'Gym Comparison', path: '/gymComparison' },
 ];
 
 export default function Navigation() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [navItems, setNavItems] = useState(allNavItems);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Hide navigation items unless user has the flag set in localStorage
+  // Owner sets: localStorage.setItem('showAllNavigation', 'true')
+  // Everyone else (friends) sees only Gym Comparison by default
+  useEffect(() => {
+    const showAllNav = localStorage.getItem('showAllNavigation') === 'true';
+    if (showAllNav) {
+      setNavItems(allNavItems);
+    } else {
+      setNavItems([{ label: 'Gym Comparison', path: '/gymComparison' }]);
+    }
+  }, []);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
