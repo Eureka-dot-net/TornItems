@@ -20,6 +20,11 @@ const TARGET_POINTS: [number, number][] = [
 ];
 
 /**
+ * Stat level threshold where post-cap scaling begins (50M)
+ */
+const STAT_CAP_THRESHOLD = 5e7;
+
+/**
  * Benchmark conditions for calibration (heavy training with George's Gym)
  */
 const BENCH = {
@@ -162,7 +167,7 @@ export function calculateDailyEnergy(
  */
 function targetMonthlyGrowthFraction(S: number): number {
   if (S <= TARGET_POINTS[0][0]) return TARGET_POINTS[0][1] / 100;
-  if (S >= TARGET_POINTS.at(-1)![0]) return TARGET_POINTS.at(-1)![1] / 100;
+  if (S >= TARGET_POINTS[TARGET_POINTS.length - 1][0]) return TARGET_POINTS[TARGET_POINTS.length - 1][1] / 100;
   const logS = Math.log(S);
   for (let i = 0; i < TARGET_POINTS.length - 1; i++) {
     const [s1, g1p] = TARGET_POINTS[i];
@@ -173,7 +178,7 @@ function targetMonthlyGrowthFraction(S: number): number {
       return g;
     }
   }
-  return TARGET_POINTS.at(-1)![1] / 100;
+  return TARGET_POINTS[TARGET_POINTS.length - 1][1] / 100;
 }
 
 /**
@@ -200,7 +205,7 @@ function simulateOneMonthVanilla(S0: number, bench: typeof BENCH): number {
  * Calibrated to match Torn's May 2024 growth curve
  */
 function capRemovalScale(S: number, bench: typeof BENCH): number {
-  if (S < 5e7) return 1;
+  if (S < STAT_CAP_THRESHOLD) return 1;
   const targetR = targetMonthlyGrowthFraction(S);
   const S1 = simulateOneMonthVanilla(S, bench);
   const rVanilla = (S1 - S) / S;
@@ -244,7 +249,7 @@ function computeStatGain(
   let M = perkBonus * dots * energyPerTrain * (d * (happy + b) + e);
   
   // Apply post-cap scaling for stats above 50M (Torn May 2024 cap removal)
-  if (currentStatValue >= 5e7) {
+  if (currentStatValue >= STAT_CAP_THRESHOLD) {
     const scale = capRemovalScale(currentStatValue, BENCH);
     K *= scale;
     M *= scale;
