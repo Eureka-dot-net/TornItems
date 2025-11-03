@@ -200,7 +200,7 @@ export function simulateGymProgression(
   inputs: SimulationInputs
 ): SimulationResult {
   // Determine if this is manual mode (single energy amount) or future mode (days based)
-  const isManualMode = inputs.manualEnergy !== undefined && inputs.manualEnergy > 0;
+  const isManualMode = inputs.manualEnergy !== undefined;
   
   const dailyEnergy = isManualMode 
     ? inputs.manualEnergy 

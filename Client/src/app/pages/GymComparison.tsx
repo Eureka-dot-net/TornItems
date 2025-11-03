@@ -366,6 +366,17 @@ export default function GymComparison() {
           </Typography>
           {payload.map((entry, index: number) => {
             // Find the gym for this benefit at this day
+            // Skip for manual mode as COMPANY_BENEFITS won't have 'manual' key
+            if (mode === 'manual') {
+              return (
+                <Box key={index} sx={{ mb: 1 }}>
+                  <Typography variant="body2" style={{ color: entry.color }}>
+                    {entry.name}: {entry.value?.toLocaleString()}
+                  </Typography>
+                </Box>
+              );
+            }
+            
             const benefitKey = Object.keys(results).find(key => 
               COMPANY_BENEFITS[key]?.name === entry.name
             );
@@ -666,28 +677,30 @@ export default function GymComparison() {
               ))}
             </TextField>
             
-            {/* Company Benefits */}
-            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
-              Company Benefits to Compare
-            </Typography>
-            <FormGroup>
-              {Object.entries(getCompanyBenefits(candleShopStars)).map(([key, benefit]) => (
-                <Box key={key}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={selectedBenefits.includes(key)}
-                        onChange={() => handleBenefitToggle(key)}
+            {/* Company Benefits - Only for Future Mode */}
+            {mode === 'future' && (
+              <>
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                  Company Benefits to Compare
+                </Typography>
+                <FormGroup>
+                  {Object.entries(getCompanyBenefits(candleShopStars)).map(([key, benefit]) => (
+                    <Box key={key}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={selectedBenefits.includes(key)}
+                            onChange={() => handleBenefitToggle(key)}
+                          />
+                        }
+                        label={benefit.name}
                       />
-                    }
-                    label={benefit.name}
-                  />
-                  {/* Show time to George's for each benefit */}
-                  {selectedBenefits.includes(key) && (
-                    <Alert severity="success" sx={{ mt: 0.5, mb: 1, ml: 4 }} variant="outlined">
-                      Time to George's: {calculateTimeToGeorges(benefit)}
-                    </Alert>
-                  )}
+                      {/* Show time to George's for each benefit */}
+                      {selectedBenefits.includes(key) && (
+                        <Alert severity="success" sx={{ mt: 0.5, mb: 1, ml: 4 }} variant="outlined">
+                          Time to George's: {calculateTimeToGeorges(benefit)}
+                        </Alert>
+                      )}
                 </Box>
               ))}
             </FormGroup>
@@ -707,6 +720,8 @@ export default function GymComparison() {
                   inputProps: { min: 1, max: 10 }
                 }}
               />
+            )}
+            </>
             )}
             
             {/* Happy Jump Section - For Future Mode */}
