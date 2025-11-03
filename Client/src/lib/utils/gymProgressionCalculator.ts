@@ -135,7 +135,7 @@ export function calculateDailyEnergy(
  * e = -0.0301431777
  */
 function computeStatGain(
-  stat: 'strength' | 'speed' | 'defense' | 'dexterity',
+  _stat: 'strength' | 'speed' | 'defense' | 'dexterity',
   currentStatValue: number,
   happy: number,
   perkPercForStat: number,
@@ -210,7 +210,7 @@ export function simulateGymProgression(
   const isManualMode = inputs.manualEnergy !== undefined;
   
   const dailyEnergy: number = isManualMode 
-    ? inputs.manualEnergy 
+    ? inputs.manualEnergy! 
     : calculateDailyEnergy(
         inputs.hoursPlayedPerDay,
         inputs.xanaxPerDay,
@@ -268,8 +268,7 @@ export function simulateGymProgression(
   const isSkippedDay = (day: number): boolean => {
     if (daysSkippedPerMonth === 0) return false;
     
-    // Calculate which month we're in (1-indexed)
-    const monthNumber = Math.floor((day - 1) / 30) + 1;
+    // Calculate which day in the month we're on (1-indexed)
     const dayInMonth = ((day - 1) % 30) + 1;
     
     // Distribute skipped days evenly throughout the month

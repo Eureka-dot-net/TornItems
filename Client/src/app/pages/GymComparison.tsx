@@ -178,7 +178,6 @@ export default function GymComparison() {
   
   const [activeTabIndex, setActiveTabIndex] = useState<number>(0);
   const [results, setResults] = useState<Record<string, SimulationResult>>({});
-  const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   
   const { data: gymStatsData, isLoading: isLoadingGymStats, error: gymStatsError, refetch: refetchGymStats } = useGymStats(apiKey || null);
@@ -288,7 +287,6 @@ export default function GymComparison() {
   };
   
   const handleSimulate = () => {
-    setIsSimulating(true);
     setError(null);
     
     try {
@@ -344,8 +342,6 @@ export default function GymComparison() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
-    } finally {
-      setIsSimulating(false);
     }
   };
   
