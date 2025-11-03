@@ -402,9 +402,9 @@ export default function GymComparison() {
     return null;
   };
   
-  // Prepare chart data
+  // Prepare chart data (only for future mode)
   const COMPANY_BENEFITS = getCompanyBenefits(candleShopStars);
-  const chartData = Object.keys(results).length > 0 ? 
+  const chartData = mode === 'future' && Object.keys(results).length > 0 ? 
     results[Object.keys(results)[0]].dailySnapshots.map((_, index) => {
       const dataPoint: Record<string, number> = { day: results[Object.keys(results)[0]].dailySnapshots[index].day };
       
