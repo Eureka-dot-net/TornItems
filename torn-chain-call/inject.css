@@ -1,0 +1,7 @@
+#tornChainPanel {
+  transition: all 0.2s ease-in-out;
+}
+
+#tornChainPanel:hover {
+  box-shadow: 0 0 10px #76baff;
+}

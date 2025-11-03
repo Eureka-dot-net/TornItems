@@ -1,0 +1,79 @@
+#tornChainPanel * {
+  all: unset;
+  display: revert;
+  font-family: Arial, sans-serif;
+  color: #eee;
+  box-sizing: border-box;
+}
+
+#tornChainPanel {
+  background-color: #1c1c1c;
+  font-size: 13px;
+  line-height: 1.4;
+  border: 2px solid #555;
+  border-radius: 8px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.6);
+  overflow: hidden;
+  width: 420px;
+  height: 90%;
+  position: fixed;
+  top: 10px;
+  z-index: 99999;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+#tornChainPanel h1,
+#tornChainPanel h2 {
+  color: #76baff;
+  margin: 6px 0;
+  font-size: 1.1em;
+  border-bottom: 1px solid #444;
+  padding-bottom: 3px;
+}
+
+#tornChainPanel table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 5px;
+  font-size: 0.85em;
+}
+
+#tornChainPanel th,
+#tornChainPanel td {
+  border: 1px solid #555;
+  padding: 4px;
+  text-align: center;
+}
+
+#tornChainPanel input,
+#tornChainPanel select,
+#tornChainPanel button {
+  background-color: #222;
+  color: #eee;
+  border: 1px solid #555;
+  border-radius: 3px;
+  padding: 3px 5px;
+  font-size: 0.85em;
+}
+
+#tornChainPanel button:hover {
+  background-color: #76baff;
+  color: #000;
+}
+
+#tornChainPanel .controls,
+#tornChainPanel .callButtons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+#tornChainPanel .result {
+  text-align: center;
+  margin: 10px 0;
+  color: #8aff8a;
+  font-weight: bold;
+}

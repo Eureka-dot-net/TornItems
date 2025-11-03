@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Torn Chain Call</title>
+    <link rel="stylesheet" href="popup.css" />
+</head>
+
+<body>
+    <h1>⚡ Torn Chain Call</h1>
+
+    <div class="controls">
+        <label>Call at (minutes):
+            <input type="number" id="callAt" value="2" min="1" max="5" />
+        </label>
+        <button id="addPlayer">Add Player</button>
+    </div>
+
+    <table id="playerTable">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th style="width:70px;">E</th>
+                <th>Refill?</th>
+                <th>Xanax?</th>
+                <th>Duration (min)</th>
+                <th>🗑</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <div class="result" id="chainDuration"></div>
+
+    <hr />
+
+    <div id="callSection">
+        <h2>🔔 Call</h2>
+        <div id="callDisplay">No players yet</div>
+        <div class="callButtons">
+            <button id="copyCall">Copy to Clipboard</button>
+            <button id="nextHit">Hit</button>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+
+    <hr />
+    <div id="attachSection">
+        <h2>🧩 Torn Integration</h2>
+        <label>Inject position:</label>
+        <select id="injectPosition">
+            <option value="right">Right side</option>
+            <option value="left">Left side</option>
+        </select>
+        <button id="attachTorn">Attach to Torn</button>
+    </div>
+</body>
+
+</html>
