@@ -135,7 +135,7 @@ export function calculateDailyEnergy(
  */
 function computeStatGain(
   stat: 'strength' | 'speed' | 'defense' | 'dexterity',
-  statTotal: number,
+  currentStatValue: number,
   happy: number,
   perkPercForStat: number,
   dots: number,
@@ -152,10 +152,11 @@ function computeStatGain(
   const perkBonus = 1 + perkPercForStat / 100;
 
   // Vladar's formula
-  // (Modifiers)*(Gym Dots)*(Energy Per Train)*[ (a*ln(Happy+b)+c) * (Stat Total) + d*(Happy+b) + e ]
+  // (Modifiers)*(Gym Dots)*(Energy Per Train)*[ (a*ln(Happy+b)+c) * (S) + d*(Happy+b) + e ]
+  // Where S is the current value of the stat being trained (not Total Battle Stats)
   const multiplier = perkBonus * dots * energyPerTrain;
   const innerExpression = 
-    (a * Math.log(happy + b) + c) * statTotal + 
+    (a * Math.log(happy + b) + c) * currentStatValue + 
     d * (happy + b) + 
     e;
 
@@ -340,12 +341,12 @@ export function simulateGymProgression(
         
         // Calculate stat gain for each train
         for (let i = 0; i < trains; i++) {
-          // Calculate total stats for Vladar's formula
-          const statTotal = stats.strength + stats.speed + stats.defense + stats.dexterity;
+          // Get the current value of the stat being trained
+          const currentStatValue = stats[stat];
           
           const gain = computeStatGain(
             stat,
-            statTotal,
+            currentStatValue, // Use the current value of THIS stat, not total battle stats
             currentHappy, // Use currentHappy (can be boosted during happy jump)
             inputs.perkPercs[stat], // Use the specific stat's perk percentage
             statDots,
