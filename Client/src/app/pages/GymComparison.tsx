@@ -145,6 +145,7 @@ export default function GymComparison() {
   // Manual testing state
   const [manualEnergy, setManualEnergy] = useState<number>(() => loadSavedValue('manualEnergy', 1000));
   const [autoUpgradeGyms, setAutoUpgradeGyms] = useState<boolean>(() => loadSavedValue('autoUpgradeGyms', true));
+  const [manualHappy, setManualHappy] = useState<number>(() => loadSavedValue('manualHappy', 5000));
   
   // Shared player stats
   const [apiKey, setApiKey] = useState<string>(() => loadSavedValue('apiKey', ''));
@@ -210,6 +211,7 @@ export default function GymComparison() {
   useEffect(() => { localStorage.setItem('gymComparison_mode', JSON.stringify(mode)); setResults({}); }, [mode]);
   useEffect(() => { localStorage.setItem('gymComparison_manualEnergy', JSON.stringify(manualEnergy)); }, [manualEnergy]);
   useEffect(() => { localStorage.setItem('gymComparison_autoUpgradeGyms', JSON.stringify(autoUpgradeGyms)); }, [autoUpgradeGyms]);
+  useEffect(() => { localStorage.setItem('gymComparison_manualHappy', JSON.stringify(manualHappy)); }, [manualHappy]);
   useEffect(() => { localStorage.setItem('gymComparison_apiKey', JSON.stringify(apiKey)); }, [apiKey]);
   useEffect(() => { localStorage.setItem('gymComparison_initialStats', JSON.stringify(initialStats)); }, [initialStats]);
   useEffect(() => { localStorage.setItem('gymComparison_currentGymIndex', JSON.stringify(currentGymIndex)); }, [currentGymIndex]);
@@ -227,7 +229,7 @@ export default function GymComparison() {
     if (mode === 'manual') {
       handleSimulate();
     }
-  }, [manualEnergy, autoUpgradeGyms, initialStats, currentGymIndex]);
+  }, [manualEnergy, autoUpgradeGyms, manualHappy, initialStats, currentGymIndex]);
   
   const handleFetchStats = async () => {
     if (!apiKey.trim()) {
@@ -300,7 +302,7 @@ export default function GymComparison() {
           companyBenefit: getCompanyBenefit('none', 0),
           apiKey,
           initialStats,
-          happy: comparisonStates[0]?.happy || 5000,
+          happy: manualHappy,
           perkPercs: { strength: 0, speed: 0, defense: 0, dexterity: 0 },
           currentGymIndex: autoUpgradeGyms ? -1 : currentGymIndex,
           manualEnergy,
@@ -468,6 +470,7 @@ export default function GymComparison() {
             {mode === 'manual' && (
               <>
                 <TextField label="Total Energy" type="number" value={manualEnergy || ''} onChange={(e) => setManualEnergy(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))} fullWidth margin="dense" size="small" helperText="Energy to spend on training" inputProps={{ step: 'any' }} />
+                <TextField label="Happy" type="number" value={manualHappy || ''} onChange={(e) => setManualHappy(e.target.value === '' ? 0 : Math.max(0, Math.min(99999, Number(e.target.value))))} fullWidth margin="dense" size="small" helperText="Maximum: 99,999" inputProps={{ step: 'any' }} />
                 <FormControlLabel control={<Switch checked={autoUpgradeGyms} onChange={(e) => setAutoUpgradeGyms(e.target.checked)} />} label="Auto-upgrade gyms" sx={{ mt: 1 }} />
               </>
             )}
