@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -68,32 +68,100 @@ const getCompanyBenefits = (candleShopStars: number): Record<string, CompanyBene
     name: 'No Benefits',
     gymUnlockSpeedMultiplier: 1.0,
     bonusEnergyPerDay: 0,
+    gymGainMultiplier: 1.0,
   },
   musicStore: {
     name: '3★ Music Store',
     gymUnlockSpeedMultiplier: 1.3, // 30% faster
     bonusEnergyPerDay: 0,
+    gymGainMultiplier: 1.0,
   },
   candleShop: {
     name: `${candleShopStars}★ Candle Shop`,
     gymUnlockSpeedMultiplier: 1.0,
     bonusEnergyPerDay: candleShopStars * 5,
+    gymGainMultiplier: 1.0,
+  },
+  fitnessCenter: {
+    name: '10★ Fitness Center',
+    gymUnlockSpeedMultiplier: 1.0,
+    bonusEnergyPerDay: 0,
+    gymGainMultiplier: 1.03, // 3% gym gains
   },
 });
 
 export default function GymComparison() {
-  // Form inputs
-  const [statWeights, setStatWeights] = useState({ strength: 1, speed: 1, defense: 1, dexterity: 1 });
-  const [months, setMonths] = useState<number>(6);
-  const [xanaxPerDay, setXanaxPerDay] = useState<number>(0);
-  const [hasPointsRefill, setHasPointsRefill] = useState<boolean>(false);
-  const [hoursPlayedPerDay, setHoursPlayedPerDay] = useState<number>(8);
-  const [selectedBenefits, setSelectedBenefits] = useState<string[]>(['none']);
-  const [apiKey, setApiKey] = useState<string>('');
-  const [happy, setHappy] = useState<number>(5000);
-  const [perkPerc, setPerkPerc] = useState<number>(0);
-  const [initialStats, setInitialStats] = useState({ strength: 1000, speed: 1000, defense: 1000, dexterity: 1000 });
-  const [candleShopStars, setCandleShopStars] = useState<number>(10);
+  // Load saved values from localStorage or use defaults
+  const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
+    try {
+      const saved = localStorage.getItem(`gymComparison_${key}`);
+      return saved ? JSON.parse(saved) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  };
+
+  // Form inputs with localStorage persistence
+  const [statWeights, setStatWeights] = useState(() => 
+    loadSavedValue('statWeights', { strength: 1, speed: 1, defense: 1, dexterity: 1 })
+  );
+  const [months, setMonths] = useState<number>(() => loadSavedValue('months', 6));
+  const [xanaxPerDay, setXanaxPerDay] = useState<number>(() => loadSavedValue('xanaxPerDay', 0));
+  const [hasPointsRefill, setHasPointsRefill] = useState<boolean>(() => loadSavedValue('hasPointsRefill', false));
+  const [hoursPlayedPerDay, setHoursPlayedPerDay] = useState<number>(() => loadSavedValue('hoursPlayedPerDay', 8));
+  const [selectedBenefits, setSelectedBenefits] = useState<string[]>(() => loadSavedValue('selectedBenefits', ['none']));
+  const [apiKey, setApiKey] = useState<string>(() => loadSavedValue('apiKey', ''));
+  const [happy, setHappy] = useState<number>(() => loadSavedValue('happy', 5000));
+  const [perkPerc, setPerkPerc] = useState<number>(() => loadSavedValue('perkPerc', 0));
+  const [initialStats, setInitialStats] = useState(() => 
+    loadSavedValue('initialStats', { strength: 1000, speed: 1000, defense: 1000, dexterity: 1000 })
+  );
+  const [candleShopStars, setCandleShopStars] = useState<number>(() => loadSavedValue('candleShopStars', 10));
+  
+  // Save to localStorage whenever values change
+  useEffect(() => {
+    localStorage.setItem('gymComparison_statWeights', JSON.stringify(statWeights));
+  }, [statWeights]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_months', JSON.stringify(months));
+  }, [months]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_xanaxPerDay', JSON.stringify(xanaxPerDay));
+  }, [xanaxPerDay]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_hasPointsRefill', JSON.stringify(hasPointsRefill));
+  }, [hasPointsRefill]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_hoursPlayedPerDay', JSON.stringify(hoursPlayedPerDay));
+  }, [hoursPlayedPerDay]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_selectedBenefits', JSON.stringify(selectedBenefits));
+  }, [selectedBenefits]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_apiKey', JSON.stringify(apiKey));
+  }, [apiKey]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_happy', JSON.stringify(happy));
+  }, [happy]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_perkPerc', JSON.stringify(perkPerc));
+  }, [perkPerc]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_initialStats', JSON.stringify(initialStats));
+  }, [initialStats]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_candleShopStars', JSON.stringify(candleShopStars));
+  }, [candleShopStars]);
   
   // Results
   const [results, setResults] = useState<Record<string, SimulationResult>>({});
@@ -148,6 +216,59 @@ export default function GymComparison() {
         return [...prev, benefitKey];
       }
     });
+  };
+  
+  // Helper function to format days into human-readable time
+  const formatDaysToHumanReadable = (days: number): string => {
+    const years = Math.floor(days / 365);
+    const remainingAfterYears = days % 365;
+    const months = Math.floor(remainingAfterYears / 30);
+    const remainingDays = remainingAfterYears % 30;
+    
+    const parts = [];
+    if (years > 0) parts.push(`${years} year${years > 1 ? 's' : ''}`);
+    if (months > 0) parts.push(`${months} month${months > 1 ? 's' : ''}`);
+    if (remainingDays > 0 || parts.length === 0) parts.push(`${remainingDays} day${remainingDays !== 1 ? 's' : ''}`);
+    
+    return parts.join(', ');
+  };
+  
+  // Custom tooltip component
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { day: number }; name: string; value: number; color: string }> }) => {
+    if (active && payload && payload.length) {
+      const day = payload[0].payload.day;
+      const timeStr = formatDaysToHumanReadable(day);
+      
+      return (
+        <Paper sx={{ p: 2, backgroundColor: 'rgba(0, 0, 0, 0.9)', border: '1px solid #555' }}>
+          <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+            {timeStr}
+          </Typography>
+          {payload.map((entry, index: number) => {
+            // Find the gym for this benefit at this day
+            const benefitKey = Object.keys(results).find(key => 
+              COMPANY_BENEFITS[key]?.name === entry.name
+            );
+            const snapshot = benefitKey ? 
+              results[benefitKey].dailySnapshots.find(s => s.day === day) : null;
+            
+            return (
+              <Box key={index} sx={{ mb: 1 }}>
+                <Typography variant="body2" style={{ color: entry.color }}>
+                  {entry.name}: {entry.value?.toLocaleString()}
+                </Typography>
+                {snapshot && (
+                  <Typography variant="caption" sx={{ color: '#aaa', display: 'block', ml: 1 }}>
+                    Gym: {snapshot.currentGym}
+                  </Typography>
+                )}
+              </Box>
+            );
+          })}
+        </Paper>
+      );
+    }
+    return null;
   };
   
   // Prepare chart data
@@ -425,7 +546,7 @@ export default function GymComparison() {
                     <YAxis 
                       label={{ value: 'Total Battle Stats', angle: -90, position: 'insideLeft' }}
                     />
-                    <Tooltip />
+                    <Tooltip content={<CustomTooltip />} />
                     <Legend />
                     {Object.keys(results).map((benefitKey, index) => {
                       const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042'];

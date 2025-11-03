@@ -26,6 +26,7 @@ export interface CompanyBenefit {
   name: string;
   gymUnlockSpeedMultiplier: number; // e.g., 1.3 for 30% faster
   bonusEnergyPerDay: number;
+  gymGainMultiplier: number; // e.g., 1.03 for 3% more gains
 }
 
 export interface SimulationInputs {
@@ -269,7 +270,8 @@ export function simulateGymProgression(
             gym.energyPerTrain
           );
           
-          stats[stat] += gain;
+          // Apply gym gain multiplier from company benefit
+          stats[stat] += gain * inputs.companyBenefit.gymGainMultiplier;
           totalEnergySpent += gym.energyPerTrain;
         }
       } catch {
