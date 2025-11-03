@@ -31,8 +31,7 @@ export interface CompanyBenefit {
 
 export interface SimulationInputs {
   statWeights: StatWeights;
-  days?: number;  // Optional: specific number of days
-  months: number;  // Number of months (used if days is not specified)
+  months: number;  // Number of months for future mode
   xanaxPerDay: number;
   hasPointsRefill: boolean;
   hoursPlayedPerDay: number;
@@ -46,7 +45,8 @@ export interface SimulationInputs {
   };
   happy: number;
   perkPerc: number;
-  currentGymIndex: number;
+  currentGymIndex: number; // >= 0 locks to specific gym, -1 means auto-upgrade
+  manualEnergy?: number; // Optional: if specified, use this instead of calculating daily energy
   happyJump?: {
     enabled: boolean;
     frequencyDays: number; // e.g., 7 for weekly, 14 for every 2 weeks
@@ -84,7 +84,7 @@ export function calculateDailyEnergy(
   bonusEnergyPerDay: number = 0
 ): number {
   // Energy regenerates 5 every 10 minutes = 30 per hour
-  // Maximum energy bar is 150
+  // Maximum energy bar is 150 (fills in 5 hours)
   
   // Clamp hours to 0-24
   const hours = Math.max(0, Math.min(24, hoursPlayedPerDay));
@@ -92,13 +92,16 @@ export function calculateDailyEnergy(
   let energy = 0;
   
   if (hours >= 24) {
-    // Playing 24 hours straight - no starting 150, just regeneration
+    // Playing 24 hours straight - no sleep, no natural refill, just regeneration
     energy = 24 * 30; // 720 energy
   } else {
-    // Start with 150, then regenerate during play time
-    energy = 150 + (hours * 30);
-    // Cap at 150 + regeneration (can't exceed what's possible)
-    energy = Math.min(energy, 150 + (hours * 30));
+    // Sleep time = 24 - hours played
+    const sleepHours = 24 - hours;
+    // Natural refill during sleep (max 150, takes 5 hours to fill)
+    const naturalRefill = Math.min(150, sleepHours * 30);
+    // Energy regeneration during play
+    const playRegen = hours * 30;
+    energy = naturalRefill + playRegen;
   }
   
   // Add xanax energy (250 per xanax)
@@ -196,15 +199,20 @@ export function simulateGymProgression(
   gyms: Gym[],
   inputs: SimulationInputs
 ): SimulationResult {
-  const dailyEnergy = calculateDailyEnergy(
-    inputs.hoursPlayedPerDay,
-    inputs.xanaxPerDay,
-    inputs.hasPointsRefill,
-    inputs.companyBenefit.bonusEnergyPerDay
-  );
+  // Determine if this is manual mode (single energy amount) or future mode (days based)
+  const isManualMode = inputs.manualEnergy !== undefined && inputs.manualEnergy > 0;
   
-  // Use days if specified, otherwise convert months to days
-  const totalDays = inputs.days && inputs.days > 0 ? inputs.days : inputs.months * 30;
+  const dailyEnergy = isManualMode 
+    ? inputs.manualEnergy 
+    : calculateDailyEnergy(
+        inputs.hoursPlayedPerDay,
+        inputs.xanaxPerDay,
+        inputs.hasPointsRefill,
+        inputs.companyBenefit.bonusEnergyPerDay
+      );
+  
+  // For manual mode, simulate 1 day. For future mode, use months
+  const totalDays = isManualMode ? 1 : inputs.months * 30;
   
   // Initialize stats
   const stats = {
@@ -228,8 +236,12 @@ export function simulateGymProgression(
   // Track total energy spent (for gym unlocks)
   let totalEnergySpent = 0;
   
-  // Track current gym based on initial gym
-  if (inputs.currentGymIndex !== undefined && inputs.currentGymIndex >= 0) {
+  // Auto-upgrade mode: currentGymIndex = -1
+  // Locked gym mode: currentGymIndex >= 0
+  const shouldAutoUpgrade = inputs.currentGymIndex < 0;
+  
+  // Track current gym based on initial gym (only if not auto-upgrading)
+  if (!shouldAutoUpgrade && inputs.currentGymIndex >= 0) {
     const currentGym = gyms[inputs.currentGymIndex];
     if (currentGym) {
       totalEnergySpent = currentGym.energyToUnlock;
@@ -292,11 +304,21 @@ export function simulateGymProgression(
       if (energyPerStat[stat] === 0) continue;
       
       try {
-        // Use the gym specified by currentGymIndex if provided, otherwise find best gym
+        // Determine which gym to use based on mode
         let gym: Gym;
-        if (inputs.currentGymIndex !== undefined && inputs.currentGymIndex >= 0 && inputs.currentGymIndex < gyms.length) {
+        if (shouldAutoUpgrade) {
+          // Auto-upgrade mode: find best gym based on energy spent
+          gym = findBestGym(
+            gyms,
+            stat,
+            totalEnergySpent,
+            inputs.companyBenefit.gymUnlockSpeedMultiplier
+          );
+        } else if (inputs.currentGymIndex >= 0 && inputs.currentGymIndex < gyms.length) {
+          // Locked gym mode: use specified gym
           gym = gyms[inputs.currentGymIndex];
         } else {
+          // Fallback to best gym
           gym = findBestGym(
             gyms,
             stat,

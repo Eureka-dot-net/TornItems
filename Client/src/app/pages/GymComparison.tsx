@@ -103,10 +103,15 @@ export default function GymComparison() {
   };
 
   // Form inputs with localStorage persistence
+  const [mode, setMode] = useState<'future' | 'manual'>(() => loadSavedValue('mode', 'future'));
+  const [manualEnergy, setManualEnergy] = useState<number>(() => loadSavedValue('manualEnergy', 1000));
+  const [autoUpgradeGyms, setAutoUpgradeGyms] = useState<boolean>(() => loadSavedValue('autoUpgradeGyms', true));
+  const [happyJumpEnabled, setHappyJumpEnabled] = useState<boolean>(() => loadSavedValue('happyJumpEnabled', false));
+  const [happyJumpFrequency, setHappyJumpFrequency] = useState<number>(() => loadSavedValue('happyJumpFrequency', 7));
+  const [happyJumpDvds, setHappyJumpDvds] = useState<number>(() => loadSavedValue('happyJumpDvds', 1));
   const [statWeights, setStatWeights] = useState(() => 
     loadSavedValue('statWeights', { strength: 1, speed: 1, defense: 1, dexterity: 1 })
   );
-  const [days, setDays] = useState<number>(() => loadSavedValue('days', 0));
   const [months, setMonths] = useState<number>(() => loadSavedValue('months', 6));
   const [xanaxPerDay, setXanaxPerDay] = useState<number>(() => loadSavedValue('xanaxPerDay', 0));
   const [hasPointsRefill, setHasPointsRefill] = useState<boolean>(() => loadSavedValue('hasPointsRefill', false));
@@ -123,12 +128,32 @@ export default function GymComparison() {
   
   // Save to localStorage whenever values change
   useEffect(() => {
-    localStorage.setItem('gymComparison_statWeights', JSON.stringify(statWeights));
-  }, [statWeights]);
+    localStorage.setItem('gymComparison_mode', JSON.stringify(mode));
+  }, [mode]);
   
   useEffect(() => {
-    localStorage.setItem('gymComparison_days', JSON.stringify(days));
-  }, [days]);
+    localStorage.setItem('gymComparison_manualEnergy', JSON.stringify(manualEnergy));
+  }, [manualEnergy]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_autoUpgradeGyms', JSON.stringify(autoUpgradeGyms));
+  }, [autoUpgradeGyms]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_happyJumpEnabled', JSON.stringify(happyJumpEnabled));
+  }, [happyJumpEnabled]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_happyJumpFrequency', JSON.stringify(happyJumpFrequency));
+  }, [happyJumpFrequency]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_happyJumpDvds', JSON.stringify(happyJumpDvds));
+  }, [happyJumpDvds]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_statWeights', JSON.stringify(statWeights));
+  }, [statWeights]);
   
   useEffect(() => {
     localStorage.setItem('gymComparison_months', JSON.stringify(months));
@@ -243,32 +268,59 @@ export default function GymComparison() {
     setError(null);
     
     try {
-      const newResults: Record<string, SimulationResult> = {};
-      const COMPANY_BENEFITS = getCompanyBenefits(candleShopStars);
-      
-      for (const benefitKey of selectedBenefits) {
-        const benefit = COMPANY_BENEFITS[benefitKey];
-        
+      if (mode === 'manual') {
+        // Manual mode: single calculation with specified energy
         const inputs: SimulationInputs = {
           statWeights,
-          days,
-          months,
-          xanaxPerDay,
-          hasPointsRefill,
-          hoursPlayedPerDay,
-          companyBenefit: benefit,
+          months: 0, // Not used in manual mode
+          xanaxPerDay: 0,
+          hasPointsRefill: false,
+          hoursPlayedPerDay: 0,
+          companyBenefit: getCompanyBenefits(candleShopStars)['none'], // Use no benefits as base
           apiKey,
           initialStats,
           happy,
           perkPerc,
-          currentGymIndex,
+          currentGymIndex: autoUpgradeGyms ? -1 : currentGymIndex, // -1 means auto-upgrade
+          manualEnergy, // Use manual energy
         };
         
         const result = simulateGymProgression(GYMS, inputs);
-        newResults[benefitKey] = result;
+        // Store in results with a special key for manual mode
+        setResults({ manual: result });
+      } else {
+        // Future mode: compare multiple benefits
+        const newResults: Record<string, SimulationResult> = {};
+        const COMPANY_BENEFITS = getCompanyBenefits(candleShopStars);
+        
+        for (const benefitKey of selectedBenefits) {
+          const benefit = COMPANY_BENEFITS[benefitKey];
+          
+          const inputs: SimulationInputs = {
+            statWeights,
+            months,
+            xanaxPerDay,
+            hasPointsRefill,
+            hoursPlayedPerDay,
+            companyBenefit: benefit,
+            apiKey,
+            initialStats,
+            happy,
+            perkPerc,
+            currentGymIndex,
+            happyJump: happyJumpEnabled ? {
+              enabled: true,
+              frequencyDays: happyJumpFrequency,
+              dvdsUsed: happyJumpDvds,
+            } : undefined,
+          };
+          
+          const result = simulateGymProgression(GYMS, inputs);
+          newResults[benefitKey] = result;
+        }
+        
+        setResults(newResults);
       }
-      
-      setResults(newResults);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
@@ -375,6 +427,27 @@ export default function GymComparison() {
               Training Parameters
             </Typography>
             
+            {/* Mode Selector */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+              Calculation Mode
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <Button
+                variant={mode === 'future' ? 'contained' : 'outlined'}
+                onClick={() => setMode('future')}
+                fullWidth
+              >
+                Future Comparison
+              </Button>
+              <Button
+                variant={mode === 'manual' ? 'contained' : 'outlined'}
+                onClick={() => setMode('manual')}
+                fullWidth
+              >
+                Manual Testing
+              </Button>
+            </Box>
+            
             {/* API Key Section - Moved to top */}
             <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
               Torn API Key
@@ -443,43 +516,76 @@ export default function GymComparison() {
               size="small"
             />
             
-            {/* Energy Sources */}
-            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
-              Energy Sources
-            </Typography>
-            <TextField
-              label="Hours Played Per Day"
-              type="number"
-              value={hoursPlayedPerDay}
-              onChange={(e) => setHoursPlayedPerDay(Math.max(0, Math.min(24, Number(e.target.value))))}
-              fullWidth
-              margin="dense"
-              size="small"
-              helperText="0-24 hours"
-            />
-            <TextField
-              label="Xanax Per Day"
-              type="number"
-              value={xanaxPerDay}
-              onChange={(e) => setXanaxPerDay(Math.max(0, Number(e.target.value)))}
-              fullWidth
-              margin="dense"
-              size="small"
-              helperText="Each xanax = +250 energy"
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={hasPointsRefill}
-                  onChange={(e) => setHasPointsRefill(e.target.checked)}
+            {/* Energy Sources - Only for Future Comparison Mode */}
+            {mode === 'future' && (
+              <>
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                  Energy Sources
+                </Typography>
+                <TextField
+                  label="Hours Played Per Day"
+                  type="number"
+                  value={hoursPlayedPerDay}
+                  onChange={(e) => setHoursPlayedPerDay(Math.max(0, Math.min(24, Number(e.target.value))))}
+                  fullWidth
+                  margin="dense"
+                  size="small"
+                  helperText="0-24 hours"
                 />
-              }
-              label="Points Refill (+150 energy)"
-            />
+                <TextField
+                  label="Xanax Per Day"
+                  type="number"
+                  value={xanaxPerDay}
+                  onChange={(e) => setXanaxPerDay(Math.max(0, Number(e.target.value)))}
+                  fullWidth
+                  margin="dense"
+                  size="small"
+                  helperText="Each xanax = +250 energy"
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={hasPointsRefill}
+                      onChange={(e) => setHasPointsRefill(e.target.checked)}
+                    />
+                  }
+                  label="Points Refill (+150 energy)"
+                />
+                
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  Daily Energy: {dailyEnergy.toLocaleString()} E
+                </Alert>
+              </>
+            )}
             
-            <Alert severity="info" sx={{ mt: 2 }}>
-              Daily Energy: {dailyEnergy.toLocaleString()} E
-            </Alert>
+            {/* Manual Testing Energy - Only for Manual Mode */}
+            {mode === 'manual' && (
+              <>
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                  Energy Amount
+                </Typography>
+                <TextField
+                  label="Total Energy"
+                  type="number"
+                  value={manualEnergy}
+                  onChange={(e) => setManualEnergy(Math.max(0, Number(e.target.value)))}
+                  fullWidth
+                  margin="dense"
+                  size="small"
+                  helperText="Total energy to spend on training"
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={autoUpgradeGyms}
+                      onChange={(e) => setAutoUpgradeGyms(e.target.checked)}
+                    />
+                  }
+                  label="Auto-upgrade gyms"
+                  sx={{ mt: 1 }}
+                />
+              </>
+            )}
             
             {/* Player Stats */}
             <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
@@ -603,40 +709,66 @@ export default function GymComparison() {
               />
             )}
             
-            {/* Time Period - Moved after company benefits */}
-            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
-              Simulation Duration
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField
-                label="Days"
-                type="number"
-                value={days}
-                onChange={(e) => {
-                  const newDays = Math.max(1, Math.min(365, Number(e.target.value)));
-                  setDays(newDays);
-                  setMonths(0);
-                }}
-                fullWidth
-                margin="dense"
-                size="small"
-                helperText="1-365 days"
-              />
-              <TextField
-                label="Months"
-                type="number"
-                value={months}
-                onChange={(e) => {
-                  const newMonths = Math.max(0, Math.min(36, Number(e.target.value)));
-                  setMonths(newMonths);
-                  if (newMonths > 0) setDays(0);
-                }}
-                fullWidth
-                margin="dense"
-                size="small"
-                helperText="0-36 months"
-              />
-            </Box>
+            {/* Happy Jump Section - For Future Mode */}
+            {mode === 'future' && (
+              <>
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                  Happy Jump
+                </Typography>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={happyJumpEnabled}
+                      onChange={(e) => setHappyJumpEnabled(e.target.checked)}
+                    />
+                  }
+                  label="Enable Happy Jumps"
+                />
+                {happyJumpEnabled && (
+                  <>
+                    <TextField
+                      label="Jump Frequency (days)"
+                      type="number"
+                      value={happyJumpFrequency}
+                      onChange={(e) => setHappyJumpFrequency(Math.max(1, Number(e.target.value)))}
+                      fullWidth
+                      margin="dense"
+                      size="small"
+                      helperText="Days between happy jumps (e.g., 7 for weekly)"
+                    />
+                    <TextField
+                      label="DVDs Used Per Jump"
+                      type="number"
+                      value={happyJumpDvds}
+                      onChange={(e) => setHappyJumpDvds(Math.max(0, Number(e.target.value)))}
+                      fullWidth
+                      margin="dense"
+                      size="small"
+                      helperText="Number of Erotic DVDs consumed"
+                    />
+                  </>
+                )}
+              </>
+            )}
+            
+            {/* Simulation Duration - Only for Future Mode */}
+            {mode === 'future' && (
+              <>
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                  Simulation Duration
+                </Typography>
+                <TextField
+                  label="Months"
+                  type="number"
+                  value={months}
+                  onChange={(e) => setMonths(Math.max(1, Math.min(36, Number(e.target.value))))}
+                  fullWidth
+                  margin="dense"
+                  size="small"
+                  helperText="1-36 months"
+                />
+              </>
+            )}
             
             <Button
               variant="contained"
@@ -644,9 +776,9 @@ export default function GymComparison() {
               fullWidth
               sx={{ mt: 3 }}
               onClick={handleSimulate}
-              disabled={isSimulating || selectedBenefits.length === 0}
+              disabled={isSimulating || (mode === 'future' && selectedBenefits.length === 0)}
             >
-              {isSimulating ? <CircularProgress size={24} /> : 'Simulate'}
+              {isSimulating ? <CircularProgress size={24} /> : mode === 'future' ? 'Simulate' : 'Calculate'}
             </Button>
           </Paper>
         </Grid>
@@ -659,7 +791,81 @@ export default function GymComparison() {
             </Alert>
           )}
           
-          {Object.keys(results).length > 0 && (
+          {/* Manual Mode Results - Just Stats */}
+          {mode === 'manual' && Object.keys(results).length > 0 && results.manual && (
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Training Results
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 6, md: 3 }}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="subtitle2" color="text.secondary">Strength</Typography>
+                      <Typography variant="h5">{Math.round(results.manual.finalStats.strength).toLocaleString()}</Typography>
+                      <Typography variant="caption" color="success.main">
+                        +{Math.round(results.manual.finalStats.strength - (initialStats.strength ?? 0)).toLocaleString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 6, md: 3 }}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="subtitle2" color="text.secondary">Speed</Typography>
+                      <Typography variant="h5">{Math.round(results.manual.finalStats.speed).toLocaleString()}</Typography>
+                      <Typography variant="caption" color="success.main">
+                        +{Math.round(results.manual.finalStats.speed - (initialStats.speed ?? 0)).toLocaleString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 6, md: 3 }}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="subtitle2" color="text.secondary">Defense</Typography>
+                      <Typography variant="h5">{Math.round(results.manual.finalStats.defense).toLocaleString()}</Typography>
+                      <Typography variant="caption" color="success.main">
+                        +{Math.round(results.manual.finalStats.defense - (initialStats.defense ?? 0)).toLocaleString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 6, md: 3 }}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="subtitle2" color="text.secondary">Dexterity</Typography>
+                      <Typography variant="h5">{Math.round(results.manual.finalStats.dexterity).toLocaleString()}</Typography>
+                      <Typography variant="caption" color="success.main">
+                        +{Math.round(results.manual.finalStats.dexterity - (initialStats.dexterity ?? 0)).toLocaleString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="h6">
+                  Total Battle Stats: {Math.round(
+                    results.manual.finalStats.strength + 
+                    results.manual.finalStats.speed + 
+                    results.manual.finalStats.defense + 
+                    results.manual.finalStats.dexterity
+                  ).toLocaleString()}
+                </Typography>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Total Gain: +{Math.round(
+                    (results.manual.finalStats.strength - (initialStats.strength ?? 0)) +
+                    (results.manual.finalStats.speed - (initialStats.speed ?? 0)) +
+                    (results.manual.finalStats.defense - (initialStats.defense ?? 0)) +
+                    (results.manual.finalStats.dexterity - (initialStats.dexterity ?? 0))
+                  ).toLocaleString()}
+                </Typography>
+              </Box>
+            </Paper>
+          )}
+          
+          {/* Future Mode Results - Graph and Comparison */}
+          {mode === 'future' && Object.keys(results).length > 0 && (
             <>
               <Paper sx={{ p: 3, mb: 3 }}>
                 <Typography variant="h6" gutterBottom>
