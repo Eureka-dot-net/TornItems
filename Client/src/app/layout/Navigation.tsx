@@ -16,15 +16,16 @@ export default function Navigation() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Check if we should show only gym comparison
+  // Check URL parameter for hiding navigation (user-controlled for sharing)
   useEffect(() => {
-    const showOnlyGymComparison = localStorage.getItem('showOnlyGymComparison') === 'true';
-    if (showOnlyGymComparison) {
+    const searchParams = new URLSearchParams(location.search);
+    const hideNav = searchParams.get('hideNav') === 'true';
+    if (hideNav) {
       setNavItems([{ label: 'Gym Comparison', path: '/gymComparison' }]);
     } else {
       setNavItems(allNavItems);
     }
-  }, []);
+  }, [location.search]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
