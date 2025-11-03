@@ -103,6 +103,12 @@ export default function GymComparison() {
   };
 
   // Form inputs with localStorage persistence
+  const [mode, setMode] = useState<'future' | 'manual'>(() => loadSavedValue('mode', 'future'));
+  const [manualEnergy, setManualEnergy] = useState<number>(() => loadSavedValue('manualEnergy', 1000));
+  const [autoUpgradeGyms, setAutoUpgradeGyms] = useState<boolean>(() => loadSavedValue('autoUpgradeGyms', true));
+  const [happyJumpEnabled, setHappyJumpEnabled] = useState<boolean>(() => loadSavedValue('happyJumpEnabled', false));
+  const [happyJumpFrequency, setHappyJumpFrequency] = useState<number>(() => loadSavedValue('happyJumpFrequency', 7));
+  const [happyJumpDvds, setHappyJumpDvds] = useState<number>(() => loadSavedValue('happyJumpDvds', 1));
   const [statWeights, setStatWeights] = useState(() => 
     loadSavedValue('statWeights', { strength: 1, speed: 1, defense: 1, dexterity: 1 })
   );
@@ -113,7 +119,9 @@ export default function GymComparison() {
   const [selectedBenefits, setSelectedBenefits] = useState<string[]>(() => loadSavedValue('selectedBenefits', ['none']));
   const [apiKey, setApiKey] = useState<string>(() => loadSavedValue('apiKey', ''));
   const [happy, setHappy] = useState<number>(() => loadSavedValue('happy', 5000));
-  const [perkPerc, setPerkPerc] = useState<number>(() => loadSavedValue('perkPerc', 0));
+  const [perkPercs, setPerkPercs] = useState(() => 
+    loadSavedValue('perkPercs', { strength: 0, speed: 0, defense: 0, dexterity: 0 })
+  );
   const [initialStats, setInitialStats] = useState(() => 
     loadSavedValue('initialStats', { strength: 1000, speed: 1000, defense: 1000, dexterity: 1000 })
   );
@@ -121,6 +129,32 @@ export default function GymComparison() {
   const [currentGymIndex, setCurrentGymIndex] = useState<number>(() => loadSavedValue('currentGymIndex', 0));
   
   // Save to localStorage whenever values change
+  useEffect(() => {
+    localStorage.setItem('gymComparison_mode', JSON.stringify(mode));
+    // Clear results when switching modes to avoid stale data
+    setResults({});
+  }, [mode]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_manualEnergy', JSON.stringify(manualEnergy));
+  }, [manualEnergy]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_autoUpgradeGyms', JSON.stringify(autoUpgradeGyms));
+  }, [autoUpgradeGyms]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_happyJumpEnabled', JSON.stringify(happyJumpEnabled));
+  }, [happyJumpEnabled]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_happyJumpFrequency', JSON.stringify(happyJumpFrequency));
+  }, [happyJumpFrequency]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_happyJumpDvds', JSON.stringify(happyJumpDvds));
+  }, [happyJumpDvds]);
+  
   useEffect(() => {
     localStorage.setItem('gymComparison_statWeights', JSON.stringify(statWeights));
   }, [statWeights]);
@@ -154,8 +188,8 @@ export default function GymComparison() {
   }, [happy]);
   
   useEffect(() => {
-    localStorage.setItem('gymComparison_perkPerc', JSON.stringify(perkPerc));
-  }, [perkPerc]);
+    localStorage.setItem('gymComparison_perkPercs', JSON.stringify(perkPercs));
+  }, [perkPercs]);
   
   useEffect(() => {
     localStorage.setItem('gymComparison_initialStats', JSON.stringify(initialStats));
@@ -190,7 +224,7 @@ export default function GymComparison() {
         defense: gymStatsData.battlestats.defense,
         dexterity: gymStatsData.battlestats.dexterity,
       });
-      setPerkPerc(gymStatsData.perkPerc);
+      setPerkPercs(gymStatsData.perkPercs);
       setCurrentGymIndex(Math.max(0, gymStatsData.activeGym - 1)); // Torn gyms are 1-indexed
     }
   }, [gymStatsData]);
@@ -238,30 +272,59 @@ export default function GymComparison() {
     setError(null);
     
     try {
-      const newResults: Record<string, SimulationResult> = {};
-      const COMPANY_BENEFITS = getCompanyBenefits(candleShopStars);
-      
-      for (const benefitKey of selectedBenefits) {
-        const benefit = COMPANY_BENEFITS[benefitKey];
-        
+      if (mode === 'manual') {
+        // Manual mode: single calculation with specified energy
         const inputs: SimulationInputs = {
           statWeights,
-          months,
-          xanaxPerDay,
-          hasPointsRefill,
-          hoursPlayedPerDay,
-          companyBenefit: benefit,
+          months: 0, // Not used in manual mode
+          xanaxPerDay: 0,
+          hasPointsRefill: false,
+          hoursPlayedPerDay: 0,
+          companyBenefit: getCompanyBenefits(candleShopStars)['none'], // Use no benefits as base
           apiKey,
           initialStats,
           happy,
-          perkPerc,
+          perkPercs,
+          currentGymIndex: autoUpgradeGyms ? -1 : currentGymIndex, // -1 means auto-upgrade
+          manualEnergy, // Use manual energy
         };
         
         const result = simulateGymProgression(GYMS, inputs);
-        newResults[benefitKey] = result;
+        // Store in results with a special key for manual mode
+        setResults({ manual: result });
+      } else {
+        // Future mode: compare multiple benefits
+        const newResults: Record<string, SimulationResult> = {};
+        const COMPANY_BENEFITS = getCompanyBenefits(candleShopStars);
+        
+        for (const benefitKey of selectedBenefits) {
+          const benefit = COMPANY_BENEFITS[benefitKey];
+          
+          const inputs: SimulationInputs = {
+            statWeights,
+            months,
+            xanaxPerDay,
+            hasPointsRefill,
+            hoursPlayedPerDay,
+            companyBenefit: benefit,
+            apiKey,
+            initialStats,
+            happy,
+            perkPercs,
+            currentGymIndex,
+            happyJump: happyJumpEnabled ? {
+              enabled: true,
+              frequencyDays: happyJumpFrequency,
+              dvdsUsed: happyJumpDvds,
+            } : undefined,
+          };
+          
+          const result = simulateGymProgression(GYMS, inputs);
+          newResults[benefitKey] = result;
+        }
+        
+        setResults(newResults);
       }
-      
-      setResults(newResults);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
@@ -307,6 +370,17 @@ export default function GymComparison() {
           </Typography>
           {payload.map((entry, index: number) => {
             // Find the gym for this benefit at this day
+            // Skip for manual mode as COMPANY_BENEFITS won't have 'manual' key
+            if (mode === 'manual') {
+              return (
+                <Box key={index} sx={{ mb: 1 }}>
+                  <Typography variant="body2" style={{ color: entry.color }}>
+                    {entry.name}: {entry.value?.toLocaleString()}
+                  </Typography>
+                </Box>
+              );
+            }
+            
             const benefitKey = Object.keys(results).find(key => 
               COMPANY_BENEFITS[key]?.name === entry.name
             );
@@ -332,15 +406,19 @@ export default function GymComparison() {
     return null;
   };
   
-  // Prepare chart data
+  // Prepare chart data (only for future mode)
   const COMPANY_BENEFITS = getCompanyBenefits(candleShopStars);
-  const chartData = Object.keys(results).length > 0 ? 
+  const chartData = mode === 'future' && Object.keys(results).length > 0 ? 
     results[Object.keys(results)[0]].dailySnapshots.map((_, index) => {
       const dataPoint: Record<string, number> = { day: results[Object.keys(results)[0]].dailySnapshots[index].day };
       
       for (const benefitKey of Object.keys(results)) {
-        const snapshot = results[benefitKey].dailySnapshots[index];
         const benefit = COMPANY_BENEFITS[benefitKey];
+        
+        // Skip if benefit doesn't exist (e.g., 'manual' key from manual mode)
+        if (!benefit) continue;
+        
+        const snapshot = results[benefitKey].dailySnapshots[index];
         
         // Calculate total battle stats
         const totalStats = snapshot.strength + snapshot.speed + snapshot.defense + snapshot.dexterity;
@@ -367,6 +445,27 @@ export default function GymComparison() {
             <Typography variant="h6" gutterBottom>
               Training Parameters
             </Typography>
+            
+            {/* Mode Selector */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+              Calculation Mode
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <Button
+                variant={mode === 'future' ? 'contained' : 'outlined'}
+                onClick={() => setMode('future')}
+                fullWidth
+              >
+                Future Comparison
+              </Button>
+              <Button
+                variant={mode === 'manual' ? 'contained' : 'outlined'}
+                onClick={() => setMode('manual')}
+                fullWidth
+              >
+                Manual Testing
+              </Button>
+            </Box>
             
             {/* API Key Section - Moved to top */}
             <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
@@ -436,43 +535,76 @@ export default function GymComparison() {
               size="small"
             />
             
-            {/* Energy Sources */}
-            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
-              Energy Sources
-            </Typography>
-            <TextField
-              label="Hours Played Per Day"
-              type="number"
-              value={hoursPlayedPerDay}
-              onChange={(e) => setHoursPlayedPerDay(Math.max(0, Math.min(24, Number(e.target.value))))}
-              fullWidth
-              margin="dense"
-              size="small"
-              helperText="0-24 hours"
-            />
-            <TextField
-              label="Xanax Per Day"
-              type="number"
-              value={xanaxPerDay}
-              onChange={(e) => setXanaxPerDay(Math.max(0, Number(e.target.value)))}
-              fullWidth
-              margin="dense"
-              size="small"
-              helperText="Each xanax = +250 energy"
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={hasPointsRefill}
-                  onChange={(e) => setHasPointsRefill(e.target.checked)}
+            {/* Energy Sources - Only for Future Comparison Mode */}
+            {mode === 'future' && (
+              <>
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                  Energy Sources
+                </Typography>
+                <TextField
+                  label="Hours Played Per Day"
+                  type="number"
+                  value={hoursPlayedPerDay}
+                  onChange={(e) => setHoursPlayedPerDay(Math.max(0, Math.min(24, Number(e.target.value))))}
+                  fullWidth
+                  margin="dense"
+                  size="small"
+                  helperText="0-24 hours"
                 />
-              }
-              label="Points Refill (+150 energy)"
-            />
+                <TextField
+                  label="Xanax Per Day"
+                  type="number"
+                  value={xanaxPerDay}
+                  onChange={(e) => setXanaxPerDay(Math.max(0, Number(e.target.value)))}
+                  fullWidth
+                  margin="dense"
+                  size="small"
+                  helperText="Each xanax = +250 energy"
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={hasPointsRefill}
+                      onChange={(e) => setHasPointsRefill(e.target.checked)}
+                    />
+                  }
+                  label="Points Refill (+150 energy)"
+                />
+                
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  Daily Energy: {dailyEnergy.toLocaleString()} E
+                </Alert>
+              </>
+            )}
             
-            <Alert severity="info" sx={{ mt: 2 }}>
-              Daily Energy: {dailyEnergy.toLocaleString()} E
-            </Alert>
+            {/* Manual Testing Energy - Only for Manual Mode */}
+            {mode === 'manual' && (
+              <>
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                  Energy Amount
+                </Typography>
+                <TextField
+                  label="Total Energy"
+                  type="number"
+                  value={manualEnergy}
+                  onChange={(e) => setManualEnergy(Math.max(0, Number(e.target.value)))}
+                  fullWidth
+                  margin="dense"
+                  size="small"
+                  helperText="Total energy to spend on training"
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={autoUpgradeGyms}
+                      onChange={(e) => setAutoUpgradeGyms(e.target.checked)}
+                    />
+                  }
+                  label="Auto-upgrade gyms"
+                  sx={{ mt: 1 }}
+                />
+              </>
+            )}
             
             {/* Player Stats */}
             <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
@@ -518,21 +650,64 @@ export default function GymComparison() {
               label="Happy"
               type="number"
               value={happy}
-              onChange={(e) => setHappy(Math.max(0, Math.min(100000, Number(e.target.value))))}
+              onChange={(e) => setHappy(Math.max(0, Math.min(99999, Number(e.target.value))))}
               fullWidth
               margin="dense"
               size="small"
+              helperText="Maximum: 99,999"
+              InputProps={{
+                inputProps: { min: 0, max: 99999 }
+              }}
+            />
+            
+            {/* Perk Percentages - Per Stat */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+              Perk % Bonus (per stat)
+            </Typography>
+            <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+              Gym gain bonuses from faction, property, and merit perks
+            </Typography>
+            <TextField
+              label="Strength Perk %"
+              type="number"
+              value={perkPercs.strength}
+              onChange={(e) => setPerkPercs({ ...perkPercs, strength: Math.max(0, Number(e.target.value)) })}
+              fullWidth
+              margin="dense"
+              size="small"
+              helperText="Auto-filled from API"
             />
             <TextField
-              label="Perk % Bonus"
+              label="Speed Perk %"
               type="number"
-              value={perkPerc}
-              onChange={(e) => setPerkPerc(Math.max(0, Number(e.target.value)))}
+              value={perkPercs.speed}
+              onChange={(e) => setPerkPercs({ ...perkPercs, speed: Math.max(0, Number(e.target.value)) })}
               fullWidth
               margin="dense"
               size="small"
-              helperText="e.g., 2 for 2%"
+              helperText="Auto-filled from API"
             />
+            <TextField
+              label="Defense Perk %"
+              type="number"
+              value={perkPercs.defense}
+              onChange={(e) => setPerkPercs({ ...perkPercs, defense: Math.max(0, Number(e.target.value)) })}
+              fullWidth
+              margin="dense"
+              size="small"
+              helperText="Auto-filled from API"
+            />
+            <TextField
+              label="Dexterity Perk %"
+              type="number"
+              value={perkPercs.dexterity}
+              onChange={(e) => setPerkPercs({ ...perkPercs, dexterity: Math.max(0, Number(e.target.value)) })}
+              fullWidth
+              margin="dense"
+              size="small"
+              helperText="Auto-filled from API"
+            />
+            
             <TextField
               label="Current Gym Unlocked"
               select
@@ -553,28 +728,30 @@ export default function GymComparison() {
               ))}
             </TextField>
             
-            {/* Company Benefits */}
-            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
-              Company Benefits to Compare
-            </Typography>
-            <FormGroup>
-              {Object.entries(getCompanyBenefits(candleShopStars)).map(([key, benefit]) => (
-                <Box key={key}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={selectedBenefits.includes(key)}
-                        onChange={() => handleBenefitToggle(key)}
+            {/* Company Benefits - Only for Future Mode */}
+            {mode === 'future' && (
+              <>
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                  Company Benefits to Compare
+                </Typography>
+                <FormGroup>
+                  {Object.entries(getCompanyBenefits(candleShopStars)).map(([key, benefit]) => (
+                    <Box key={key}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={selectedBenefits.includes(key)}
+                            onChange={() => handleBenefitToggle(key)}
+                          />
+                        }
+                        label={benefit.name}
                       />
-                    }
-                    label={benefit.name}
-                  />
-                  {/* Show time to George's for each benefit */}
-                  {selectedBenefits.includes(key) && (
-                    <Alert severity="success" sx={{ mt: 0.5, mb: 1, ml: 4 }} variant="outlined">
-                      Time to George's: {calculateTimeToGeorges(benefit)}
-                    </Alert>
-                  )}
+                      {/* Show time to George's for each benefit */}
+                      {selectedBenefits.includes(key) && (
+                        <Alert severity="success" sx={{ mt: 0.5, mb: 1, ml: 4 }} variant="outlined">
+                          Time to George's: {calculateTimeToGeorges(benefit)}
+                        </Alert>
+                      )}
                 </Box>
               ))}
             </FormGroup>
@@ -595,18 +772,69 @@ export default function GymComparison() {
                 }}
               />
             )}
+            </>
+            )}
             
-            {/* Time Period - Moved after company benefits */}
-            <TextField
-              label="Number of Months"
-              type="number"
-              value={months}
-              onChange={(e) => setMonths(Math.max(1, Math.min(36, Number(e.target.value))))}
-              fullWidth
-              margin="normal"
-              size="small"
-              helperText="Max 36 months (3 years)"
-            />
+            {/* Happy Jump Section - For Future Mode */}
+            {mode === 'future' && (
+              <>
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                  Happy Jump
+                </Typography>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={happyJumpEnabled}
+                      onChange={(e) => setHappyJumpEnabled(e.target.checked)}
+                    />
+                  }
+                  label="Enable Happy Jumps"
+                />
+                {happyJumpEnabled && (
+                  <>
+                    <TextField
+                      label="Jump Frequency (days)"
+                      type="number"
+                      value={happyJumpFrequency}
+                      onChange={(e) => setHappyJumpFrequency(Math.max(1, Number(e.target.value)))}
+                      fullWidth
+                      margin="dense"
+                      size="small"
+                      helperText="Days between happy jumps (e.g., 7 for weekly)"
+                    />
+                    <TextField
+                      label="DVDs Used Per Jump"
+                      type="number"
+                      value={happyJumpDvds}
+                      onChange={(e) => setHappyJumpDvds(Math.max(0, Number(e.target.value)))}
+                      fullWidth
+                      margin="dense"
+                      size="small"
+                      helperText="Number of Erotic DVDs consumed"
+                    />
+                  </>
+                )}
+              </>
+            )}
+            
+            {/* Simulation Duration - Only for Future Mode */}
+            {mode === 'future' && (
+              <>
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                  Simulation Duration
+                </Typography>
+                <TextField
+                  label="Months"
+                  type="number"
+                  value={months}
+                  onChange={(e) => setMonths(Math.max(1, Math.min(36, Number(e.target.value))))}
+                  fullWidth
+                  margin="dense"
+                  size="small"
+                  helperText="1-36 months"
+                />
+              </>
+            )}
             
             <Button
               variant="contained"
@@ -614,9 +842,9 @@ export default function GymComparison() {
               fullWidth
               sx={{ mt: 3 }}
               onClick={handleSimulate}
-              disabled={isSimulating || selectedBenefits.length === 0}
+              disabled={isSimulating || (mode === 'future' && selectedBenefits.length === 0)}
             >
-              {isSimulating ? <CircularProgress size={24} /> : 'Simulate'}
+              {isSimulating ? <CircularProgress size={24} /> : mode === 'future' ? 'Simulate' : 'Calculate'}
             </Button>
           </Paper>
         </Grid>
@@ -629,7 +857,81 @@ export default function GymComparison() {
             </Alert>
           )}
           
-          {Object.keys(results).length > 0 && (
+          {/* Manual Mode Results - Just Stats */}
+          {mode === 'manual' && Object.keys(results).length > 0 && results.manual && (
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Training Results
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 6, md: 3 }}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="subtitle2" color="text.secondary">Strength</Typography>
+                      <Typography variant="h5">{Math.round(results.manual.finalStats.strength).toLocaleString()}</Typography>
+                      <Typography variant="caption" color="success.main">
+                        +{Math.round(results.manual.finalStats.strength - (initialStats.strength ?? 0)).toLocaleString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 6, md: 3 }}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="subtitle2" color="text.secondary">Speed</Typography>
+                      <Typography variant="h5">{Math.round(results.manual.finalStats.speed).toLocaleString()}</Typography>
+                      <Typography variant="caption" color="success.main">
+                        +{Math.round(results.manual.finalStats.speed - (initialStats.speed ?? 0)).toLocaleString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 6, md: 3 }}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="subtitle2" color="text.secondary">Defense</Typography>
+                      <Typography variant="h5">{Math.round(results.manual.finalStats.defense).toLocaleString()}</Typography>
+                      <Typography variant="caption" color="success.main">
+                        +{Math.round(results.manual.finalStats.defense - (initialStats.defense ?? 0)).toLocaleString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 6, md: 3 }}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="subtitle2" color="text.secondary">Dexterity</Typography>
+                      <Typography variant="h5">{Math.round(results.manual.finalStats.dexterity).toLocaleString()}</Typography>
+                      <Typography variant="caption" color="success.main">
+                        +{Math.round(results.manual.finalStats.dexterity - (initialStats.dexterity ?? 0)).toLocaleString()}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="h6">
+                  Total Battle Stats: {Math.round(
+                    results.manual.finalStats.strength + 
+                    results.manual.finalStats.speed + 
+                    results.manual.finalStats.defense + 
+                    results.manual.finalStats.dexterity
+                  ).toLocaleString()}
+                </Typography>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Total Gain: +{Math.round(
+                    (results.manual.finalStats.strength - (initialStats.strength ?? 0)) +
+                    (results.manual.finalStats.speed - (initialStats.speed ?? 0)) +
+                    (results.manual.finalStats.defense - (initialStats.defense ?? 0)) +
+                    (results.manual.finalStats.dexterity - (initialStats.dexterity ?? 0))
+                  ).toLocaleString()}
+                </Typography>
+              </Box>
+            </Paper>
+          )}
+          
+          {/* Future Mode Results - Graph and Comparison */}
+          {mode === 'future' && Object.keys(results).length > 0 && (
             <>
               <Paper sx={{ p: 3, mb: 3 }}>
                 <Typography variant="h6" gutterBottom>
@@ -647,7 +949,9 @@ export default function GymComparison() {
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend />
-                    {Object.keys(results).map((benefitKey, index) => {
+                    {Object.keys(results)
+                      .filter(benefitKey => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys like 'manual'
+                      .map((benefitKey, index) => {
                       const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042'];
                       return (
                         <Line
@@ -674,7 +978,9 @@ export default function GymComparison() {
                     <thead>
                       <tr style={{ borderBottom: '2px solid #555' }}>
                         <th style={{ padding: '12px', textAlign: 'left' }}>Stat</th>
-                        {Object.entries(results).map(([benefitKey]) => {
+                        {Object.entries(results)
+                          .filter(([benefitKey]) => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys like 'manual'
+                          .map(([benefitKey]) => {
                           const benefit = COMPANY_BENEFITS[benefitKey];
                           return (
                             <th key={benefitKey} style={{ padding: '12px', textAlign: 'right' }}>
@@ -687,7 +993,9 @@ export default function GymComparison() {
                     <tbody>
                       <tr style={{ borderBottom: '1px solid #333' }}>
                         <td style={{ padding: '12px', fontWeight: 'bold' }}>Strength</td>
-                        {Object.entries(results).map(([benefitKey, result]) => (
+                        {Object.entries(results)
+                          .filter(([benefitKey]) => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys
+                          .map(([benefitKey, result]) => (
                           <td key={benefitKey} style={{ padding: '12px', textAlign: 'right' }}>
                             {result.finalStats.strength.toLocaleString()}
                           </td>
@@ -695,7 +1003,9 @@ export default function GymComparison() {
                       </tr>
                       <tr style={{ borderBottom: '1px solid #333' }}>
                         <td style={{ padding: '12px', fontWeight: 'bold' }}>Speed</td>
-                        {Object.entries(results).map(([benefitKey, result]) => (
+                        {Object.entries(results)
+                          .filter(([benefitKey]) => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys
+                          .map(([benefitKey, result]) => (
                           <td key={benefitKey} style={{ padding: '12px', textAlign: 'right' }}>
                             {result.finalStats.speed.toLocaleString()}
                           </td>
@@ -703,7 +1013,9 @@ export default function GymComparison() {
                       </tr>
                       <tr style={{ borderBottom: '1px solid #333' }}>
                         <td style={{ padding: '12px', fontWeight: 'bold' }}>Defense</td>
-                        {Object.entries(results).map(([benefitKey, result]) => (
+                        {Object.entries(results)
+                          .filter(([benefitKey]) => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys
+                          .map(([benefitKey, result]) => (
                           <td key={benefitKey} style={{ padding: '12px', textAlign: 'right' }}>
                             {result.finalStats.defense.toLocaleString()}
                           </td>
@@ -711,7 +1023,9 @@ export default function GymComparison() {
                       </tr>
                       <tr style={{ borderBottom: '1px solid #333' }}>
                         <td style={{ padding: '12px', fontWeight: 'bold' }}>Dexterity</td>
-                        {Object.entries(results).map(([benefitKey, result]) => (
+                        {Object.entries(results)
+                          .filter(([benefitKey]) => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys
+                          .map(([benefitKey, result]) => (
                           <td key={benefitKey} style={{ padding: '12px', textAlign: 'right' }}>
                             {result.finalStats.dexterity.toLocaleString()}
                           </td>
@@ -719,7 +1033,9 @@ export default function GymComparison() {
                       </tr>
                       <tr style={{ borderBottom: '2px solid #555', backgroundColor: 'rgba(255, 255, 255, 0.03)' }}>
                         <td style={{ padding: '12px', fontWeight: 'bold' }}>Total Stats</td>
-                        {Object.entries(results).map(([benefitKey, result]) => {
+                        {Object.entries(results)
+                          .filter(([benefitKey]) => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys
+                          .map(([benefitKey, result]) => {
                           const total = result.finalStats.strength + result.finalStats.speed + 
                                       result.finalStats.defense + result.finalStats.dexterity;
                           return (
@@ -731,7 +1047,9 @@ export default function GymComparison() {
                       </tr>
                       <tr style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
                         <td style={{ padding: '12px', fontWeight: 'bold' }}>Total Gain</td>
-                        {Object.entries(results).map(([benefitKey, result]) => {
+                        {Object.entries(results)
+                          .filter(([benefitKey]) => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys
+                          .map(([benefitKey, result]) => {
                           const totalGain = 
                             (result.finalStats.strength - initialStats.strength) +
                             (result.finalStats.speed - initialStats.speed) +
@@ -750,7 +1068,9 @@ export default function GymComparison() {
               </Paper>
               
               <Grid container spacing={2}>
-                {Object.entries(results).map(([benefitKey, result]) => {
+                {Object.entries(results)
+                  .filter(([benefitKey]) => COMPANY_BENEFITS[benefitKey]) // Skip invalid keys like 'manual'
+                  .map(([benefitKey, result]) => {
                   const benefit = COMPANY_BENEFITS[benefitKey];
                   const totalGain = 
                     (result.finalStats.strength - initialStats.strength) +

@@ -10,7 +10,12 @@ export interface GymStatsResponse {
     total: number;
   };
   activeGym: number;
-  perkPerc: number;
+  perkPercs: {
+    strength: number;
+    speed: number;
+    defense: number;
+    dexterity: number;
+  };
 }
 
 export function useGymStats(apiKey: string | null) {

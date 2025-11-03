@@ -31,7 +31,7 @@ export interface CompanyBenefit {
 
 export interface SimulationInputs {
   statWeights: StatWeights;
-  months: number;
+  months: number;  // Number of months for future mode
   xanaxPerDay: number;
   hasPointsRefill: boolean;
   hoursPlayedPerDay: number;
@@ -44,8 +44,14 @@ export interface SimulationInputs {
     dexterity: number;
   };
   happy: number;
-  perkPerc: number;
-  currentGymIndex: number;
+  perkPercs: {
+    strength: number;
+    speed: number;
+    defense: number;
+    dexterity: number;
+  };
+  currentGymIndex: number; // >= 0 locks to specific gym, -1 means auto-upgrade
+  manualEnergy?: number; // Optional: if specified, use this instead of calculating daily energy
   happyJump?: {
     enabled: boolean;
     frequencyDays: number; // e.g., 7 for weekly, 14 for every 2 weeks
@@ -83,7 +89,7 @@ export function calculateDailyEnergy(
   bonusEnergyPerDay: number = 0
 ): number {
   // Energy regenerates 5 every 10 minutes = 30 per hour
-  // Maximum energy bar is 150
+  // Maximum energy bar is 150 (fills in 5 hours)
   
   // Clamp hours to 0-24
   const hours = Math.max(0, Math.min(24, hoursPlayedPerDay));
@@ -91,13 +97,16 @@ export function calculateDailyEnergy(
   let energy = 0;
   
   if (hours >= 24) {
-    // Playing 24 hours straight - no starting 150, just regeneration
+    // Playing 24 hours straight - no sleep, no natural refill, just regeneration
     energy = 24 * 30; // 720 energy
   } else {
-    // Start with 150, then regenerate during play time
-    energy = 150 + (hours * 30);
-    // Cap at 150 + regeneration (can't exceed what's possible)
-    energy = Math.min(energy, 150 + (hours * 30));
+    // Sleep time = 24 - hours played
+    const sleepHours = 24 - hours;
+    // Natural refill during sleep (max 150, takes 5 hours to fill)
+    const naturalRefill = Math.min(150, sleepHours * 30);
+    // Energy regeneration during play
+    const playRegen = hours * 30;
+    energy = naturalRefill + playRegen;
   }
   
   // Add xanax energy (250 per xanax)
@@ -125,10 +134,10 @@ export function calculateDailyEnergy(
  * e = -0.0301431777
  */
 function computeStatGain(
-  _stat: string,
+  stat: 'strength' | 'speed' | 'defense' | 'dexterity',
   statTotal: number,
   happy: number,
-  perkPerc: number,
+  perkPercForStat: number,
   dots: number,
   energyPerTrain: number
 ): number {
@@ -139,8 +148,8 @@ function computeStatGain(
   const d = 6.82775184551527e-5;
   const e = -0.0301431777;
   
-  // Perk bonus multiplier (modifiers)
-  const perkBonus = 1 + perkPerc / 100;
+  // Perk bonus multiplier (modifiers) - use the specific stat's perk percentage
+  const perkBonus = 1 + perkPercForStat / 100;
 
   // Vladar's formula
   // (Modifiers)*(Gym Dots)*(Energy Per Train)*[ (a*ln(Happy+b)+c) * (Stat Total) + d*(Happy+b) + e ]
@@ -195,14 +204,20 @@ export function simulateGymProgression(
   gyms: Gym[],
   inputs: SimulationInputs
 ): SimulationResult {
-  const dailyEnergy = calculateDailyEnergy(
-    inputs.hoursPlayedPerDay,
-    inputs.xanaxPerDay,
-    inputs.hasPointsRefill,
-    inputs.companyBenefit.bonusEnergyPerDay
-  );
+  // Determine if this is manual mode (single energy amount) or future mode (days based)
+  const isManualMode = inputs.manualEnergy !== undefined;
   
-  const totalDays = inputs.months * 30;
+  const dailyEnergy: number = isManualMode 
+    ? inputs.manualEnergy 
+    : calculateDailyEnergy(
+        inputs.hoursPlayedPerDay,
+        inputs.xanaxPerDay,
+        inputs.hasPointsRefill,
+        inputs.companyBenefit.bonusEnergyPerDay
+      );
+  
+  // For manual mode, simulate 1 day. For future mode, use months
+  const totalDays = isManualMode ? 1 : inputs.months * 30;
   
   // Initialize stats
   const stats = {
@@ -226,8 +241,12 @@ export function simulateGymProgression(
   // Track total energy spent (for gym unlocks)
   let totalEnergySpent = 0;
   
-  // Track current gym based on initial gym
-  if (inputs.currentGymIndex !== undefined && inputs.currentGymIndex >= 0) {
+  // Auto-upgrade mode: currentGymIndex = -1
+  // Locked gym mode: currentGymIndex >= 0
+  const shouldAutoUpgrade = inputs.currentGymIndex < 0;
+  
+  // Track current gym based on initial gym (only if not auto-upgrading)
+  if (!shouldAutoUpgrade && inputs.currentGymIndex >= 0) {
     const currentGym = gyms[inputs.currentGymIndex];
     if (currentGym) {
       totalEnergySpent = currentGym.energyToUnlock;
@@ -290,12 +309,28 @@ export function simulateGymProgression(
       if (energyPerStat[stat] === 0) continue;
       
       try {
-        const gym = findBestGym(
-          gyms,
-          stat,
-          totalEnergySpent,
-          inputs.companyBenefit.gymUnlockSpeedMultiplier
-        );
+        // Determine which gym to use based on mode
+        let gym: Gym;
+        if (shouldAutoUpgrade) {
+          // Auto-upgrade mode: find best gym based on energy spent
+          gym = findBestGym(
+            gyms,
+            stat,
+            totalEnergySpent,
+            inputs.companyBenefit.gymUnlockSpeedMultiplier
+          );
+        } else if (inputs.currentGymIndex >= 0 && inputs.currentGymIndex < gyms.length) {
+          // Locked gym mode: use specified gym
+          gym = gyms[inputs.currentGymIndex];
+        } else {
+          // Fallback to best gym
+          gym = findBestGym(
+            gyms,
+            stat,
+            totalEnergySpent,
+            inputs.companyBenefit.gymUnlockSpeedMultiplier
+          );
+        }
         
         const statDots = gym[stat as keyof Pick<Gym, 'strength' | 'speed' | 'defense' | 'dexterity'>];
         if (!statDots) continue;
@@ -312,13 +347,14 @@ export function simulateGymProgression(
             stat,
             statTotal,
             currentHappy, // Use currentHappy (can be boosted during happy jump)
-            inputs.perkPerc,
+            inputs.perkPercs[stat], // Use the specific stat's perk percentage
             statDots,
             gym.energyPerTrain
           );
           
           // Apply gym gain multiplier from company benefit
-          stats[stat] += gain * inputs.companyBenefit.gymGainMultiplier;
+          const actualGain = gain * inputs.companyBenefit.gymGainMultiplier;
+          stats[stat] += actualGain;
           totalEnergySpent += gym.energyPerTrain;
         }
       } catch {
@@ -354,7 +390,7 @@ export function simulateGymProgression(
         // Ignore
       }
       
-      dailySnapshots.push({
+      const snapshot = {
         day,
         strength: Math.round(stats.strength),
         speed: Math.round(stats.speed),
@@ -362,7 +398,9 @@ export function simulateGymProgression(
         dexterity: Math.round(stats.dexterity),
         currentGym,
         energySpentOnGymUnlock,
-      });
+      };
+      
+      dailySnapshots.push(snapshot);
     }
   }
   
