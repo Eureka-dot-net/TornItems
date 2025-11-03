@@ -274,8 +274,14 @@ export function simulateGymProgression(
       }
     }
     
-    // Take snapshot every 7 days or on first/last day
-    if (day === 1 || day === totalDays || day % 7 === 0) {
+    // Take snapshot every 7 days or on first day
+    // For last day, only snapshot if it's been at least 7 days since last snapshot
+    const shouldSnapshot = 
+      day === 1 || 
+      day % 7 === 0 || 
+      (day === totalDays && (dailySnapshots.length === 0 || day - dailySnapshots[dailySnapshots.length - 1].day >= 7));
+    
+    if (shouldSnapshot) {
       // Find current gym (use the best gym for the highest weighted stat)
       let currentGym = 'Unknown';
       try {
