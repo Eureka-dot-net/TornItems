@@ -556,6 +556,21 @@ export default function GymComparison() {
                 <Grid size={{ xs: 6, md: 3 }}><Card><CardContent><Typography variant="subtitle2" color="text.secondary">Defense</Typography><Typography variant="h5">{Math.round(results.manual.finalStats.defense).toLocaleString()}</Typography><Typography variant="caption" color="success.main">+{Math.round(results.manual.finalStats.defense - initialStats.defense).toLocaleString()}</Typography></CardContent></Card></Grid>
                 <Grid size={{ xs: 6, md: 3 }}><Card><CardContent><Typography variant="subtitle2" color="text.secondary">Dexterity</Typography><Typography variant="h5">{Math.round(results.manual.finalStats.dexterity).toLocaleString()}</Typography><Typography variant="caption" color="success.main">+{Math.round(results.manual.finalStats.dexterity - initialStats.dexterity).toLocaleString()}</Typography></CardContent></Card></Grid>
               </Grid>
+              <Button 
+                variant="outlined" 
+                fullWidth 
+                sx={{ mt: 3 }}
+                onClick={() => {
+                  setInitialStats({
+                    strength: Math.round(results.manual.finalStats.strength),
+                    speed: Math.round(results.manual.finalStats.speed),
+                    defense: Math.round(results.manual.finalStats.defense),
+                    dexterity: Math.round(results.manual.finalStats.dexterity),
+                  });
+                }}
+              >
+                Use as Initial Stats
+              </Button>
             </Paper>
           )}
           
@@ -586,6 +601,15 @@ export default function GymComparison() {
                     
                     const totalGain = (result.finalStats.strength - initialStats.strength) + (result.finalStats.speed - initialStats.speed) + (result.finalStats.defense - initialStats.defense) + (result.finalStats.dexterity - initialStats.dexterity);
                     
+                    const handleUseAsInitialStats = () => {
+                      setInitialStats({
+                        strength: Math.round(result.finalStats.strength),
+                        speed: Math.round(result.finalStats.speed),
+                        defense: Math.round(result.finalStats.defense),
+                        dexterity: Math.round(result.finalStats.dexterity),
+                      });
+                    };
+                    
                     return (
                       <Grid size={{ xs: 12, sm: 6 }} key={state.id}>
                         <Card sx={{ borderLeft: 4, borderColor: CHART_COLORS[index % CHART_COLORS.length] }}>
@@ -597,6 +621,15 @@ export default function GymComparison() {
                             <Typography variant="body2">Str: {result.finalStats.strength.toLocaleString()} | Spd: {result.finalStats.speed.toLocaleString()}</Typography>
                             <Typography variant="body2">Def: {result.finalStats.defense.toLocaleString()} | Dex: {result.finalStats.dexterity.toLocaleString()}</Typography>
                             <Typography variant="h6" color="success.main" sx={{ mt: 1 }}>Total Gain: +{totalGain.toLocaleString()}</Typography>
+                            <Button 
+                              variant="outlined" 
+                              size="small" 
+                              fullWidth 
+                              sx={{ mt: 2 }}
+                              onClick={handleUseAsInitialStats}
+                            >
+                              Use as Initial Stats
+                            </Button>
                           </CardContent>
                         </Card>
                       </Grid>
