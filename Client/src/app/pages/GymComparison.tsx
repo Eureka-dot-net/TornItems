@@ -150,7 +150,7 @@ export default function GymComparison() {
   // Prepare chart data
   const chartData = Object.keys(results).length > 0 ? 
     results[Object.keys(results)[0]].dailySnapshots.map((_, index) => {
-      const dataPoint: any = { day: results[Object.keys(results)[0]].dailySnapshots[index].day };
+      const dataPoint: Record<string, number> = { day: results[Object.keys(results)[0]].dailySnapshots[index].day };
       
       for (const benefitKey of Object.keys(results)) {
         const snapshot = results[benefitKey].dailySnapshots[index];

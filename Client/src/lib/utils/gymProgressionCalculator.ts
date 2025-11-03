@@ -163,7 +163,7 @@ function findBestGym(
 ): Gym {
   // Filter gyms that support this stat and are unlocked
   const availableGyms = gyms.filter(gym => {
-    const statDots = (gym as any)[stat];
+    const statDots = gym[stat as keyof Pick<Gym, 'strength' | 'speed' | 'defense' | 'dexterity'>];
     if (statDots === null || statDots === undefined) return false;
     
     // Apply company benefit to unlock requirement
@@ -178,8 +178,8 @@ function findBestGym(
   
   // Sort by dots (descending) and return the best
   availableGyms.sort((a, b) => {
-    const aValue = (a as any)[stat] || 0;
-    const bValue = (b as any)[stat] || 0;
+    const aValue = a[stat as keyof Pick<Gym, 'strength' | 'speed' | 'defense' | 'dexterity'>] || 0;
+    const bValue = b[stat as keyof Pick<Gym, 'strength' | 'speed' | 'defense' | 'dexterity'>] || 0;
     return bValue - aValue;
   });
   
@@ -252,7 +252,7 @@ export function simulateGymProgression(
           inputs.companyBenefit.gymUnlockSpeedMultiplier
         );
         
-        const statDots = (gym as any)[stat];
+        const statDots = gym[stat as keyof Pick<Gym, 'strength' | 'speed' | 'defense' | 'dexterity'>];
         if (!statDots) continue;
         
         // Calculate number of trains for this stat
@@ -272,9 +272,8 @@ export function simulateGymProgression(
           stats[stat] += gain;
           totalEnergySpent += gym.energyPerTrain;
         }
-      } catch (error) {
+      } catch {
         // Gym not found for this stat, skip
-        console.warn(`No gym found for ${stat} at energy ${totalEnergySpent}`);
       }
     }
     
@@ -284,8 +283,8 @@ export function simulateGymProgression(
       let currentGym = 'Unknown';
       try {
         const primaryStat = Object.entries(inputs.statWeights)
-          .filter(([_, weight]) => weight > 0)
-          .sort(([_, a], [__, b]) => b - a)[0];
+          .filter(([, weight]) => weight > 0)
+          .sort(([, a], [, b]) => b - a)[0];
         
         if (primaryStat) {
           const gym = findBestGym(
@@ -296,7 +295,7 @@ export function simulateGymProgression(
           );
           currentGym = gym.displayName;
         }
-      } catch (error) {
+      } catch {
         // Ignore
       }
       
