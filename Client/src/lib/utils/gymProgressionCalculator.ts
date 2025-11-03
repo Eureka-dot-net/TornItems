@@ -206,10 +206,10 @@ export function simulateGymProgression(
   
   // Initialize stats
   const stats = {
-    strength: inputs.initialStats?.strength || 1000,
-    speed: inputs.initialStats?.speed || 1000,
-    defense: inputs.initialStats?.defense || 1000,
-    dexterity: inputs.initialStats?.dexterity || 1000,
+    strength: inputs.initialStats?.strength ?? 1000,
+    speed: inputs.initialStats?.speed ?? 1000,
+    defense: inputs.initialStats?.defense ?? 1000,
+    dexterity: inputs.initialStats?.dexterity ?? 1000,
   };
   
   // Calculate total weight for energy distribution
