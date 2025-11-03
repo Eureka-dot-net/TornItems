@@ -3,6 +3,38 @@
  * Calculates stat gains over time accounting for gym unlocks and company benefits
  */
 
+/**
+ * Target monthly growth percentages at various stat levels (Torn May 2024 post-cap curve)
+ * Format: [statLevel, monthlyGrowthPercent]
+ */
+const TARGET_POINTS: [number, number][] = [
+  [5e7,  211.75],
+  [1e8,  108.05],
+  [1e9,   12.87],
+  [5e9,    4.47],
+  [1e10,   3.37],
+  [5e10,   2.40],
+  [1e11,   2.24],
+  [5e11,   2.03],
+  [1e12,   1.97],
+];
+
+/**
+ * Benchmark conditions for calibration (heavy training with George's Gym)
+ */
+const BENCH = {
+  a: 3.480061091e-7,
+  b: 250,
+  c: 3.091619094e-6,
+  d: 6.82775184551527e-5,
+  e: -0.0301431777,
+  H: 5000,            // Fully upgraded PI
+  dots: 1.1,          // George's Gym
+  modifiers: 1.0,     // No Steadfast
+  trainsPerDay: Math.floor(1500 / 5),
+  daysPerMonth: 30,
+};
+
 export interface Gym {
   name: string;
   displayName: string;
@@ -125,6 +157,59 @@ export function calculateDailyEnergy(
 }
 
 /**
+ * Interpolate target monthly growth fraction for a given stat level
+ * Uses log-linear interpolation between data points
+ */
+function targetMonthlyGrowthFraction(S: number): number {
+  if (S <= TARGET_POINTS[0][0]) return TARGET_POINTS[0][1] / 100;
+  if (S >= TARGET_POINTS.at(-1)![0]) return TARGET_POINTS.at(-1)![1] / 100;
+  const logS = Math.log(S);
+  for (let i = 0; i < TARGET_POINTS.length - 1; i++) {
+    const [s1, g1p] = TARGET_POINTS[i];
+    const [s2, g2p] = TARGET_POINTS[i + 1];
+    if (S >= s1 && S <= s2) {
+      const t = (logS - Math.log(s1)) / (Math.log(s2) - Math.log(s1));
+      const g = (g1p + t * (g2p - g1p)) / 100;
+      return g;
+    }
+  }
+  return TARGET_POINTS.at(-1)![1] / 100;
+}
+
+/**
+ * Simulate one month of vanilla training (no cap scaling)
+ * Used for calibration to determine scaling factor
+ */
+function simulateOneMonthVanilla(S0: number, bench: typeof BENCH): number {
+  let S = S0;
+  const { trainsPerDay, daysPerMonth, H, dots, modifiers } = bench;
+  for (let d = 0; d < daysPerMonth; d++) {
+    for (let t = 0; t < trainsPerDay; t++) {
+      const A = bench.a * Math.log(H + bench.b) + bench.c;
+      const B = bench.d * (H + bench.b) + bench.e;
+      const K = modifiers * dots * 5 * A;
+      const M = modifiers * dots * 5 * B;
+      S += K * S + M;
+    }
+  }
+  return S;
+}
+
+/**
+ * Calculate scaling factor for post-cap growth (above 50M)
+ * Calibrated to match Torn's May 2024 growth curve
+ */
+function capRemovalScale(S: number, bench: typeof BENCH): number {
+  if (S < 5e7) return 1;
+  const targetR = targetMonthlyGrowthFraction(S);
+  const S1 = simulateOneMonthVanilla(S, bench);
+  const rVanilla = (S1 - S) / S;
+  if (rVanilla <= 0) return 1;
+  const scale = (1 + targetR) / (1 + rVanilla);
+  return Math.max(0.5, Math.min(2.0, scale)); // clamp for stability
+}
+
+/**
  * Compute stat gain using Vladar's formula
  * Formula: (Modifiers)*(Gym Dots)*(Energy Per Train)*[ (a*ln(Happy+b)+c) * (Stat Total) + d*(Happy+b) + e ]
  * Where:
@@ -155,13 +240,17 @@ function computeStatGain(
   // Vladar's formula
   // (Modifiers)*(Gym Dots)*(Energy Per Train)*[ (a*ln(Happy+b)+c) * (S) + d*(Happy+b) + e ]
   // Where S is the current value of the stat being trained (not Total Battle Stats)
-  const multiplier = perkBonus * dots * energyPerTrain;
-  const innerExpression = 
-    (a * Math.log(happy + b) + c) * currentStatValue + 
-    d * (happy + b) + 
-    e;
+  let K = perkBonus * dots * energyPerTrain * (a * Math.log(happy + b) + c);
+  let M = perkBonus * dots * energyPerTrain * (d * (happy + b) + e);
+  
+  // Apply post-cap scaling for stats above 50M (Torn May 2024 cap removal)
+  if (currentStatValue >= 5e7) {
+    const scale = capRemovalScale(currentStatValue, BENCH);
+    K *= scale;
+    M *= scale;
+  }
 
-  const gain = multiplier * innerExpression;
+  const gain = K * currentStatValue + M;
   return gain;
 }
 
