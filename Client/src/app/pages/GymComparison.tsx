@@ -106,6 +106,7 @@ export default function GymComparison() {
   const [statWeights, setStatWeights] = useState(() => 
     loadSavedValue('statWeights', { strength: 1, speed: 1, defense: 1, dexterity: 1 })
   );
+  const [days, setDays] = useState<number>(() => loadSavedValue('days', 0));
   const [months, setMonths] = useState<number>(() => loadSavedValue('months', 6));
   const [xanaxPerDay, setXanaxPerDay] = useState<number>(() => loadSavedValue('xanaxPerDay', 0));
   const [hasPointsRefill, setHasPointsRefill] = useState<boolean>(() => loadSavedValue('hasPointsRefill', false));
@@ -124,6 +125,10 @@ export default function GymComparison() {
   useEffect(() => {
     localStorage.setItem('gymComparison_statWeights', JSON.stringify(statWeights));
   }, [statWeights]);
+  
+  useEffect(() => {
+    localStorage.setItem('gymComparison_days', JSON.stringify(days));
+  }, [days]);
   
   useEffect(() => {
     localStorage.setItem('gymComparison_months', JSON.stringify(months));
@@ -246,6 +251,7 @@ export default function GymComparison() {
         
         const inputs: SimulationInputs = {
           statWeights,
+          days,
           months,
           xanaxPerDay,
           hasPointsRefill,
@@ -255,6 +261,7 @@ export default function GymComparison() {
           initialStats,
           happy,
           perkPerc,
+          currentGymIndex,
         };
         
         const result = simulateGymProgression(GYMS, inputs);
@@ -597,16 +604,39 @@ export default function GymComparison() {
             )}
             
             {/* Time Period - Moved after company benefits */}
-            <TextField
-              label="Number of Months"
-              type="number"
-              value={months}
-              onChange={(e) => setMonths(Math.max(1, Math.min(36, Number(e.target.value))))}
-              fullWidth
-              margin="normal"
-              size="small"
-              helperText="Max 36 months (3 years)"
-            />
+            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+              Simulation Duration
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField
+                label="Days"
+                type="number"
+                value={days}
+                onChange={(e) => {
+                  const newDays = Math.max(1, Math.min(365, Number(e.target.value)));
+                  setDays(newDays);
+                  setMonths(0);
+                }}
+                fullWidth
+                margin="dense"
+                size="small"
+                helperText="1-365 days"
+              />
+              <TextField
+                label="Months"
+                type="number"
+                value={months}
+                onChange={(e) => {
+                  const newMonths = Math.max(0, Math.min(36, Number(e.target.value)));
+                  setMonths(newMonths);
+                  if (newMonths > 0) setDays(0);
+                }}
+                fullWidth
+                margin="dense"
+                size="small"
+                helperText="0-36 months"
+              />
+            </Box>
             
             <Button
               variant="contained"

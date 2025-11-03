@@ -31,7 +31,8 @@ export interface CompanyBenefit {
 
 export interface SimulationInputs {
   statWeights: StatWeights;
-  months: number;
+  days?: number;  // Optional: specific number of days
+  months: number;  // Number of months (used if days is not specified)
   xanaxPerDay: number;
   hasPointsRefill: boolean;
   hoursPlayedPerDay: number;
@@ -202,7 +203,8 @@ export function simulateGymProgression(
     inputs.companyBenefit.bonusEnergyPerDay
   );
   
-  const totalDays = inputs.months * 30;
+  // Use days if specified, otherwise convert months to days
+  const totalDays = inputs.days && inputs.days > 0 ? inputs.days : inputs.months * 30;
   
   // Initialize stats
   const stats = {
@@ -354,7 +356,7 @@ export function simulateGymProgression(
         // Ignore
       }
       
-      dailySnapshots.push({
+      const snapshot = {
         day,
         strength: Math.round(stats.strength),
         speed: Math.round(stats.speed),
@@ -362,7 +364,9 @@ export function simulateGymProgression(
         dexterity: Math.round(stats.dexterity),
         currentGym,
         energySpentOnGymUnlock,
-      });
+      };
+      
+      dailySnapshots.push(snapshot);
     }
   }
   
