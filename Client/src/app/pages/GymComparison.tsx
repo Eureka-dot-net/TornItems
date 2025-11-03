@@ -62,24 +62,24 @@ const GYMS: Gym[] = [
   { name: "georges", displayName: "George's", strength: 7.3, speed: 7.3, defense: 7.3, dexterity: 7.3, energyPerTrain: 10, costToUnlock: 100000000, energyToUnlock: 551255 },
 ];
 
-// Company benefits
-const COMPANY_BENEFITS: Record<string, CompanyBenefit> = {
+// Function to get company benefits with dynamic candle shop stars
+const getCompanyBenefits = (candleShopStars: number): Record<string, CompanyBenefit> => ({
   none: {
     name: 'No Benefits',
     gymUnlockSpeedMultiplier: 1.0,
     bonusEnergyPerDay: 0,
   },
-  musicStore3Star: {
+  musicStore: {
     name: '3★ Music Store',
     gymUnlockSpeedMultiplier: 1.3, // 30% faster
     bonusEnergyPerDay: 0,
   },
-  candleShop10Star: {
-    name: '10★ Candle Shop',
+  candleShop: {
+    name: `${candleShopStars}★ Candle Shop`,
     gymUnlockSpeedMultiplier: 1.0,
-    bonusEnergyPerDay: 50,
+    bonusEnergyPerDay: candleShopStars * 5,
   },
-};
+});
 
 export default function GymComparison() {
   // Form inputs
@@ -93,14 +93,16 @@ export default function GymComparison() {
   const [happy, setHappy] = useState<number>(5000);
   const [perkPerc, setPerkPerc] = useState<number>(0);
   const [initialStats, setInitialStats] = useState({ strength: 1000, speed: 1000, defense: 1000, dexterity: 1000 });
+  const [candleShopStars, setCandleShopStars] = useState<number>(10);
   
   // Results
   const [results, setResults] = useState<Record<string, SimulationResult>>({});
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Calculate and display daily energy
-  const dailyEnergy = calculateDailyEnergy(hoursPlayedPerDay, xanaxPerDay, hasPointsRefill, 0);
+  // Calculate and display daily energy (use candleShopStars * 5 if candleShop is selected)
+  const candleShopBonus = selectedBenefits.includes('candleShop') ? candleShopStars * 5 : 0;
+  const dailyEnergy = calculateDailyEnergy(hoursPlayedPerDay, xanaxPerDay, hasPointsRefill, candleShopBonus);
   
   const handleSimulate = () => {
     setIsSimulating(true);
@@ -108,6 +110,7 @@ export default function GymComparison() {
     
     try {
       const newResults: Record<string, SimulationResult> = {};
+      const COMPANY_BENEFITS = getCompanyBenefits(candleShopStars);
       
       for (const benefitKey of selectedBenefits) {
         const benefit = COMPANY_BENEFITS[benefitKey];
@@ -148,6 +151,7 @@ export default function GymComparison() {
   };
   
   // Prepare chart data
+  const COMPANY_BENEFITS = getCompanyBenefits(candleShopStars);
   const chartData = Object.keys(results).length > 0 ? 
     results[Object.keys(results)[0]].dailySnapshots.map((_, index) => {
       const dataPoint: Record<string, number> = { day: results[Object.keys(results)[0]].dailySnapshots[index].day };
@@ -341,7 +345,7 @@ export default function GymComparison() {
               Company Benefits to Compare
             </Typography>
             <FormGroup>
-              {Object.entries(COMPANY_BENEFITS).map(([key, benefit]) => (
+              {Object.entries(getCompanyBenefits(candleShopStars)).map(([key, benefit]) => (
                 <FormControlLabel
                   key={key}
                   control={
@@ -354,6 +358,23 @@ export default function GymComparison() {
                 />
               ))}
             </FormGroup>
+            
+            {/* Candle Shop Star Rating */}
+            {selectedBenefits.includes('candleShop') && (
+              <TextField
+                label="Candle Shop Stars"
+                type="number"
+                value={candleShopStars}
+                onChange={(e) => setCandleShopStars(Math.max(1, Math.min(10, Number(e.target.value))))}
+                fullWidth
+                margin="normal"
+                size="small"
+                helperText="1-10 stars, each star adds 5 energy/day"
+                InputProps={{
+                  inputProps: { min: 1, max: 10 }
+                }}
+              />
+            )}
             
             {/* API Key (optional) */}
             <TextField
@@ -421,6 +442,91 @@ export default function GymComparison() {
                     })}
                   </LineChart>
                 </ResponsiveContainer>
+              </Paper>
+              
+              {/* Comparison Table */}
+              <Paper sx={{ p: 3, mb: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Final Stats Comparison
+                </Typography>
+                <Box sx={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #555' }}>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>Stat</th>
+                        {Object.entries(results).map(([benefitKey]) => {
+                          const benefit = COMPANY_BENEFITS[benefitKey];
+                          return (
+                            <th key={benefitKey} style={{ padding: '12px', textAlign: 'right' }}>
+                              {benefit.name}
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style={{ borderBottom: '1px solid #333' }}>
+                        <td style={{ padding: '12px', fontWeight: 'bold' }}>Strength</td>
+                        {Object.entries(results).map(([benefitKey, result]) => (
+                          <td key={benefitKey} style={{ padding: '12px', textAlign: 'right' }}>
+                            {result.finalStats.strength.toLocaleString()}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #333' }}>
+                        <td style={{ padding: '12px', fontWeight: 'bold' }}>Speed</td>
+                        {Object.entries(results).map(([benefitKey, result]) => (
+                          <td key={benefitKey} style={{ padding: '12px', textAlign: 'right' }}>
+                            {result.finalStats.speed.toLocaleString()}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #333' }}>
+                        <td style={{ padding: '12px', fontWeight: 'bold' }}>Defense</td>
+                        {Object.entries(results).map(([benefitKey, result]) => (
+                          <td key={benefitKey} style={{ padding: '12px', textAlign: 'right' }}>
+                            {result.finalStats.defense.toLocaleString()}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #333' }}>
+                        <td style={{ padding: '12px', fontWeight: 'bold' }}>Dexterity</td>
+                        {Object.entries(results).map(([benefitKey, result]) => (
+                          <td key={benefitKey} style={{ padding: '12px', textAlign: 'right' }}>
+                            {result.finalStats.dexterity.toLocaleString()}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr style={{ borderBottom: '2px solid #555', backgroundColor: 'rgba(255, 255, 255, 0.03)' }}>
+                        <td style={{ padding: '12px', fontWeight: 'bold' }}>Total Stats</td>
+                        {Object.entries(results).map(([benefitKey, result]) => {
+                          const total = result.finalStats.strength + result.finalStats.speed + 
+                                      result.finalStats.defense + result.finalStats.dexterity;
+                          return (
+                            <td key={benefitKey} style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>
+                              {total.toLocaleString()}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                      <tr style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+                        <td style={{ padding: '12px', fontWeight: 'bold' }}>Total Gain</td>
+                        {Object.entries(results).map(([benefitKey, result]) => {
+                          const totalGain = 
+                            (result.finalStats.strength - initialStats.strength) +
+                            (result.finalStats.speed - initialStats.speed) +
+                            (result.finalStats.defense - initialStats.defense) +
+                            (result.finalStats.dexterity - initialStats.dexterity);
+                          return (
+                            <td key={benefitKey} style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#4caf50' }}>
+                              +{totalGain.toLocaleString()}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </tbody>
+                  </table>
+                </Box>
               </Paper>
               
               <Grid container spacing={2}>
