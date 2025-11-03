@@ -292,12 +292,18 @@ export function simulateGymProgression(
       if (energyPerStat[stat] === 0) continue;
       
       try {
-        const gym = findBestGym(
-          gyms,
-          stat,
-          totalEnergySpent,
-          inputs.companyBenefit.gymUnlockSpeedMultiplier
-        );
+        // Use the gym specified by currentGymIndex if provided, otherwise find best gym
+        let gym: Gym;
+        if (inputs.currentGymIndex !== undefined && inputs.currentGymIndex >= 0 && inputs.currentGymIndex < gyms.length) {
+          gym = gyms[inputs.currentGymIndex];
+        } else {
+          gym = findBestGym(
+            gyms,
+            stat,
+            totalEnergySpent,
+            inputs.companyBenefit.gymUnlockSpeedMultiplier
+          );
+        }
         
         const statDots = gym[stat as keyof Pick<Gym, 'strength' | 'speed' | 'defense' | 'dexterity'>];
         if (!statDots) continue;
@@ -320,7 +326,8 @@ export function simulateGymProgression(
           );
           
           // Apply gym gain multiplier from company benefit
-          stats[stat] += gain * inputs.companyBenefit.gymGainMultiplier;
+          const actualGain = gain * inputs.companyBenefit.gymGainMultiplier;
+          stats[stat] += actualGain;
           totalEnergySpent += gym.energyPerTrain;
         }
       } catch {
