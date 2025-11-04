@@ -532,7 +532,7 @@ export async function fetchMinMaxStatus(
 
         if (fetchSkimmers) {
           apiCalls.push(
-            axios.get<CrimesResponse>(`https://api.torn.com/v2/user/crimes?key=${apiKey}`)
+            axios.get<CrimesResponse>(`https://api.torn.com/v2/user/6/crimes?key=${apiKey}`)
               .then(response => ({ type: 'skimmers', data: response.data }))
               .catch(() => ({ type: 'skimmers', data: {} as CrimesResponse }))
           );
