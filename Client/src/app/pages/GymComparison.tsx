@@ -628,12 +628,12 @@ export default function GymComparison() {
   const activeState = comparisonStates[activeTabIndex];
   
   return (
-    <Box sx={{ width: '100%', p: 3 }}>
+    <Box sx={{ width: '100%', p: { xs: 2, md: 3 } }}>
       <Typography variant="h4" gutterBottom>
         Gym Comparison Tool
       </Typography>
       
-      <Typography variant="body1" gutterBottom sx={{ mb: 3 }}>
+      <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
         Compare gym stat gains with different configurations
       </Typography>
       
@@ -645,43 +645,115 @@ export default function GymComparison() {
           Manual Testing
         </Button>
       </Box>
-      
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Paper sx={{ p: 3 }}>
+
+      {mode === 'future' && (
+        <>
+          {/* Comparison Selector at the TOP */}
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6">Select Comparison</Typography>
+              <Button size="small" startIcon={<AddIcon />} onClick={handleAddState} disabled={comparisonStates.length >= 4}>
+                Add Comparison
+              </Button>
+            </Box>
+            
+            <Tabs 
+              value={activeTabIndex} 
+              onChange={(_, newValue) => setActiveTabIndex(newValue)} 
+              variant="scrollable" 
+              scrollButtons="auto"
+            >
+              {comparisonStates.map((state) => (
+                <Tab key={state.id} label={state.name} />
+              ))}
+            </Tabs>
+          </Paper>
+
+          {/* Player Stats - HORIZONTAL COMPACT LAYOUT */}
+          <Paper sx={{ p: 2, mb: 3 }}>
             <Typography variant="h6" gutterBottom>Player Stats</Typography>
             
-            <Alert severity="info" sx={{ mb: 2 }}>
-              A Limited API Key is sufficient for fetching your stats. Get one from{' '}
-              <a href="https://www.torn.com/preferences.php#tab=api" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
-                Torn Settings → API Key
-              </a>
-            </Alert>
-            
-            <TextField
-              label="Torn API Key"
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              fullWidth
-              margin="dense"
-              size="small"
-              helperText="Optional: Fetch your current stats"
-            />
-            <Button variant="outlined" fullWidth sx={{ mt: 1, mb: 2 }} onClick={handleFetchStats} disabled={isLoadingGymStats || !apiKey.trim()}>
-              {isLoadingGymStats ? <CircularProgress size={20} /> : 'Fetch My Stats'}
-            </Button>
-            
-            <TextField label="Initial Strength" type="number" value={initialStats.strength ?? ''} onChange={(e) => setInitialStats({ ...initialStats, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-            <TextField label="Initial Speed" type="number" value={initialStats.speed ?? ''} onChange={(e) => setInitialStats({ ...initialStats, speed: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-            <TextField label="Initial Defense" type="number" value={initialStats.defense ?? ''} onChange={(e) => setInitialStats({ ...initialStats, defense: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-            <TextField label="Initial Dexterity" type="number" value={initialStats.dexterity ?? ''} onChange={(e) => setInitialStats({ ...initialStats, dexterity: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-            
-            {mode === 'future' && (
-              <>
-                <TextField label="Simulation Duration (months)" type="number" value={months ?? ''} onChange={(e) => setMonths(e.target.value === '' ? 1 : Math.max(1, Math.min(36, Number(e.target.value))))} fullWidth margin="dense" size="small" helperText="1-36 months" inputProps={{ step: 'any' }} />
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  <a href="https://www.torn.com/preferences.php#tab=api" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                    Get API Key
+                  </a>
+                </Alert>
                 
-                <FormControl fullWidth margin="dense" size="small">
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    label="Torn API Key"
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    size="small"
+                    sx={{ flex: 1 }}
+                  />
+                  <Button variant="outlined" onClick={handleFetchStats} disabled={isLoadingGymStats || !apiKey.trim()}>
+                    {isLoadingGymStats ? <CircularProgress size={20} /> : 'Fetch'}
+                  </Button>
+                </Box>
+              </Grid>
+              
+              <Grid size={{ xs: 6, md: 1.5 }}>
+                <TextField 
+                  label="Strength" 
+                  type="number" 
+                  value={initialStats.strength ?? ''} 
+                  onChange={(e) => setInitialStats({ ...initialStats, strength: e.target.value === '' ? 0 : Number(e.target.value) })} 
+                  size="small" 
+                  fullWidth
+                  inputProps={{ step: 'any', min: 0 }} 
+                />
+              </Grid>
+              <Grid size={{ xs: 6, md: 1.5 }}>
+                <TextField 
+                  label="Speed" 
+                  type="number" 
+                  value={initialStats.speed ?? ''} 
+                  onChange={(e) => setInitialStats({ ...initialStats, speed: e.target.value === '' ? 0 : Number(e.target.value) })} 
+                  size="small" 
+                  fullWidth
+                  inputProps={{ step: 'any', min: 0 }} 
+                />
+              </Grid>
+              <Grid size={{ xs: 6, md: 1.5 }}>
+                <TextField 
+                  label="Defense" 
+                  type="number" 
+                  value={initialStats.defense ?? ''} 
+                  onChange={(e) => setInitialStats({ ...initialStats, defense: e.target.value === '' ? 0 : Number(e.target.value) })} 
+                  size="small" 
+                  fullWidth
+                  inputProps={{ step: 'any', min: 0 }} 
+                />
+              </Grid>
+              <Grid size={{ xs: 6, md: 1.5 }}>
+                <TextField 
+                  label="Dexterity" 
+                  type="number" 
+                  value={initialStats.dexterity ?? ''} 
+                  onChange={(e) => setInitialStats({ ...initialStats, dexterity: e.target.value === '' ? 0 : Number(e.target.value) })} 
+                  size="small" 
+                  fullWidth
+                  inputProps={{ step: 'any', min: 0 }} 
+                />
+              </Grid>
+              
+              <Grid size={{ xs: 6, md: 3 }}>
+                <TextField 
+                  label="Duration (months)" 
+                  type="number" 
+                  value={months ?? ''} 
+                  onChange={(e) => setMonths(e.target.value === '' ? 1 : Math.max(1, Math.min(36, Number(e.target.value))))} 
+                  size="small" 
+                  fullWidth
+                  inputProps={{ step: 'any' }} 
+                />
+              </Grid>
+              <Grid size={{ xs: 6, md: 3 }}>
+                <FormControl fullWidth size="small">
                   <InputLabel>Starting Gym</InputLabel>
                   <Select value={currentGymIndex} label="Starting Gym" onChange={(e) => setCurrentGymIndex(Number(e.target.value))}>
                     {GYMS.map((gym, index) => (
@@ -689,283 +761,364 @@ export default function GymComparison() {
                     ))}
                   </Select>
                 </FormControl>
-              </>
-            )}
-            
-            {mode === 'manual' && (
-              <>
-                <TextField label="Total Energy" type="number" value={manualEnergy ?? ''} onChange={(e) => setManualEnergy(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))} fullWidth margin="dense" size="small" helperText="Energy to spend on training" inputProps={{ step: 'any', min: 0 }} />
-                <TextField label="Happy" type="number" value={manualHappy ?? ''} onChange={(e) => setManualHappy(e.target.value === '' ? 0 : Math.max(0, Math.min(99999, Number(e.target.value))))} fullWidth margin="dense" size="small" helperText="Maximum: 99,999" inputProps={{ step: 'any', min: 0 }} />
-                <FormControlLabel control={<Switch checked={autoUpgradeGyms} onChange={(e) => setAutoUpgradeGyms(e.target.checked)} />} label="Auto-upgrade gyms" sx={{ mt: 1 }} />
-                
-                <FormControl fullWidth margin="dense" size="small">
-                  <InputLabel>{autoUpgradeGyms ? 'Starting Gym' : 'Current Gym'}</InputLabel>
-                  <Select value={currentGymIndex} label={autoUpgradeGyms ? 'Starting Gym' : 'Current Gym'} onChange={(e) => setCurrentGymIndex(Number(e.target.value))}>
-                    {GYMS.map((gym, index) => (
-                      <MenuItem key={gym.name} value={index}>{gym.displayName}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                
-                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Stat Target Ratios (Desired Build)</Typography>
-                <Alert severity="info" sx={{ mb: 2 }}>
-                  These values represent your desired stat ratios (e.g., 1:1:1.25:0 means equal strength/speed, 25% more dex, no defense). Each train goes to the stat furthest from its target ratio.
-                </Alert>
-                
-                <TextField label="Strength Target" type="number" value={manualStatWeights.strength ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
-                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('strength'))}>Hank</Button>
-                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('strength'))}>Baldr</Button>
-                </Box>
-                
-                <TextField label="Speed Target" type="number" value={manualStatWeights.speed ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
-                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('speed'))}>Hank</Button>
-                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('speed'))}>Baldr</Button>
-                </Box>
-                
-                <TextField label="Defense Target" type="number" value={manualStatWeights.defense ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
-                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('defense'))}>Hank</Button>
-                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('defense'))}>Baldr</Button>
-                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBalancedHighRatio('defense'))}>Def Build</Button>
-                </Box>
-                
-                <TextField label="Dexterity Target" type="number" value={manualStatWeights.dexterity ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, dexterity: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
-                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('dexterity'))}>Hank</Button>
-                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('dexterity'))}>Baldr</Button>
-                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBalancedHighRatio('dexterity'))}>Dex Build</Button>
-                </Box>
-                
-                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Perk % Bonus</Typography>
-                <TextField label="Strength Perk %" type="number" value={manualPerkPercs.strength ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-                <TextField label="Speed Perk %" type="number" value={manualPerkPercs.speed ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, speed: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-                <TextField label="Defense Perk %" type="number" value={manualPerkPercs.defense ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, defense: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-                <TextField label="Dexterity Perk %" type="number" value={manualPerkPercs.dexterity ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, dexterity: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-                
-                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Company Benefit</Typography>
-                <FormControl fullWidth margin="dense" size="small">
-                  <InputLabel>Benefit Type</InputLabel>
-                  <Select value={manualCompanyBenefitKey} label="Benefit Type" onChange={(e) => setManualCompanyBenefitKey(e.target.value)}>
-                    <MenuItem value="none">No Benefits</MenuItem>
-                    <MenuItem value="musicStore">3★ Music Store</MenuItem>
-                    <MenuItem value="candleShop">Candle Shop</MenuItem>
-                    <MenuItem value="fitnessCenter">10★ Fitness Center</MenuItem>
-                  </Select>
-                </FormControl>
-                
-                {manualCompanyBenefitKey === 'candleShop' && (
-                  <TextField label="Candle Shop Stars" type="number" value={manualCandleShopStars ?? ''} onChange={(e) => setManualCandleShopStars(e.target.value === '' ? 1 : Math.max(1, Math.min(10, Number(e.target.value))))} fullWidth margin="dense" size="small" helperText="1-10 stars, 5 energy per star" inputProps={{ step: 'any' }} />
-                )}
-              </>
-            )}
-            
-            {mode === 'future' && (
-              <>
-                <Box sx={{ mt: 3, mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="h6">Comparison States</Typography>
-                  <Button size="small" startIcon={<AddIcon />} onClick={handleAddState} disabled={comparisonStates.length >= 4}>Add State</Button>
-                </Box>
-                
-                <Tabs value={activeTabIndex} onChange={(_, newValue) => setActiveTabIndex(newValue)} variant="scrollable" scrollButtons="auto" sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-                  {comparisonStates.map((state) => (<Tab key={state.id} label={state.name} />))}
-                </Tabs>
-                
-                {activeState && (
-                  <Box>
-                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                      <TextField label="State Name" value={activeState.name} onChange={(e) => updateState(activeState.id, { name: e.target.value })} fullWidth size="small" />
-                      {comparisonStates.length > 1 && (<IconButton color="error" onClick={() => handleRemoveState(activeState.id)} size="small"><DeleteIcon /></IconButton>)}
-                    </Box>
-                    
-                    <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Stat Target Ratios (Desired Build)</Typography>
-                    <Alert severity="info" sx={{ mb: 2 }}>
-                      These values represent your desired stat ratios (e.g., 1:1:1.25:0 means equal strength/speed, 25% more dex, no defense). Each train goes to the stat furthest from its target ratio.
-                    </Alert>
-                    
-                    <TextField label="Strength Target" type="number" value={activeState.statWeights.strength ?? ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
-                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('strength') })}>Hank</Button>
-                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('strength') })}>Baldr</Button>
-                    </Box>
-                    
-                    <TextField label="Speed Target" type="number" value={activeState.statWeights.speed ?? ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
-                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('speed') })}>Hank</Button>
-                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('speed') })}>Baldr</Button>
-                    </Box>
-                    
-                    <TextField label="Defense Target" type="number" value={activeState.statWeights.defense ?? ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
-                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('defense') })}>Hank</Button>
-                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('defense') })}>Baldr</Button>
-                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBalancedHighRatio('defense') })}>Def Build</Button>
-                    </Box>
-                    
-                    <TextField label="Dexterity Target" type="number" value={activeState.statWeights.dexterity ?? ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, dexterity: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
-                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('dexterity') })}>Hank</Button>
-                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('dexterity') })}>Baldr</Button>
-                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBalancedHighRatio('dexterity') })}>Dex Build</Button>
-                    </Box>
-                    
-                    <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Energy Sources</Typography>
-                    <FormControl fullWidth margin="dense" size="small">
-                      <InputLabel>Max Energy</InputLabel>
-                      <Select value={activeState.maxEnergy} label="Max Energy" onChange={(e) => updateState(activeState.id, { maxEnergy: Number(e.target.value) })}>
-                        <MenuItem value={150}>150 (Standard: 5E/10min)</MenuItem>
-                        <MenuItem value={100}>100 (5E/15min)</MenuItem>
-                      </Select>
-                    </FormControl>
-                    <TextField label="Hours Played Per Day" type="number" value={activeState.hoursPlayedPerDay ?? ''} onChange={(e) => updateState(activeState.id, { hoursPlayedPerDay: e.target.value === '' ? 0 : Math.max(0, Math.min(24, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="0-24 hours" inputProps={{ step: 'any', min: 0 }} />
-                    <TextField label="Xanax Per Day" type="number" value={activeState.xanaxPerDay ?? ''} onChange={(e) => updateState(activeState.id, { xanaxPerDay: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value))})} fullWidth margin="dense" size="small" helperText="Each xanax = +250 energy" inputProps={{ step: 'any', min: 0 }} />
-                    <FormControlLabel control={<Switch checked={activeState.hasPointsRefill} onChange={(e) => updateState(activeState.id, { hasPointsRefill: e.target.checked })} />} label={`Points Refill (+${activeState.maxEnergy} energy)`} />
-                    <TextField label="Days Skipped Per Month" type="number" value={activeState.daysSkippedPerMonth ?? ''} onChange={(e) => updateState(activeState.id, { daysSkippedPerMonth: e.target.value === '' ? 0 : Math.max(0, Math.min(30, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="0-30 days (wars, vacations, etc.)" inputProps={{ step: 'any', min: 0 }} />
-                    
-                    <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Base Happy</Typography>
-                    <TextField label="Happy" type="number" value={activeState.happy ?? ''} onChange={(e) => updateState(activeState.id, { happy: e.target.value === '' ? 0 : Math.max(0, Math.min(99999, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="Maximum: 99,999" inputProps={{ step: 'any', min: 0 }} />
-                    
-                    <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Perk % Bonus</Typography>
-                    <TextField label="Strength Perk %" type="number" value={activeState.perkPercs.strength ?? ''} onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, strength: e.target.value === '' ? 0 : Number(e.target.value)}})} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-                    <TextField label="Speed Perk %" type="number" value={activeState.perkPercs.speed ?? ''} onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, speed: e.target.value === '' ? 0 : Number(e.target.value)}})} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-                    <TextField label="Defense Perk %" type="number" value={activeState.perkPercs.defense ?? ''} onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, defense: e.target.value === '' ? 0 : Number(e.target.value)}})} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-                    <TextField label="Dexterity Perk %" type="number" value={activeState.perkPercs.dexterity ?? ''} onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, dexterity: e.target.value === '' ? 0 : Number(e.target.value)}})} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-                    
-                    <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Happy Jump</Typography>
-                    <FormControlLabel control={<Switch checked={activeState.happyJumpEnabled} onChange={(e) => updateState(activeState.id, { happyJumpEnabled: e.target.checked })} />} label="Enable Happy Jumps" />
-                    {activeState.happyJumpEnabled && (
-                      <>
-                        <TextField label="Jump Frequency (days)" type="number" value={activeState.happyJumpFrequency ?? ''} onChange={(e) => updateState(activeState.id, { happyJumpFrequency: e.target.value === '' ? 1 : Math.max(1, Number(e.target.value))})} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
-                        <TextField label="DVDs Used Per Jump" type="number" value={activeState.happyJumpDvds ?? ''} onChange={(e) => updateState(activeState.id, { happyJumpDvds: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value))})} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-                      </>
-                    )}
-                    
-                    <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Diabetes Day Event</Typography>
-                    <FormControlLabel 
-                      control={<Switch checked={activeState.diabetesDayEnabled} onChange={(e) => updateState(activeState.id, { diabetesDayEnabled: e.target.checked })} />} 
-                      label="Enable Diabetes Day" 
-                    />
-                    <Alert severity="info" sx={{ mt: 1, mb: 1 }}>
-                      Diabetes Day provides 99999 happy jumps with special energy bonuses. Jumps occur on day 7 for 1 jump, or days 5 and 7 for 2 jumps.
-                    </Alert>
-                    {activeState.diabetesDayEnabled && (
-                      <>
-                        <FormControl fullWidth margin="dense" size="small">
-                          <InputLabel>Number of Jumps</InputLabel>
-                          <Select 
-                            value={activeState.diabetesDayNumberOfJumps} 
-                            label="Number of Jumps" 
-                            onChange={(e) => updateState(activeState.id, { diabetesDayNumberOfJumps: Number(e.target.value) as 1 | 2 })}
-                          >
-                            <MenuItem value={1}>1 Jump</MenuItem>
-                            <MenuItem value={2}>2 Jumps</MenuItem>
-                          </Select>
-                        </FormControl>
-                        
-                        <FormControl fullWidth margin="dense" size="small">
-                          <InputLabel>FHC (Feathery Hotel Coupon)</InputLabel>
-                          <Select 
-                            value={activeState.diabetesDayFHC} 
-                            label="FHC (Feathery Hotel Coupon)" 
-                            onChange={(e) => updateState(activeState.id, { diabetesDayFHC: Number(e.target.value) as 0 | 1 | 2 })}
-                          >
-                            <MenuItem value={0}>0 (No FHC)</MenuItem>
-                            <MenuItem value={1}>1 (+{activeState.maxEnergy} energy)</MenuItem>
-                            <MenuItem value={2}>2 (+{activeState.maxEnergy} energy each)</MenuItem>
-                          </Select>
-                        </FormControl>
-                        
-                        <FormControl fullWidth margin="dense" size="small">
-                          <InputLabel>Green Egg</InputLabel>
-                          <Select 
-                            value={activeState.diabetesDayGreenEgg} 
-                            label="Green Egg" 
-                            onChange={(e) => updateState(activeState.id, { diabetesDayGreenEgg: Number(e.target.value) as 0 | 1 | 2 })}
-                          >
-                            <MenuItem value={0}>0 (No Green Egg)</MenuItem>
-                            <MenuItem value={1}>1 (+500 energy)</MenuItem>
-                            <MenuItem value={2}>2 (+500 energy each)</MenuItem>
-                          </Select>
-                        </FormControl>
-                        
-                        <Alert severity="warning" sx={{ mt: 1, mb: 1, fontSize: '0.75rem' }}>
-                          Note: Only 1 FHC OR Green Egg can be used per jump. With 2 jumps, you can use one item per jump.
-                        </Alert>
-                        
-                        <FormControlLabel 
-                          control={<Switch checked={activeState.diabetesDaySeasonalMail} onChange={(e) => updateState(activeState.id, { diabetesDaySeasonalMail: e.target.checked })} />} 
-                          label="Seasonal Mail (+250 energy, first jump only)" 
-                        />
-                        
-                        <FormControlLabel 
-                          control={<Switch checked={activeState.diabetesDayLogoClick} onChange={(e) => updateState(activeState.id, { diabetesDayLogoClick: e.target.checked })} />} 
-                          label="Logo Energy Click (+50 energy, second jump only)" 
-                        />
-                      </>
-                    )}
-                    
-                    <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Company Benefit</Typography>
-                    <FormControl fullWidth margin="dense" size="small">
-                      <InputLabel>Benefit Type</InputLabel>
-                      <Select value={activeState.companyBenefitKey} label="Benefit Type" onChange={(e) => updateState(activeState.id, { companyBenefitKey: e.target.value })}>
-                        <MenuItem value="none">No Benefits</MenuItem>
-                        <MenuItem value="musicStore">3★ Music Store</MenuItem>
-                        <MenuItem value="candleShop">Candle Shop</MenuItem>
-                        <MenuItem value="fitnessCenter">10★ Fitness Center</MenuItem>
-                      </Select>
-                    </FormControl>
-                    
-                    {activeState.companyBenefitKey === 'candleShop' && (
-                      <TextField label="Candle Shop Stars" type="number" value={activeState.candleShopStars ?? ''} onChange={(e) => updateState(activeState.id, { candleShopStars: e.target.value === '' ? 1 : Math.max(1, Math.min(10, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="1-10 stars, 5 energy per star" inputProps={{ step: 'any' }} />
-                    )}
-                    
-                    <Alert severity="info" sx={{ mt: 2 }}>
-                      Daily Energy: {calculateDailyEnergy(activeState.hoursPlayedPerDay, activeState.xanaxPerDay, activeState.hasPointsRefill, getCompanyBenefit(activeState.companyBenefitKey, activeState.candleShopStars).bonusEnergyPerDay, activeState.maxEnergy).toLocaleString()} E
-                    </Alert>
-                  </Box>
-                )}
-              </>
-            )}
-          </Paper>
-        </Grid>
-        
-        <Grid size={{ xs: 12, md: 8 }}>
-          {error && (<Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>)}
-          
-          {mode === 'manual' && results.manual && (
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>Training Results</Typography>
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 6, md: 3 }}><Card><CardContent><Typography variant="subtitle2" color="text.secondary">Strength</Typography><Typography variant="h5">{Math.round(results.manual.finalStats.strength).toLocaleString()}</Typography><Typography variant="caption" color="success.main">+{Math.round(results.manual.finalStats.strength - initialStats.strength).toLocaleString()}</Typography></CardContent></Card></Grid>
-                <Grid size={{ xs: 6, md: 3 }}><Card><CardContent><Typography variant="subtitle2" color="text.secondary">Speed</Typography><Typography variant="h5">{Math.round(results.manual.finalStats.speed).toLocaleString()}</Typography><Typography variant="caption" color="success.main">+{Math.round(results.manual.finalStats.speed - initialStats.speed).toLocaleString()}</Typography></CardContent></Card></Grid>
-                <Grid size={{ xs: 6, md: 3 }}><Card><CardContent><Typography variant="subtitle2" color="text.secondary">Defense</Typography><Typography variant="h5">{Math.round(results.manual.finalStats.defense).toLocaleString()}</Typography><Typography variant="caption" color="success.main">+{Math.round(results.manual.finalStats.defense - initialStats.defense).toLocaleString()}</Typography></CardContent></Card></Grid>
-                <Grid size={{ xs: 6, md: 3 }}><Card><CardContent><Typography variant="subtitle2" color="text.secondary">Dexterity</Typography><Typography variant="h5">{Math.round(results.manual.finalStats.dexterity).toLocaleString()}</Typography><Typography variant="caption" color="success.main">+{Math.round(results.manual.finalStats.dexterity - initialStats.dexterity).toLocaleString()}</Typography></CardContent></Card></Grid>
               </Grid>
-              <Button 
-                variant="outlined" 
-                fullWidth 
-                sx={{ mt: 3 }}
-                onClick={() => {
-                  setInitialStats({
-                    strength: Math.round(results.manual.finalStats.strength),
-                    speed: Math.round(results.manual.finalStats.speed),
-                    defense: Math.round(results.manual.finalStats.defense),
-                    dexterity: Math.round(results.manual.finalStats.dexterity),
-                  });
-                }}
-              >
-                Use as Initial Stats
-              </Button>
+            </Grid>
+          </Paper>
+
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+          {/* Comparison Configuration - COLUMNS LAYOUT */}
+          {activeState && (
+            <Paper sx={{ p: 2, mb: 3 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <TextField 
+                  label="Comparison Name" 
+                  value={activeState.name} 
+                  onChange={(e) => updateState(activeState.id, { name: e.target.value })} 
+                  size="small"
+                  sx={{ width: 250 }}
+                />
+                {comparisonStates.length > 1 && (
+                  <IconButton color="error" onClick={() => handleRemoveState(activeState.id)} size="small">
+                    <DeleteIcon />
+                  </IconButton>
+                )}
+              </Box>
+
+              <Grid container spacing={2}>
+                {/* Stat Weights Column */}
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <Typography variant="subtitle2" gutterBottom>Stat Target Ratios</Typography>
+                  <TextField 
+                    label="Str" 
+                    type="number" 
+                    value={activeState.statWeights.strength ?? ''} 
+                    onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) }})} 
+                    fullWidth 
+                    margin="dense" 
+                    size="small" 
+                    inputProps={{ step: 'any', min: 0 }} 
+                  />
+                  <TextField 
+                    label="Spd" 
+                    type="number" 
+                    value={activeState.statWeights.speed ?? ''} 
+                    onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) }})} 
+                    fullWidth 
+                    margin="dense" 
+                    size="small" 
+                    inputProps={{ step: 'any', min: 0 }} 
+                  />
+                  <TextField 
+                    label="Def" 
+                    type="number" 
+                    value={activeState.statWeights.defense ?? ''} 
+                    onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) }})} 
+                    fullWidth 
+                    margin="dense" 
+                    size="small" 
+                    inputProps={{ step: 'any', min: 0 }} 
+                  />
+                  <TextField 
+                    label="Dex" 
+                    type="number" 
+                    value={activeState.statWeights.dexterity ?? ''} 
+                    onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, dexterity: e.target.value === '' ? 0 : Number(e.target.value) }})} 
+                    fullWidth 
+                    margin="dense" 
+                    size="small" 
+                    inputProps={{ step: 'any', min: 0 }} 
+                  />
+                  <Box sx={{ display: 'flex', gap: 0.5, mt: 1, flexWrap: 'wrap' }}>
+                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('strength') })} sx={{ fontSize: '0.7rem' }}>Hank</Button>
+                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('strength') })} sx={{ fontSize: '0.7rem' }}>Baldr</Button>
+                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBalancedHighRatio('defense') })} sx={{ fontSize: '0.7rem' }}>Def</Button>
+                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBalancedHighRatio('dexterity') })} sx={{ fontSize: '0.7rem' }}>Dex</Button>
+                  </Box>
+                </Grid>
+
+                {/* Energy Sources Column */}
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <Typography variant="subtitle2" gutterBottom>Energy Sources</Typography>
+                  <FormControl fullWidth margin="dense" size="small">
+                    <InputLabel>Max Energy</InputLabel>
+                    <Select value={activeState.maxEnergy} label="Max Energy" onChange={(e) => updateState(activeState.id, { maxEnergy: Number(e.target.value) })}>
+                      <MenuItem value={150}>150</MenuItem>
+                      <MenuItem value={100}>100</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <TextField 
+                    label="Hours/Day" 
+                    type="number" 
+                    value={activeState.hoursPlayedPerDay ?? ''} 
+                    onChange={(e) => updateState(activeState.id, { hoursPlayedPerDay: e.target.value === '' ? 0 : Math.max(0, Math.min(24, Number(e.target.value)))})} 
+                    fullWidth 
+                    margin="dense" 
+                    size="small" 
+                    inputProps={{ step: 'any', min: 0, max: 24 }} 
+                  />
+                  <TextField 
+                    label="Xanax/Day" 
+                    type="number" 
+                    value={activeState.xanaxPerDay ?? ''} 
+                    onChange={(e) => updateState(activeState.id, { xanaxPerDay: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value))})} 
+                    fullWidth 
+                    margin="dense" 
+                    size="small" 
+                    inputProps={{ step: 'any', min: 0 }} 
+                  />
+                  <FormControlLabel 
+                    control={<Switch checked={activeState.hasPointsRefill} onChange={(e) => updateState(activeState.id, { hasPointsRefill: e.target.checked })} size="small" />} 
+                    label="Points Refill" 
+                    sx={{ mt: 1 }}
+                  />
+                  <TextField 
+                    label="Days Skipped/Month" 
+                    type="number" 
+                    value={activeState.daysSkippedPerMonth ?? ''} 
+                    onChange={(e) => updateState(activeState.id, { daysSkippedPerMonth: e.target.value === '' ? 0 : Math.max(0, Math.min(30, Number(e.target.value)))})} 
+                    fullWidth 
+                    margin="dense" 
+                    size="small" 
+                    inputProps={{ step: 'any', min: 0, max: 30 }} 
+                  />
+                  <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 1 }}>
+                    Daily E: {calculateDailyEnergy(activeState.hoursPlayedPerDay, activeState.xanaxPerDay, activeState.hasPointsRefill, getCompanyBenefit(activeState.companyBenefitKey, activeState.candleShopStars).bonusEnergyPerDay, activeState.maxEnergy).toLocaleString()}
+                  </Typography>
+                </Grid>
+
+                {/* Happy & Perks Column */}
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <Typography variant="subtitle2" gutterBottom>Happy & Perks</Typography>
+                  <TextField 
+                    label="Happy" 
+                    type="number" 
+                    value={activeState.happy ?? ''} 
+                    onChange={(e) => updateState(activeState.id, { happy: e.target.value === '' ? 0 : Math.max(0, Math.min(99999, Number(e.target.value)))})} 
+                    fullWidth 
+                    margin="dense" 
+                    size="small" 
+                    inputProps={{ step: 'any', min: 0, max: 99999 }} 
+                  />
+                  <TextField 
+                    label="Str Perk %" 
+                    type="number" 
+                    value={activeState.perkPercs.strength ?? ''} 
+                    onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, strength: e.target.value === '' ? 0 : Number(e.target.value)}})} 
+                    fullWidth 
+                    margin="dense" 
+                    size="small" 
+                    inputProps={{ step: 'any', min: 0 }} 
+                  />
+                  <TextField 
+                    label="Spd Perk %" 
+                    type="number" 
+                    value={activeState.perkPercs.speed ?? ''} 
+                    onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, speed: e.target.value === '' ? 0 : Number(e.target.value)}})} 
+                    fullWidth 
+                    margin="dense" 
+                    size="small" 
+                    inputProps={{ step: 'any', min: 0 }} 
+                  />
+                  <TextField 
+                    label="Def Perk %" 
+                    type="number" 
+                    value={activeState.perkPercs.defense ?? ''} 
+                    onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, defense: e.target.value === '' ? 0 : Number(e.target.value)}})} 
+                    fullWidth 
+                    margin="dense" 
+                    size="small" 
+                    inputProps={{ step: 'any', min: 0 }} 
+                  />
+                  <TextField 
+                    label="Dex Perk %" 
+                    type="number" 
+                    value={activeState.perkPercs.dexterity ?? ''} 
+                    onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, dexterity: e.target.value === '' ? 0 : Number(e.target.value)}})} 
+                    fullWidth 
+                    margin="dense" 
+                    size="small" 
+                    inputProps={{ step: 'any', min: 0 }} 
+                  />
+                </Grid>
+
+                {/* Company Benefits & Special Events Column */}
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <Typography variant="subtitle2" gutterBottom>Benefits & Events</Typography>
+                  <FormControl fullWidth margin="dense" size="small">
+                    <InputLabel>Company Benefit</InputLabel>
+                    <Select value={activeState.companyBenefitKey} label="Company Benefit" onChange={(e) => updateState(activeState.id, { companyBenefitKey: e.target.value })}>
+                      <MenuItem value="none">None</MenuItem>
+                      <MenuItem value="musicStore">3★ Music Store</MenuItem>
+                      <MenuItem value="candleShop">Candle Shop</MenuItem>
+                      <MenuItem value="fitnessCenter">10★ Fitness Center</MenuItem>
+                    </Select>
+                  </FormControl>
+                  
+                  {activeState.companyBenefitKey === 'candleShop' && (
+                    <TextField 
+                      label="Candle Stars" 
+                      type="number" 
+                      value={activeState.candleShopStars ?? ''} 
+                      onChange={(e) => updateState(activeState.id, { candleShopStars: e.target.value === '' ? 1 : Math.max(1, Math.min(10, Number(e.target.value)))})} 
+                      fullWidth 
+                      margin="dense" 
+                      size="small" 
+                      inputProps={{ step: 'any', min: 1, max: 10 }} 
+                    />
+                  )}
+                  
+                  <FormControlLabel 
+                    control={<Switch checked={activeState.happyJumpEnabled} onChange={(e) => updateState(activeState.id, { happyJumpEnabled: e.target.checked })} size="small" />} 
+                    label="Happy Jumps" 
+                    sx={{ mt: 1 }}
+                  />
+                  {activeState.happyJumpEnabled && (
+                    <>
+                      <TextField 
+                        label="Days Between" 
+                        type="number" 
+                        value={activeState.happyJumpFrequency ?? ''} 
+                        onChange={(e) => updateState(activeState.id, { happyJumpFrequency: e.target.value === '' ? 1 : Math.max(1, Number(e.target.value))})} 
+                        fullWidth 
+                        margin="dense" 
+                        size="small" 
+                        inputProps={{ step: 'any', min: 1 }} 
+                      />
+                      <TextField 
+                        label="DVDs Used" 
+                        type="number" 
+                        value={activeState.happyJumpDvds ?? ''} 
+                        onChange={(e) => updateState(activeState.id, { happyJumpDvds: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value))})} 
+                        fullWidth 
+                        margin="dense" 
+                        size="small" 
+                        inputProps={{ step: 'any', min: 0 }} 
+                      />
+                    </>
+                  )}
+                  
+                  <FormControlLabel 
+                    control={<Switch checked={activeState.diabetesDayEnabled} onChange={(e) => updateState(activeState.id, { diabetesDayEnabled: e.target.checked })} size="small" />} 
+                    label="Diabetes Day" 
+                    sx={{ mt: 1 }}
+                  />
+                  {activeState.diabetesDayEnabled && (
+                    <>
+                      <FormControl fullWidth margin="dense" size="small">
+                        <InputLabel>Jumps</InputLabel>
+                        <Select 
+                          value={activeState.diabetesDayNumberOfJumps} 
+                          label="Jumps" 
+                          onChange={(e) => updateState(activeState.id, { diabetesDayNumberOfJumps: Number(e.target.value) as 1 | 2 })}
+                        >
+                          <MenuItem value={1}>1</MenuItem>
+                          <MenuItem value={2}>2</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <FormControl fullWidth margin="dense" size="small">
+                        <InputLabel>FHC</InputLabel>
+                        <Select 
+                          value={activeState.diabetesDayFHC} 
+                          label="FHC" 
+                          onChange={(e) => updateState(activeState.id, { diabetesDayFHC: Number(e.target.value) as 0 | 1 | 2 })}
+                        >
+                          <MenuItem value={0}>0</MenuItem>
+                          <MenuItem value={1}>1</MenuItem>
+                          <MenuItem value={2}>2</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <FormControl fullWidth margin="dense" size="small">
+                        <InputLabel>Green Egg</InputLabel>
+                        <Select 
+                          value={activeState.diabetesDayGreenEgg} 
+                          label="Green Egg" 
+                          onChange={(e) => updateState(activeState.id, { diabetesDayGreenEgg: Number(e.target.value) as 0 | 1 | 2 })}
+                        >
+                          <MenuItem value={0}>0</MenuItem>
+                          <MenuItem value={1}>1</MenuItem>
+                          <MenuItem value={2}>2</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <FormControlLabel 
+                        control={<Switch checked={activeState.diabetesDaySeasonalMail} onChange={(e) => updateState(activeState.id, { diabetesDaySeasonalMail: e.target.checked })} size="small" />} 
+                        label="Seasonal Mail" 
+                      />
+                      <FormControlLabel 
+                        control={<Switch checked={activeState.diabetesDayLogoClick} onChange={(e) => updateState(activeState.id, { diabetesDayLogoClick: e.target.checked })} size="small" />} 
+                        label="Logo Click" 
+                      />
+                    </>
+                  )}
+                </Grid>
+              </Grid>
             </Paper>
           )}
-          
-          {mode === 'future' && Object.keys(results).length > 0 && (
+
+          {/* Results Section */}
+          {Object.keys(results).length > 0 && (
             <>
-              {/* Show Diabetes Day Gains Grid if any state has DD enabled */}
+              {/* Graph and Final Stats SIDE BY SIDE */}
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid size={{ xs: 12, lg: 8 }}>
+                  <Paper sx={{ p: 2 }}>
+                    <Typography variant="h6" gutterBottom>Total Battle Stats Over Time</Typography>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <LineChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="day" label={{ value: 'Days', position: 'insideBottom', offset: -5 }} />
+                        <YAxis label={{ value: 'Total Stats', angle: -90, position: 'insideLeft' }} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend />
+                        {comparisonStates.map((state, index) => (
+                          <Line key={state.id} type="monotone" dataKey={state.name} stroke={CHART_COLORS[index % CHART_COLORS.length]} strokeWidth={2} dot={false} />
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </Paper>
+                </Grid>
+
+                <Grid size={{ xs: 12, lg: 4 }}>
+                  <Paper sx={{ p: 2, height: '100%' }}>
+                    <Typography variant="h6" gutterBottom>Final Stats</Typography>
+                    <Grid container spacing={1}>
+                      {comparisonStates.map((state, index) => {
+                        const result = results[state.id];
+                        if (!result) return null;
+                        
+                        const totalGain = (result.finalStats.strength - initialStats.strength) + 
+                                        (result.finalStats.speed - initialStats.speed) + 
+                                        (result.finalStats.defense - initialStats.defense) + 
+                                        (result.finalStats.dexterity - initialStats.dexterity);
+                        
+                        return (
+                          <Grid size={{ xs: 12 }} key={state.id}>
+                            <Card sx={{ borderLeft: 4, borderColor: CHART_COLORS[index % CHART_COLORS.length] }}>
+                              <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                                <Typography variant="subtitle2" gutterBottom>{state.name}</Typography>
+                                <Typography variant="caption" display="block" sx={{ fontSize: '0.7rem' }}>
+                                  Str: {result.finalStats.strength.toLocaleString()} | Spd: {result.finalStats.speed.toLocaleString()}
+                                </Typography>
+                                <Typography variant="caption" display="block" sx={{ fontSize: '0.7rem' }}>
+                                  Def: {result.finalStats.defense.toLocaleString()} | Dex: {result.finalStats.dexterity.toLocaleString()}
+                                </Typography>
+                                <Typography variant="caption" color="success.main" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
+                                  Total: +{totalGain.toLocaleString()}
+                                </Typography>
+                              </CardContent>
+                            </Card>
+                          </Grid>
+                        );
+                      })}
+                    </Grid>
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              {/* DD Grid BELOW */}
               {comparisonStates.some(state => state.diabetesDayEnabled) && (
-                <Paper sx={{ p: 3, mb: 3 }}>
-                  <Typography variant="h6" gutterBottom>Diabetes Day Jump Gains</Typography>
+                <Paper sx={{ p: 2 }}>
+                  <Typography variant="h6" gutterBottom>Diabetes Day Gains</Typography>
                   <Grid container spacing={2}>
                     {comparisonStates.filter(state => state.diabetesDayEnabled).map((state) => {
                       const result = results[state.id];
@@ -973,49 +1126,21 @@ export default function GymComparison() {
                       
                       const ddGains = result.diabetesDayTotalGains;
                       const totalGain = ddGains.strength + ddGains.speed + ddGains.defense + ddGains.dexterity;
+                      const stateIndex = comparisonStates.indexOf(state);
                       
                       return (
-                        <Grid size={{ xs: 12, sm: 6 }} key={state.id}>
-                          <Card sx={{ borderLeft: 4, borderColor: CHART_COLORS[comparisonStates.indexOf(state) % CHART_COLORS.length] }}>
+                        <Grid size={{ xs: 12, sm: 6, md: 3 }} key={state.id}>
+                          <Card sx={{ borderLeft: 4, borderColor: CHART_COLORS[stateIndex % CHART_COLORS.length] }}>
                             <CardContent>
-                              <Typography variant="h6" gutterBottom>{state.name}</Typography>
-                              <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                                {state.diabetesDayNumberOfJumps} Jump{state.diabetesDayNumberOfJumps > 1 ? 's' : ''}
+                              <Typography variant="subtitle2" gutterBottom>{state.name}</Typography>
+                              <Typography variant="caption" display="block">
+                                Str: +{ddGains.strength.toLocaleString()} | Spd: +{ddGains.speed.toLocaleString()}
                               </Typography>
-                              
-                              {/* Jump 1 Gains */}
-                              {result.diabetesDayJump1Gains && result.diabetesDayJump1Gains.strength !== undefined && (
-                                <>
-                                  <Typography variant="subtitle2" sx={{ mt: 1, fontWeight: 'bold' }}>
-                                    Jump 1 (Day {state.diabetesDayNumberOfJumps === 1 ? '7' : '5'}):
-                                  </Typography>
-                                  <Typography variant="body2">Str: +{result.diabetesDayJump1Gains.strength.toLocaleString()}</Typography>
-                                  <Typography variant="body2">Spd: +{result.diabetesDayJump1Gains.speed.toLocaleString()}</Typography>
-                                  <Typography variant="body2">Def: +{result.diabetesDayJump1Gains.defense.toLocaleString()}</Typography>
-                                  <Typography variant="body2">Dex: +{result.diabetesDayJump1Gains.dexterity.toLocaleString()}</Typography>
-                                  <Typography variant="body2" color="primary.main" sx={{ fontWeight: 'bold' }}>
-                                    Subtotal: +{(result.diabetesDayJump1Gains.strength + result.diabetesDayJump1Gains.speed + result.diabetesDayJump1Gains.defense + result.diabetesDayJump1Gains.dexterity).toLocaleString()}
-                                  </Typography>
-                                </>
-                              )}
-                              
-                              {/* Jump 2 Gains */}
-                              {result.diabetesDayJump2Gains && result.diabetesDayJump2Gains.strength !== undefined && (
-                                <>
-                                  <Typography variant="subtitle2" sx={{ mt: 2, fontWeight: 'bold' }}>Jump 2 (Day 7):</Typography>
-                                  <Typography variant="body2">Str: +{result.diabetesDayJump2Gains.strength.toLocaleString()}</Typography>
-                                  <Typography variant="body2">Spd: +{result.diabetesDayJump2Gains.speed.toLocaleString()}</Typography>
-                                  <Typography variant="body2">Def: +{result.diabetesDayJump2Gains.defense.toLocaleString()}</Typography>
-                                  <Typography variant="body2">Dex: +{result.diabetesDayJump2Gains.dexterity.toLocaleString()}</Typography>
-                                  <Typography variant="body2" color="primary.main" sx={{ fontWeight: 'bold' }}>
-                                    Subtotal: +{(result.diabetesDayJump2Gains.strength + result.diabetesDayJump2Gains.speed + result.diabetesDayJump2Gains.defense + result.diabetesDayJump2Gains.dexterity).toLocaleString()}
-                                  </Typography>
-                                </>
-                              )}
-                              
-                              {/* Total Gains */}
-                              <Typography variant="h6" color="success.main" sx={{ mt: 2 }}>
-                                Total DD Gain: +{totalGain.toLocaleString()}
+                              <Typography variant="caption" display="block">
+                                Def: +{ddGains.defense.toLocaleString()} | Dex: +{ddGains.dexterity.toLocaleString()}
+                              </Typography>
+                              <Typography variant="body2" color="success.main" sx={{ fontWeight: 'bold', mt: 1 }}>
+                                Total: +{totalGain.toLocaleString()}
                               </Typography>
                             </CardContent>
                           </Card>
@@ -1025,80 +1150,158 @@ export default function GymComparison() {
                   </Grid>
                 </Paper>
               )}
-              
-              <Paper sx={{ p: 3, mb: 3 }}>
-                <Typography variant="h6" gutterBottom>Total Battle Stats Over Time</Typography>
-                <ResponsiveContainer width="100%" height={400}>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" label={{ value: 'Days', position: 'insideBottom', offset: -5 }} />
-                    <YAxis label={{ value: 'Total Battle Stats', angle: -90, position: 'insideLeft' }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                    {comparisonStates.map((state, index) => (
-                      <Line key={state.id} type="monotone" dataKey={state.name} stroke={CHART_COLORS[index % CHART_COLORS.length]} strokeWidth={2} dot={false} />
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
-              </Paper>
-              
-              <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>Final Stats Comparison</Typography>
-                <Grid container spacing={2}>
-                  {comparisonStates.map((state, index) => {
-                    const result = results[state.id];
-                    if (!result) return null;
-                    
-                    const totalGain = (result.finalStats.strength - initialStats.strength) + (result.finalStats.speed - initialStats.speed) + (result.finalStats.defense - initialStats.defense) + (result.finalStats.dexterity - initialStats.dexterity);
-                    
-                    const handleUseAsInitialStats = () => {
-                      setInitialStats({
-                        strength: Math.round(result.finalStats.strength),
-                        speed: Math.round(result.finalStats.speed),
-                        defense: Math.round(result.finalStats.defense),
-                        dexterity: Math.round(result.finalStats.dexterity),
-                      });
-                    };
-                    
-                    return (
-                      <Grid size={{ xs: 12, sm: 6 }} key={state.id}>
-                        <Card sx={{ borderLeft: 4, borderColor: CHART_COLORS[index % CHART_COLORS.length] }}>
-                          <CardContent>
-                            <Typography variant="h6" gutterBottom>{state.name}</Typography>
-                            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                              {getCompanyBenefit(state.companyBenefitKey, state.candleShopStars).name}
-                            </Typography>
-                            <Typography variant="body2">Str: {result.finalStats.strength.toLocaleString()} | Spd: {result.finalStats.speed.toLocaleString()}</Typography>
-                            <Typography variant="body2">Def: {result.finalStats.defense.toLocaleString()} | Dex: {result.finalStats.dexterity.toLocaleString()}</Typography>
-                            <Typography variant="h6" color="success.main" sx={{ mt: 1 }}>Total Gain: +{totalGain.toLocaleString()}</Typography>
-                            <Button 
-                              variant="outlined" 
-                              size="small" 
-                              fullWidth 
-                              sx={{ mt: 2 }}
-                              onClick={handleUseAsInitialStats}
-                            >
-                              Use as Initial Stats
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      </Grid>
-                    );
-                  })}
-                </Grid>
-              </Paper>
             </>
           )}
-          
+
           {Object.keys(results).length === 0 && !error && (
             <Paper sx={{ p: 3, textAlign: 'center' }}>
               <Typography variant="body1" color="text.secondary">
-                {mode === 'future' ? 'Results will appear automatically as you configure your comparison states' : 'Results will appear automatically as you adjust the energy amount'}
+                Configure your comparison states above to see results
               </Typography>
             </Paper>
           )}
+        </>
+      )}
+
+      {mode === 'manual' && (
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="h6" gutterBottom>Manual Test Configuration</Typography>
+              
+              <TextField 
+                label="Total Energy" 
+                type="number" 
+                value={manualEnergy ?? ''} 
+                onChange={(e) => setManualEnergy(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))} 
+                fullWidth 
+                margin="dense" 
+                size="small" 
+                inputProps={{ step: 'any', min: 0 }} 
+              />
+              <TextField 
+                label="Happy" 
+                type="number" 
+                value={manualHappy ?? ''} 
+                onChange={(e) => setManualHappy(e.target.value === '' ? 0 : Math.max(0, Math.min(99999, Number(e.target.value))))} 
+                fullWidth 
+                margin="dense" 
+                size="small" 
+                inputProps={{ step: 'any', min: 0, max: 99999 }} 
+              />
+              <FormControlLabel 
+                control={<Switch checked={autoUpgradeGyms} onChange={(e) => setAutoUpgradeGyms(e.target.checked)} />} 
+                label="Auto-upgrade gyms" 
+              />
+              
+              <FormControl fullWidth margin="dense" size="small">
+                <InputLabel>{autoUpgradeGyms ? 'Starting Gym' : 'Current Gym'}</InputLabel>
+                <Select value={currentGymIndex} label={autoUpgradeGyms ? 'Starting Gym' : 'Current Gym'} onChange={(e) => setCurrentGymIndex(Number(e.target.value))}>
+                  {GYMS.map((gym, index) => (
+                    <MenuItem key={gym.name} value={index}>{gym.displayName}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              
+              <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Stat Targets</Typography>
+              <TextField label="Str" type="number" value={manualStatWeights.strength ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
+              <TextField label="Spd" type="number" value={manualStatWeights.speed ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
+              <TextField label="Def" type="number" value={manualStatWeights.defense ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
+              <TextField label="Dex" type="number" value={manualStatWeights.dexterity ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, dexterity: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
+              
+              <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Perk %</Typography>
+              <TextField label="Str %" type="number" value={manualPerkPercs.strength ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
+              <TextField label="Spd %" type="number" value={manualPerkPercs.speed ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, speed: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
+              <TextField label="Def %" type="number" value={manualPerkPercs.defense ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, defense: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
+              <TextField label="Dex %" type="number" value={manualPerkPercs.dexterity ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, dexterity: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
+              
+              <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Company Benefit</Typography>
+              <FormControl fullWidth margin="dense" size="small">
+                <InputLabel>Benefit</InputLabel>
+                <Select value={manualCompanyBenefitKey} label="Benefit" onChange={(e) => setManualCompanyBenefitKey(e.target.value)}>
+                  <MenuItem value="none">None</MenuItem>
+                  <MenuItem value="musicStore">3★ Music Store</MenuItem>
+                  <MenuItem value="candleShop">Candle Shop</MenuItem>
+                  <MenuItem value="fitnessCenter">10★ Fitness Center</MenuItem>
+                </Select>
+              </FormControl>
+              
+              {manualCompanyBenefitKey === 'candleShop' && (
+                <TextField label="Stars" type="number" value={manualCandleShopStars ?? ''} onChange={(e) => setManualCandleShopStars(e.target.value === '' ? 1 : Math.max(1, Math.min(10, Number(e.target.value))))} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 1, max: 10 }} />
+              )}
+            </Paper>
+          </Grid>
+          
+          <Grid size={{ xs: 12, md: 8 }}>
+            {results.manual && (
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="h6" gutterBottom>Training Results</Typography>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 6, md: 3 }}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="subtitle2" color="text.secondary">Strength</Typography>
+                        <Typography variant="h6">{Math.round(results.manual.finalStats.strength).toLocaleString()}</Typography>
+                        <Typography variant="caption" color="success.main">+{Math.round(results.manual.finalStats.strength - initialStats.strength).toLocaleString()}</Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid size={{ xs: 6, md: 3 }}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="subtitle2" color="text.secondary">Speed</Typography>
+                        <Typography variant="h6">{Math.round(results.manual.finalStats.speed).toLocaleString()}</Typography>
+                        <Typography variant="caption" color="success.main">+{Math.round(results.manual.finalStats.speed - initialStats.speed).toLocaleString()}</Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid size={{ xs: 6, md: 3 }}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="subtitle2" color="text.secondary">Defense</Typography>
+                        <Typography variant="h6">{Math.round(results.manual.finalStats.defense).toLocaleString()}</Typography>
+                        <Typography variant="caption" color="success.main">+{Math.round(results.manual.finalStats.defense - initialStats.defense).toLocaleString()}</Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid size={{ xs: 6, md: 3 }}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="subtitle2" color="text.secondary">Dexterity</Typography>
+                        <Typography variant="h6">{Math.round(results.manual.finalStats.dexterity).toLocaleString()}</Typography>
+                        <Typography variant="caption" color="success.main">+{Math.round(results.manual.finalStats.dexterity - initialStats.dexterity).toLocaleString()}</Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+                <Button 
+                  variant="outlined" 
+                  fullWidth 
+                  sx={{ mt: 2 }}
+                  onClick={() => {
+                    setInitialStats({
+                      strength: Math.round(results.manual.finalStats.strength),
+                      speed: Math.round(results.manual.finalStats.speed),
+                      defense: Math.round(results.manual.finalStats.defense),
+                      dexterity: Math.round(results.manual.finalStats.dexterity),
+                    });
+                  }}
+                >
+                  Use as Initial Stats
+                </Button>
+              </Paper>
+            )}
+            
+            {!results.manual && (
+              <Paper sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body1" color="text.secondary">
+                  Configure energy and options to see results
+                </Typography>
+              </Paper>
+            )}
+          </Grid>
         </Grid>
-      </Grid>
+      )}
     </Box>
   );
 }
