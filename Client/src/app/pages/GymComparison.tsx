@@ -282,6 +282,19 @@ const getBaldrsRatio = (primaryStat: StatType): StatWeights => {
   }
 };
 
+// Dex or Def build - for dex and def only
+// If Dex build: 1.25 dex, 0 def, 1 str, 1 spd
+// If Def build: 1.25 def, 0 dex, 1 str, 1 spd
+const getDefensiveBuildRatio = (primaryStat: 'defense' | 'dexterity'): StatWeights => {
+  if (primaryStat === 'defense') {
+    // 1/1/1.25/0 - high defense, no dexterity
+    return { strength: 1, speed: 1, defense: 1.25, dexterity: 0 };
+  } else {
+    // 1/1/0/1.25 - high dexterity, no defense
+    return { strength: 1, speed: 1, defense: 0, dexterity: 1.25 };
+  }
+};
+
 export default function GymComparison() {
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
     try {
@@ -654,7 +667,7 @@ export default function GymComparison() {
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, md: 6 }}>
                 <Alert severity="info" sx={{ mb: 2 }}>
-                  A Limited API Key is sufficient for fetching your stats. Get one from{' '}
+                  Optional: Enter a Limited API Key to auto-fetch your stats, or fill them in manually below. Get one from{' '}
                   <a href="https://www.torn.com/preferences.php#tab=api" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
                     Torn Settings → API Key
                   </a>
@@ -830,6 +843,7 @@ export default function GymComparison() {
                     />
                     <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('defense') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Hank</Button>
                     <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('defense') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Baldr</Button>
+                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getDefensiveBuildRatio('defense') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Def</Button>
                   </Box>
                   
                   <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 1 }}>
@@ -844,6 +858,7 @@ export default function GymComparison() {
                     />
                     <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('dexterity') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Hank</Button>
                     <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('dexterity') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Baldr</Button>
+                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getDefensiveBuildRatio('dexterity') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Dex</Button>
                   </Box>
                 </Grid>
 
