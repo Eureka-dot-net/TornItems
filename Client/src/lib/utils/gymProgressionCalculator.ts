@@ -126,41 +126,60 @@ export function calculateDailyEnergy(
 }
 
 /**
- * Compute stat gain using Vladar's formula
- * Formula: (Modifiers)*(Gym Dots)*(Energy Per Train)*[ (a*ln(Happy+b)+c) * (Stat Total) + d*(Happy+b) + e ]
- * Where:
- * a = 3.480061091 × 10^-7
- * b = 250
- * c = 3.091619094 × 10^-6
- * d = 6.82775184551527 × 10^-5
- * e = -0.0301431777
+ * Compute stat gain using the spreadsheet formula
+ * Formula: (1/200000) * dots * energyPerTrain * perkBonus * 
+ *          (adjustedStat * happyMult + 8*happy^1.05 + lookup2*(1-(happy/99999)^2) + lookup3)
+ * 
+ * This formula uses stat-specific lookup values and accounts for diminishing returns above 50M
  */
 function computeStatGain(
-  _stat: 'strength' | 'speed' | 'defense' | 'dexterity',
+  stat: 'strength' | 'speed' | 'defense' | 'dexterity',
   currentStatValue: number,
   happy: number,
   perkPercForStat: number,
   dots: number,
   energyPerTrain: number
 ): number {
-  // Constants from Vladar's formula
-  const a = 3.480061091e-7;
-  const b = 250;
-  const c = 3.091619094e-6;
-  const d = 6.82775184551527e-5;
-  const e = -0.0301431777;
+  // Constants from the spreadsheet formula
+  const BASE_DIVISOR = 200000;  // Base divisor in the formula
+  const HIGH_STAT_THRESHOLD = 50_000_000;  // Threshold for diminishing returns
+  const DIMINISHING_RETURNS_FACTOR = 8.77635;  // Factor for high stat adjustment
+  const HAPPY_MULTIPLIER_BASE = 0.07;  // Base multiplier for happy bonus
+  const HAPPY_OFFSET = 250;  // Offset for happy calculations
+  const HAPPY_EXPONENT = 1.05;  // Exponent for happy power calculation
+  const HAPPY_POWER_MULTIPLIER = 8;  // Multiplier for happy^1.05 term
+  const HAPPY_MAX_FOR_LOOKUP = 99999;  // Maximum happy value for lookup calculation
   
-  // Perk bonus multiplier (modifiers) - use the specific stat's perk percentage
+  // Lookup table values for each stat (columns 2 and 3 from VLOOKUP table)
+  const lookupTable: Record<string, [number, number]> = {
+    strength: [1600, 1700],
+    speed: [1600, 2000],
+    defense: [2100, -600],
+    dexterity: [1800, 1500],
+  };
+  
+  const [lookup2, lookup3] = lookupTable[stat];
+  
+  // Perk bonus multiplier
   const perkBonus = 1 + perkPercForStat / 100;
-
-  // Vladar's formula
-  // (Modifiers)*(Gym Dots)*(Energy Per Train)*[ (a*ln(Happy+b)+c) * (S) + d*(Happy+b) + e ]
-  // Where S is the current value of the stat being trained (not Total Battle Stats)
-  const multiplier = perkBonus * dots * energyPerTrain;
+  
+  // Adjusted stat for values over 50M (diminishing returns)
+  // Note: Excel's LOG() function is log base 10, not natural log
+  const adjustedStat = currentStatValue < HIGH_STAT_THRESHOLD
+    ? currentStatValue
+    : (currentStatValue - HIGH_STAT_THRESHOLD) / (DIMINISHING_RETURNS_FACTOR * Math.log10(currentStatValue)) + HIGH_STAT_THRESHOLD;
+  
+  // Happy multiplier with proper rounding as in spreadsheet
+  const innerRound = Math.round(Math.log(1 + happy / HAPPY_OFFSET) * 10000) / 10000;
+  const happyMult = Math.round((1 + HAPPY_MULTIPLIER_BASE * innerRound) * 10000) / 10000;
+  
+  // Calculate gain using the spreadsheet formula
+  const multiplier = (1 / BASE_DIVISOR) * dots * energyPerTrain * perkBonus;
   const innerExpression = 
-    (a * Math.log(happy + b) + c) * currentStatValue + 
-    d * (happy + b) + 
-    e;
+    adjustedStat * happyMult + 
+    HAPPY_POWER_MULTIPLIER * Math.pow(happy, HAPPY_EXPONENT) + 
+    lookup2 * (1 - Math.pow(happy / HAPPY_MAX_FOR_LOOKUP, 2)) + 
+    lookup3;
 
   const gain = multiplier * innerExpression;
   return gain;

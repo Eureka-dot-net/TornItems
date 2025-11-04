@@ -40,10 +40,11 @@ export function computeStatGain(
   const [lookup2, lookup3] = lookupTable[stat];
 
   // Adjusted stat for values over 50M (cap adjustment)
+  // Note: Excel's LOG() function is log base 10, not natural log
   const adjustedStat =
     statTotal < 50_000_000
       ? statTotal
-      : (statTotal - 50_000_000) / (8.77635 * Math.log(statTotal)) + 50_000_000;
+      : (statTotal - 50_000_000) / (8.77635 * Math.log10(statTotal)) + 50_000_000;
 
   // Happy multiplier with proper rounding as in spreadsheet
   const innerRound = Math.round(Math.log(1 + happy / 250) * 10000) / 10000;
