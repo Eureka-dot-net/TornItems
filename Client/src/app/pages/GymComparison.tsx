@@ -282,19 +282,6 @@ const getBaldrsRatio = (primaryStat: StatType): StatWeights => {
   }
 };
 
-// Dex or Def build - for dex and def only
-// If Dex build: 1.25 dex, 0 def, 1 str, 1 spd
-// If Def build: 1.25 def, 0 dex, 1 str, 1 spd
-const getBalancedHighRatio = (primaryStat: 'defense' | 'dexterity'): StatWeights => {
-  if (primaryStat === 'defense') {
-    // 1/1/1.25/0 - high defense, no dexterity
-    return { strength: 1, speed: 1, defense: 1.25, dexterity: 0 };
-  } else {
-    // 1/1/0/1.25 - high dexterity, no defense
-    return { strength: 1, speed: 1, defense: 0, dexterity: 1.25 };
-  }
-};
-
 export default function GymComparison() {
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
     try {
@@ -606,23 +593,35 @@ export default function GymComparison() {
   };
   
   const chartData = mode === 'future' && Object.keys(results).length > 0 ? 
-    results[Object.keys(results)[0]].dailySnapshots.map((_,index) => {
-      const dataPoint: Record<string, number> = { 
-        day: results[Object.keys(results)[0]].dailySnapshots[index].day 
-      };
-      
+    (() => {
+      // Add day 0 with initial stats
+      const initialTotal = initialStats.strength + initialStats.speed + initialStats.defense + initialStats.dexterity;
+      const day0: Record<string, number> = { day: 0 };
       for (const state of comparisonStates) {
-        if (results[state.id] && results[state.id].dailySnapshots[index]) {
-          const snapshot = results[state.id].dailySnapshots[index];
-          if (snapshot && snapshot.strength !== undefined) {
-            const totalStats = snapshot.strength + snapshot.speed + snapshot.defense + snapshot.dexterity;
-            dataPoint[state.name] = totalStats;
-          }
-        }
+        day0[state.name] = initialTotal;
       }
       
-      return dataPoint;
-    }) : [];
+      // Map the rest of the days
+      const restOfDays = results[Object.keys(results)[0]].dailySnapshots.map((_,index) => {
+        const dataPoint: Record<string, number> = { 
+          day: results[Object.keys(results)[0]].dailySnapshots[index].day 
+        };
+        
+        for (const state of comparisonStates) {
+          if (results[state.id] && results[state.id].dailySnapshots[index]) {
+            const snapshot = results[state.id].dailySnapshots[index];
+            if (snapshot && snapshot.strength !== undefined) {
+              const totalStats = snapshot.strength + snapshot.speed + snapshot.defense + snapshot.dexterity;
+              dataPoint[state.name] = totalStats;
+            }
+          }
+        }
+        
+        return dataPoint;
+      });
+      
+      return [day0, ...restOfDays];
+    })() : [];
   
   const CHART_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042'];
   const activeState = comparisonStates[activeTabIndex];
@@ -648,27 +647,6 @@ export default function GymComparison() {
 
       {mode === 'future' && (
         <>
-          {/* Comparison Selector at the TOP */}
-          <Paper sx={{ p: 2, mb: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">Select Comparison</Typography>
-              <Button size="small" startIcon={<AddIcon />} onClick={handleAddState} disabled={comparisonStates.length >= 4}>
-                Add Comparison
-              </Button>
-            </Box>
-            
-            <Tabs 
-              value={activeTabIndex} 
-              onChange={(_, newValue) => setActiveTabIndex(newValue)} 
-              variant="scrollable" 
-              scrollButtons="auto"
-            >
-              {comparisonStates.map((state) => (
-                <Tab key={state.id} label={state.name} />
-              ))}
-            </Tabs>
-          </Paper>
-
           {/* Player Stats - HORIZONTAL COMPACT LAYOUT */}
           <Paper sx={{ p: 2, mb: 3 }}>
             <Typography variant="h6" gutterBottom>Player Stats</Typography>
@@ -676,8 +654,9 @@ export default function GymComparison() {
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, md: 6 }}>
                 <Alert severity="info" sx={{ mb: 2 }}>
+                  A Limited API Key is sufficient for fetching your stats. Get one from{' '}
                   <a href="https://www.torn.com/preferences.php#tab=api" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
-                    Get API Key
+                    Torn Settings → API Key
                   </a>
                 </Alert>
                 
@@ -765,6 +744,27 @@ export default function GymComparison() {
             </Grid>
           </Paper>
 
+          {/* Comparison Selector BELOW Player Stats */}
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6">Select Comparison</Typography>
+              <Button size="small" startIcon={<AddIcon />} onClick={handleAddState} disabled={comparisonStates.length >= 4}>
+                Add Comparison
+              </Button>
+            </Box>
+            
+            <Tabs 
+              value={activeTabIndex} 
+              onChange={(_, newValue) => setActiveTabIndex(newValue)} 
+              variant="scrollable" 
+              scrollButtons="auto"
+            >
+              {comparisonStates.map((state) => (
+                <Tab key={state.id} label={state.name} />
+              ))}
+            </Tabs>
+          </Paper>
+
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
           {/* Comparison Configuration - COLUMNS LAYOUT */}
@@ -789,51 +789,61 @@ export default function GymComparison() {
                 {/* Stat Weights Column */}
                 <Grid size={{ xs: 12, md: 3 }}>
                   <Typography variant="subtitle2" gutterBottom>Stat Target Ratios</Typography>
-                  <TextField 
-                    label="Str" 
-                    type="number" 
-                    value={activeState.statWeights.strength ?? ''} 
-                    onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) }})} 
-                    fullWidth 
-                    margin="dense" 
-                    size="small" 
-                    inputProps={{ step: 'any', min: 0 }} 
-                  />
-                  <TextField 
-                    label="Spd" 
-                    type="number" 
-                    value={activeState.statWeights.speed ?? ''} 
-                    onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) }})} 
-                    fullWidth 
-                    margin="dense" 
-                    size="small" 
-                    inputProps={{ step: 'any', min: 0 }} 
-                  />
-                  <TextField 
-                    label="Def" 
-                    type="number" 
-                    value={activeState.statWeights.defense ?? ''} 
-                    onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) }})} 
-                    fullWidth 
-                    margin="dense" 
-                    size="small" 
-                    inputProps={{ step: 'any', min: 0 }} 
-                  />
-                  <TextField 
-                    label="Dex" 
-                    type="number" 
-                    value={activeState.statWeights.dexterity ?? ''} 
-                    onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, dexterity: e.target.value === '' ? 0 : Number(e.target.value) }})} 
-                    fullWidth 
-                    margin="dense" 
-                    size="small" 
-                    inputProps={{ step: 'any', min: 0 }} 
-                  />
-                  <Box sx={{ display: 'flex', gap: 0.5, mt: 1, flexWrap: 'wrap' }}>
-                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('strength') })} sx={{ fontSize: '0.7rem' }}>Hank</Button>
-                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('strength') })} sx={{ fontSize: '0.7rem' }}>Baldr</Button>
-                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBalancedHighRatio('defense') })} sx={{ fontSize: '0.7rem' }}>Def</Button>
-                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBalancedHighRatio('dexterity') })} sx={{ fontSize: '0.7rem' }}>Dex</Button>
+                  
+                  <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 1 }}>
+                    <TextField 
+                      label="Str" 
+                      type="number" 
+                      value={activeState.statWeights.strength ?? ''} 
+                      onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) }})} 
+                      size="small" 
+                      inputProps={{ step: 'any', min: 0 }}
+                      sx={{ width: 80 }}
+                    />
+                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('strength') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Hank</Button>
+                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('strength') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Baldr</Button>
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 1 }}>
+                    <TextField 
+                      label="Spd" 
+                      type="number" 
+                      value={activeState.statWeights.speed ?? ''} 
+                      onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) }})} 
+                      size="small" 
+                      inputProps={{ step: 'any', min: 0 }}
+                      sx={{ width: 80 }}
+                    />
+                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('speed') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Hank</Button>
+                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('speed') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Baldr</Button>
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 1 }}>
+                    <TextField 
+                      label="Def" 
+                      type="number" 
+                      value={activeState.statWeights.defense ?? ''} 
+                      onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) }})} 
+                      size="small" 
+                      inputProps={{ step: 'any', min: 0 }}
+                      sx={{ width: 80 }}
+                    />
+                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('defense') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Hank</Button>
+                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('defense') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Baldr</Button>
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 1 }}>
+                    <TextField 
+                      label="Dex" 
+                      type="number" 
+                      value={activeState.statWeights.dexterity ?? ''} 
+                      onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, dexterity: e.target.value === '' ? 0 : Number(e.target.value) }})} 
+                      size="small" 
+                      inputProps={{ step: 'any', min: 0 }}
+                      sx={{ width: 80 }}
+                    />
+                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('dexterity') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Hank</Button>
+                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('dexterity') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Baldr</Button>
                   </Box>
                 </Grid>
 
