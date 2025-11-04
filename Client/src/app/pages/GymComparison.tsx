@@ -489,6 +489,15 @@ export default function GymComparison() {
             {mode === 'future' && (
               <>
                 <TextField label="Simulation Duration (months)" type="number" value={months || ''} onChange={(e) => setMonths(e.target.value === '' ? 1 : Math.max(1, Math.min(36, Number(e.target.value))))} fullWidth margin="dense" size="small" helperText="1-36 months" inputProps={{ step: 'any' }} />
+                
+                <FormControl fullWidth margin="dense" size="small">
+                  <InputLabel>Starting Gym</InputLabel>
+                  <Select value={currentGymIndex} label="Starting Gym" onChange={(e) => setCurrentGymIndex(Number(e.target.value))}>
+                    {GYMS.map((gym, index) => (
+                      <MenuItem key={gym.name} value={index}>{gym.displayName}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </>
             )}
             
