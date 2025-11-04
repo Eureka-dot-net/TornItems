@@ -111,6 +111,20 @@ interface UserLogResponse {
   };
 }
 
+// Response format for crimes API
+interface CrimesResponse {
+  crimes?: {
+    miscellaneous?: {
+      skimmers?: {
+        active: number;
+        most_lucrative: number;
+        oldest_recovered: number;
+        lost: number;
+      };
+    };
+  };
+}
+
 export interface MinMaxStatus {
   userId: number;
   cityItemsBought: {
@@ -152,6 +166,11 @@ export interface MinMaxStatus {
     lame: { spun: boolean };
     mediocre: { spun: boolean };
     awesomeness: { spun: boolean };
+  };
+  skimmers?: {
+    active: number;
+    target: number;
+    completed: boolean;
   };
 }
 
@@ -280,7 +299,7 @@ export async function fetchMinMaxStatus(
       completed: xanTakenToday >= 3
     },
     energyRefill: {
-      current: refillsToday,
+      current: Math.min(refillsToday, 1), // Limit display to max of 1
       target: 1,
       completed: refillsToday >= 1
     }
@@ -405,6 +424,7 @@ export async function fetchMinMaxStatus(
       needsRefreshWheel(cachedData.wheels.lame) || 
       needsRefreshWheel(cachedData.wheels.mediocre) || 
       needsRefreshWheel(cachedData.wheels.awesomeness));
+    const fetchSkimmers = !cachedData || !cachedData.skimmers || needsRefreshSimple(cachedData.skimmers);
 
     // Initialize activity data from cache if available
     const activityData: {
@@ -418,6 +438,7 @@ export async function fetchMinMaxStatus(
         mediocre: { spun: boolean };
         awesomeness: { spun: boolean };
       };
+      skimmers?: { active: number; target: number; completed: boolean };
     } = {
       education: cachedData?.education && !fetchEducation ? { active: cachedData.education.active, until: cachedData.education.until } : undefined,
       investment: cachedData?.investment && !fetchInvestment ? { active: cachedData.investment.active, until: cachedData.investment.until } : undefined,
@@ -429,11 +450,12 @@ export async function fetchMinMaxStatus(
         lame: { spun: cachedData.wheels.lame.spun },
         mediocre: { spun: cachedData.wheels.mediocre.spun },
         awesomeness: { spun: cachedData.wheels.awesomeness.spun }
-      } : undefined
+      } : undefined,
+      skimmers: cachedData?.skimmers && !fetchSkimmers ? { active: cachedData.skimmers.active, target: 20, completed: cachedData.skimmers.active >= 20 } : undefined
     };
 
     // Fetch only the activities that need refreshing
-    if (fetchEducation || fetchInvestment || fetchVirusCoding || fetchFactionOC || fetchCasinoTickets || fetchWheels) {
+    if (fetchEducation || fetchInvestment || fetchVirusCoding || fetchFactionOC || fetchCasinoTickets || fetchWheels || fetchSkimmers) {
       try {
         const apiCalls: Promise<any>[] = [];
         
@@ -496,6 +518,14 @@ export async function fetchMinMaxStatus(
             axios.get<UserLogResponse>(`https://api.torn.com/v2/user/log?log=&cat=192&limit=75&from=${startOfDayUTC}&key=${apiKey}`)
               .then(response => ({ type: 'wheels', data: response.data }))
               .catch(() => ({ type: 'wheels', data: {} as UserLogResponse }))
+          );
+        }
+
+        if (fetchSkimmers) {
+          apiCalls.push(
+            axios.get<CrimesResponse>(`https://api.torn.com/v2/user/crimes?key=${apiKey}`)
+              .then(response => ({ type: 'skimmers', data: response.data }))
+              .catch(() => ({ type: 'skimmers', data: {} as CrimesResponse }))
           );
         }
 
@@ -645,6 +675,19 @@ export async function fetchMinMaxStatus(
                 awesomeness: { spun: wheelsSpun.awesomeness, lastFetched: currentTime }
               };
             }
+          } else if (response.type === 'skimmers') {
+            await logApiCall('user/crimes', 'minmax-helper');
+            const crimesResponse = response.data as CrimesResponse;
+            
+            // Get active skimmers count
+            const activeSkimmers = crimesResponse.crimes?.miscellaneous?.skimmers?.active || 0;
+            
+            activityData.skimmers = { active: activeSkimmers, target: 20, completed: activeSkimmers >= 20 };
+            
+            // Update cache for skimmers
+            if (cachedData) {
+              cachedData.skimmers = { active: activeSkimmers, lastFetched: currentTime };
+            }
           }
         }
 
@@ -668,6 +711,10 @@ export async function fetchMinMaxStatus(
               lame: { spun: activityData.wheels.lame.spun, lastFetched: currentTime },
               mediocre: { spun: activityData.wheels.mediocre.spun, lastFetched: currentTime },
               awesomeness: { spun: activityData.wheels.awesomeness.spun, lastFetched: currentTime }
+            } : null,
+            skimmers: activityData.skimmers ? {
+              active: activityData.skimmers.active,
+              lastFetched: currentTime
             } : null
           });
           await newCache.save();
@@ -699,6 +746,9 @@ export async function fetchMinMaxStatus(
     }
     if (activityData.wheels) {
       result.wheels = activityData.wheels;
+    }
+    if (activityData.skimmers) {
+      result.skimmers = activityData.skimmers;
     }
   }
 

@@ -55,6 +55,12 @@ export const data = new SlashCommandBuilder()
       .setName('notifywheelawesomeness')
       .setDescription('Notify if Wheel of Awesomeness not spun (default: true)')
       .setRequired(false)
+  )
+  .addBooleanOption(option =>
+    option
+      .setName('notifyskimmers')
+      .setDescription('Notify if not having 20 skimmers active (default: true)')
+      .setRequired(false)
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -66,6 +72,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const notifyWheelLame = interaction.options.getBoolean('notifywheellame');
   const notifyWheelMediocre = interaction.options.getBoolean('notifywheelmediocre');
   const notifyWheelAwesomeness = interaction.options.getBoolean('notifywheelawesomeness');
+  const notifySkimmers = interaction.options.getBoolean('notifyskimmers');
   const discordUserId = interaction.user.id;
   const channelId = interaction.channelId;
 
@@ -92,6 +99,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const effectiveNotifyWheelLame = notifyWheelLame !== null ? notifyWheelLame : false;
     const effectiveNotifyWheelMediocre = notifyWheelMediocre !== null ? notifyWheelMediocre : false;
     const effectiveNotifyWheelAwesomeness = notifyWheelAwesomeness !== null ? notifyWheelAwesomeness : false;
+    const effectiveNotifySkimmers = notifySkimmers !== null ? notifySkimmers : false;
 
     if (subscription) {
       // Update existing subscription
@@ -104,6 +112,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       subscription.notifyWheelLame = effectiveNotifyWheelLame;
       subscription.notifyWheelMediocre = effectiveNotifyWheelMediocre;
       subscription.notifyWheelAwesomeness = effectiveNotifyWheelAwesomeness;
+      subscription.notifySkimmers = effectiveNotifySkimmers;
       subscription.enabled = true;
       subscription.lastNotificationSent = null; // Reset to ensure notification is sent
       await subscription.save();
@@ -118,7 +127,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         notifyOC: effectiveNotifyOC,
         notifyWheelLame: effectiveNotifyWheelLame,
         notifyWheelMediocre: effectiveNotifyWheelMediocre,
-        notifyWheelAwesomeness: effectiveNotifyWheelAwesomeness
+        notifyWheelAwesomeness: effectiveNotifyWheelAwesomeness,
+        notifySkimmers: effectiveNotifySkimmers
       });
     } else {
       // Create new subscription
@@ -133,6 +143,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         notifyWheelLame: effectiveNotifyWheelLame,
         notifyWheelMediocre: effectiveNotifyWheelMediocre,
         notifyWheelAwesomeness: effectiveNotifyWheelAwesomeness,
+        notifySkimmers: effectiveNotifySkimmers,
         enabled: true,
         lastNotificationSent: null
       });
@@ -148,7 +159,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         notifyOC: effectiveNotifyOC,
         notifyWheelLame: effectiveNotifyWheelLame,
         notifyWheelMediocre: effectiveNotifyWheelMediocre,
-        notifyWheelAwesomeness: effectiveNotifyWheelAwesomeness
+        notifyWheelAwesomeness: effectiveNotifyWheelAwesomeness,
+        notifySkimmers: effectiveNotifySkimmers
       });
     }
 
@@ -180,6 +192,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     if (effectiveNotifyWheelLame) notificationSettings.push('Wheel of Lame');
     if (effectiveNotifyWheelMediocre) notificationSettings.push('Wheel of Mediocrity');
     if (effectiveNotifyWheelAwesomeness) notificationSettings.push('Wheel of Awesomeness');
+    if (effectiveNotifySkimmers) notificationSettings.push('Skimmers');
 
     const embed = new EmbedBuilder()
       .setTitle('✅ Minmax Subscription Active')

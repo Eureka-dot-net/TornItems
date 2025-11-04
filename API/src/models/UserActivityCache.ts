@@ -32,6 +32,10 @@ export interface IUserActivityCache extends Document {
     mediocre: { spun: boolean; lastFetched: Date | null };
     awesomeness: { spun: boolean; lastFetched: Date | null };
   } | null;
+  skimmers: {
+    active: number;
+    lastFetched: Date | null;
+  } | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -76,6 +80,10 @@ const UserActivityCacheSchema = new Schema<IUserActivityCache>({
       spun: { type: Boolean, default: false },
       lastFetched: { type: Date, default: null }
     }
+  },
+  skimmers: {
+    active: { type: Number, default: 0 },
+    lastFetched: { type: Date, default: null }
   }
 }, {
   timestamps: true
