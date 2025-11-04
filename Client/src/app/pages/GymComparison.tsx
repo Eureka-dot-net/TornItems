@@ -19,6 +19,12 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
@@ -1105,37 +1111,108 @@ export default function GymComparison() {
 
                 <Grid size={{ xs: 12, lg: 4 }}>
                   <Paper sx={{ p: 2, height: '100%' }}>
-                    <Typography variant="h6" gutterBottom>Final Stats</Typography>
-                    <Grid container spacing={1}>
-                      {comparisonStates.map((state, index) => {
-                        const result = results[state.id];
-                        if (!result) return null;
-                        
-                        const totalGain = (result.finalStats.strength - initialStats.strength) + 
-                                        (result.finalStats.speed - initialStats.speed) + 
-                                        (result.finalStats.defense - initialStats.defense) + 
-                                        (result.finalStats.dexterity - initialStats.dexterity);
-                        
-                        return (
-                          <Grid size={{ xs: 12 }} key={state.id}>
-                            <Card sx={{ borderLeft: 4, borderColor: CHART_COLORS[index % CHART_COLORS.length] }}>
-                              <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                                <Typography variant="subtitle2" gutterBottom>{state.name}</Typography>
-                                <Typography variant="caption" display="block" sx={{ fontSize: '0.7rem' }}>
-                                  Str: {result.finalStats.strength.toLocaleString()} | Spd: {result.finalStats.speed.toLocaleString()}
-                                </Typography>
-                                <Typography variant="caption" display="block" sx={{ fontSize: '0.7rem' }}>
-                                  Def: {result.finalStats.defense.toLocaleString()} | Dex: {result.finalStats.dexterity.toLocaleString()}
-                                </Typography>
-                                <Typography variant="caption" color="success.main" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
-                                  Total: +{totalGain.toLocaleString()}
-                                </Typography>
-                              </CardContent>
-                            </Card>
-                          </Grid>
-                        );
-                      })}
-                    </Grid>
+                    <Typography variant="h6" gutterBottom>Final Stats Comparison</Typography>
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Stat</TableCell>
+                            {comparisonStates.map((state, index) => (
+                              <TableCell 
+                                key={state.id} 
+                                align="right" 
+                                sx={{ 
+                                  fontWeight: 'bold',
+                                  color: CHART_COLORS[index % CHART_COLORS.length]
+                                }}
+                              >
+                                {state.name}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          <TableRow>
+                            <TableCell>Strength</TableCell>
+                            {comparisonStates.map((state) => {
+                              const result = results[state.id];
+                              if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
+                              return (
+                                <TableCell key={state.id} align="right">
+                                  {result.finalStats.strength.toLocaleString()}
+                                </TableCell>
+                              );
+                            })}
+                          </TableRow>
+                          <TableRow>
+                            <TableCell>Speed</TableCell>
+                            {comparisonStates.map((state) => {
+                              const result = results[state.id];
+                              if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
+                              return (
+                                <TableCell key={state.id} align="right">
+                                  {result.finalStats.speed.toLocaleString()}
+                                </TableCell>
+                              );
+                            })}
+                          </TableRow>
+                          <TableRow>
+                            <TableCell>Defense</TableCell>
+                            {comparisonStates.map((state) => {
+                              const result = results[state.id];
+                              if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
+                              return (
+                                <TableCell key={state.id} align="right">
+                                  {result.finalStats.defense.toLocaleString()}
+                                </TableCell>
+                              );
+                            })}
+                          </TableRow>
+                          <TableRow>
+                            <TableCell>Dexterity</TableCell>
+                            {comparisonStates.map((state) => {
+                              const result = results[state.id];
+                              if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
+                              return (
+                                <TableCell key={state.id} align="right">
+                                  {result.finalStats.dexterity.toLocaleString()}
+                                </TableCell>
+                              );
+                            })}
+                          </TableRow>
+                          <TableRow sx={{ borderTop: 2, borderColor: 'divider' }}>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Total</TableCell>
+                            {comparisonStates.map((state) => {
+                              const result = results[state.id];
+                              if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
+                              const total = result.finalStats.strength + result.finalStats.speed + 
+                                          result.finalStats.defense + result.finalStats.dexterity;
+                              return (
+                                <TableCell key={state.id} align="right" sx={{ fontWeight: 'bold' }}>
+                                  {total.toLocaleString()}
+                                </TableCell>
+                              );
+                            })}
+                          </TableRow>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 'bold', color: 'success.main' }}>Difference</TableCell>
+                            {comparisonStates.map((state) => {
+                              const result = results[state.id];
+                              if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
+                              const totalGain = (result.finalStats.strength - initialStats.strength) + 
+                                              (result.finalStats.speed - initialStats.speed) + 
+                                              (result.finalStats.defense - initialStats.defense) + 
+                                              (result.finalStats.dexterity - initialStats.dexterity);
+                              return (
+                                <TableCell key={state.id} align="right" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                                  +{totalGain.toLocaleString()}
+                                </TableCell>
+                              );
+                            })}
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
                   </Paper>
                 </Grid>
               </Grid>
