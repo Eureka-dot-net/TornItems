@@ -146,6 +146,14 @@ export default function GymComparison() {
   const [manualEnergy, setManualEnergy] = useState<number>(() => loadSavedValue('manualEnergy', 1000));
   const [autoUpgradeGyms, setAutoUpgradeGyms] = useState<boolean>(() => loadSavedValue('autoUpgradeGyms', true));
   const [manualHappy, setManualHappy] = useState<number>(() => loadSavedValue('manualHappy', 5000));
+  const [manualStatWeights, setManualStatWeights] = useState(() => 
+    loadSavedValue('manualStatWeights', { strength: 1, speed: 1, defense: 1, dexterity: 1 })
+  );
+  const [manualCompanyBenefitKey, setManualCompanyBenefitKey] = useState<string>(() => loadSavedValue('manualCompanyBenefitKey', 'none'));
+  const [manualCandleShopStars, setManualCandleShopStars] = useState<number>(() => loadSavedValue('manualCandleShopStars', 10));
+  const [manualPerkPercs, setManualPerkPercs] = useState(() => 
+    loadSavedValue('manualPerkPercs', { strength: 0, speed: 0, defense: 0, dexterity: 0 })
+  );
   
   // Shared player stats
   const [apiKey, setApiKey] = useState<string>(() => loadSavedValue('apiKey', ''));
@@ -194,6 +202,9 @@ export default function GymComparison() {
       });
       setCurrentGymIndex(Math.max(0, gymStatsData.activeGym - 1));
       
+      // Update manual mode perk percs
+      setManualPerkPercs(gymStatsData.perkPercs);
+      
       setComparisonStates((prev) => prev.map((state) => ({
         ...state,
         perkPercs: gymStatsData.perkPercs,
@@ -212,6 +223,10 @@ export default function GymComparison() {
   useEffect(() => { localStorage.setItem('gymComparison_manualEnergy', JSON.stringify(manualEnergy)); }, [manualEnergy]);
   useEffect(() => { localStorage.setItem('gymComparison_autoUpgradeGyms', JSON.stringify(autoUpgradeGyms)); }, [autoUpgradeGyms]);
   useEffect(() => { localStorage.setItem('gymComparison_manualHappy', JSON.stringify(manualHappy)); }, [manualHappy]);
+  useEffect(() => { localStorage.setItem('gymComparison_manualStatWeights', JSON.stringify(manualStatWeights)); }, [manualStatWeights]);
+  useEffect(() => { localStorage.setItem('gymComparison_manualCompanyBenefitKey', JSON.stringify(manualCompanyBenefitKey)); }, [manualCompanyBenefitKey]);
+  useEffect(() => { localStorage.setItem('gymComparison_manualCandleShopStars', JSON.stringify(manualCandleShopStars)); }, [manualCandleShopStars]);
+  useEffect(() => { localStorage.setItem('gymComparison_manualPerkPercs', JSON.stringify(manualPerkPercs)); }, [manualPerkPercs]);
   useEffect(() => { localStorage.setItem('gymComparison_apiKey', JSON.stringify(apiKey)); }, [apiKey]);
   useEffect(() => { localStorage.setItem('gymComparison_initialStats', JSON.stringify(initialStats)); }, [initialStats]);
   useEffect(() => { localStorage.setItem('gymComparison_currentGymIndex', JSON.stringify(currentGymIndex)); }, [currentGymIndex]);
@@ -229,7 +244,7 @@ export default function GymComparison() {
     if (mode === 'manual') {
       handleSimulate();
     }
-  }, [manualEnergy, autoUpgradeGyms, manualHappy, initialStats, currentGymIndex]);
+  }, [manualEnergy, autoUpgradeGyms, manualHappy, initialStats, currentGymIndex, manualStatWeights, manualCompanyBenefitKey, manualCandleShopStars, manualPerkPercs]);
   
   const handleFetchStats = async () => {
     if (!apiKey.trim()) {
@@ -293,18 +308,20 @@ export default function GymComparison() {
     
     try {
       if (mode === 'manual') {
+        const benefit = getCompanyBenefit(manualCompanyBenefitKey, manualCandleShopStars);
         const inputs: SimulationInputs = {
-          statWeights: { strength: 1, speed: 1, defense: 1, dexterity: 1 },
+          statWeights: manualStatWeights,
           months: 0,
           xanaxPerDay: 0,
           hasPointsRefill: false,
           hoursPlayedPerDay: 0,
-          companyBenefit: getCompanyBenefit('none', 0),
+          companyBenefit: benefit,
           apiKey,
           initialStats,
           happy: manualHappy,
-          perkPercs: { strength: 0, speed: 0, defense: 0, dexterity: 0 },
-          currentGymIndex: autoUpgradeGyms ? -1 : currentGymIndex,
+          perkPercs: manualPerkPercs,
+          currentGymIndex: currentGymIndex,
+          lockGym: !autoUpgradeGyms,
           manualEnergy,
         };
         
@@ -327,7 +344,8 @@ export default function GymComparison() {
             initialStats,
             happy: state.happy,
             perkPercs: state.perkPercs,
-            currentGymIndex: -1, // Always use auto-upgrade in future mode to allow unlock speed multiplier to work
+            currentGymIndex: currentGymIndex, // Start from current/selected gym and auto-upgrade
+            lockGym: false, // Always use auto-upgrade in future mode to allow unlock speed multiplier to work
             happyJump: state.happyJumpEnabled ? {
               enabled: true,
               frequencyDays: state.happyJumpFrequency,
@@ -479,6 +497,46 @@ export default function GymComparison() {
                 <TextField label="Total Energy" type="number" value={manualEnergy || ''} onChange={(e) => setManualEnergy(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))} fullWidth margin="dense" size="small" helperText="Energy to spend on training" inputProps={{ step: 'any' }} />
                 <TextField label="Happy" type="number" value={manualHappy || ''} onChange={(e) => setManualHappy(e.target.value === '' ? 0 : Math.max(0, Math.min(99999, Number(e.target.value))))} fullWidth margin="dense" size="small" helperText="Maximum: 99,999" inputProps={{ step: 'any' }} />
                 <FormControlLabel control={<Switch checked={autoUpgradeGyms} onChange={(e) => setAutoUpgradeGyms(e.target.checked)} />} label="Auto-upgrade gyms" sx={{ mt: 1 }} />
+                
+                <FormControl fullWidth margin="dense" size="small">
+                  <InputLabel>{autoUpgradeGyms ? 'Starting Gym' : 'Current Gym'}</InputLabel>
+                  <Select value={currentGymIndex} label={autoUpgradeGyms ? 'Starting Gym' : 'Current Gym'} onChange={(e) => setCurrentGymIndex(Number(e.target.value))}>
+                    {GYMS.map((gym, index) => (
+                      <MenuItem key={gym.name} value={index}>{gym.displayName}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Stat Target Ratios (Desired Build)</Typography>
+                <TextField label="Strength Target" type="number" value={manualStatWeights.strength || ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} helperText="Set to 0 to not train this stat" />
+                <TextField label="Speed Target" type="number" value={manualStatWeights.speed || ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} helperText="Set to 0 to not train this stat" />
+                <TextField label="Defense Target" type="number" value={manualStatWeights.defense || ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} helperText="Set to 0 to not train this stat" />
+                <TextField label="Dexterity Target" type="number" value={manualStatWeights.dexterity || ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, dexterity: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} helperText="Set to 0 to not train this stat" />
+                
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  These values represent your desired stat ratios (e.g., 1:1:1.25:0 means equal strength/speed, 25% more dex, no defense). Each train goes to the stat furthest from its target ratio.
+                </Alert>
+                
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Perk % Bonus</Typography>
+                <TextField label="Strength Perk %" type="number" value={manualPerkPercs.strength || ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
+                <TextField label="Speed Perk %" type="number" value={manualPerkPercs.speed || ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, speed: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
+                <TextField label="Defense Perk %" type="number" value={manualPerkPercs.defense || ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, defense: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
+                <TextField label="Dexterity Perk %" type="number" value={manualPerkPercs.dexterity || ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, dexterity: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} />
+                
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Company Benefit</Typography>
+                <FormControl fullWidth margin="dense" size="small">
+                  <InputLabel>Benefit Type</InputLabel>
+                  <Select value={manualCompanyBenefitKey} label="Benefit Type" onChange={(e) => setManualCompanyBenefitKey(e.target.value)}>
+                    <MenuItem value="none">No Benefits</MenuItem>
+                    <MenuItem value="musicStore">3★ Music Store</MenuItem>
+                    <MenuItem value="candleShop">Candle Shop</MenuItem>
+                    <MenuItem value="fitnessCenter">10★ Fitness Center</MenuItem>
+                  </Select>
+                </FormControl>
+                
+                {manualCompanyBenefitKey === 'candleShop' && (
+                  <TextField label="Candle Shop Stars" type="number" value={manualCandleShopStars || ''} onChange={(e) => setManualCandleShopStars(e.target.value === '' ? 1 : Math.max(1, Math.min(10, Number(e.target.value))))} fullWidth margin="dense" size="small" helperText="1-10 stars, 5 energy per star" inputProps={{ step: 'any' }} />
+                )}
               </>
             )}
             
