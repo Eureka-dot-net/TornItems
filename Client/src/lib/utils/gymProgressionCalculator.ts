@@ -164,9 +164,10 @@ function computeStatGain(
   const perkBonus = 1 + perkPercForStat / 100;
   
   // Adjusted stat for values over 50M (diminishing returns)
+  // Note: Excel's LOG() function is log base 10, not natural log
   const adjustedStat = currentStatValue < HIGH_STAT_THRESHOLD
     ? currentStatValue
-    : (currentStatValue - HIGH_STAT_THRESHOLD) / (DIMINISHING_RETURNS_FACTOR * Math.log(currentStatValue)) + HIGH_STAT_THRESHOLD;
+    : (currentStatValue - HIGH_STAT_THRESHOLD) / (DIMINISHING_RETURNS_FACTOR * Math.log10(currentStatValue)) + HIGH_STAT_THRESHOLD;
   
   // Happy multiplier with proper rounding as in spreadsheet
   const innerRound = Math.round(Math.log(1 + happy / HAPPY_OFFSET) * 10000) / 10000;
