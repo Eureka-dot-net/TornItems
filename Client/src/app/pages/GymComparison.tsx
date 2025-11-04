@@ -281,15 +281,16 @@ const getBaldrsRatio = (primaryStat: StatType): StatWeights => {
   }
 };
 
-// Balanced High build - for dex and def only (what users call "whore" build)
-// This is someone who does weighing like 1/1/0/1.25 or 1/1/1.25/1
+// Dex or Def build - for dex and def only
+// If Dex build: 1.25 dex, 0 def, 1 str, 1 spd
+// If Def build: 1.25 def, 0 dex, 1 str, 1 spd
 const getBalancedHighRatio = (primaryStat: 'defense' | 'dexterity'): StatWeights => {
   if (primaryStat === 'defense') {
-    // 1/1/1.25/1 - high defense
-    return { strength: 1, speed: 1, defense: 1.25, dexterity: 1 };
+    // 1/1/1.25/0 - high defense, no dexterity
+    return { strength: 1, speed: 1, defense: 1.25, dexterity: 0 };
   } else {
-    // 1/1/1/1.25 - high dexterity
-    return { strength: 1, speed: 1, defense: 1, dexterity: 1.25 };
+    // 1/1/0/1.25 - high dexterity, no defense
+    return { strength: 1, speed: 1, defense: 0, dexterity: 1.25 };
   }
 };
 
@@ -325,7 +326,7 @@ export default function GymComparison() {
     loadSavedValue('initialStats', { strength: 1000, speed: 1000, defense: 1000, dexterity: 1000 })
   );
   const [currentGymIndex, setCurrentGymIndex] = useState<number>(() => loadSavedValue('currentGymIndex', 0));
-  const [months, setMonths] = useState<number>(() => loadSavedValue('months', 6));
+  const [months, setMonths] = useState<number>(() => loadSavedValue('months', 12));
   
   // Comparison states
   const [comparisonStates, setComparisonStates] = useState<ComparisonState[]>(() => 
@@ -334,10 +335,10 @@ export default function GymComparison() {
         id: '1',
         name: 'State 1',
         statWeights: { strength: 1, speed: 1, defense: 1, dexterity: 1 },
-        hoursPlayedPerDay: 8,
-        xanaxPerDay: 0,
-        hasPointsRefill: false,
-        perkPercs: { strength: 0, speed: 0, defense: 0, dexterity: 0 },
+        hoursPlayedPerDay: 16,
+        xanaxPerDay: 3,
+        hasPointsRefill: true,
+        perkPercs: { strength: 2, speed: 2, defense: 2, dexterity: 2 },
         happyJumpEnabled: false,
         happyJumpFrequency: 7,
         happyJumpDvds: 1,
@@ -349,7 +350,7 @@ export default function GymComparison() {
         diabetesDayLogoClick: false,
         companyBenefitKey: 'none',
         candleShopStars: 10,
-        happy: 5000,
+        happy: 5025,
         daysSkippedPerMonth: 0,
       },
     ])
@@ -714,7 +715,7 @@ export default function GymComparison() {
                 
                 <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Quick Presets</Typography>
                 <Alert severity="info" sx={{ mb: 1 }}>
-                  Choose a formula for each stat to quickly set up your build. Hank's Ratio maximizes gym efficiency with one very low stat. Baldr's Ratio is more balanced. Balanced High is a slight boost to one stat (Dex/Def only).
+                  Choose a formula for each stat to quickly set up your build. Hank's Ratio maximizes gym efficiency with one very low stat. Baldr's Ratio is more balanced. Dex/Def Build focuses on one defense stat with 25% boost (Dex or Def only).
                 </Alert>
                 
                 <Box sx={{ mb: 2 }}>
@@ -738,7 +739,7 @@ export default function GymComparison() {
                   <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
                     <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('defense'))}>Hank's</Button>
                     <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('defense'))}>Baldr's</Button>
-                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBalancedHighRatio('defense'))}>Balanced High</Button>
+                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBalancedHighRatio('defense'))}>Def Build</Button>
                   </Box>
                 </Box>
                 
@@ -747,7 +748,7 @@ export default function GymComparison() {
                   <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
                     <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('dexterity'))}>Hank's</Button>
                     <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('dexterity'))}>Baldr's</Button>
-                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBalancedHighRatio('dexterity'))}>Balanced High</Button>
+                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBalancedHighRatio('dexterity'))}>Dex Build</Button>
                   </Box>
                 </Box>
                 
@@ -804,7 +805,7 @@ export default function GymComparison() {
                     
                     <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Quick Presets</Typography>
                     <Alert severity="info" sx={{ mb: 1 }}>
-                      Choose a formula for each stat to quickly set up your build. Hank's Ratio maximizes gym efficiency with one very low stat. Baldr's Ratio is more balanced. Balanced High is a slight boost to one stat (Dex/Def only).
+                      Choose a formula for each stat to quickly set up your build. Hank's Ratio maximizes gym efficiency with one very low stat. Baldr's Ratio is more balanced. Dex/Def Build focuses on one defense stat with 25% boost (Dex or Def only).
                     </Alert>
                     
                     <Box sx={{ mb: 2 }}>
@@ -828,7 +829,7 @@ export default function GymComparison() {
                       <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
                         <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('defense') })}>Hank's</Button>
                         <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('defense') })}>Baldr's</Button>
-                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBalancedHighRatio('defense') })}>Balanced High</Button>
+                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBalancedHighRatio('defense') })}>Def Build</Button>
                       </Box>
                     </Box>
                     
@@ -837,7 +838,7 @@ export default function GymComparison() {
                       <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
                         <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('dexterity') })}>Hank's</Button>
                         <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('dexterity') })}>Baldr's</Button>
-                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBalancedHighRatio('dexterity') })}>Balanced High</Button>
+                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBalancedHighRatio('dexterity') })}>Dex Build</Button>
                       </Box>
                     </Box>
                     
