@@ -54,6 +54,7 @@ export interface SimulationInputs {
   currentGymIndex: number; // Starting gym index (0-based), or gym to stay locked to if lockGym is true
   lockGym?: boolean; // Optional: if true, stay locked to currentGymIndex. If false/undefined, auto-upgrade from currentGymIndex
   manualEnergy?: number; // Optional: if specified, use this instead of calculating daily energy
+  maxEnergy?: number; // Optional: 150 (default) or 100. Affects energy regeneration rate and max capacity
   happyJump?: {
     enabled: boolean;
     frequencyDays: number; // e.g., 7 for weekly, 14 for every 2 weeks
@@ -122,10 +123,13 @@ export function calculateDailyEnergy(
   hoursPlayedPerDay: number,
   xanaxPerDay: number,
   hasPointsRefill: boolean,
-  bonusEnergyPerDay: number = 0
+  bonusEnergyPerDay: number = 0,
+  maxEnergy: number = 150 // 150 or 100
 ): number {
-  // Energy regenerates 5 every 10 minutes = 30 per hour
-  // Maximum energy bar is 150 (fills in 5 hours)
+  // Energy regeneration rate depends on max energy
+  // 150 max: 5 energy every 10 minutes = 30 per hour, fills in 5 hours
+  // 100 max: 5 energy every 15 minutes = 20 per hour, fills in 5 hours
+  const energyPerHour = maxEnergy === 100 ? 20 : 30;
   
   // Clamp hours to 0-24
   const hours = Math.max(0, Math.min(24, hoursPlayedPerDay));
@@ -134,14 +138,14 @@ export function calculateDailyEnergy(
   
   if (hours >= 24) {
     // Playing 24 hours straight - no sleep, no natural refill, just regeneration
-    energy = 24 * 30; // 720 energy
+    energy = 24 * energyPerHour;
   } else {
     // Sleep time = 24 - hours played
     const sleepHours = 24 - hours;
-    // Natural refill during sleep (max 150, takes 5 hours to fill)
-    const naturalRefill = Math.min(150, sleepHours * 30);
+    // Natural refill during sleep (max energy bar, takes 5 hours to fill)
+    const naturalRefill = Math.min(maxEnergy, sleepHours * energyPerHour);
     // Energy regeneration during play
-    const playRegen = hours * 30;
+    const playRegen = hours * energyPerHour;
     energy = naturalRefill + playRegen;
   }
   
@@ -278,7 +282,8 @@ export function simulateGymProgression(
         inputs.hoursPlayedPerDay,
         inputs.xanaxPerDay,
         inputs.hasPointsRefill,
-        inputs.companyBenefit.bonusEnergyPerDay
+        inputs.companyBenefit.bonusEnergyPerDay,
+        inputs.maxEnergy || 150
       );
   
   // For manual mode, simulate 1 day. For future mode, use months

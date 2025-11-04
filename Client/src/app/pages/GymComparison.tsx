@@ -183,6 +183,7 @@ interface ComparisonState {
   hoursPlayedPerDay: number;
   xanaxPerDay: number;
   hasPointsRefill: boolean;
+  maxEnergy: number; // 150 or 100
   perkPercs: { strength: number; speed: number; defense: number; dexterity: number };
   happyJumpEnabled: boolean;
   happyJumpFrequency: number;
@@ -338,6 +339,7 @@ export default function GymComparison() {
         hoursPlayedPerDay: 16,
         xanaxPerDay: 3,
         hasPointsRefill: true,
+        maxEnergy: 150,
         perkPercs: { strength: 2, speed: 2, defense: 2, dexterity: 2 },
         happyJumpEnabled: false,
         happyJumpFrequency: 7,
@@ -442,6 +444,7 @@ export default function GymComparison() {
       hoursPlayedPerDay: sourceState.hoursPlayedPerDay,
       xanaxPerDay: sourceState.xanaxPerDay,
       hasPointsRefill: sourceState.hasPointsRefill,
+      maxEnergy: sourceState.maxEnergy,
       perkPercs: { ...sourceState.perkPercs },
       happyJumpEnabled: sourceState.happyJumpEnabled,
       happyJumpFrequency: sourceState.happyJumpFrequency,
@@ -516,6 +519,7 @@ export default function GymComparison() {
             xanaxPerDay: state.xanaxPerDay,
             hasPointsRefill: state.hasPointsRefill,
             hoursPlayedPerDay: state.hoursPlayedPerDay,
+            maxEnergy: state.maxEnergy,
             companyBenefit: benefit,
             apiKey,
             initialStats,
@@ -843,6 +847,13 @@ export default function GymComparison() {
                     </Box>
                     
                     <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Energy Sources</Typography>
+                    <FormControl fullWidth margin="dense" size="small">
+                      <InputLabel>Max Energy</InputLabel>
+                      <Select value={activeState.maxEnergy} label="Max Energy" onChange={(e) => updateState(activeState.id, { maxEnergy: Number(e.target.value) })}>
+                        <MenuItem value={150}>150 (Standard: 5E/10min)</MenuItem>
+                        <MenuItem value={100}>100 (5E/15min)</MenuItem>
+                      </Select>
+                    </FormControl>
                     <TextField label="Hours Played Per Day" type="number" value={activeState.hoursPlayedPerDay ?? ''} onChange={(e) => updateState(activeState.id, { hoursPlayedPerDay: e.target.value === '' ? 0 : Math.max(0, Math.min(24, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="0-24 hours" inputProps={{ step: 'any', min: 0 }} />
                     <TextField label="Xanax Per Day" type="number" value={activeState.xanaxPerDay ?? ''} onChange={(e) => updateState(activeState.id, { xanaxPerDay: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value))})} fullWidth margin="dense" size="small" helperText="Each xanax = +250 energy" inputProps={{ step: 'any', min: 0 }} />
                     <FormControlLabel control={<Switch checked={activeState.hasPointsRefill} onChange={(e) => updateState(activeState.id, { hasPointsRefill: e.target.checked })} />} label="Points Refill (+150 energy)" />
@@ -946,7 +957,7 @@ export default function GymComparison() {
                     )}
                     
                     <Alert severity="info" sx={{ mt: 2 }}>
-                      Daily Energy: {calculateDailyEnergy(activeState.hoursPlayedPerDay, activeState.xanaxPerDay, activeState.hasPointsRefill, getCompanyBenefit(activeState.companyBenefitKey, activeState.candleShopStars).bonusEnergyPerDay).toLocaleString()} E
+                      Daily Energy: {calculateDailyEnergy(activeState.hoursPlayedPerDay, activeState.xanaxPerDay, activeState.hasPointsRefill, getCompanyBenefit(activeState.companyBenefitKey, activeState.candleShopStars).bonusEnergyPerDay, activeState.maxEnergy).toLocaleString()} E
                     </Alert>
                   </Box>
                 )}
