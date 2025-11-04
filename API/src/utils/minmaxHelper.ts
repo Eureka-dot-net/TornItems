@@ -5,6 +5,9 @@ import { decrypt } from '../utils/encryption';
 import { logApiCall } from '../utils/apiCallLogger';
 import { logError, logInfo } from '../utils/logger';
 
+// Constants
+const SKIMMERS_TARGET = 20; // Target number of active skimmers
+
 // Response format for current stats (cat=all)
 interface PersonalStatsCurrentResponse {
   personalstats: {
@@ -167,6 +170,12 @@ export interface MinMaxStatus {
     mediocre: { spun: boolean };
     awesomeness: { spun: boolean };
   };
+  /**
+   * Skimmers tracking for crimes
+   * active: Number of currently active skimmers
+   * target: Required number of skimmers (20)
+   * completed: True if active skimmers >= 20
+   */
   skimmers?: {
     active: number;
     target: number;
@@ -451,7 +460,7 @@ export async function fetchMinMaxStatus(
         mediocre: { spun: cachedData.wheels.mediocre.spun },
         awesomeness: { spun: cachedData.wheels.awesomeness.spun }
       } : undefined,
-      skimmers: cachedData?.skimmers && !fetchSkimmers ? { active: cachedData.skimmers.active, target: 20, completed: cachedData.skimmers.active >= 20 } : undefined
+      skimmers: cachedData?.skimmers && !fetchSkimmers ? { active: cachedData.skimmers.active, target: SKIMMERS_TARGET, completed: cachedData.skimmers.active >= SKIMMERS_TARGET } : undefined
     };
 
     // Fetch only the activities that need refreshing
@@ -682,7 +691,7 @@ export async function fetchMinMaxStatus(
             // Get active skimmers count
             const activeSkimmers = crimesResponse.crimes?.miscellaneous?.skimmers?.active || 0;
             
-            activityData.skimmers = { active: activeSkimmers, target: 20, completed: activeSkimmers >= 20 };
+            activityData.skimmers = { active: activeSkimmers, target: SKIMMERS_TARGET, completed: activeSkimmers >= SKIMMERS_TARGET };
             
             // Update cache for skimmers
             if (cachedData) {
