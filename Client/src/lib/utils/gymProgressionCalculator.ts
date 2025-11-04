@@ -256,8 +256,8 @@ export function simulateGymProgression(
     inputs.statWeights.defense + 
     inputs.statWeights.dexterity;
   
-  if (totalWeight === 0) {
-    throw new Error('Total stat weights cannot be zero');
+  if (totalWeight <= 0) {
+    throw new Error('At least one stat weight must be greater than zero');
   }
   
   // Track total energy spent (for gym unlocks)
