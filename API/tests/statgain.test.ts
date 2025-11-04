@@ -61,7 +61,7 @@ describe('Gym Model and Stat Gain Tests', () => {
       if (dots === null || dots === undefined) {
         throw new Error(`This gym does not support training ${stat}`);
       }
-      return computeStatGainFromGym(stat, statTotal, happy, perkPerc, dots, gym.energyPerTrain);
+      return computeStatGain(stat, statTotal, happy, perkPerc, dots, gym.energyPerTrain);
     }
 
     it('should match expected values: 3k strength & 4k happy (~4.8 per train)', () => {
