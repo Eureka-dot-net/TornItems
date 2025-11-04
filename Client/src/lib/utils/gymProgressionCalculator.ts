@@ -408,45 +408,43 @@ export function simulateGymProgression(
       // Happy: 99999
       // Additional energy based on options:
       const isFirstJump = day === diabetesDayJumpDays[0];
+      const jumpIndex = diabetesDayJumpDays.indexOf(day);
       
       let ddEnergy = 1150; // Base energy from 4 xanax (1000) + points refill (150)
       
       // FHC (Feathery Hotel Coupon): 150 energy each, max 1 per jump
       // Green Egg: 500 energy each, max 1 per jump
       // Only 1 FHC OR Green Egg can be used per jump
-      const fhcForThisJump = Math.min(inputs.diabetesDay.featheryHotelCoupon, 1);
-      const greenEggForThisJump = Math.min(inputs.diabetesDay.greenEgg, 1);
-      
-      // If user has both FHC and Green Egg, we prefer Green Egg (more energy)
-      // But we need to track the second item for the second jump if applicable
-      const jumpIndex = diabetesDayJumpDays.indexOf(day);
       
       if (inputs.diabetesDay.numberOfJumps === 1) {
         // Only one jump, use the better option
-        if (greenEggForThisJump > 0) {
+        if (inputs.diabetesDay.greenEgg > 0) {
           ddEnergy += 500; // Green Egg
-        } else if (fhcForThisJump > 0) {
+        } else if (inputs.diabetesDay.featheryHotelCoupon > 0) {
           ddEnergy += 150; // FHC
         }
       } else {
-        // Two jumps - distribute items
+        // Two jumps - distribute items across jumps
+        // Priority: Use Green Egg first (more energy), then FHC
         if (jumpIndex === 0) {
-          // First jump - use Green Egg if available
-          if (greenEggForThisJump > 0) {
-            ddEnergy += 500;
-          } else if (fhcForThisJump > 0) {
-            ddEnergy += 150;
+          // First jump
+          if (inputs.diabetesDay.greenEgg > 0) {
+            ddEnergy += 500; // First Green Egg
+          } else if (inputs.diabetesDay.featheryHotelCoupon > 0) {
+            ddEnergy += 150; // First FHC
           }
         } else if (jumpIndex === 1) {
-          // Second jump - use FHC if available and Green Egg was used in first jump, or remaining item
+          // Second jump - use second item if available
           if (inputs.diabetesDay.greenEgg >= 2) {
             ddEnergy += 500; // Second Green Egg
           } else if (inputs.diabetesDay.featheryHotelCoupon >= 2) {
             ddEnergy += 150; // Second FHC
-          } else if (greenEggForThisJump > 0 && inputs.diabetesDay.featheryHotelCoupon >= 1) {
-            ddEnergy += 150; // Use FHC since Green Egg was used in first jump
-          } else if (fhcForThisJump > 0 && inputs.diabetesDay.greenEgg >= 1) {
-            ddEnergy += 500; // Use Green Egg since FHC was used in first jump
+          } else if (inputs.diabetesDay.greenEgg === 1 && inputs.diabetesDay.featheryHotelCoupon >= 1) {
+            // Used Green Egg in first jump, use FHC in second
+            ddEnergy += 150;
+          } else if (inputs.diabetesDay.featheryHotelCoupon === 1 && inputs.diabetesDay.greenEgg >= 1) {
+            // Used FHC in first jump, use Green Egg in second
+            ddEnergy += 500;
           }
         }
       }
