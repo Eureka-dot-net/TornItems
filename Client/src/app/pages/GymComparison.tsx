@@ -320,7 +320,8 @@ export default function GymComparison() {
           initialStats,
           happy: manualHappy,
           perkPercs: manualPerkPercs,
-          currentGymIndex: autoUpgradeGyms ? -1 : currentGymIndex,
+          currentGymIndex: currentGymIndex,
+          lockGym: !autoUpgradeGyms,
           manualEnergy,
         };
         
@@ -343,7 +344,8 @@ export default function GymComparison() {
             initialStats,
             happy: state.happy,
             perkPercs: state.perkPercs,
-            currentGymIndex: -1, // Always use auto-upgrade in future mode to allow unlock speed multiplier to work
+            currentGymIndex: currentGymIndex, // Start from current/selected gym and auto-upgrade
+            lockGym: false, // Always use auto-upgrade in future mode to allow unlock speed multiplier to work
             happyJump: state.happyJumpEnabled ? {
               enabled: true,
               frequencyDays: state.happyJumpFrequency,
@@ -496,16 +498,14 @@ export default function GymComparison() {
                 <TextField label="Happy" type="number" value={manualHappy || ''} onChange={(e) => setManualHappy(e.target.value === '' ? 0 : Math.max(0, Math.min(99999, Number(e.target.value))))} fullWidth margin="dense" size="small" helperText="Maximum: 99,999" inputProps={{ step: 'any' }} />
                 <FormControlLabel control={<Switch checked={autoUpgradeGyms} onChange={(e) => setAutoUpgradeGyms(e.target.checked)} />} label="Auto-upgrade gyms" sx={{ mt: 1 }} />
                 
-                {!autoUpgradeGyms && (
-                  <FormControl fullWidth margin="dense" size="small">
-                    <InputLabel>Current Gym</InputLabel>
-                    <Select value={currentGymIndex} label="Current Gym" onChange={(e) => setCurrentGymIndex(Number(e.target.value))}>
-                      {GYMS.map((gym, index) => (
-                        <MenuItem key={gym.name} value={index}>{gym.displayName}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                )}
+                <FormControl fullWidth margin="dense" size="small">
+                  <InputLabel>{autoUpgradeGyms ? 'Starting Gym' : 'Current Gym'}</InputLabel>
+                  <Select value={currentGymIndex} label={autoUpgradeGyms ? 'Starting Gym' : 'Current Gym'} onChange={(e) => setCurrentGymIndex(Number(e.target.value))}>
+                    {GYMS.map((gym, index) => (
+                      <MenuItem key={gym.name} value={index}>{gym.displayName}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
                 
                 <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Stat Target Ratios (Desired Build)</Typography>
                 <TextField label="Strength Target" type="number" value={manualStatWeights.strength || ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any' }} helperText="Set to 0 to not train this stat" />

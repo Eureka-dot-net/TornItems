@@ -50,7 +50,8 @@ export interface SimulationInputs {
     defense: number;
     dexterity: number;
   };
-  currentGymIndex: number; // >= 0 locks to specific gym, -1 means auto-upgrade
+  currentGymIndex: number; // Starting gym index (0-based), or gym to stay locked to if lockGym is true
+  lockGym?: boolean; // Optional: if true, stay locked to currentGymIndex. If false/undefined, auto-upgrade from currentGymIndex
   manualEnergy?: number; // Optional: if specified, use this instead of calculating daily energy
   happyJump?: {
     enabled: boolean;
@@ -243,15 +244,14 @@ export function simulateGymProgression(
   // Track total energy spent (for gym unlocks)
   let totalEnergySpent = 0;
   
-  // Auto-upgrade mode: currentGymIndex = -1
-  // Locked gym mode: currentGymIndex >= 0
-  const shouldAutoUpgrade = inputs.currentGymIndex < 0;
+  // Determine if we should lock to a specific gym or auto-upgrade
+  const shouldLockGym = inputs.lockGym === true;
   
-  // Track current gym based on initial gym (only if not auto-upgrading)
-  if (!shouldAutoUpgrade && inputs.currentGymIndex >= 0) {
-    const currentGym = gyms[inputs.currentGymIndex];
-    if (currentGym) {
-      totalEnergySpent = currentGym.energyToUnlock;
+  // Set initial energy spent based on starting gym
+  if (inputs.currentGymIndex >= 0 && inputs.currentGymIndex < gyms.length) {
+    const startingGym = gyms[inputs.currentGymIndex];
+    if (startingGym) {
+      totalEnergySpent = startingGym.energyToUnlock;
     }
   }
   
@@ -358,19 +358,11 @@ export function simulateGymProgression(
       try {
         // Determine which gym to use based on mode
         let gym: Gym;
-        if (shouldAutoUpgrade) {
-          // Auto-upgrade mode: find best gym based on energy spent
-          gym = findBestGym(
-            gyms,
-            selectedStat,
-            totalEnergySpent,
-            inputs.companyBenefit.gymUnlockSpeedMultiplier
-          );
-        } else if (inputs.currentGymIndex >= 0 && inputs.currentGymIndex < gyms.length) {
+        if (shouldLockGym && inputs.currentGymIndex >= 0 && inputs.currentGymIndex < gyms.length) {
           // Locked gym mode: use specified gym
           gym = gyms[inputs.currentGymIndex];
         } else {
-          // Fallback to best gym
+          // Auto-upgrade mode: find best gym based on energy spent
           gym = findBestGym(
             gyms,
             selectedStat,
