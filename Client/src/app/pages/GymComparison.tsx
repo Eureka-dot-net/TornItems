@@ -187,6 +187,12 @@ interface ComparisonState {
   happyJumpEnabled: boolean;
   happyJumpFrequency: number;
   happyJumpDvds: number;
+  diabetesDayEnabled: boolean;
+  diabetesDayNumberOfJumps: 1 | 2;
+  diabetesDayFHC: 0 | 1 | 2;
+  diabetesDayGreenEgg: 0 | 1 | 2;
+  diabetesDaySeasonalMail: boolean;
+  diabetesDayLogoClick: boolean;
   companyBenefitKey: string;
   candleShopStars: number;
   happy: number;
@@ -335,6 +341,12 @@ export default function GymComparison() {
         happyJumpEnabled: false,
         happyJumpFrequency: 7,
         happyJumpDvds: 1,
+        diabetesDayEnabled: false,
+        diabetesDayNumberOfJumps: 1,
+        diabetesDayFHC: 0,
+        diabetesDayGreenEgg: 0,
+        diabetesDaySeasonalMail: false,
+        diabetesDayLogoClick: false,
         companyBenefitKey: 'none',
         candleShopStars: 10,
         happy: 5000,
@@ -433,6 +445,12 @@ export default function GymComparison() {
       happyJumpEnabled: sourceState.happyJumpEnabled,
       happyJumpFrequency: sourceState.happyJumpFrequency,
       happyJumpDvds: sourceState.happyJumpDvds,
+      diabetesDayEnabled: sourceState.diabetesDayEnabled,
+      diabetesDayNumberOfJumps: sourceState.diabetesDayNumberOfJumps,
+      diabetesDayFHC: sourceState.diabetesDayFHC,
+      diabetesDayGreenEgg: sourceState.diabetesDayGreenEgg,
+      diabetesDaySeasonalMail: sourceState.diabetesDaySeasonalMail,
+      diabetesDayLogoClick: sourceState.diabetesDayLogoClick,
       companyBenefitKey: sourceState.companyBenefitKey,
       candleShopStars: sourceState.candleShopStars,
       happy: sourceState.happy,
@@ -500,7 +518,7 @@ export default function GymComparison() {
             companyBenefit: benefit,
             apiKey,
             initialStats,
-            happy: state.happy,
+            happy: state.diabetesDayEnabled ? 99999 : state.happy, // DD overrides happy to 99999
             perkPercs: state.perkPercs,
             currentGymIndex: currentGymIndex, // Start from current/selected gym and auto-upgrade
             lockGym: false, // Always use auto-upgrade in future mode to allow unlock speed multiplier to work
@@ -508,6 +526,14 @@ export default function GymComparison() {
               enabled: true,
               frequencyDays: state.happyJumpFrequency,
               dvdsUsed: state.happyJumpDvds,
+            } : undefined,
+            diabetesDay: state.diabetesDayEnabled ? {
+              enabled: true,
+              numberOfJumps: state.diabetesDayNumberOfJumps,
+              featheryHotelCoupon: state.diabetesDayFHC,
+              greenEgg: state.diabetesDayGreenEgg,
+              seasonalMail: state.diabetesDaySeasonalMail,
+              logoEnergyClick: state.diabetesDayLogoClick,
             } : undefined,
             daysSkippedPerMonth: state.daysSkippedPerMonth,
           };
@@ -581,10 +607,12 @@ export default function GymComparison() {
       };
       
       for (const state of comparisonStates) {
-        if (results[state.id]) {
+        if (results[state.id] && results[state.id].dailySnapshots[index]) {
           const snapshot = results[state.id].dailySnapshots[index];
-          const totalStats = snapshot.strength + snapshot.speed + snapshot.defense + snapshot.dexterity;
-          dataPoint[state.name] = totalStats;
+          if (snapshot && snapshot.strength !== undefined) {
+            const totalStats = snapshot.strength + snapshot.speed + snapshot.defense + snapshot.dexterity;
+            dataPoint[state.name] = totalStats;
+          }
         }
       }
       
@@ -837,6 +865,70 @@ export default function GymComparison() {
                       </>
                     )}
                     
+                    <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Diabetes Day Event</Typography>
+                    <FormControlLabel 
+                      control={<Switch checked={activeState.diabetesDayEnabled} onChange={(e) => updateState(activeState.id, { diabetesDayEnabled: e.target.checked })} />} 
+                      label="Enable Diabetes Day" 
+                    />
+                    <Alert severity="info" sx={{ mt: 1, mb: 1 }}>
+                      Diabetes Day provides 99999 happy jumps with special energy bonuses. Jumps occur on day 7 for 1 jump, or days 5 and 7 for 2 jumps.
+                    </Alert>
+                    {activeState.diabetesDayEnabled && (
+                      <>
+                        <FormControl fullWidth margin="dense" size="small">
+                          <InputLabel>Number of Jumps</InputLabel>
+                          <Select 
+                            value={activeState.diabetesDayNumberOfJumps} 
+                            label="Number of Jumps" 
+                            onChange={(e) => updateState(activeState.id, { diabetesDayNumberOfJumps: Number(e.target.value) as 1 | 2 })}
+                          >
+                            <MenuItem value={1}>1 Jump</MenuItem>
+                            <MenuItem value={2}>2 Jumps</MenuItem>
+                          </Select>
+                        </FormControl>
+                        
+                        <FormControl fullWidth margin="dense" size="small">
+                          <InputLabel>FHC (Feathery Hotel Coupon)</InputLabel>
+                          <Select 
+                            value={activeState.diabetesDayFHC} 
+                            label="FHC (Feathery Hotel Coupon)" 
+                            onChange={(e) => updateState(activeState.id, { diabetesDayFHC: Number(e.target.value) as 0 | 1 | 2 })}
+                          >
+                            <MenuItem value={0}>0 (No FHC)</MenuItem>
+                            <MenuItem value={1}>1 (+150 energy)</MenuItem>
+                            <MenuItem value={2}>2 (+150 energy each)</MenuItem>
+                          </Select>
+                        </FormControl>
+                        
+                        <FormControl fullWidth margin="dense" size="small">
+                          <InputLabel>Green Egg</InputLabel>
+                          <Select 
+                            value={activeState.diabetesDayGreenEgg} 
+                            label="Green Egg" 
+                            onChange={(e) => updateState(activeState.id, { diabetesDayGreenEgg: Number(e.target.value) as 0 | 1 | 2 })}
+                          >
+                            <MenuItem value={0}>0 (No Green Egg)</MenuItem>
+                            <MenuItem value={1}>1 (+500 energy)</MenuItem>
+                            <MenuItem value={2}>2 (+500 energy each)</MenuItem>
+                          </Select>
+                        </FormControl>
+                        
+                        <Alert severity="warning" sx={{ mt: 1, mb: 1, fontSize: '0.75rem' }}>
+                          Note: Only 1 FHC OR Green Egg can be used per jump. With 2 jumps, you can use one item per jump.
+                        </Alert>
+                        
+                        <FormControlLabel 
+                          control={<Switch checked={activeState.diabetesDaySeasonalMail} onChange={(e) => updateState(activeState.id, { diabetesDaySeasonalMail: e.target.checked })} />} 
+                          label="Seasonal Mail (+250 energy, first jump only)" 
+                        />
+                        
+                        <FormControlLabel 
+                          control={<Switch checked={activeState.diabetesDayLogoClick} onChange={(e) => updateState(activeState.id, { diabetesDayLogoClick: e.target.checked })} />} 
+                          label="Logo Energy Click (+50 energy, second jump only)" 
+                        />
+                      </>
+                    )}
+                    
                     <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Company Benefit</Typography>
                     <FormControl fullWidth margin="dense" size="small">
                       <InputLabel>Benefit Type</InputLabel>
@@ -894,6 +986,70 @@ export default function GymComparison() {
           
           {mode === 'future' && Object.keys(results).length > 0 && (
             <>
+              {/* Show Diabetes Day Gains Grid if any state has DD enabled */}
+              {comparisonStates.some(state => state.diabetesDayEnabled) && (
+                <Paper sx={{ p: 3, mb: 3 }}>
+                  <Typography variant="h6" gutterBottom>Diabetes Day Jump Gains</Typography>
+                  <Grid container spacing={2}>
+                    {comparisonStates.filter(state => state.diabetesDayEnabled).map((state) => {
+                      const result = results[state.id];
+                      if (!result || !result.diabetesDayTotalGains) return null;
+                      
+                      const ddGains = result.diabetesDayTotalGains;
+                      const totalGain = ddGains.strength + ddGains.speed + ddGains.defense + ddGains.dexterity;
+                      
+                      return (
+                        <Grid size={{ xs: 12, sm: 6 }} key={state.id}>
+                          <Card sx={{ borderLeft: 4, borderColor: CHART_COLORS[comparisonStates.indexOf(state) % CHART_COLORS.length] }}>
+                            <CardContent>
+                              <Typography variant="h6" gutterBottom>{state.name}</Typography>
+                              <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                                {state.diabetesDayNumberOfJumps} Jump{state.diabetesDayNumberOfJumps > 1 ? 's' : ''}
+                              </Typography>
+                              
+                              {/* Jump 1 Gains */}
+                              {result.diabetesDayJump1Gains && result.diabetesDayJump1Gains.strength !== undefined && (
+                                <>
+                                  <Typography variant="subtitle2" sx={{ mt: 1, fontWeight: 'bold' }}>
+                                    Jump 1 (Day {state.diabetesDayNumberOfJumps === 1 ? '7' : '5'}):
+                                  </Typography>
+                                  <Typography variant="body2">Str: +{result.diabetesDayJump1Gains.strength.toLocaleString()}</Typography>
+                                  <Typography variant="body2">Spd: +{result.diabetesDayJump1Gains.speed.toLocaleString()}</Typography>
+                                  <Typography variant="body2">Def: +{result.diabetesDayJump1Gains.defense.toLocaleString()}</Typography>
+                                  <Typography variant="body2">Dex: +{result.diabetesDayJump1Gains.dexterity.toLocaleString()}</Typography>
+                                  <Typography variant="body2" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                                    Subtotal: +{(result.diabetesDayJump1Gains.strength + result.diabetesDayJump1Gains.speed + result.diabetesDayJump1Gains.defense + result.diabetesDayJump1Gains.dexterity).toLocaleString()}
+                                  </Typography>
+                                </>
+                              )}
+                              
+                              {/* Jump 2 Gains */}
+                              {result.diabetesDayJump2Gains && result.diabetesDayJump2Gains.strength !== undefined && (
+                                <>
+                                  <Typography variant="subtitle2" sx={{ mt: 2, fontWeight: 'bold' }}>Jump 2 (Day 7):</Typography>
+                                  <Typography variant="body2">Str: +{result.diabetesDayJump2Gains.strength.toLocaleString()}</Typography>
+                                  <Typography variant="body2">Spd: +{result.diabetesDayJump2Gains.speed.toLocaleString()}</Typography>
+                                  <Typography variant="body2">Def: +{result.diabetesDayJump2Gains.defense.toLocaleString()}</Typography>
+                                  <Typography variant="body2">Dex: +{result.diabetesDayJump2Gains.dexterity.toLocaleString()}</Typography>
+                                  <Typography variant="body2" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                                    Subtotal: +{(result.diabetesDayJump2Gains.strength + result.diabetesDayJump2Gains.speed + result.diabetesDayJump2Gains.defense + result.diabetesDayJump2Gains.dexterity).toLocaleString()}
+                                  </Typography>
+                                </>
+                              )}
+                              
+                              {/* Total Gains */}
+                              <Typography variant="h6" color="success.main" sx={{ mt: 2 }}>
+                                Total DD Gain: +{totalGain.toLocaleString()}
+                              </Typography>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      );
+                    })}
+                  </Grid>
+                </Paper>
+              )}
+              
               <Paper sx={{ p: 3, mb: 3 }}>
                 <Typography variant="h6" gutterBottom>Total Battle Stats Over Time</Typography>
                 <ResponsiveContainer width="100%" height={400}>

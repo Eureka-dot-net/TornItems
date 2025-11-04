@@ -59,6 +59,14 @@ export interface SimulationInputs {
     frequencyDays: number; // e.g., 7 for weekly, 14 for every 2 weeks
     dvdsUsed: number;
   };
+  diabetesDay?: {
+    enabled: boolean;
+    numberOfJumps: 1 | 2; // 1 or 2 jumps
+    featheryHotelCoupon: 0 | 1 | 2; // 0, 1, or 2 FHC (150 energy each)
+    greenEgg: 0 | 1 | 2; // 0, 1, or 2 Green Eggs (500 energy each)
+    seasonalMail: boolean; // 250 energy for first jump only
+    logoEnergyClick: boolean; // 50 energy for first jump only
+  };
   daysSkippedPerMonth?: number; // Days per month with no energy (wars, vacations)
 }
 
@@ -70,11 +78,36 @@ export interface DailySnapshot {
   dexterity: number;
   currentGym: string;
   energySpentOnGymUnlock: number;
+  isDiabetesDayJump?: boolean; // Marks if this day had a DD jump
+  diabetesDayJumpGains?: {
+    strength: number;
+    speed: number;
+    defense: number;
+    dexterity: number;
+  };
 }
 
 export interface SimulationResult {
   dailySnapshots: DailySnapshot[];
   finalStats: {
+    strength: number;
+    speed: number;
+    defense: number;
+    dexterity: number;
+  };
+  diabetesDayTotalGains?: {
+    strength: number;
+    speed: number;
+    defense: number;
+    dexterity: number;
+  };
+  diabetesDayJump1Gains?: {
+    strength: number;
+    speed: number;
+    defense: number;
+    dexterity: number;
+  };
+  diabetesDayJump2Gains?: {
     strength: number;
     speed: number;
     defense: number;
@@ -291,6 +324,23 @@ export function simulateGymProgression(
     ? inputs.happyJump.frequencyDays 
     : -1;
   
+  // Track Diabetes Day jumps
+  // DD jumps occur on day 7 for 1 jump, or days 5 and 7 for 2 jumps
+  // This aligns with the natural 7-day snapshot interval to avoid visual confusion
+  const diabetesDayJumpDays: number[] = [];
+  const diabetesDayTotalGains = { strength: 0, speed: 0, defense: 0, dexterity: 0 };
+  let diabetesDayJump1Gains: { strength: number; speed: number; defense: number; dexterity: number } | undefined;
+  let diabetesDayJump2Gains: { strength: number; speed: number; defense: number; dexterity: number } | undefined;
+  
+  if (inputs.diabetesDay?.enabled) {
+    if (inputs.diabetesDay.numberOfJumps === 1) {
+      diabetesDayJumpDays.push(7); // Single jump on day 7
+    } else if (inputs.diabetesDay.numberOfJumps === 2) {
+      diabetesDayJumpDays.push(5); // First jump on day 5
+      diabetesDayJumpDays.push(7); // Second jump on day 7
+    }
+  }
+  
   // Calculate which days to skip
   // Distribute skipped days evenly throughout each month
   const daysSkippedPerMonth = inputs.daysSkippedPerMonth || 0;
@@ -348,9 +398,77 @@ export function simulateGymProgression(
       nextHappyJumpDay = day + inputs.happyJump.frequencyDays;
     }
     
+    // Check if this is a Diabetes Day jump
+    const isDiabetesDayJump = diabetesDayJumpDays.includes(day);
+    let diabetesDayJumpGains: { strength: number; speed: number; defense: number; dexterity: number } | undefined;
+    
+    if (isDiabetesDayJump && inputs.diabetesDay && !isSkipped) {
+      // Diabetes Day jump:
+      // Base energy: 1150
+      // Happy: 99999
+      // Additional energy based on options:
+      const isFirstJump = day === diabetesDayJumpDays[0];
+      const jumpIndex = diabetesDayJumpDays.indexOf(day);
+      
+      let ddEnergy = 1150; // Base energy from 4 xanax (1000) + points refill (150)
+      
+      // FHC (Feathery Hotel Coupon): 150 energy each, max 1 per jump
+      // Green Egg: 500 energy each, max 1 per jump
+      // Only 1 FHC OR Green Egg can be used per jump
+      
+      if (inputs.diabetesDay.numberOfJumps === 1) {
+        // Only one jump, use the better option
+        if (inputs.diabetesDay.greenEgg > 0) {
+          ddEnergy += 500; // Green Egg
+        } else if (inputs.diabetesDay.featheryHotelCoupon > 0) {
+          ddEnergy += 150; // FHC
+        }
+      } else {
+        // Two jumps - distribute items across jumps
+        // Priority: Use Green Egg first (more energy), then FHC
+        if (jumpIndex === 0) {
+          // First jump
+          if (inputs.diabetesDay.greenEgg > 0) {
+            ddEnergy += 500; // First Green Egg
+          } else if (inputs.diabetesDay.featheryHotelCoupon > 0) {
+            ddEnergy += 150; // First FHC
+          }
+        } else if (jumpIndex === 1) {
+          // Second jump - use second item if available
+          if (inputs.diabetesDay.greenEgg >= 2) {
+            ddEnergy += 500; // Second Green Egg
+          } else if (inputs.diabetesDay.featheryHotelCoupon >= 2) {
+            ddEnergy += 150; // Second FHC
+          } else if (inputs.diabetesDay.greenEgg === 1 && inputs.diabetesDay.featheryHotelCoupon >= 1) {
+            // Used Green Egg in first jump, use FHC in second
+            ddEnergy += 150;
+          } else if (inputs.diabetesDay.featheryHotelCoupon === 1 && inputs.diabetesDay.greenEgg >= 1) {
+            // Used FHC in first jump, use Green Egg in second
+            ddEnergy += 500;
+          }
+        }
+      }
+      
+      // Seasonal mail: 250 energy for first jump only
+      if (isFirstJump && inputs.diabetesDay.seasonalMail) {
+        ddEnergy += 250;
+      }
+      
+      // Logo energy click: 50 energy for second jump only
+      if (!isFirstJump && inputs.diabetesDay.logoEnergyClick) {
+        ddEnergy += 50;
+      }
+      
+      energyAvailableToday = ddEnergy;
+      currentHappy = 99999; // DD happy is always 99999
+    }
+    
     // Train stats based on target ratios (weights represent desired build, not training proportion)
     // Train one energy at a time, always choosing the stat that is most out of sync with target ratio
     let remainingEnergy = energyAvailableToday;
+    
+    // Track stats before training for DD jumps
+    const statsBeforeTraining = isDiabetesDayJump ? { ...stats } : undefined;
     
     while (remainingEnergy > 0) {
       // Determine which stat to train next based on how far each is from its target ratio
@@ -439,11 +557,39 @@ export function simulateGymProgression(
       }
     }
     
+    // Calculate DD jump gains if this was a DD jump day
+    if (isDiabetesDayJump && statsBeforeTraining) {
+      diabetesDayJumpGains = {
+        strength: Math.round(stats.strength - statsBeforeTraining.strength),
+        speed: Math.round(stats.speed - statsBeforeTraining.speed),
+        defense: Math.round(stats.defense - statsBeforeTraining.defense),
+        dexterity: Math.round(stats.dexterity - statsBeforeTraining.dexterity),
+      };
+      
+      // Store individual jump gains
+      const jumpIndex = diabetesDayJumpDays.indexOf(day);
+      if (jumpIndex === 0) {
+        diabetesDayJump1Gains = { ...diabetesDayJumpGains };
+      } else if (jumpIndex === 1) {
+        diabetesDayJump2Gains = { ...diabetesDayJumpGains };
+      }
+      
+      // Add to total DD gains
+      diabetesDayTotalGains.strength += diabetesDayJumpGains.strength;
+      diabetesDayTotalGains.speed += diabetesDayJumpGains.speed;
+      diabetesDayTotalGains.defense += diabetesDayJumpGains.defense;
+      diabetesDayTotalGains.dexterity += diabetesDayJumpGains.dexterity;
+    }
+    
     // Take snapshot every 7 days or on first day
+    // For DD mode with 2 jumps, also snapshot on day 5 to show the first jump clearly
+    // (Day 7 is already captured by the day % 7 === 0 condition)
     // For last day, only snapshot if it's been at least 7 days since last snapshot
+    const isDDSnapshotDay = inputs.diabetesDay?.enabled && inputs.diabetesDay.numberOfJumps === 2 && day === 5;
     const shouldSnapshot = 
       day === 1 || 
       day % 7 === 0 || 
+      isDDSnapshotDay ||
       (day === totalDays && (dailySnapshots.length === 0 || day - dailySnapshots[dailySnapshots.length - 1].day >= 7));
     
     if (shouldSnapshot) {
@@ -476,6 +622,8 @@ export function simulateGymProgression(
         dexterity: Math.round(stats.dexterity),
         currentGym,
         energySpentOnGymUnlock,
+        isDiabetesDayJump,
+        diabetesDayJumpGains,
       };
       
       dailySnapshots.push(snapshot);
@@ -490,5 +638,8 @@ export function simulateGymProgression(
       defense: Math.round(stats.defense),
       dexterity: Math.round(stats.dexterity),
     },
+    diabetesDayTotalGains: inputs.diabetesDay?.enabled ? diabetesDayTotalGains : undefined,
+    diabetesDayJump1Gains: inputs.diabetesDay?.enabled ? diabetesDayJump1Gains : undefined,
+    diabetesDayJump2Gains: inputs.diabetesDay?.enabled ? diabetesDayJump2Gains : undefined,
   };
 }
