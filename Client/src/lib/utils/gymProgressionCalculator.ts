@@ -54,6 +54,7 @@ export interface SimulationInputs {
   currentGymIndex: number; // Starting gym index (0-based), or gym to stay locked to if lockGym is true
   lockGym?: boolean; // Optional: if true, stay locked to currentGymIndex. If false/undefined, auto-upgrade from currentGymIndex
   manualEnergy?: number; // Optional: if specified, use this instead of calculating daily energy
+  maxEnergy?: number; // Optional: 150 (default) or 100. Affects energy regeneration rate and max capacity
   happyJump?: {
     enabled: boolean;
     frequencyDays: number; // e.g., 7 for weekly, 14 for every 2 weeks
@@ -62,7 +63,7 @@ export interface SimulationInputs {
   diabetesDay?: {
     enabled: boolean;
     numberOfJumps: 1 | 2; // 1 or 2 jumps
-    featheryHotelCoupon: 0 | 1 | 2; // 0, 1, or 2 FHC (150 energy each)
+    featheryHotelCoupon: 0 | 1 | 2; // 0, 1, or 2 FHC (maxEnergy each)
     greenEgg: 0 | 1 | 2; // 0, 1, or 2 Green Eggs (500 energy each)
     seasonalMail: boolean; // 250 energy for first jump only
     logoEnergyClick: boolean; // 50 energy for first jump only
@@ -122,10 +123,13 @@ export function calculateDailyEnergy(
   hoursPlayedPerDay: number,
   xanaxPerDay: number,
   hasPointsRefill: boolean,
-  bonusEnergyPerDay: number = 0
+  bonusEnergyPerDay: number = 0,
+  maxEnergy: number = 150 // 150 or 100
 ): number {
-  // Energy regenerates 5 every 10 minutes = 30 per hour
-  // Maximum energy bar is 150 (fills in 5 hours)
+  // Energy regeneration rate depends on max energy
+  // 150 max: 5 energy every 10 minutes = 30 per hour, fills in 5 hours
+  // 100 max: 5 energy every 15 minutes = 20 per hour, fills in 5 hours
+  const energyPerHour = maxEnergy === 100 ? 20 : 30;
   
   // Clamp hours to 0-24
   const hours = Math.max(0, Math.min(24, hoursPlayedPerDay));
@@ -134,23 +138,23 @@ export function calculateDailyEnergy(
   
   if (hours >= 24) {
     // Playing 24 hours straight - no sleep, no natural refill, just regeneration
-    energy = 24 * 30; // 720 energy
+    energy = 24 * energyPerHour;
   } else {
     // Sleep time = 24 - hours played
     const sleepHours = 24 - hours;
-    // Natural refill during sleep (max 150, takes 5 hours to fill)
-    const naturalRefill = Math.min(150, sleepHours * 30);
+    // Natural refill during sleep (max energy bar, takes 5 hours to fill)
+    const naturalRefill = Math.min(maxEnergy, sleepHours * energyPerHour);
     // Energy regeneration during play
-    const playRegen = hours * 30;
+    const playRegen = hours * energyPerHour;
     energy = naturalRefill + playRegen;
   }
   
   // Add xanax energy (250 per xanax)
   energy += xanaxPerDay * 250;
   
-  // Add points refill energy (150)
+  // Add points refill energy (uses maxEnergy value)
   if (hasPointsRefill) {
-    energy += 150;
+    energy += maxEnergy;
   }
   
   // Add company benefit bonus energy
@@ -278,7 +282,8 @@ export function simulateGymProgression(
         inputs.hoursPlayedPerDay,
         inputs.xanaxPerDay,
         inputs.hasPointsRefill,
-        inputs.companyBenefit.bonusEnergyPerDay
+        inputs.companyBenefit.bonusEnergyPerDay,
+        inputs.maxEnergy || 150
       );
   
   // For manual mode, simulate 1 day. For future mode, use months
@@ -374,6 +379,8 @@ export function simulateGymProgression(
     let energyAvailableToday = isSkipped ? 0 : dailyEnergy;
     let currentHappy = inputs.happy;
     
+    const maxEnergyValue = inputs.maxEnergy || 150;
+    
     if (isHappyJumpDay && inputs.happyJump && !isSkipped) {
       // Happy jump calculation:
       // 1. User gets energy to 0 and starts taking xanax
@@ -382,14 +389,14 @@ export function simulateGymProgression(
       // 4. Uses DVDs: happy becomes (baseHappy + 2500*numDVDs)
       // 5. Pops ecstasy: happy doubles to ((baseHappy + 2500*numDVDs)*2)
       // 6. Trains 1000 energy (4 xanax * 250)
-      // 7. Uses points refill for 150 energy and trains that
+      // 7. Uses points refill for maxEnergy and trains that
       // 8. Must wait 6 more hours before can use xanax again
       
       // Total time for happy jump: 32 + 8 + 6 = 46 hours
       // During this time: no natural energy generation, loses 1 xanax from daily allowance
       
-      // Energy available: 1000 (from 4 xanax) + 150 (points refill) = 1150
-      energyAvailableToday = 1150;
+      // Energy available: 1000 (from 4 xanax) + maxEnergy (points refill)
+      energyAvailableToday = 1000 + maxEnergyValue;
       
       // Happy during jump
       currentHappy = (inputs.happy + 2500 * inputs.happyJump.dvdsUsed) * 2;
@@ -404,15 +411,15 @@ export function simulateGymProgression(
     
     if (isDiabetesDayJump && inputs.diabetesDay && !isSkipped) {
       // Diabetes Day jump:
-      // Base energy: 1150
+      // Base energy: 1000 (xanax) + maxEnergy (points refill)
       // Happy: 99999
       // Additional energy based on options:
       const isFirstJump = day === diabetesDayJumpDays[0];
       const jumpIndex = diabetesDayJumpDays.indexOf(day);
       
-      let ddEnergy = 1150; // Base energy from 4 xanax (1000) + points refill (150)
+      let ddEnergy = 1000 + maxEnergyValue; // Base energy from 4 xanax (1000) + points refill (maxEnergy)
       
-      // FHC (Feathery Hotel Coupon): 150 energy each, max 1 per jump
+      // FHC (Feathery Hotel Coupon): maxEnergy each, max 1 per jump
       // Green Egg: 500 energy each, max 1 per jump
       // Only 1 FHC OR Green Egg can be used per jump
       
@@ -421,7 +428,7 @@ export function simulateGymProgression(
         if (inputs.diabetesDay.greenEgg > 0) {
           ddEnergy += 500; // Green Egg
         } else if (inputs.diabetesDay.featheryHotelCoupon > 0) {
-          ddEnergy += 150; // FHC
+          ddEnergy += maxEnergyValue; // FHC
         }
       } else {
         // Two jumps - distribute items across jumps
@@ -431,17 +438,17 @@ export function simulateGymProgression(
           if (inputs.diabetesDay.greenEgg > 0) {
             ddEnergy += 500; // First Green Egg
           } else if (inputs.diabetesDay.featheryHotelCoupon > 0) {
-            ddEnergy += 150; // First FHC
+            ddEnergy += maxEnergyValue; // First FHC
           }
         } else if (jumpIndex === 1) {
           // Second jump - use second item if available
           if (inputs.diabetesDay.greenEgg >= 2) {
             ddEnergy += 500; // Second Green Egg
           } else if (inputs.diabetesDay.featheryHotelCoupon >= 2) {
-            ddEnergy += 150; // Second FHC
+            ddEnergy += maxEnergyValue; // Second FHC
           } else if (inputs.diabetesDay.greenEgg === 1 && inputs.diabetesDay.featheryHotelCoupon >= 1) {
             // Used Green Egg in first jump, use FHC in second
-            ddEnergy += 150;
+            ddEnergy += maxEnergyValue;
           } else if (inputs.diabetesDay.featheryHotelCoupon === 1 && inputs.diabetesDay.greenEgg >= 1) {
             // Used FHC in first jump, use Green Egg in second
             ddEnergy += 500;

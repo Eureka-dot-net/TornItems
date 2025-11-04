@@ -183,6 +183,7 @@ interface ComparisonState {
   hoursPlayedPerDay: number;
   xanaxPerDay: number;
   hasPointsRefill: boolean;
+  maxEnergy: number; // 150 or 100
   perkPercs: { strength: number; speed: number; defense: number; dexterity: number };
   happyJumpEnabled: boolean;
   happyJumpFrequency: number;
@@ -281,15 +282,16 @@ const getBaldrsRatio = (primaryStat: StatType): StatWeights => {
   }
 };
 
-// Balanced High build - for dex and def only (what users call "whore" build)
-// This is someone who does weighing like 1/1/0/1.25 or 1/1/1.25/1
+// Dex or Def build - for dex and def only
+// If Dex build: 1.25 dex, 0 def, 1 str, 1 spd
+// If Def build: 1.25 def, 0 dex, 1 str, 1 spd
 const getBalancedHighRatio = (primaryStat: 'defense' | 'dexterity'): StatWeights => {
   if (primaryStat === 'defense') {
-    // 1/1/1.25/1 - high defense
-    return { strength: 1, speed: 1, defense: 1.25, dexterity: 1 };
+    // 1/1/1.25/0 - high defense, no dexterity
+    return { strength: 1, speed: 1, defense: 1.25, dexterity: 0 };
   } else {
-    // 1/1/1/1.25 - high dexterity
-    return { strength: 1, speed: 1, defense: 1, dexterity: 1.25 };
+    // 1/1/0/1.25 - high dexterity, no defense
+    return { strength: 1, speed: 1, defense: 0, dexterity: 1.25 };
   }
 };
 
@@ -325,7 +327,7 @@ export default function GymComparison() {
     loadSavedValue('initialStats', { strength: 1000, speed: 1000, defense: 1000, dexterity: 1000 })
   );
   const [currentGymIndex, setCurrentGymIndex] = useState<number>(() => loadSavedValue('currentGymIndex', 0));
-  const [months, setMonths] = useState<number>(() => loadSavedValue('months', 6));
+  const [months, setMonths] = useState<number>(() => loadSavedValue('months', 12));
   
   // Comparison states
   const [comparisonStates, setComparisonStates] = useState<ComparisonState[]>(() => 
@@ -334,10 +336,11 @@ export default function GymComparison() {
         id: '1',
         name: 'State 1',
         statWeights: { strength: 1, speed: 1, defense: 1, dexterity: 1 },
-        hoursPlayedPerDay: 8,
-        xanaxPerDay: 0,
-        hasPointsRefill: false,
-        perkPercs: { strength: 0, speed: 0, defense: 0, dexterity: 0 },
+        hoursPlayedPerDay: 16,
+        xanaxPerDay: 3,
+        hasPointsRefill: true,
+        maxEnergy: 150,
+        perkPercs: { strength: 2, speed: 2, defense: 2, dexterity: 2 },
         happyJumpEnabled: false,
         happyJumpFrequency: 7,
         happyJumpDvds: 1,
@@ -349,7 +352,7 @@ export default function GymComparison() {
         diabetesDayLogoClick: false,
         companyBenefitKey: 'none',
         candleShopStars: 10,
-        happy: 5000,
+        happy: 5025,
         daysSkippedPerMonth: 0,
       },
     ])
@@ -441,6 +444,7 @@ export default function GymComparison() {
       hoursPlayedPerDay: sourceState.hoursPlayedPerDay,
       xanaxPerDay: sourceState.xanaxPerDay,
       hasPointsRefill: sourceState.hasPointsRefill,
+      maxEnergy: sourceState.maxEnergy,
       perkPercs: { ...sourceState.perkPercs },
       happyJumpEnabled: sourceState.happyJumpEnabled,
       happyJumpFrequency: sourceState.happyJumpFrequency,
@@ -515,6 +519,7 @@ export default function GymComparison() {
             xanaxPerDay: state.xanaxPerDay,
             hasPointsRefill: state.hasPointsRefill,
             hoursPlayedPerDay: state.hoursPlayedPerDay,
+            maxEnergy: state.maxEnergy,
             companyBenefit: benefit,
             apiKey,
             initialStats,
@@ -703,52 +708,34 @@ export default function GymComparison() {
                 </FormControl>
                 
                 <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Stat Target Ratios (Desired Build)</Typography>
-                <TextField label="Strength Target" type="number" value={manualStatWeights.strength ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
-                <TextField label="Speed Target" type="number" value={manualStatWeights.speed ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
-                <TextField label="Defense Target" type="number" value={manualStatWeights.defense ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
-                <TextField label="Dexterity Target" type="number" value={manualStatWeights.dexterity ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, dexterity: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
-                
-                <Alert severity="info" sx={{ mt: 2 }}>
+                <Alert severity="info" sx={{ mb: 2 }}>
                   These values represent your desired stat ratios (e.g., 1:1:1.25:0 means equal strength/speed, 25% more dex, no defense). Each train goes to the stat furthest from its target ratio.
                 </Alert>
                 
-                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Quick Presets</Typography>
-                <Alert severity="info" sx={{ mb: 1 }}>
-                  Choose a formula for each stat to quickly set up your build. Hank's Ratio maximizes gym efficiency with one very low stat. Baldr's Ratio is more balanced. Balanced High is a slight boost to one stat (Dex/Def only).
-                </Alert>
-                
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="caption" fontWeight="bold" display="block">Strength Build</Typography>
-                  <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('strength'))}>Hank's</Button>
-                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('strength'))}>Baldr's</Button>
-                  </Box>
+                <TextField label="Strength Target" type="number" value={manualStatWeights.strength ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
+                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('strength'))}>Hank</Button>
+                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('strength'))}>Baldr</Button>
                 </Box>
                 
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="caption" fontWeight="bold" display="block">Speed Build</Typography>
-                  <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('speed'))}>Hank's</Button>
-                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('speed'))}>Baldr's</Button>
-                  </Box>
+                <TextField label="Speed Target" type="number" value={manualStatWeights.speed ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
+                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('speed'))}>Hank</Button>
+                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('speed'))}>Baldr</Button>
                 </Box>
                 
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="caption" fontWeight="bold" display="block">Defense Build</Typography>
-                  <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('defense'))}>Hank's</Button>
-                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('defense'))}>Baldr's</Button>
-                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBalancedHighRatio('defense'))}>Balanced High</Button>
-                  </Box>
+                <TextField label="Defense Target" type="number" value={manualStatWeights.defense ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
+                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('defense'))}>Hank</Button>
+                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('defense'))}>Baldr</Button>
+                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBalancedHighRatio('defense'))}>Def Build</Button>
                 </Box>
                 
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="caption" fontWeight="bold" display="block">Dexterity Build</Typography>
-                  <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('dexterity'))}>Hank's</Button>
-                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('dexterity'))}>Baldr's</Button>
-                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBalancedHighRatio('dexterity'))}>Balanced High</Button>
-                  </Box>
+                <TextField label="Dexterity Target" type="number" value={manualStatWeights.dexterity ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, dexterity: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
+                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('dexterity'))}>Hank</Button>
+                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('dexterity'))}>Baldr</Button>
+                  <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBalancedHighRatio('dexterity'))}>Dex Build</Button>
                 </Box>
                 
                 <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Perk % Bonus</Typography>
@@ -793,58 +780,47 @@ export default function GymComparison() {
                     </Box>
                     
                     <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Stat Target Ratios (Desired Build)</Typography>
-                    <TextField label="Strength Target" type="number" value={activeState.statWeights.strength ?? ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
-                    <TextField label="Speed Target" type="number" value={activeState.statWeights.speed ?? ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
-                    <TextField label="Defense Target" type="number" value={activeState.statWeights.defense ?? ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
-                    <TextField label="Dexterity Target" type="number" value={activeState.statWeights.dexterity ?? ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, dexterity: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
-                    
-                    <Alert severity="info" sx={{ mt: 2 }}>
+                    <Alert severity="info" sx={{ mb: 2 }}>
                       These values represent your desired stat ratios (e.g., 1:1:1.25:0 means equal strength/speed, 25% more dex, no defense). Each train goes to the stat furthest from its target ratio.
                     </Alert>
                     
-                    <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Quick Presets</Typography>
-                    <Alert severity="info" sx={{ mb: 1 }}>
-                      Choose a formula for each stat to quickly set up your build. Hank's Ratio maximizes gym efficiency with one very low stat. Baldr's Ratio is more balanced. Balanced High is a slight boost to one stat (Dex/Def only).
-                    </Alert>
-                    
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="caption" fontWeight="bold" display="block">Strength Build</Typography>
-                      <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('strength') })}>Hank's</Button>
-                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('strength') })}>Baldr's</Button>
-                      </Box>
+                    <TextField label="Strength Target" type="number" value={activeState.statWeights.strength ?? ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
+                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('strength') })}>Hank</Button>
+                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('strength') })}>Baldr</Button>
                     </Box>
                     
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="caption" fontWeight="bold" display="block">Speed Build</Typography>
-                      <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('speed') })}>Hank's</Button>
-                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('speed') })}>Baldr's</Button>
-                      </Box>
+                    <TextField label="Speed Target" type="number" value={activeState.statWeights.speed ?? ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
+                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('speed') })}>Hank</Button>
+                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('speed') })}>Baldr</Button>
                     </Box>
                     
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="caption" fontWeight="bold" display="block">Defense Build</Typography>
-                      <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('defense') })}>Hank's</Button>
-                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('defense') })}>Baldr's</Button>
-                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBalancedHighRatio('defense') })}>Balanced High</Button>
-                      </Box>
+                    <TextField label="Defense Target" type="number" value={activeState.statWeights.defense ?? ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
+                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('defense') })}>Hank</Button>
+                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('defense') })}>Baldr</Button>
+                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBalancedHighRatio('defense') })}>Def Build</Button>
                     </Box>
                     
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="caption" fontWeight="bold" display="block">Dexterity Build</Typography>
-                      <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('dexterity') })}>Hank's</Button>
-                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('dexterity') })}>Baldr's</Button>
-                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBalancedHighRatio('dexterity') })}>Balanced High</Button>
-                      </Box>
+                    <TextField label="Dexterity Target" type="number" value={activeState.statWeights.dexterity ?? ''} onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, dexterity: e.target.value === '' ? 0 : Number(e.target.value) }})} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} helperText="Set to 0 to not train this stat" />
+                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('dexterity') })}>Hank</Button>
+                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('dexterity') })}>Baldr</Button>
+                      <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBalancedHighRatio('dexterity') })}>Dex Build</Button>
                     </Box>
                     
                     <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Energy Sources</Typography>
+                    <FormControl fullWidth margin="dense" size="small">
+                      <InputLabel>Max Energy</InputLabel>
+                      <Select value={activeState.maxEnergy} label="Max Energy" onChange={(e) => updateState(activeState.id, { maxEnergy: Number(e.target.value) })}>
+                        <MenuItem value={150}>150 (Standard: 5E/10min)</MenuItem>
+                        <MenuItem value={100}>100 (5E/15min)</MenuItem>
+                      </Select>
+                    </FormControl>
                     <TextField label="Hours Played Per Day" type="number" value={activeState.hoursPlayedPerDay ?? ''} onChange={(e) => updateState(activeState.id, { hoursPlayedPerDay: e.target.value === '' ? 0 : Math.max(0, Math.min(24, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="0-24 hours" inputProps={{ step: 'any', min: 0 }} />
                     <TextField label="Xanax Per Day" type="number" value={activeState.xanaxPerDay ?? ''} onChange={(e) => updateState(activeState.id, { xanaxPerDay: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value))})} fullWidth margin="dense" size="small" helperText="Each xanax = +250 energy" inputProps={{ step: 'any', min: 0 }} />
-                    <FormControlLabel control={<Switch checked={activeState.hasPointsRefill} onChange={(e) => updateState(activeState.id, { hasPointsRefill: e.target.checked })} />} label="Points Refill (+150 energy)" />
+                    <FormControlLabel control={<Switch checked={activeState.hasPointsRefill} onChange={(e) => updateState(activeState.id, { hasPointsRefill: e.target.checked })} />} label={`Points Refill (+${activeState.maxEnergy} energy)`} />
                     <TextField label="Days Skipped Per Month" type="number" value={activeState.daysSkippedPerMonth ?? ''} onChange={(e) => updateState(activeState.id, { daysSkippedPerMonth: e.target.value === '' ? 0 : Math.max(0, Math.min(30, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="0-30 days (wars, vacations, etc.)" inputProps={{ step: 'any', min: 0 }} />
                     
                     <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Base Happy</Typography>
@@ -895,8 +871,8 @@ export default function GymComparison() {
                             onChange={(e) => updateState(activeState.id, { diabetesDayFHC: Number(e.target.value) as 0 | 1 | 2 })}
                           >
                             <MenuItem value={0}>0 (No FHC)</MenuItem>
-                            <MenuItem value={1}>1 (+150 energy)</MenuItem>
-                            <MenuItem value={2}>2 (+150 energy each)</MenuItem>
+                            <MenuItem value={1}>1 (+{activeState.maxEnergy} energy)</MenuItem>
+                            <MenuItem value={2}>2 (+{activeState.maxEnergy} energy each)</MenuItem>
                           </Select>
                         </FormControl>
                         
@@ -945,7 +921,7 @@ export default function GymComparison() {
                     )}
                     
                     <Alert severity="info" sx={{ mt: 2 }}>
-                      Daily Energy: {calculateDailyEnergy(activeState.hoursPlayedPerDay, activeState.xanaxPerDay, activeState.hasPointsRefill, getCompanyBenefit(activeState.companyBenefitKey, activeState.candleShopStars).bonusEnergyPerDay).toLocaleString()} E
+                      Daily Energy: {calculateDailyEnergy(activeState.hoursPlayedPerDay, activeState.xanaxPerDay, activeState.hasPointsRefill, getCompanyBenefit(activeState.companyBenefitKey, activeState.candleShopStars).bonusEnergyPerDay, activeState.maxEnergy).toLocaleString()} E
                     </Alert>
                   </Box>
                 )}
