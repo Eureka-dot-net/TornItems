@@ -534,7 +534,10 @@ export async function fetchMinMaxStatus(
           apiCalls.push(
             axios.get<CrimesResponse>(`https://api.torn.com/v2/user/6/crimes?key=${apiKey}`)
               .then(response => ({ type: 'skimmers', data: response.data }))
-              .catch(() => ({ type: 'skimmers', data: {} as CrimesResponse }))
+              .catch((error: any) => {
+                logError('Failed to fetch skimmers data', error instanceof Error ? error : new Error(String(error)));
+                return { type: 'skimmers', data: {} as CrimesResponse };
+              })
           );
         }
 
@@ -690,6 +693,14 @@ export async function fetchMinMaxStatus(
             
             // Get active skimmers count
             const activeSkimmers = crimesResponse.crimes?.miscellaneous?.skimmers?.active || 0;
+            
+            // Debug logging
+            logInfo('Skimmers data received', { 
+              hasData: !!crimesResponse.crimes,
+              hasMiscellaneous: !!crimesResponse.crimes?.miscellaneous,
+              hasSkimmers: !!crimesResponse.crimes?.miscellaneous?.skimmers,
+              activeSkimmers 
+            });
             
             activityData.skimmers = { active: activeSkimmers, target: SKIMMERS_TARGET, completed: activeSkimmers >= SKIMMERS_TARGET };
             
