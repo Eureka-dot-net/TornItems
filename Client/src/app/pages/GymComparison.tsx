@@ -39,6 +39,7 @@ import {
   type SimulationInputs,
   type CompanyBenefit,
   type SimulationResult,
+  type StatWeights,
 } from '../../lib/utils/gymProgressionCalculator';
 import { useGymStats } from '../../lib/hooks/useGymStats';
 
@@ -68,6 +69,110 @@ const GYMS: Gym[] = [
   { name: "lastround", displayName: "Last Round", strength: 6.8, speed: 6.5, defense: 7, dexterity: 6.5, energyPerTrain: 10, costToUnlock: 50000000, energyToUnlock: 360415 },
   { name: "theedge", displayName: "The Edge", strength: 6.8, speed: 7, defense: 7, dexterity: 6.8, energyPerTrain: 10, costToUnlock: 75000000, energyToUnlock: 444950 },
   { name: "georges", displayName: "George's", strength: 7.3, speed: 7.3, defense: 7.3, dexterity: 7.3, energyPerTrain: 10, costToUnlock: 100000000, energyToUnlock: 551255 },
+  // Specialty gyms - unlocked when Cha Cha's is unlocked
+  { 
+    name: "balboasgym", 
+    displayName: "Balboas Gym", 
+    strength: null, 
+    speed: null, 
+    defense: 7.5, 
+    dexterity: 7.5, 
+    energyPerTrain: 25, 
+    costToUnlock: 50000000, 
+    energyToUnlock: 236120, // Same as Cha Cha's
+    specialtyRequirement: (stats) => {
+      // Defense + Dexterity must be 25% higher than Strength + Speed
+      const defDex = stats.defense + stats.dexterity;
+      const strSpd = stats.strength + stats.speed;
+      return defDex >= strSpd * 1.25;
+    }
+  },
+  { 
+    name: "frontlinefitness", 
+    displayName: "Frontline Fitness", 
+    strength: 7.5, 
+    speed: 7.5, 
+    defense: null, 
+    dexterity: null, 
+    energyPerTrain: 25, 
+    costToUnlock: 50000000, 
+    energyToUnlock: 236120, // Same as Cha Cha's
+    specialtyRequirement: (stats) => {
+      // Strength + Speed must be 25% higher than Dexterity + Defense
+      const strSpd = stats.strength + stats.speed;
+      const defDex = stats.defense + stats.dexterity;
+      return strSpd >= defDex * 1.25;
+    }
+  },
+  // Specialty gyms - unlocked when George's is unlocked
+  { 
+    name: "gym3000", 
+    displayName: "Gym 3000", 
+    strength: 8.0, 
+    speed: null, 
+    defense: null, 
+    dexterity: null, 
+    energyPerTrain: 50, 
+    costToUnlock: 100000000, 
+    energyToUnlock: 551255, // Same as George's
+    specialtyRequirement: (stats) => {
+      // Strength must be 25% higher than second highest stat
+      const sortedStats = [stats.speed, stats.defense, stats.dexterity].sort((a, b) => b - a);
+      const secondHighest = sortedStats[0];
+      return stats.strength >= secondHighest * 1.25;
+    }
+  },
+  { 
+    name: "mrisoyamas", 
+    displayName: "Mr. Isoyamas", 
+    strength: null, 
+    speed: null, 
+    defense: 8.0, 
+    dexterity: null, 
+    energyPerTrain: 50, 
+    costToUnlock: 100000000, 
+    energyToUnlock: 551255, // Same as George's
+    specialtyRequirement: (stats) => {
+      // Defense must be 25% higher than second highest stat
+      const sortedStats = [stats.strength, stats.speed, stats.dexterity].sort((a, b) => b - a);
+      const secondHighest = sortedStats[0];
+      return stats.defense >= secondHighest * 1.25;
+    }
+  },
+  { 
+    name: "totalrebound", 
+    displayName: "Total Rebound", 
+    strength: null, 
+    speed: 8.0, 
+    defense: null, 
+    dexterity: null, 
+    energyPerTrain: 50, 
+    costToUnlock: 100000000, 
+    energyToUnlock: 551255, // Same as George's
+    specialtyRequirement: (stats) => {
+      // Speed must be 25% higher than second highest stat
+      const sortedStats = [stats.strength, stats.defense, stats.dexterity].sort((a, b) => b - a);
+      const secondHighest = sortedStats[0];
+      return stats.speed >= secondHighest * 1.25;
+    }
+  },
+  { 
+    name: "elites", 
+    displayName: "Elites", 
+    strength: null, 
+    speed: null, 
+    defense: null, 
+    dexterity: 8.0, 
+    energyPerTrain: 50, 
+    costToUnlock: 100000000, 
+    energyToUnlock: 551255, // Same as George's
+    specialtyRequirement: (stats) => {
+      // Dexterity must be 25% higher than second highest stat
+      const sortedStats = [stats.strength, stats.speed, stats.defense].sort((a, b) => b - a);
+      const secondHighest = sortedStats[0];
+      return stats.dexterity >= secondHighest * 1.25;
+    }
+  },
 ];
 
 // Comparison state interface
@@ -126,6 +231,59 @@ const getCompanyBenefit = (benefitKey: string, candleShopStars: number): Company
         bonusEnergyPerDay: 0,
         gymGainMultiplier: 1.0,
       };
+  }
+};
+
+// Preset stat weight formulas
+type StatType = 'strength' | 'speed' | 'defense' | 'dexterity';
+
+// Hank's Ratio presets - focuses on one high stat (using 50e gym) and two medium stats (using 25e gym)
+const getHanksRatio = (primaryStat: StatType): StatWeights => {
+  // Based on the description, if defense is high (100m), the ratios are:
+  // Str: 80m (27.78%), Def: 100m (34.72%), Spd: 80m (27.78%), Dex: 28m (9.72%)
+  // These percentages are: 0.2778, 0.3472, 0.2778, 0.0972
+  // Normalized to weights: 2.86, 3.57, 2.86, 1.00
+  // Simplified to approximately: 2.86, 3.57, 2.86, 1
+  
+  if (primaryStat === 'defense') {
+    return { strength: 2.86, speed: 2.86, defense: 3.57, dexterity: 1 };
+  } else if (primaryStat === 'dexterity') {
+    return { strength: 2.86, speed: 2.86, defense: 1, dexterity: 3.57 };
+  } else if (primaryStat === 'strength') {
+    return { strength: 3.57, speed: 1, defense: 2.86, dexterity: 2.86 };
+  } else { // speed
+    return { strength: 1, speed: 3.57, defense: 2.86, dexterity: 2.86 };
+  }
+};
+
+// Baldr's Ratio presets - more balanced, focuses on two stats (one using 50e gym, one using 25e gym)
+const getBaldrsRatio = (primaryStat: StatType): StatWeights => {
+  // Based on the description, if strength is high (100m), the ratios are:
+  // Str: 100m (30.86%), Def: 72m (22.22%), Spd: 80m (24.69%), Dex: 72m (22.22%)
+  // These percentages are: 0.3086, 0.2222, 0.2469, 0.2222
+  // Normalized to weights: 1.389, 1.000, 1.111, 1.000
+  // Simplified to approximately: 1.39, 1, 1.11, 1
+  
+  if (primaryStat === 'strength') {
+    return { strength: 1.39, speed: 1.11, defense: 1, dexterity: 1 };
+  } else if (primaryStat === 'speed') {
+    return { strength: 1.11, speed: 1.39, defense: 1, dexterity: 1 };
+  } else if (primaryStat === 'defense') {
+    return { strength: 1, speed: 1, defense: 1.39, dexterity: 1.11 };
+  } else { // dexterity
+    return { strength: 1, speed: 1, defense: 1.11, dexterity: 1.39 };
+  }
+};
+
+// Balanced High build - for dex and def only (what users call "whore" build)
+// This is someone who does weighing like 1/1/0/1.25 or 1/1/1.25/1
+const getBalancedHighRatio = (primaryStat: 'defense' | 'dexterity'): StatWeights => {
+  if (primaryStat === 'defense') {
+    // 1/1/1.25/1 - high defense
+    return { strength: 1, speed: 1, defense: 1.25, dexterity: 1 };
+  } else {
+    // 1/1/1/1.25 - high dexterity
+    return { strength: 1, speed: 1, defense: 1, dexterity: 1.25 };
   }
 };
 
@@ -526,6 +684,45 @@ export default function GymComparison() {
                   These values represent your desired stat ratios (e.g., 1:1:1.25:0 means equal strength/speed, 25% more dex, no defense). Each train goes to the stat furthest from its target ratio.
                 </Alert>
                 
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Quick Presets</Typography>
+                <Alert severity="info" sx={{ mb: 1 }}>
+                  Choose a formula for each stat to quickly set up your build. Hank's Ratio maximizes gym efficiency with one very low stat. Baldr's Ratio is more balanced. Balanced High is a slight boost to one stat (Dex/Def only).
+                </Alert>
+                
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="caption" fontWeight="bold" display="block">Strength Build</Typography>
+                  <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('strength'))}>Hank's</Button>
+                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('strength'))}>Baldr's</Button>
+                  </Box>
+                </Box>
+                
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="caption" fontWeight="bold" display="block">Speed Build</Typography>
+                  <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('speed'))}>Hank's</Button>
+                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('speed'))}>Baldr's</Button>
+                  </Box>
+                </Box>
+                
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="caption" fontWeight="bold" display="block">Defense Build</Typography>
+                  <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('defense'))}>Hank's</Button>
+                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('defense'))}>Baldr's</Button>
+                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBalancedHighRatio('defense'))}>Balanced High</Button>
+                  </Box>
+                </Box>
+                
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="caption" fontWeight="bold" display="block">Dexterity Build</Typography>
+                  <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getHanksRatio('dexterity'))}>Hank's</Button>
+                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBaldrsRatio('dexterity'))}>Baldr's</Button>
+                    <Button size="small" variant="outlined" onClick={() => setManualStatWeights(getBalancedHighRatio('dexterity'))}>Balanced High</Button>
+                  </Box>
+                </Box>
+                
                 <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Perk % Bonus</Typography>
                 <TextField label="Strength Perk %" type="number" value={manualPerkPercs.strength ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
                 <TextField label="Speed Perk %" type="number" value={manualPerkPercs.speed ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, speed: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
@@ -576,6 +773,45 @@ export default function GymComparison() {
                     <Alert severity="info" sx={{ mt: 2 }}>
                       These values represent your desired stat ratios (e.g., 1:1:1.25:0 means equal strength/speed, 25% more dex, no defense). Each train goes to the stat furthest from its target ratio.
                     </Alert>
+                    
+                    <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Quick Presets</Typography>
+                    <Alert severity="info" sx={{ mb: 1 }}>
+                      Choose a formula for each stat to quickly set up your build. Hank's Ratio maximizes gym efficiency with one very low stat. Baldr's Ratio is more balanced. Balanced High is a slight boost to one stat (Dex/Def only).
+                    </Alert>
+                    
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="caption" fontWeight="bold" display="block">Strength Build</Typography>
+                      <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('strength') })}>Hank's</Button>
+                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('strength') })}>Baldr's</Button>
+                      </Box>
+                    </Box>
+                    
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="caption" fontWeight="bold" display="block">Speed Build</Typography>
+                      <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('speed') })}>Hank's</Button>
+                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('speed') })}>Baldr's</Button>
+                      </Box>
+                    </Box>
+                    
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="caption" fontWeight="bold" display="block">Defense Build</Typography>
+                      <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('defense') })}>Hank's</Button>
+                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('defense') })}>Baldr's</Button>
+                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBalancedHighRatio('defense') })}>Balanced High</Button>
+                      </Box>
+                    </Box>
+                    
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="caption" fontWeight="bold" display="block">Dexterity Build</Typography>
+                      <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('dexterity') })}>Hank's</Button>
+                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('dexterity') })}>Baldr's</Button>
+                        <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBalancedHighRatio('dexterity') })}>Balanced High</Button>
+                      </Box>
+                    </Box>
                     
                     <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Energy Sources</Typography>
                     <TextField label="Hours Played Per Day" type="number" value={activeState.hoursPlayedPerDay ?? ''} onChange={(e) => updateState(activeState.id, { hoursPlayedPerDay: e.target.value === '' ? 0 : Math.max(0, Math.min(24, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="0-24 hours" inputProps={{ step: 'any', min: 0 }} />
