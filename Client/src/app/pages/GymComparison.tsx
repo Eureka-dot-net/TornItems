@@ -869,7 +869,7 @@ export default function GymComparison() {
                       label="Enable Diabetes Day" 
                     />
                     <Alert severity="info" sx={{ mt: 1, mb: 1 }}>
-                      Diabetes Day provides 99999 happy jumps with special energy bonuses. Jumps occur on day 3 and optionally day 6 (after 2-day baselines).
+                      Diabetes Day provides 99999 happy jumps with special energy bonuses. Jumps occur on day 3 and optionally day 5.
                     </Alert>
                     {activeState.diabetesDayEnabled && (
                       <>
@@ -922,7 +922,7 @@ export default function GymComparison() {
                         
                         <FormControlLabel 
                           control={<Switch checked={activeState.diabetesDayLogoClick} onChange={(e) => updateState(activeState.id, { diabetesDayLogoClick: e.target.checked })} />} 
-                          label="Logo Energy Click (+50 energy, first jump only)" 
+                          label="Logo Energy Click (+50 energy, second jump only)" 
                         />
                       </>
                     )}
@@ -1004,11 +1004,37 @@ export default function GymComparison() {
                               <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
                                 {state.diabetesDayNumberOfJumps} Jump{state.diabetesDayNumberOfJumps > 1 ? 's' : ''}
                               </Typography>
-                              <Typography variant="body2">Str: +{ddGains.strength.toLocaleString()}</Typography>
-                              <Typography variant="body2">Spd: +{ddGains.speed.toLocaleString()}</Typography>
-                              <Typography variant="body2">Def: +{ddGains.defense.toLocaleString()}</Typography>
-                              <Typography variant="body2">Dex: +{ddGains.dexterity.toLocaleString()}</Typography>
-                              <Typography variant="h6" color="success.main" sx={{ mt: 1 }}>
+                              
+                              {/* Jump 1 Gains */}
+                              {result.diabetesDayJump1Gains && (
+                                <>
+                                  <Typography variant="subtitle2" sx={{ mt: 1, fontWeight: 'bold' }}>Jump 1 (Day 3):</Typography>
+                                  <Typography variant="body2">Str: +{result.diabetesDayJump1Gains.strength.toLocaleString()}</Typography>
+                                  <Typography variant="body2">Spd: +{result.diabetesDayJump1Gains.speed.toLocaleString()}</Typography>
+                                  <Typography variant="body2">Def: +{result.diabetesDayJump1Gains.defense.toLocaleString()}</Typography>
+                                  <Typography variant="body2">Dex: +{result.diabetesDayJump1Gains.dexterity.toLocaleString()}</Typography>
+                                  <Typography variant="body2" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                                    Subtotal: +{(result.diabetesDayJump1Gains.strength + result.diabetesDayJump1Gains.speed + result.diabetesDayJump1Gains.defense + result.diabetesDayJump1Gains.dexterity).toLocaleString()}
+                                  </Typography>
+                                </>
+                              )}
+                              
+                              {/* Jump 2 Gains */}
+                              {result.diabetesDayJump2Gains && (
+                                <>
+                                  <Typography variant="subtitle2" sx={{ mt: 2, fontWeight: 'bold' }}>Jump 2 (Day 5):</Typography>
+                                  <Typography variant="body2">Str: +{result.diabetesDayJump2Gains.strength.toLocaleString()}</Typography>
+                                  <Typography variant="body2">Spd: +{result.diabetesDayJump2Gains.speed.toLocaleString()}</Typography>
+                                  <Typography variant="body2">Def: +{result.diabetesDayJump2Gains.defense.toLocaleString()}</Typography>
+                                  <Typography variant="body2">Dex: +{result.diabetesDayJump2Gains.dexterity.toLocaleString()}</Typography>
+                                  <Typography variant="body2" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                                    Subtotal: +{(result.diabetesDayJump2Gains.strength + result.diabetesDayJump2Gains.speed + result.diabetesDayJump2Gains.defense + result.diabetesDayJump2Gains.dexterity).toLocaleString()}
+                                  </Typography>
+                                </>
+                              )}
+                              
+                              {/* Total Gains */}
+                              <Typography variant="h6" color="success.main" sx={{ mt: 2 }}>
                                 Total DD Gain: +{totalGain.toLocaleString()}
                               </Typography>
                             </CardContent>

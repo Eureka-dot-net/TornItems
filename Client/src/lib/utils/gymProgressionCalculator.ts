@@ -101,6 +101,18 @@ export interface SimulationResult {
     defense: number;
     dexterity: number;
   };
+  diabetesDayJump1Gains?: {
+    strength: number;
+    speed: number;
+    defense: number;
+    dexterity: number;
+  };
+  diabetesDayJump2Gains?: {
+    strength: number;
+    speed: number;
+    defense: number;
+    dexterity: number;
+  };
 }
 
 /**
@@ -313,14 +325,16 @@ export function simulateGymProgression(
     : -1;
   
   // Track Diabetes Day jumps
-  // DD jumps occur on day 3 (after 2 days of baseline) and optionally day 6 (after another 2 days) if 2 jumps selected
+  // DD jumps occur on day 3 (after 2 days of baseline) and optionally day 5 if 2 jumps selected
   const diabetesDayJumpDays: number[] = [];
   const diabetesDayTotalGains = { strength: 0, speed: 0, defense: 0, dexterity: 0 };
+  let diabetesDayJump1Gains: { strength: number; speed: number; defense: number; dexterity: number } | undefined;
+  let diabetesDayJump2Gains: { strength: number; speed: number; defense: number; dexterity: number } | undefined;
   
   if (inputs.diabetesDay?.enabled) {
     diabetesDayJumpDays.push(3); // First jump on day 3 (after 2-day baseline)
     if (inputs.diabetesDay.numberOfJumps === 2) {
-      diabetesDayJumpDays.push(6); // Second jump on day 6 (after another 2-day baseline from day 4-5)
+      diabetesDayJumpDays.push(5); // Second jump on day 5 (after day 4 baseline)
     }
   }
   
@@ -439,8 +453,8 @@ export function simulateGymProgression(
         ddEnergy += 250;
       }
       
-      // Logo energy click: 50 energy for first jump only
-      if (isFirstJump && inputs.diabetesDay.logoEnergyClick) {
+      // Logo energy click: 50 energy for second jump only
+      if (!isFirstJump && inputs.diabetesDay.logoEnergyClick) {
         ddEnergy += 50;
       }
       
@@ -551,6 +565,14 @@ export function simulateGymProgression(
         dexterity: Math.round(stats.dexterity - statsBeforeTraining.dexterity),
       };
       
+      // Store individual jump gains
+      const jumpIndex = diabetesDayJumpDays.indexOf(day);
+      if (jumpIndex === 0) {
+        diabetesDayJump1Gains = { ...diabetesDayJumpGains };
+      } else if (jumpIndex === 1) {
+        diabetesDayJump2Gains = { ...diabetesDayJumpGains };
+      }
+      
       // Add to total DD gains
       diabetesDayTotalGains.strength += diabetesDayJumpGains.strength;
       diabetesDayTotalGains.speed += diabetesDayJumpGains.speed;
@@ -559,9 +581,9 @@ export function simulateGymProgression(
     }
     
     // Take snapshot every 7 days or on first day
-    // For DD mode, also snapshot on days 1-6 to show the flat lines and jumps clearly
+    // For DD mode, also snapshot on days 1-5 to show the flat lines and jumps clearly
     // For last day, only snapshot if it's been at least 7 days since last snapshot
-    const isDDSnapshotDay = inputs.diabetesDay?.enabled && day <= 6;
+    const isDDSnapshotDay = inputs.diabetesDay?.enabled && day <= 5;
     const shouldSnapshot = 
       day === 1 || 
       day % 7 === 0 || 
@@ -615,5 +637,7 @@ export function simulateGymProgression(
       dexterity: Math.round(stats.dexterity),
     },
     diabetesDayTotalGains: inputs.diabetesDay?.enabled ? diabetesDayTotalGains : undefined,
+    diabetesDayJump1Gains: inputs.diabetesDay?.enabled ? diabetesDayJump1Gains : undefined,
+    diabetesDayJump2Gains: inputs.diabetesDay?.enabled ? diabetesDayJump2Gains : undefined,
   };
 }
