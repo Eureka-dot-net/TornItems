@@ -856,7 +856,7 @@ export default function GymComparison() {
                     </FormControl>
                     <TextField label="Hours Played Per Day" type="number" value={activeState.hoursPlayedPerDay ?? ''} onChange={(e) => updateState(activeState.id, { hoursPlayedPerDay: e.target.value === '' ? 0 : Math.max(0, Math.min(24, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="0-24 hours" inputProps={{ step: 'any', min: 0 }} />
                     <TextField label="Xanax Per Day" type="number" value={activeState.xanaxPerDay ?? ''} onChange={(e) => updateState(activeState.id, { xanaxPerDay: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value))})} fullWidth margin="dense" size="small" helperText="Each xanax = +250 energy" inputProps={{ step: 'any', min: 0 }} />
-                    <FormControlLabel control={<Switch checked={activeState.hasPointsRefill} onChange={(e) => updateState(activeState.id, { hasPointsRefill: e.target.checked })} />} label="Points Refill (+150 energy)" />
+                    <FormControlLabel control={<Switch checked={activeState.hasPointsRefill} onChange={(e) => updateState(activeState.id, { hasPointsRefill: e.target.checked })} />} label={`Points Refill (+${activeState.maxEnergy} energy)`} />
                     <TextField label="Days Skipped Per Month" type="number" value={activeState.daysSkippedPerMonth ?? ''} onChange={(e) => updateState(activeState.id, { daysSkippedPerMonth: e.target.value === '' ? 0 : Math.max(0, Math.min(30, Number(e.target.value)))})} fullWidth margin="dense" size="small" helperText="0-30 days (wars, vacations, etc.)" inputProps={{ step: 'any', min: 0 }} />
                     
                     <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Base Happy</Typography>
@@ -907,8 +907,8 @@ export default function GymComparison() {
                             onChange={(e) => updateState(activeState.id, { diabetesDayFHC: Number(e.target.value) as 0 | 1 | 2 })}
                           >
                             <MenuItem value={0}>0 (No FHC)</MenuItem>
-                            <MenuItem value={1}>1 (+150 energy)</MenuItem>
-                            <MenuItem value={2}>2 (+150 energy each)</MenuItem>
+                            <MenuItem value={1}>1 (+{activeState.maxEnergy} energy)</MenuItem>
+                            <MenuItem value={2}>2 (+{activeState.maxEnergy} energy each)</MenuItem>
                           </Select>
                         </FormControl>
                         
