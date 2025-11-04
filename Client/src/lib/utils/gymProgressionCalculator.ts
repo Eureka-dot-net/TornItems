@@ -581,9 +581,21 @@ export function simulateGymProgression(
     }
     
     // Take snapshot every 7 days or on first day
-    // For DD mode, also snapshot on days 1-5 to show the flat lines and jumps clearly
+    // For DD mode, snapshot specific days to show flat lines before jumps only:
+    // - 1 jump: days 1, 2, 3 (flat on 1-2, jump on 3)
+    // - 2 jumps: days 1, 2, 3, 4, 5 (flat on 1-2, jump on 3, flat on 4, jump on 5)
     // For last day, only snapshot if it's been at least 7 days since last snapshot
-    const isDDSnapshotDay = inputs.diabetesDay?.enabled && day <= 5;
+    let isDDSnapshotDay = false;
+    if (inputs.diabetesDay?.enabled) {
+      if (inputs.diabetesDay.numberOfJumps === 1) {
+        // For 1 jump: only snapshot days 1, 2, 3
+        isDDSnapshotDay = day <= 3;
+      } else if (inputs.diabetesDay.numberOfJumps === 2) {
+        // For 2 jumps: only snapshot days 1, 2, 3, 4, 5
+        isDDSnapshotDay = day <= 5;
+      }
+    }
+    
     const shouldSnapshot = 
       day === 1 || 
       day % 7 === 0 || 
