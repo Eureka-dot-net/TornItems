@@ -325,16 +325,19 @@ export function simulateGymProgression(
     : -1;
   
   // Track Diabetes Day jumps
-  // DD jumps occur on day 3 (after 2 days of baseline) and optionally day 5 if 2 jumps selected
+  // DD jumps occur on day 7 for 1 jump, or days 5 and 7 for 2 jumps
+  // This aligns with the natural 7-day snapshot interval to avoid visual confusion
   const diabetesDayJumpDays: number[] = [];
   const diabetesDayTotalGains = { strength: 0, speed: 0, defense: 0, dexterity: 0 };
   let diabetesDayJump1Gains: { strength: number; speed: number; defense: number; dexterity: number } | undefined;
   let diabetesDayJump2Gains: { strength: number; speed: number; defense: number; dexterity: number } | undefined;
   
   if (inputs.diabetesDay?.enabled) {
-    diabetesDayJumpDays.push(3); // First jump on day 3 (after 2-day baseline)
-    if (inputs.diabetesDay.numberOfJumps === 2) {
-      diabetesDayJumpDays.push(5); // Second jump on day 5 (after day 4 baseline)
+    if (inputs.diabetesDay.numberOfJumps === 1) {
+      diabetesDayJumpDays.push(7); // Single jump on day 7
+    } else if (inputs.diabetesDay.numberOfJumps === 2) {
+      diabetesDayJumpDays.push(5); // First jump on day 5
+      diabetesDayJumpDays.push(7); // Second jump on day 7
     }
   }
   
@@ -581,15 +584,10 @@ export function simulateGymProgression(
     }
     
     // Take snapshot every 7 days or on first day
-    // For DD mode, also snapshot on days 1-6 to show the flat lines and jumps clearly:
-    // - Days 1-2: flat baseline before first jump
-    // - Day 3: first jump
-    // - Day 4: flat baseline before second jump (if 2 jumps)
-    // - Day 5: second jump (if 2 jumps)
-    // - Day 6: day after last possible jump, before resuming normal 7-day intervals
-    // This ensures we capture the DD event clearly without missing intermediate gains
+    // For DD mode with 2 jumps, also snapshot on day 5 to show the first jump clearly
+    // (Day 7 is already captured by the day % 7 === 0 condition)
     // For last day, only snapshot if it's been at least 7 days since last snapshot
-    const isDDSnapshotDay = inputs.diabetesDay?.enabled && day <= 6;
+    const isDDSnapshotDay = inputs.diabetesDay?.enabled && inputs.diabetesDay.numberOfJumps === 2 && day === 5;
     const shouldSnapshot = 
       day === 1 || 
       day % 7 === 0 || 
