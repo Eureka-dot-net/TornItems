@@ -13,6 +13,7 @@ export interface Gym {
   energyPerTrain: number;
   energyToUnlock: number;
   costToUnlock: number;
+  specialtyRequirement?: (stats: { strength: number; speed: number; defense: number; dexterity: number }) => boolean;
 }
 
 export interface StatWeights {
@@ -192,7 +193,8 @@ function findBestGym(
   gyms: Gym[],
   stat: string,
   totalEnergySpent: number,
-  gymUnlockSpeedMultiplier: number
+  gymUnlockSpeedMultiplier: number,
+  currentStats: { strength: number; speed: number; defense: number; dexterity: number }
 ): Gym {
   // Filter gyms that support this stat and are unlocked
   const availableGyms = gyms.filter(gym => {
@@ -202,7 +204,15 @@ function findBestGym(
     // Apply company benefit to unlock requirement
     const adjustedEnergyToUnlock = gym.energyToUnlock / gymUnlockSpeedMultiplier;
     
-    return totalEnergySpent >= adjustedEnergyToUnlock;
+    // Check energy requirement
+    if (totalEnergySpent < adjustedEnergyToUnlock) return false;
+    
+    // Check specialty requirement if exists
+    if (gym.specialtyRequirement && !gym.specialtyRequirement(currentStats)) {
+      return false;
+    }
+    
+    return true;
   });
   
   if (availableGyms.length === 0) {
@@ -386,7 +396,8 @@ export function simulateGymProgression(
             gyms,
             selectedStat,
             totalEnergySpent,
-            inputs.companyBenefit.gymUnlockSpeedMultiplier
+            inputs.companyBenefit.gymUnlockSpeedMultiplier,
+            stats
           );
         }
         
@@ -448,7 +459,8 @@ export function simulateGymProgression(
             gyms,
             primaryStat[0],
             totalEnergySpent,
-            inputs.companyBenefit.gymUnlockSpeedMultiplier
+            inputs.companyBenefit.gymUnlockSpeedMultiplier,
+            stats
           );
           currentGym = gym.displayName;
         }
