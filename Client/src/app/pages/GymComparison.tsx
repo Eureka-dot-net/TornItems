@@ -1132,54 +1132,20 @@ export default function GymComparison() {
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          <TableRow>
-                            <TableCell>Strength</TableCell>
-                            {comparisonStates.map((state) => {
-                              const result = results[state.id];
-                              if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
-                              return (
-                                <TableCell key={state.id} align="right">
-                                  {result.finalStats.strength.toLocaleString()}
-                                </TableCell>
-                              );
-                            })}
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>Speed</TableCell>
-                            {comparisonStates.map((state) => {
-                              const result = results[state.id];
-                              if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
-                              return (
-                                <TableCell key={state.id} align="right">
-                                  {result.finalStats.speed.toLocaleString()}
-                                </TableCell>
-                              );
-                            })}
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>Defense</TableCell>
-                            {comparisonStates.map((state) => {
-                              const result = results[state.id];
-                              if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
-                              return (
-                                <TableCell key={state.id} align="right">
-                                  {result.finalStats.defense.toLocaleString()}
-                                </TableCell>
-                              );
-                            })}
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>Dexterity</TableCell>
-                            {comparisonStates.map((state) => {
-                              const result = results[state.id];
-                              if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
-                              return (
-                                <TableCell key={state.id} align="right">
-                                  {result.finalStats.dexterity.toLocaleString()}
-                                </TableCell>
-                              );
-                            })}
-                          </TableRow>
+                          {(['strength', 'speed', 'defense', 'dexterity'] as const).map((statName) => (
+                            <TableRow key={statName}>
+                              <TableCell sx={{ textTransform: 'capitalize' }}>{statName}</TableCell>
+                              {comparisonStates.map((state) => {
+                                const result = results[state.id];
+                                if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
+                                return (
+                                  <TableCell key={state.id} align="right">
+                                    {result.finalStats[statName].toLocaleString()}
+                                  </TableCell>
+                                );
+                              })}
+                            </TableRow>
+                          ))}
                           <TableRow sx={{ borderTop: 2, borderColor: 'divider' }}>
                             <TableCell sx={{ fontWeight: 'bold' }}>Total</TableCell>
                             {comparisonStates.map((state) => {
