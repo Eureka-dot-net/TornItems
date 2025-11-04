@@ -607,10 +607,12 @@ export default function GymComparison() {
       };
       
       for (const state of comparisonStates) {
-        if (results[state.id]) {
+        if (results[state.id] && results[state.id].dailySnapshots[index]) {
           const snapshot = results[state.id].dailySnapshots[index];
-          const totalStats = snapshot.strength + snapshot.speed + snapshot.defense + snapshot.dexterity;
-          dataPoint[state.name] = totalStats;
+          if (snapshot && snapshot.strength !== undefined) {
+            const totalStats = snapshot.strength + snapshot.speed + snapshot.defense + snapshot.dexterity;
+            dataPoint[state.name] = totalStats;
+          }
         }
       }
       
@@ -1006,7 +1008,7 @@ export default function GymComparison() {
                               </Typography>
                               
                               {/* Jump 1 Gains */}
-                              {result.diabetesDayJump1Gains && (
+                              {result.diabetesDayJump1Gains && result.diabetesDayJump1Gains.strength !== undefined && (
                                 <>
                                   <Typography variant="subtitle2" sx={{ mt: 1, fontWeight: 'bold' }}>
                                     Jump 1 (Day {state.diabetesDayNumberOfJumps === 1 ? '7' : '5'}):
@@ -1022,7 +1024,7 @@ export default function GymComparison() {
                               )}
                               
                               {/* Jump 2 Gains */}
-                              {result.diabetesDayJump2Gains && (
+                              {result.diabetesDayJump2Gains && result.diabetesDayJump2Gains.strength !== undefined && (
                                 <>
                                   <Typography variant="subtitle2" sx={{ mt: 2, fontWeight: 'bold' }}>Jump 2 (Day 7):</Typography>
                                   <Typography variant="body2">Str: +{result.diabetesDayJump2Gains.strength.toLocaleString()}</Typography>
