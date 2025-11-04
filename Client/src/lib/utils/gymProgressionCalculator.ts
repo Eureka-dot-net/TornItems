@@ -140,6 +140,16 @@ function computeStatGain(
   dots: number,
   energyPerTrain: number
 ): number {
+  // Constants from the spreadsheet formula
+  const BASE_DIVISOR = 200000;  // Base divisor in the formula
+  const HIGH_STAT_THRESHOLD = 50_000_000;  // Threshold for diminishing returns
+  const DIMINISHING_RETURNS_FACTOR = 8.77635;  // Factor for high stat adjustment
+  const HAPPY_MULTIPLIER_BASE = 0.07;  // Base multiplier for happy bonus
+  const HAPPY_OFFSET = 250;  // Offset for happy calculations
+  const HAPPY_EXPONENT = 1.05;  // Exponent for happy power calculation
+  const HAPPY_POWER_MULTIPLIER = 8;  // Multiplier for happy^1.05 term
+  const HAPPY_MAX_FOR_LOOKUP = 99999;  // Maximum happy value for lookup calculation
+  
   // Lookup table values for each stat (columns 2 and 3 from VLOOKUP table)
   const lookupTable: Record<string, [number, number]> = {
     strength: [1600, 1700],
@@ -154,20 +164,20 @@ function computeStatGain(
   const perkBonus = 1 + perkPercForStat / 100;
   
   // Adjusted stat for values over 50M (diminishing returns)
-  const adjustedStat = currentStatValue < 50_000_000
+  const adjustedStat = currentStatValue < HIGH_STAT_THRESHOLD
     ? currentStatValue
-    : (currentStatValue - 50_000_000) / (8.77635 * Math.log(currentStatValue)) + 50_000_000;
+    : (currentStatValue - HIGH_STAT_THRESHOLD) / (DIMINISHING_RETURNS_FACTOR * Math.log(currentStatValue)) + HIGH_STAT_THRESHOLD;
   
   // Happy multiplier with proper rounding as in spreadsheet
-  const innerRound = Math.round(Math.log(1 + happy / 250) * 10000) / 10000;
-  const happyMult = Math.round((1 + 0.07 * innerRound) * 10000) / 10000;
+  const innerRound = Math.round(Math.log(1 + happy / HAPPY_OFFSET) * 10000) / 10000;
+  const happyMult = Math.round((1 + HAPPY_MULTIPLIER_BASE * innerRound) * 10000) / 10000;
   
   // Calculate gain using the spreadsheet formula
-  const multiplier = (1 / 200000) * dots * energyPerTrain * perkBonus;
+  const multiplier = (1 / BASE_DIVISOR) * dots * energyPerTrain * perkBonus;
   const innerExpression = 
     adjustedStat * happyMult + 
-    8 * Math.pow(happy, 1.05) + 
-    lookup2 * (1 - Math.pow(happy / 99999, 2)) + 
+    HAPPY_POWER_MULTIPLIER * Math.pow(happy, HAPPY_EXPONENT) + 
+    lookup2 * (1 - Math.pow(happy / HAPPY_MAX_FOR_LOOKUP, 2)) + 
     lookup3;
 
   const gain = multiplier * innerExpression;
