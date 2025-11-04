@@ -72,7 +72,7 @@ const GYMS: Gym[] = [
   // Specialty gyms - unlocked when Cha Cha's is unlocked
   { 
     name: "balboasgym", 
-    displayName: "Balboas Gym", 
+    displayName: "Balboa's Gym", 
     strength: null, 
     speed: null, 
     defense: 7.5, 
@@ -124,7 +124,7 @@ const GYMS: Gym[] = [
   },
   { 
     name: "mrisoyamas", 
-    displayName: "Mr. Isoyamas", 
+    displayName: "Mr. Isoyama's", 
     strength: null, 
     speed: null, 
     defense: 8.0, 
