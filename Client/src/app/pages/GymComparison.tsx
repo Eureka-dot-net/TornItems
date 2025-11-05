@@ -1694,6 +1694,92 @@ export default function GymComparison() {
                   );
                 }
               })()}
+              
+              {/* Happy Jump (EDVD Jump) Table - Show for each comparison state that has EDVD jumps enabled */}
+              {comparisonStates.map((state, stateIndex) => {
+                if (!state.edvdJumpEnabled || !results[state.id]) return null;
+                
+                const result = results[state.id];
+                const edvdJumps = result.dailySnapshots.filter(snapshot => snapshot.isEdvdJump && snapshot.edvdJumpGains);
+                
+                if (edvdJumps.length === 0) return null;
+                
+                return (
+                  <Paper key={state.id} sx={{ p: 2, mb: 3 }}>
+                    <Typography variant="h6" gutterBottom sx={{ color: CHART_COLORS[stateIndex % CHART_COLORS.length] }}>
+                      Happy Jump Output - {state.name}
+                    </Typography>
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 'bold' }}>Jump #</TableCell>
+                            <TableCell sx={{ fontWeight: 'bold' }}>On Day</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Strength Start</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Strength End</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Strength Gain</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Speed Start</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Speed End</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Speed Gain</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Defense Start</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Defense End</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Defense Gain</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Dexterity Start</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Dexterity End</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Dexterity Gain</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Total Stats</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Total Gain</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {edvdJumps.map((jump, jumpIndex) => {
+                            const gains = jump.edvdJumpGains!;
+                            const strengthStart = jump.strength - gains.strength;
+                            const speedStart = jump.speed - gains.speed;
+                            const defenseStart = jump.defense - gains.defense;
+                            const dexterityStart = jump.dexterity - gains.dexterity;
+                            const totalStats = jump.strength + jump.speed + jump.defense + jump.dexterity;
+                            const totalGain = gains.strength + gains.speed + gains.defense + gains.dexterity;
+                            
+                            return (
+                              <TableRow key={jumpIndex}>
+                                <TableCell>{jumpIndex + 1}</TableCell>
+                                <TableCell>{jump.day}</TableCell>
+                                <TableCell align="right">{strengthStart.toLocaleString()}</TableCell>
+                                <TableCell align="right">{jump.strength.toLocaleString()}</TableCell>
+                                <TableCell align="right" sx={{ color: 'success.main', fontWeight: 'bold' }}>
+                                  +{gains.strength.toLocaleString()}
+                                </TableCell>
+                                <TableCell align="right">{speedStart.toLocaleString()}</TableCell>
+                                <TableCell align="right">{jump.speed.toLocaleString()}</TableCell>
+                                <TableCell align="right" sx={{ color: 'success.main', fontWeight: 'bold' }}>
+                                  +{gains.speed.toLocaleString()}
+                                </TableCell>
+                                <TableCell align="right">{defenseStart.toLocaleString()}</TableCell>
+                                <TableCell align="right">{jump.defense.toLocaleString()}</TableCell>
+                                <TableCell align="right" sx={{ color: 'success.main', fontWeight: 'bold' }}>
+                                  +{gains.defense.toLocaleString()}
+                                </TableCell>
+                                <TableCell align="right">{dexterityStart.toLocaleString()}</TableCell>
+                                <TableCell align="right">{jump.dexterity.toLocaleString()}</TableCell>
+                                <TableCell align="right" sx={{ color: 'success.main', fontWeight: 'bold' }}>
+                                  +{gains.dexterity.toLocaleString()}
+                                </TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                                  {totalStats.toLocaleString()}
+                                </TableCell>
+                                <TableCell align="right" sx={{ color: 'success.main', fontWeight: 'bold' }}>
+                                  +{totalGain.toLocaleString()}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Paper>
+                );
+              })}
             </>
           )}
 

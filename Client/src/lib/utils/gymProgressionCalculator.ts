@@ -108,8 +108,8 @@ export interface DailySnapshot {
     defense: number;
     dexterity: number;
   };
-  isCandyJump?: boolean; // Marks if this day had a candy jump
-  candyJumpGains?: {
+  isEdvdJump?: boolean; // Marks if this day had an EDVD jump
+  edvdJumpGains?: {
     strength: number;
     speed: number;
     defense: number;
@@ -535,13 +535,13 @@ export function simulateGymProgression(
     // Train one energy at a time, always choosing the stat that is most out of sync with target ratio
     let remainingEnergy = energyAvailableToday;
     
-    // Track stats before training for DD jumps and candy jumps
+    // Track stats before training for DD jumps and EDVD jumps
     const statsBeforeTraining = isDiabetesDayJump ? { ...stats } : undefined;
+    const statsBeforeEdvdJump = shouldPerformEdvdJump ? { ...stats } : undefined;
     const isCandyJump = inputs.candyJump?.enabled && !shouldPerformEdvdJump && !isDiabetesDayJump && !isSkipped;
-    const statsBeforeCandyJump = isCandyJump ? { ...stats } : undefined;
     
     // Handle candy jump if enabled and not on an EDVD or DD jump day
-    if (isCandyJump) {
+    if (isCandyJump && inputs.candyJump) {
       // Map item IDs to happiness values
       const candyHappinessMap: Record<number, number> = {
         310: 25,
@@ -759,14 +759,14 @@ export function simulateGymProgression(
       diabetesDayTotalGains.dexterity += diabetesDayJumpGains.dexterity;
     }
     
-    // Calculate candy jump gains if this was a candy jump day
-    let candyJumpGains: { strength: number; speed: number; defense: number; dexterity: number } | undefined;
-    if (isCandyJump && statsBeforeCandyJump) {
-      candyJumpGains = {
-        strength: Math.round(stats.strength - statsBeforeCandyJump.strength),
-        speed: Math.round(stats.speed - statsBeforeCandyJump.speed),
-        defense: Math.round(stats.defense - statsBeforeCandyJump.defense),
-        dexterity: Math.round(stats.dexterity - statsBeforeCandyJump.dexterity),
+    // Calculate EDVD jump gains if this was an EDVD jump day
+    let edvdJumpGains: { strength: number; speed: number; defense: number; dexterity: number } | undefined;
+    if (shouldPerformEdvdJump && statsBeforeEdvdJump) {
+      edvdJumpGains = {
+        strength: Math.round(stats.strength - statsBeforeEdvdJump.strength),
+        speed: Math.round(stats.speed - statsBeforeEdvdJump.speed),
+        defense: Math.round(stats.defense - statsBeforeEdvdJump.defense),
+        dexterity: Math.round(stats.dexterity - statsBeforeEdvdJump.dexterity),
       };
     }
     
@@ -813,8 +813,8 @@ export function simulateGymProgression(
         energySpentOnGymUnlock,
         isDiabetesDayJump,
         diabetesDayJumpGains,
-        isCandyJump,
-        candyJumpGains,
+        isEdvdJump: shouldPerformEdvdJump,
+        edvdJumpGains,
       };
       
       dailySnapshots.push(snapshot);
