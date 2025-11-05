@@ -10,7 +10,6 @@
 
 import {
   simulateGymProgression,
-  calculateDailyEnergy,
   type Gym,
   type SimulationInputs,
   type CompanyBenefit,
