@@ -202,6 +202,10 @@ interface ComparisonState {
   candyJumpItemId: number; // Item ID: 310 (25 happy), 36 (35 happy), 528 (75 happy), 529 (100 happy), 151 (150 happy)
   candyJumpUseEcstasy: boolean; // If true, use ecstasy to double happiness after candy
   candyJumpQuantity: number; // Number of candies used per day (default 48)
+  energyJumpEnabled: boolean;
+  energyJumpItemId: number; // Item ID: 985 (5 energy), 986 (10 energy), 987 (15 energy), 530 (20 energy), 532 (25 energy), 533 (30 energy), 357 (FHC)
+  energyJumpQuantity: number; // Number of energy items used per day (default 24 for drinks, 6 for FHC)
+  energyJumpFactionBenefit: number; // % increase in energy from faction benefits
   diabetesDayEnabled: boolean;
   diabetesDayNumberOfJumps: 1 | 2;
   diabetesDayFHC: 0 | 1 | 2;
@@ -377,6 +381,10 @@ export default function GymComparison() {
         candyJumpItemId: 310, // Default to 25 happy candy
         candyJumpUseEcstasy: false,
         candyJumpQuantity: 48,
+        energyJumpEnabled: false,
+        energyJumpItemId: 985, // Default to 5 energy item
+        energyJumpQuantity: 24,
+        energyJumpFactionBenefit: 0,
         diabetesDayEnabled: false,
         diabetesDayNumberOfJumps: 1,
         diabetesDayFHC: 0,
@@ -398,9 +406,10 @@ export default function GymComparison() {
   
   const { data: gymStatsData, isLoading: isLoadingGymStats, error: gymStatsError, refetch: refetchGymStats } = useGymStats(apiKey || null);
   
-  // Fetch item prices for EDVD jumps, xanax, and candy items - only if costs should be shown
+  // Fetch item prices for EDVD jumps, xanax, candy items, and energy items - only if costs should be shown
   // Item IDs: 366 (DVDs), 206 (Xanax), 196 (Ecstasy for EDVD), 197 (Ecstasy for candy), 310 (25 happy), 36 (35 happy), 528 (75 happy), 529 (100 happy), 151 (150 happy)
-  const { data: itemPricesData } = useItemPrices(showCosts ? [366, 206, 196, 197, 310, 36, 528, 529, 151] : []);
+  // Energy IDs: 985 (5 energy), 986 (10 energy), 987 (15 energy), 530 (20 energy), 532 (25 energy), 533 (30 energy), 357 (FHC)
+  const { data: itemPricesData } = useItemPrices(showCosts ? [366, 206, 196, 197, 310, 36, 528, 529, 151, 985, 986, 987, 530, 532, 533, 357] : []);
   
   // Auto-populate stats when fetched
   useEffect(() => {
@@ -495,6 +504,10 @@ export default function GymComparison() {
       candyJumpItemId: sourceState.candyJumpItemId,
       candyJumpUseEcstasy: sourceState.candyJumpUseEcstasy,
       candyJumpQuantity: sourceState.candyJumpQuantity,
+      energyJumpEnabled: sourceState.energyJumpEnabled,
+      energyJumpItemId: sourceState.energyJumpItemId,
+      energyJumpQuantity: sourceState.energyJumpQuantity,
+      energyJumpFactionBenefit: sourceState.energyJumpFactionBenefit,
       diabetesDayEnabled: sourceState.diabetesDayEnabled,
       diabetesDayNumberOfJumps: sourceState.diabetesDayNumberOfJumps,
       diabetesDayFHC: sourceState.diabetesDayFHC,
@@ -595,6 +608,12 @@ export default function GymComparison() {
               useEcstasy: state.candyJumpUseEcstasy,
               quantity: state.candyJumpQuantity,
             } : undefined,
+            energyJump: state.energyJumpEnabled ? {
+              enabled: true,
+              itemId: state.energyJumpItemId,
+              quantity: state.energyJumpQuantity,
+              factionBenefitPercent: state.energyJumpFactionBenefit,
+            } : undefined,
             daysSkippedPerMonth: state.daysSkippedPerMonth,
             itemPrices: (showCosts && itemPricesData) ? {
               dvdPrice: itemPricesData.prices[366],
@@ -607,6 +626,15 @@ export default function GymComparison() {
                 528: itemPricesData.prices[528],
                 529: itemPricesData.prices[529],
                 151: itemPricesData.prices[151],
+              },
+              energyPrices: {
+                985: itemPricesData.prices[985],
+                986: itemPricesData.prices[986],
+                987: itemPricesData.prices[987],
+                530: itemPricesData.prices[530],
+                532: itemPricesData.prices[532],
+                533: itemPricesData.prices[533],
+                357: itemPricesData.prices[357],
               },
             } : undefined,
           };
@@ -1146,11 +1174,11 @@ export default function GymComparison() {
                 </Grid>
               </Grid>
 
-              {/* New Row for Stat Jumps (EDVD and Candy) */}
+              {/* New Row for Stat Jumps (EDVD, Candy, and Energy) */}
               <Typography variant="subtitle2" gutterBottom sx={{ mt: 3 }}>Stat Jumps</Typography>
               <Grid container spacing={2}>
                 {/* EDVD Jumps Column */}
-                <Grid size={{ xs: 12, md: 6 }}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <FormControlLabel 
                     control={<Switch checked={activeState.edvdJumpEnabled} onChange={(e) => updateState(activeState.id, { edvdJumpEnabled: e.target.checked })} size="small" />} 
                     label="EDVD Jumps" 
@@ -1218,7 +1246,7 @@ export default function GymComparison() {
                 </Grid>
 
                 {/* Candy Jumps Column */}
-                <Grid size={{ xs: 12, md: 6 }}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <FormControlLabel 
                     control={<Switch checked={activeState.candyJumpEnabled} onChange={(e) => updateState(activeState.id, { candyJumpEnabled: e.target.checked })} size="small" />} 
                     label="Candy" 
@@ -1263,6 +1291,76 @@ export default function GymComparison() {
                           if (hasPoints) return '300';
                           return '150';
                         })()} energy at {activeState.candyJumpUseEcstasy ? `(base happy + candy happy × ${activeState.candyJumpQuantity}) × 2` : `base happy + (candy happy × ${activeState.candyJumpQuantity})`}
+                      </Typography>
+                    </>
+                  )}
+                </Grid>
+                
+                {/* Energy Jumps Column */}
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <FormControlLabel 
+                    control={<Switch checked={activeState.energyJumpEnabled} onChange={(e) => updateState(activeState.id, { energyJumpEnabled: e.target.checked })} size="small" />} 
+                    label="Energy" 
+                  />
+                  {activeState.energyJumpEnabled && (
+                    <>
+                      <FormControl fullWidth margin="dense" size="small">
+                        <InputLabel>Energy Item</InputLabel>
+                        <Select 
+                          value={activeState.energyJumpItemId} 
+                          label="Energy Item" 
+                          onChange={(e) => {
+                            const newItemId = Number(e.target.value);
+                            // Update quantity based on item type: 6 for FHC, 24 for others
+                            const newQuantity = newItemId === 357 ? 6 : 24;
+                            updateState(activeState.id, { 
+                              energyJumpItemId: newItemId,
+                              energyJumpQuantity: newQuantity
+                            });
+                          }}
+                        >
+                          <MenuItem value={985}>5 Energy</MenuItem>
+                          <MenuItem value={986}>10 Energy</MenuItem>
+                          <MenuItem value={987}>15 Energy</MenuItem>
+                          <MenuItem value={530}>20 Energy</MenuItem>
+                          <MenuItem value={532}>25 Energy</MenuItem>
+                          <MenuItem value={533}>30 Energy</MenuItem>
+                          <MenuItem value={357}>FHC (Refill)</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <TextField 
+                        label="Items per Day" 
+                        type="number" 
+                        value={activeState.energyJumpQuantity ?? ''} 
+                        onChange={(e) => updateState(activeState.id, { energyJumpQuantity: e.target.value === '' ? (activeState.energyJumpItemId === 357 ? 6 : 24) : Math.max(1, Number(e.target.value))})} 
+                        fullWidth 
+                        margin="dense" 
+                        size="small" 
+                        inputProps={{ step: 'any', min: 1 }} 
+                      />
+                      <TextField 
+                        label="Faction Benefit %" 
+                        type="number" 
+                        value={activeState.energyJumpFactionBenefit ?? ''} 
+                        onChange={(e) => updateState(activeState.id, { energyJumpFactionBenefit: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value))})} 
+                        fullWidth 
+                        margin="dense" 
+                        size="small" 
+                        inputProps={{ step: 'any', min: 0 }} 
+                      />
+                      <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
+                        {activeState.energyJumpItemId === 357 
+                          ? `FHC refills ${activeState.maxEnergy} energy per use`
+                          : `${(() => {
+                              const energyMap: Record<number, number> = {985: 5, 986: 10, 987: 15, 530: 20, 532: 25, 533: 30};
+                              const baseEnergy = energyMap[activeState.energyJumpItemId] || 0;
+                              const totalEnergy = baseEnergy * activeState.energyJumpQuantity;
+                              const withBenefit = activeState.energyJumpFactionBenefit > 0 
+                                ? totalEnergy * (1 + activeState.energyJumpFactionBenefit / 100)
+                                : totalEnergy;
+                              return Math.round(withBenefit);
+                            })()} extra energy per day`
+                        }
                       </Typography>
                     </>
                   )}
@@ -1446,6 +1544,21 @@ export default function GymComparison() {
                                         );
                                       })}
                                     </TableRow>
+                                    <TableRow>
+                                      <TableCell sx={{ fontWeight: 'bold' }}>Energy Cost</TableCell>
+                                      {comparisonStates.map((state) => {
+                                        const result = results[state.id];
+                                        if (!result || !result.energyJumpCosts) {
+                                          return <TableCell key={state.id} align="right">-</TableCell>;
+                                        }
+                                        
+                                        return (
+                                          <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
+                                            {formatCurrency(result.energyJumpCosts.totalCost)}
+                                          </TableCell>
+                                        );
+                                      })}
+                                    </TableRow>
                                     <TableRow sx={{ borderTop: 2, borderColor: 'divider' }}>
                                       <TableCell sx={{ fontWeight: 'bold' }}>Total Cost</TableCell>
                                       {comparisonStates.map((state) => {
@@ -1457,11 +1570,37 @@ export default function GymComparison() {
                                         const edvdCost = result.edvdJumpCosts?.totalCost || 0;
                                         const xanaxCost = result.xanaxCosts?.totalCost || 0;
                                         const candyCost = result.candyJumpCosts?.totalCost || 0;
-                                        const totalCost = edvdCost + xanaxCost + candyCost;
+                                        const energyCost = result.energyJumpCosts?.totalCost || 0;
+                                        const totalCost = edvdCost + xanaxCost + candyCost + energyCost;
                                         
                                         return (
                                           <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}>
                                             {formatCurrency(totalCost)}
+                                          </TableCell>
+                                        );
+                                      })}
+                                    </TableRow>
+                                    <TableRow>
+                                      <TableCell sx={{ fontWeight: 'bold' }}>Price per Day</TableCell>
+                                      {comparisonStates.map((state) => {
+                                        const result = results[state.id];
+                                        if (!result) {
+                                          return <TableCell key={state.id} align="right">-</TableCell>;
+                                        }
+                                        
+                                        const edvdCost = result.edvdJumpCosts?.totalCost || 0;
+                                        const xanaxCost = result.xanaxCosts?.totalCost || 0;
+                                        const candyCost = result.candyJumpCosts?.totalCost || 0;
+                                        const energyCost = result.energyJumpCosts?.totalCost || 0;
+                                        const totalCost = edvdCost + xanaxCost + candyCost + energyCost;
+                                        
+                                        // Calculate total days from months
+                                        const totalDays = months * 30;
+                                        const pricePerDay = totalDays > 0 ? totalCost / totalDays : 0;
+                                        
+                                        return (
+                                          <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
+                                            {pricePerDay > 0 ? formatCurrency(pricePerDay) : '-'}
                                           </TableCell>
                                         );
                                       })}
@@ -1503,7 +1642,8 @@ export default function GymComparison() {
                                           const edvdCost = result.edvdJumpCosts?.totalCost || 0;
                                           const xanaxCost = result.xanaxCosts?.totalCost || 0;
                                           const candyCost = result.candyJumpCosts?.totalCost || 0;
-                                          const totalCost = edvdCost + xanaxCost + candyCost;
+                                          const energyCost = result.energyJumpCosts?.totalCost || 0;
+                                          const totalCost = edvdCost + xanaxCost + candyCost + energyCost;
                                           const totalGain = calculateTotalGain(result);
                                           
                                           if (totalCost === 0 || totalGain === 0) {
