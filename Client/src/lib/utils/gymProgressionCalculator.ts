@@ -55,10 +55,13 @@ export interface SimulationInputs {
   lockGym?: boolean; // Optional: if true, stay locked to currentGymIndex. If false/undefined, auto-upgrade from currentGymIndex
   manualEnergy?: number; // Optional: if specified, use this instead of calculating daily energy
   maxEnergy?: number; // Optional: 150 (default) or 100. Affects energy regeneration rate and max capacity
-  happyJump?: {
+  edvdJump?: {
     enabled: boolean;
     frequencyDays: number; // e.g., 7 for weekly, 14 for every 2 weeks
     dvdsUsed: number;
+    limit: 'indefinite' | 'count' | 'stat';
+    count?: number; // Number of jumps to perform when limit is 'count'
+    statTarget?: number; // Total stat target when limit is 'stat'
   };
   diabetesDay?: {
     enabled: boolean;
@@ -69,6 +72,11 @@ export interface SimulationInputs {
     logoEnergyClick: boolean; // 50 energy for first jump only
   };
   daysSkippedPerMonth?: number; // Days per month with no energy (wars, vacations)
+  itemPrices?: {
+    dvdPrice: number | null;
+    xanaxPrice: number | null;
+    ecstasyPrice: number | null;
+  };
 }
 
 export interface DailySnapshot {
@@ -95,6 +103,14 @@ export interface SimulationResult {
     speed: number;
     defense: number;
     dexterity: number;
+  };
+  edvdJumpCosts?: {
+    totalJumps: number;
+    costPerJump: number;
+    totalCost: number;
+  };
+  xanaxCosts?: {
+    totalCost: number;
   };
   diabetesDayTotalGains?: {
     strength: number;
@@ -324,10 +340,11 @@ export function simulateGymProgression(
   
   const dailySnapshots: DailySnapshot[] = [];
   
-  // Track next happy jump day
-  let nextHappyJumpDay = inputs.happyJump?.enabled && inputs.happyJump.frequencyDays > 0 
-    ? inputs.happyJump.frequencyDays 
+  // Track next EDVD jump day and jumps performed
+  let nextEdvdJumpDay = inputs.edvdJump?.enabled && inputs.edvdJump.frequencyDays > 0 
+    ? inputs.edvdJump.frequencyDays 
     : -1;
+  let edvdJumpsPerformed = 0;
   
   // Track Diabetes Day jumps
   // DD jumps occur on day 7 for 1 jump, or days 5 and 7 for 2 jumps
@@ -373,16 +390,29 @@ export function simulateGymProgression(
     // Check if this is a skipped day (war, vacation, etc.)
     const isSkipped = isSkippedDay(day);
     
-    // Check if this is a happy jump day
-    const isHappyJumpDay = inputs.happyJump?.enabled && day === nextHappyJumpDay;
+    // Check if EDVD jump should be performed
+    // Skip if limit is reached based on configuration
+    let shouldPerformEdvdJump = inputs.edvdJump?.enabled && day === nextEdvdJumpDay && !isSkipped;
+    
+    if (shouldPerformEdvdJump && inputs.edvdJump) {
+      // Check limit conditions
+      if (inputs.edvdJump.limit === 'count' && inputs.edvdJump.count !== undefined && edvdJumpsPerformed >= inputs.edvdJump.count) {
+        shouldPerformEdvdJump = false;
+      } else if (inputs.edvdJump.limit === 'stat' && inputs.edvdJump.statTarget !== undefined) {
+        const currentTotal = stats.strength + stats.speed + stats.defense + stats.dexterity;
+        if (currentTotal >= inputs.edvdJump.statTarget) {
+          shouldPerformEdvdJump = false;
+        }
+      }
+    }
     
     let energyAvailableToday = isSkipped ? 0 : dailyEnergy;
     let currentHappy = inputs.happy;
     
     const maxEnergyValue = inputs.maxEnergy || 150;
     
-    if (isHappyJumpDay && inputs.happyJump && !isSkipped) {
-      // Happy jump calculation:
+    if (shouldPerformEdvdJump && inputs.edvdJump) {
+      // EDVD jump calculation:
       // 1. User gets energy to 0 and starts taking xanax
       // 2. Takes 4 xanax over ~32 hours (8 hours between each, no natural regen)
       // 3. Waits 8 hours for drug cooldown
@@ -392,17 +422,18 @@ export function simulateGymProgression(
       // 7. Uses points refill for maxEnergy and trains that
       // 8. Must wait 6 more hours before can use xanax again
       
-      // Total time for happy jump: 32 + 8 + 6 = 46 hours
+      // Total time for EDVD jump: 32 + 8 + 6 = 46 hours
       // During this time: no natural energy generation, loses 1 xanax from daily allowance
       
       // Energy available: 1000 (from 4 xanax) + maxEnergy (points refill)
       energyAvailableToday = 1000 + maxEnergyValue;
       
       // Happy during jump
-      currentHappy = (inputs.happy + 2500 * inputs.happyJump.dvdsUsed) * 2;
+      currentHappy = (inputs.happy + 2500 * inputs.edvdJump.dvdsUsed) * 2;
       
-      // Schedule next happy jump
-      nextHappyJumpDay = day + inputs.happyJump.frequencyDays;
+      // Increment jump counter and schedule next jump
+      edvdJumpsPerformed++;
+      nextEdvdJumpDay = day + inputs.edvdJump.frequencyDays;
     }
     
     // Check if this is a Diabetes Day jump
@@ -637,6 +668,33 @@ export function simulateGymProgression(
     }
   }
   
+  // Calculate cost information if prices are available
+  let edvdJumpCosts: { totalJumps: number; costPerJump: number; totalCost: number } | undefined;
+  let xanaxCosts: { totalCost: number } | undefined;
+  
+  if (inputs.itemPrices) {
+    // Calculate EDVD jump costs
+    if (inputs.edvdJump?.enabled && inputs.itemPrices.dvdPrice !== null && 
+        inputs.itemPrices.xanaxPrice !== null && inputs.itemPrices.ecstasyPrice !== null) {
+      const costPerJump = (inputs.edvdJump.dvdsUsed * inputs.itemPrices.dvdPrice) + 
+                          (4 * inputs.itemPrices.xanaxPrice) + 
+                          inputs.itemPrices.ecstasyPrice;
+      
+      edvdJumpCosts = {
+        totalJumps: edvdJumpsPerformed,
+        costPerJump,
+        totalCost: costPerJump * edvdJumpsPerformed,
+      };
+    }
+    
+    // Calculate xanax costs (daily usage, not including EDVD jumps)
+    if (inputs.xanaxPerDay > 0 && inputs.itemPrices.xanaxPrice !== null) {
+      xanaxCosts = {
+        totalCost: inputs.itemPrices.xanaxPrice * inputs.xanaxPerDay * totalDays,
+      };
+    }
+  }
+  
   return {
     dailySnapshots,
     finalStats: {
@@ -645,6 +703,8 @@ export function simulateGymProgression(
       defense: Math.round(stats.defense),
       dexterity: Math.round(stats.dexterity),
     },
+    edvdJumpCosts,
+    xanaxCosts,
     diabetesDayTotalGains: inputs.diabetesDay?.enabled ? diabetesDayTotalGains : undefined,
     diabetesDayJump1Gains: inputs.diabetesDay?.enabled ? diabetesDayJump1Gains : undefined,
     diabetesDayJump2Gains: inputs.diabetesDay?.enabled ? diabetesDayJump2Gains : undefined,
