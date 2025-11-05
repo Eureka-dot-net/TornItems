@@ -1191,267 +1191,409 @@ export default function GymComparison() {
           {/* Results Section */}
           {Object.keys(results).length > 0 && (
             <>
-              {/* Graph and Final Stats SIDE BY SIDE */}
-              <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid size={{ xs: 12, lg: 8 }}>
-                  <Paper sx={{ p: 2 }}>
-                    <Typography variant="h6" gutterBottom>Total Battle Stats Over Time</Typography>
-                    <ResponsiveContainer width="100%" height={400}>
-                      <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="day" label={{ value: 'Days', position: 'insideBottom', offset: -5 }} />
-                        <YAxis label={{ value: 'Total Stats', angle: -90, position: 'insideLeft' }} />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Legend />
-                        {comparisonStates.map((state, index) => (
-                          <Line key={state.id} type="monotone" dataKey={state.name} stroke={CHART_COLORS[index % CHART_COLORS.length]} strokeWidth={2} dot={false} />
-                        ))}
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </Paper>
-                </Grid>
+              {(() => {
+                const hasCostEstimate = showCosts && itemPricesData;
+                const hasDDEstimate = comparisonStates.some(state => state.diabetesDayEnabled);
+                const hasExtraCards = hasCostEstimate || hasDDEstimate;
 
-                <Grid size={{ xs: 12, lg: 4 }}>
-                  <Paper sx={{ p: 2, height: '100%' }}>
-                    <Typography variant="h6" gutterBottom>Final Stats Comparison</Typography>
-                    <TableContainer>
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell sx={{ fontWeight: 'bold' }}>Stat</TableCell>
+                if (hasExtraCards) {
+                  // Layout: Graph full width, then cards below in a row
+                  return (
+                    <>
+                      {/* Graph - Full Width */}
+                      <Paper sx={{ p: 2, mb: 3 }}>
+                        <Typography variant="h6" gutterBottom>Total Battle Stats Over Time</Typography>
+                        <ResponsiveContainer width="100%" height={400}>
+                          <LineChart data={chartData}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="day" label={{ value: 'Days', position: 'insideBottom', offset: -5 }} />
+                            <YAxis label={{ value: 'Total Stats', angle: -90, position: 'insideLeft' }} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend />
                             {comparisonStates.map((state, index) => (
-                              <TableCell 
-                                key={state.id} 
-                                align="right" 
-                                sx={{ 
-                                  fontWeight: 'bold',
-                                  color: CHART_COLORS[index % CHART_COLORS.length]
-                                }}
-                              >
-                                {state.name}
-                              </TableCell>
+                              <Line key={state.id} type="monotone" dataKey={state.name} stroke={CHART_COLORS[index % CHART_COLORS.length]} strokeWidth={2} dot={false} />
                             ))}
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {(['strength', 'speed', 'defense', 'dexterity'] as const).map((statName) => (
-                            <TableRow key={statName}>
-                              <TableCell sx={{ textTransform: 'capitalize' }}>{statName}</TableCell>
-                              {comparisonStates.map((state) => {
-                                const result = results[state.id];
-                                if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
-                                return (
-                                  <TableCell key={state.id} align="right">
-                                    {result.finalStats[statName].toLocaleString()}
-                                  </TableCell>
-                                );
-                              })}
-                            </TableRow>
-                          ))}
-                          <TableRow sx={{ borderTop: 2, borderColor: 'divider' }}>
-                            <TableCell sx={{ fontWeight: 'bold' }}>Total</TableCell>
-                            {comparisonStates.map((state) => {
-                              const result = results[state.id];
-                              if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
-                              const total = result.finalStats.strength + result.finalStats.speed + 
-                                          result.finalStats.defense + result.finalStats.dexterity;
-                              return (
-                                <TableCell key={state.id} align="right" sx={{ fontWeight: 'bold' }}>
-                                  {total.toLocaleString()}
-                                </TableCell>
-                              );
-                            })}
-                          </TableRow>
-                          <TableRow>
-                            <TableCell sx={{ fontWeight: 'bold', color: 'success.main' }}>Difference</TableCell>
-                            {comparisonStates.map((state) => {
-                              const result = results[state.id];
-                              if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
-                              const totalGain = (result.finalStats.strength - initialStats.strength) + 
-                                              (result.finalStats.speed - initialStats.speed) + 
-                                              (result.finalStats.defense - initialStats.defense) + 
-                                              (result.finalStats.dexterity - initialStats.dexterity);
-                              return (
-                                <TableCell key={state.id} align="right" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                                  +{totalGain.toLocaleString()}
-                                </TableCell>
-                              );
-                            })}
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </Paper>
-                </Grid>
-              </Grid>
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </Paper>
 
-              {/* Cost Estimate Card */}
-              {showCosts && itemPricesData && (
-                <Paper sx={{ p: 2, mb: 3 }}>
-                  <Typography variant="h6" gutterBottom>Cost Estimate</Typography>
-                  <TableContainer>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell sx={{ fontWeight: 'bold' }}>Cost Type</TableCell>
-                          {comparisonStates.map((state, index) => (
-                            <TableCell 
-                              key={state.id} 
-                              align="right" 
-                              sx={{ 
-                                fontWeight: 'bold',
-                                color: CHART_COLORS[index % CHART_COLORS.length]
-                              }}
-                            >
-                              {state.name}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell sx={{ fontWeight: 'bold' }}>EDVD Cost</TableCell>
-                          {comparisonStates.map((state) => {
-                            const result = results[state.id];
-                            if (!result || !result.edvdJumpCosts) {
-                              return <TableCell key={state.id} align="right">-</TableCell>;
-                            }
-                            
-                            return (
-                              <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
-                                {formatCurrency(result.edvdJumpCosts.totalCost)}
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                        <TableRow>
-                          <TableCell sx={{ fontWeight: 'bold' }}>Xanax Cost</TableCell>
-                          {comparisonStates.map((state) => {
-                            const result = results[state.id];
-                            if (!result || !result.xanaxCosts) {
-                              return <TableCell key={state.id} align="right">-</TableCell>;
-                            }
-                            
-                            return (
-                              <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
-                                {formatCurrency(result.xanaxCosts.totalCost)}
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                        <TableRow sx={{ borderTop: 2, borderColor: 'divider' }}>
-                          <TableCell sx={{ fontWeight: 'bold' }}>Total Cost</TableCell>
-                          {comparisonStates.map((state) => {
-                            const result = results[state.id];
-                            if (!result) {
-                              return <TableCell key={state.id} align="right">-</TableCell>;
-                            }
-                            
-                            const edvdCost = result.edvdJumpCosts?.totalCost || 0;
-                            const xanaxCost = result.xanaxCosts?.totalCost || 0;
-                            const totalCost = edvdCost + xanaxCost;
-                            
-                            return (
-                              <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}>
-                                {formatCurrency(totalCost)}
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                        <TableRow>
-                          <TableCell sx={{ fontWeight: 'bold' }}>Cost per Stat Gain</TableCell>
-                          {(() => {
-                            // Helper function to calculate total stat gain
-                            const calculateTotalGain = (result: SimulationResult) => {
-                              return (result.finalStats.strength - initialStats.strength) + 
-                                     (result.finalStats.speed - initialStats.speed) + 
-                                     (result.finalStats.defense - initialStats.defense) + 
-                                     (result.finalStats.dexterity - initialStats.dexterity);
-                            };
-                            
-                            // Calculate max gain across all states once for baseline determination
-                            const maxGain = Math.max(...comparisonStates.map(s => {
-                              const r = results[s.id];
-                              return r ? calculateTotalGain(r) : 0;
-                            }));
-                            
-                            // Determine appropriate baseline (1k, 10k, or 100k)
-                            let baseline = 1000;
-                            let baselineLabel = '1k';
-                            if (maxGain >= 100000) {
-                              baseline = 100000;
-                              baselineLabel = '100k';
-                            } else if (maxGain >= 10000) {
-                              baseline = 10000;
-                              baselineLabel = '10k';
-                            }
-                            
-                            return comparisonStates.map((state) => {
-                              const result = results[state.id];
-                              if (!result) {
-                                return <TableCell key={state.id} align="right">-</TableCell>;
-                              }
-                              
-                              const edvdCost = result.edvdJumpCosts?.totalCost || 0;
-                              const xanaxCost = result.xanaxCosts?.totalCost || 0;
-                              const totalCost = edvdCost + xanaxCost;
-                              const totalGain = calculateTotalGain(result);
-                              
-                              if (totalCost === 0 || totalGain === 0) {
-                                return <TableCell key={state.id} align="right">-</TableCell>;
-                              }
-                              
-                              const costPerBaseline = (totalCost / totalGain) * baseline;
-                              
-                              return (
-                                <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
-                                  {formatCurrency(costPerBaseline)}/{baselineLabel}
-                                </TableCell>
-                              );
-                            });
-                          })()}
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Paper>
-              )}
-
-              {/* DD Grid BELOW */}
-              {comparisonStates.some(state => state.diabetesDayEnabled) && (
-                <Paper sx={{ p: 2 }}>
-                  <Typography variant="h6" gutterBottom>Diabetes Day Gains</Typography>
-                  <Grid container spacing={2}>
-                    {comparisonStates.filter(state => state.diabetesDayEnabled).map((state) => {
-                      const result = results[state.id];
-                      if (!result || !result.diabetesDayTotalGains) return null;
-                      
-                      const ddGains = result.diabetesDayTotalGains;
-                      const totalGain = ddGains.strength + ddGains.speed + ddGains.defense + ddGains.dexterity;
-                      const stateIndex = comparisonStates.indexOf(state);
-                      
-                      return (
-                        <Grid size={{ xs: 12, sm: 6, md: 3 }} key={state.id}>
-                          <Card sx={{ borderLeft: 4, borderColor: CHART_COLORS[stateIndex % CHART_COLORS.length] }}>
-                            <CardContent>
-                              <Typography variant="subtitle2" gutterBottom>{state.name}</Typography>
-                              <Typography variant="caption" display="block">
-                                Str: +{ddGains.strength.toLocaleString()} | Spd: +{ddGains.speed.toLocaleString()}
-                              </Typography>
-                              <Typography variant="caption" display="block">
-                                Def: +{ddGains.defense.toLocaleString()} | Dex: +{ddGains.dexterity.toLocaleString()}
-                              </Typography>
-                              <Typography variant="body2" color="success.main" sx={{ fontWeight: 'bold', mt: 1 }}>
-                                Total: +{totalGain.toLocaleString()}
-                              </Typography>
-                            </CardContent>
-                          </Card>
+                      {/* Cards Row: Final Stats | Cost Estimate | DD Estimate */}
+                      <Grid container spacing={2} sx={{ mb: 3 }}>
+                        {/* Final Stats Comparison */}
+                        <Grid size={{ xs: 12, lg: hasCostEstimate && hasDDEstimate ? 4 : hasCostEstimate || hasDDEstimate ? 6 : 12 }}>
+                          <Paper sx={{ p: 2, height: '100%' }}>
+                            <Typography variant="h6" gutterBottom>Final Stats Comparison</Typography>
+                            <TableContainer>
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell sx={{ fontWeight: 'bold' }}>Stat</TableCell>
+                                    {comparisonStates.map((state, index) => (
+                                      <TableCell 
+                                        key={state.id} 
+                                        align="right" 
+                                        sx={{ 
+                                          fontWeight: 'bold',
+                                          color: CHART_COLORS[index % CHART_COLORS.length]
+                                        }}
+                                      >
+                                        {state.name}
+                                      </TableCell>
+                                    ))}
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {(['strength', 'speed', 'defense', 'dexterity'] as const).map((statName) => (
+                                    <TableRow key={statName}>
+                                      <TableCell sx={{ textTransform: 'capitalize' }}>{statName}</TableCell>
+                                      {comparisonStates.map((state) => {
+                                        const result = results[state.id];
+                                        if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
+                                        return (
+                                          <TableCell key={state.id} align="right">
+                                            {result.finalStats[statName].toLocaleString()}
+                                          </TableCell>
+                                        );
+                                      })}
+                                    </TableRow>
+                                  ))}
+                                  <TableRow sx={{ borderTop: 2, borderColor: 'divider' }}>
+                                    <TableCell sx={{ fontWeight: 'bold' }}>Total</TableCell>
+                                    {comparisonStates.map((state) => {
+                                      const result = results[state.id];
+                                      if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
+                                      const total = result.finalStats.strength + result.finalStats.speed + 
+                                                  result.finalStats.defense + result.finalStats.dexterity;
+                                      return (
+                                        <TableCell key={state.id} align="right" sx={{ fontWeight: 'bold' }}>
+                                          {total.toLocaleString()}
+                                        </TableCell>
+                                      );
+                                    })}
+                                  </TableRow>
+                                  <TableRow>
+                                    <TableCell sx={{ fontWeight: 'bold', color: 'success.main' }}>Difference</TableCell>
+                                    {comparisonStates.map((state) => {
+                                      const result = results[state.id];
+                                      if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
+                                      const totalGain = (result.finalStats.strength - initialStats.strength) + 
+                                                      (result.finalStats.speed - initialStats.speed) + 
+                                                      (result.finalStats.defense - initialStats.defense) + 
+                                                      (result.finalStats.dexterity - initialStats.dexterity);
+                                      return (
+                                        <TableCell key={state.id} align="right" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                                          +{totalGain.toLocaleString()}
+                                        </TableCell>
+                                      );
+                                    })}
+                                  </TableRow>
+                                </TableBody>
+                              </Table>
+                            </TableContainer>
+                          </Paper>
                         </Grid>
-                      );
-                    })}
-                  </Grid>
-                </Paper>
-              )}
+
+                        {/* Cost Estimate Card */}
+                        {hasCostEstimate && (
+                          <Grid size={{ xs: 12, lg: hasDDEstimate ? 4 : 6 }}>
+                            <Paper sx={{ p: 2, height: '100%' }}>
+                              <Typography variant="h6" gutterBottom>Cost Estimate</Typography>
+                              <TableContainer>
+                                <Table size="small">
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableCell sx={{ fontWeight: 'bold' }}>Cost Type</TableCell>
+                                      {comparisonStates.map((state, index) => (
+                                        <TableCell 
+                                          key={state.id} 
+                                          align="right" 
+                                          sx={{ 
+                                            fontWeight: 'bold',
+                                            color: CHART_COLORS[index % CHART_COLORS.length]
+                                          }}
+                                        >
+                                          {state.name}
+                                        </TableCell>
+                                      ))}
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    <TableRow>
+                                      <TableCell sx={{ fontWeight: 'bold' }}>EDVD Cost</TableCell>
+                                      {comparisonStates.map((state) => {
+                                        const result = results[state.id];
+                                        if (!result || !result.edvdJumpCosts) {
+                                          return <TableCell key={state.id} align="right">-</TableCell>;
+                                        }
+                                        
+                                        return (
+                                          <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
+                                            {formatCurrency(result.edvdJumpCosts.totalCost)}
+                                          </TableCell>
+                                        );
+                                      })}
+                                    </TableRow>
+                                    <TableRow>
+                                      <TableCell sx={{ fontWeight: 'bold' }}>Xanax Cost</TableCell>
+                                      {comparisonStates.map((state) => {
+                                        const result = results[state.id];
+                                        if (!result || !result.xanaxCosts) {
+                                          return <TableCell key={state.id} align="right">-</TableCell>;
+                                        }
+                                        
+                                        return (
+                                          <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
+                                            {formatCurrency(result.xanaxCosts.totalCost)}
+                                          </TableCell>
+                                        );
+                                      })}
+                                    </TableRow>
+                                    <TableRow sx={{ borderTop: 2, borderColor: 'divider' }}>
+                                      <TableCell sx={{ fontWeight: 'bold' }}>Total Cost</TableCell>
+                                      {comparisonStates.map((state) => {
+                                        const result = results[state.id];
+                                        if (!result) {
+                                          return <TableCell key={state.id} align="right">-</TableCell>;
+                                        }
+                                        
+                                        const edvdCost = result.edvdJumpCosts?.totalCost || 0;
+                                        const xanaxCost = result.xanaxCosts?.totalCost || 0;
+                                        const totalCost = edvdCost + xanaxCost;
+                                        
+                                        return (
+                                          <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}>
+                                            {formatCurrency(totalCost)}
+                                          </TableCell>
+                                        );
+                                      })}
+                                    </TableRow>
+                                    <TableRow>
+                                      <TableCell sx={{ fontWeight: 'bold' }}>Cost per Stat Gain</TableCell>
+                                      {(() => {
+                                        // Helper function to calculate total stat gain
+                                        const calculateTotalGain = (result: SimulationResult) => {
+                                          return (result.finalStats.strength - initialStats.strength) + 
+                                                 (result.finalStats.speed - initialStats.speed) + 
+                                                 (result.finalStats.defense - initialStats.defense) + 
+                                                 (result.finalStats.dexterity - initialStats.dexterity);
+                                        };
+                                        
+                                        // Calculate max gain across all states once for baseline determination
+                                        const maxGain = Math.max(...comparisonStates.map(s => {
+                                          const r = results[s.id];
+                                          return r ? calculateTotalGain(r) : 0;
+                                        }));
+                                        
+                                        // Determine appropriate baseline (1k, 10k, or 100k)
+                                        let baseline = 1000;
+                                        let baselineLabel = '1k';
+                                        if (maxGain >= 100000) {
+                                          baseline = 100000;
+                                          baselineLabel = '100k';
+                                        } else if (maxGain >= 10000) {
+                                          baseline = 10000;
+                                          baselineLabel = '10k';
+                                        }
+                                        
+                                        return comparisonStates.map((state) => {
+                                          const result = results[state.id];
+                                          if (!result) {
+                                            return <TableCell key={state.id} align="right">-</TableCell>;
+                                          }
+                                          
+                                          const edvdCost = result.edvdJumpCosts?.totalCost || 0;
+                                          const xanaxCost = result.xanaxCosts?.totalCost || 0;
+                                          const totalCost = edvdCost + xanaxCost;
+                                          const totalGain = calculateTotalGain(result);
+                                          
+                                          if (totalCost === 0 || totalGain === 0) {
+                                            return <TableCell key={state.id} align="right">-</TableCell>;
+                                          }
+                                          
+                                          const costPerBaseline = (totalCost / totalGain) * baseline;
+                                          
+                                          return (
+                                            <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
+                                              {formatCurrency(costPerBaseline)}/{baselineLabel}
+                                            </TableCell>
+                                          );
+                                        });
+                                      })()}
+                                    </TableRow>
+                                  </TableBody>
+                                </Table>
+                              </TableContainer>
+                            </Paper>
+                          </Grid>
+                        )}
+
+                        {/* DD Estimate Card */}
+                        {hasDDEstimate && (
+                          <Grid size={{ xs: 12, lg: hasCostEstimate ? 4 : 6 }}>
+                            <Paper sx={{ p: 2, height: '100%' }}>
+                              <Typography variant="h6" gutterBottom>Diabetes Day Gains</Typography>
+                              <TableContainer>
+                                <Table size="small">
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableCell sx={{ fontWeight: 'bold' }}>Stat</TableCell>
+                                      {comparisonStates.filter(s => s.diabetesDayEnabled).map((state) => {
+                                        const stateIndex = comparisonStates.indexOf(state);
+                                        return (
+                                          <TableCell 
+                                            key={state.id} 
+                                            align="right" 
+                                            sx={{ 
+                                              fontWeight: 'bold',
+                                              color: CHART_COLORS[stateIndex % CHART_COLORS.length]
+                                            }}
+                                          >
+                                            {state.name}
+                                          </TableCell>
+                                        );
+                                      })}
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {(['strength', 'speed', 'defense', 'dexterity'] as const).map((statName) => (
+                                      <TableRow key={statName}>
+                                        <TableCell sx={{ textTransform: 'capitalize' }}>{statName}</TableCell>
+                                        {comparisonStates.filter(s => s.diabetesDayEnabled).map((state) => {
+                                          const result = results[state.id];
+                                          if (!result || !result.diabetesDayTotalGains) {
+                                            return <TableCell key={state.id} align="right">-</TableCell>;
+                                          }
+                                          return (
+                                            <TableCell key={state.id} align="right">
+                                              +{result.diabetesDayTotalGains[statName].toLocaleString()}
+                                            </TableCell>
+                                          );
+                                        })}
+                                      </TableRow>
+                                    ))}
+                                    <TableRow sx={{ borderTop: 2, borderColor: 'divider' }}>
+                                      <TableCell sx={{ fontWeight: 'bold' }}>Total</TableCell>
+                                      {comparisonStates.filter(s => s.diabetesDayEnabled).map((state) => {
+                                        const result = results[state.id];
+                                        if (!result || !result.diabetesDayTotalGains) {
+                                          return <TableCell key={state.id} align="right">-</TableCell>;
+                                        }
+                                        const ddGains = result.diabetesDayTotalGains;
+                                        const totalGain = ddGains.strength + ddGains.speed + ddGains.defense + ddGains.dexterity;
+                                        return (
+                                          <TableCell key={state.id} align="right" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                                            +{totalGain.toLocaleString()}
+                                          </TableCell>
+                                        );
+                                      })}
+                                    </TableRow>
+                                  </TableBody>
+                                </Table>
+                              </TableContainer>
+                            </Paper>
+                          </Grid>
+                        )}
+                      </Grid>
+                    </>
+                  );
+                } else {
+                  // Original layout: Graph and Final Stats side by side
+                  return (
+                    <Grid container spacing={2} sx={{ mb: 3 }}>
+                      <Grid size={{ xs: 12, lg: 8 }}>
+                        <Paper sx={{ p: 2 }}>
+                          <Typography variant="h6" gutterBottom>Total Battle Stats Over Time</Typography>
+                          <ResponsiveContainer width="100%" height={400}>
+                            <LineChart data={chartData}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="day" label={{ value: 'Days', position: 'insideBottom', offset: -5 }} />
+                              <YAxis label={{ value: 'Total Stats', angle: -90, position: 'insideLeft' }} />
+                              <Tooltip content={<CustomTooltip />} />
+                              <Legend />
+                              {comparisonStates.map((state, index) => (
+                                <Line key={state.id} type="monotone" dataKey={state.name} stroke={CHART_COLORS[index % CHART_COLORS.length]} strokeWidth={2} dot={false} />
+                              ))}
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </Paper>
+                      </Grid>
+
+                      <Grid size={{ xs: 12, lg: 4 }}>
+                        <Paper sx={{ p: 2, height: '100%' }}>
+                          <Typography variant="h6" gutterBottom>Final Stats Comparison</Typography>
+                          <TableContainer>
+                            <Table size="small">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell sx={{ fontWeight: 'bold' }}>Stat</TableCell>
+                                  {comparisonStates.map((state, index) => (
+                                    <TableCell 
+                                      key={state.id} 
+                                      align="right" 
+                                      sx={{ 
+                                        fontWeight: 'bold',
+                                        color: CHART_COLORS[index % CHART_COLORS.length]
+                                      }}
+                                    >
+                                      {state.name}
+                                    </TableCell>
+                                  ))}
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {(['strength', 'speed', 'defense', 'dexterity'] as const).map((statName) => (
+                                  <TableRow key={statName}>
+                                    <TableCell sx={{ textTransform: 'capitalize' }}>{statName}</TableCell>
+                                    {comparisonStates.map((state) => {
+                                      const result = results[state.id];
+                                      if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
+                                      return (
+                                        <TableCell key={state.id} align="right">
+                                          {result.finalStats[statName].toLocaleString()}
+                                        </TableCell>
+                                      );
+                                    })}
+                                  </TableRow>
+                                ))}
+                                <TableRow sx={{ borderTop: 2, borderColor: 'divider' }}>
+                                  <TableCell sx={{ fontWeight: 'bold' }}>Total</TableCell>
+                                  {comparisonStates.map((state) => {
+                                    const result = results[state.id];
+                                    if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
+                                    const total = result.finalStats.strength + result.finalStats.speed + 
+                                                result.finalStats.defense + result.finalStats.dexterity;
+                                    return (
+                                      <TableCell key={state.id} align="right" sx={{ fontWeight: 'bold' }}>
+                                        {total.toLocaleString()}
+                                      </TableCell>
+                                    );
+                                  })}
+                                </TableRow>
+                                <TableRow>
+                                  <TableCell sx={{ fontWeight: 'bold', color: 'success.main' }}>Difference</TableCell>
+                                  {comparisonStates.map((state) => {
+                                    const result = results[state.id];
+                                    if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
+                                    const totalGain = (result.finalStats.strength - initialStats.strength) + 
+                                                    (result.finalStats.speed - initialStats.speed) + 
+                                                    (result.finalStats.defense - initialStats.defense) + 
+                                                    (result.finalStats.dexterity - initialStats.dexterity);
+                                    return (
+                                      <TableCell key={state.id} align="right" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                                        +{totalGain.toLocaleString()}
+                                      </TableCell>
+                                    );
+                                  })}
+                                </TableRow>
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        </Paper>
+                      </Grid>
+                    </Grid>
+                  );
+                }
+              })()}
             </>
           )}
 
