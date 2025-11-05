@@ -1350,7 +1350,11 @@ export default function GymComparison() {
                       />
                       <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
                         {activeState.energyJumpItemId === 357 
-                          ? `FHC refills ${activeState.maxEnergy} energy per use`
+                          ? `FHC refills ${activeState.maxEnergy} energy per use${
+                              showCosts && itemPricesData && itemPricesData.prices[357] !== null
+                                ? ` costing ${formatCurrency(activeState.energyJumpQuantity * itemPricesData.prices[357]!)} per day`
+                                : ''
+                            }`
                           : `${(() => {
                               const energyMap: Record<number, number> = {985: 5, 986: 10, 987: 15, 530: 20, 532: 25, 533: 30};
                               const baseEnergy = energyMap[activeState.energyJumpItemId] || 0;
@@ -1359,7 +1363,11 @@ export default function GymComparison() {
                                 ? totalEnergy * (1 + activeState.energyJumpFactionBenefit / 100)
                                 : totalEnergy;
                               return Math.round(withBenefit);
-                            })()} extra energy per day`
+                            })()} extra energy per day${
+                              showCosts && itemPricesData && itemPricesData.prices[activeState.energyJumpItemId] !== null
+                                ? ` costing ${formatCurrency(activeState.energyJumpQuantity * itemPricesData.prices[activeState.energyJumpItemId]!)} per day`
+                                : ''
+                            }`
                         }
                       </Typography>
                     </>
@@ -1581,7 +1589,7 @@ export default function GymComparison() {
                                       })}
                                     </TableRow>
                                     <TableRow>
-                                      <TableCell sx={{ fontWeight: 'bold' }}>Price per Day</TableCell>
+                                      <TableCell sx={{ fontWeight: 'bold' }}>Cost per Day</TableCell>
                                       {comparisonStates.map((state) => {
                                         const result = results[state.id];
                                         if (!result) {
