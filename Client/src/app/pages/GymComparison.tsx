@@ -1449,9 +1449,18 @@ export default function GymComparison() {
                                       {comparisonStates.map((state) => {
                                         const result = results[state.id];
                                         if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
+                                        const finalValue = result.finalStats[statName];
+                                        const difference = finalValue - initialStats[statName];
                                         return (
                                           <TableCell key={state.id} align="right">
-                                            {result.finalStats[statName].toLocaleString()}
+                                            <Box>
+                                              <Typography variant="body2">
+                                                {finalValue.toLocaleString()}
+                                              </Typography>
+                                              <Typography variant="caption" sx={{ color: 'success.main', display: 'block' }}>
+                                                +{difference.toLocaleString()}
+                                              </Typography>
+                                            </Box>
                                           </TableCell>
                                         );
                                       })}
@@ -1806,9 +1815,18 @@ export default function GymComparison() {
                                     {comparisonStates.map((state) => {
                                       const result = results[state.id];
                                       if (!result) return <TableCell key={state.id} align="right">-</TableCell>;
+                                      const finalValue = result.finalStats[statName];
+                                      const difference = finalValue - initialStats[statName];
                                       return (
                                         <TableCell key={state.id} align="right">
-                                          {result.finalStats[statName].toLocaleString()}
+                                          <Box>
+                                            <Typography variant="body2">
+                                              {finalValue.toLocaleString()}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ color: 'success.main', display: 'block' }}>
+                                              +{difference.toLocaleString()}
+                                            </Typography>
+                                          </Box>
                                         </TableCell>
                                       );
                                     })}
