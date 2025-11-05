@@ -108,6 +108,13 @@ export interface DailySnapshot {
     defense: number;
     dexterity: number;
   };
+  isCandyJump?: boolean; // Marks if this day had a candy jump
+  candyJumpGains?: {
+    strength: number;
+    speed: number;
+    defense: number;
+    dexterity: number;
+  };
 }
 
 export interface SimulationResult {
@@ -528,11 +535,13 @@ export function simulateGymProgression(
     // Train one energy at a time, always choosing the stat that is most out of sync with target ratio
     let remainingEnergy = energyAvailableToday;
     
-    // Track stats before training for DD jumps
+    // Track stats before training for DD jumps and candy jumps
     const statsBeforeTraining = isDiabetesDayJump ? { ...stats } : undefined;
+    const isCandyJump = inputs.candyJump?.enabled && !shouldPerformEdvdJump && !isDiabetesDayJump && !isSkipped;
+    const statsBeforeCandyJump = isCandyJump ? { ...stats } : undefined;
     
     // Handle candy jump if enabled and not on an EDVD or DD jump day
-    if (inputs.candyJump?.enabled && !shouldPerformEdvdJump && !isDiabetesDayJump && !isSkipped) {
+    if (isCandyJump) {
       // Map item IDs to happiness values
       const candyHappinessMap: Record<number, number> = {
         310: 25,
@@ -750,6 +759,17 @@ export function simulateGymProgression(
       diabetesDayTotalGains.dexterity += diabetesDayJumpGains.dexterity;
     }
     
+    // Calculate candy jump gains if this was a candy jump day
+    let candyJumpGains: { strength: number; speed: number; defense: number; dexterity: number } | undefined;
+    if (isCandyJump && statsBeforeCandyJump) {
+      candyJumpGains = {
+        strength: Math.round(stats.strength - statsBeforeCandyJump.strength),
+        speed: Math.round(stats.speed - statsBeforeCandyJump.speed),
+        defense: Math.round(stats.defense - statsBeforeCandyJump.defense),
+        dexterity: Math.round(stats.dexterity - statsBeforeCandyJump.dexterity),
+      };
+    }
+    
     // Take snapshot every 7 days or on first day
     // For DD mode with 2 jumps, also snapshot on day 5 to show the first jump clearly
     // (Day 7 is already captured by the day % 7 === 0 condition)
@@ -793,6 +813,8 @@ export function simulateGymProgression(
         energySpentOnGymUnlock,
         isDiabetesDayJump,
         diabetesDayJumpGains,
+        isCandyJump,
+        candyJumpGains,
       };
       
       dailySnapshots.push(snapshot);
