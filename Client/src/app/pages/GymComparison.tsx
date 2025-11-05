@@ -317,20 +317,6 @@ const formatCurrency = (value: number): string => {
   return `$${value.toFixed(0)}`;
 };
 
-// Calculate EDVD jump cost
-const calculateEdvdJumpCost = (
-  dvdsUsed: number, 
-  dvdPrice: number | null, 
-  xanaxPrice: number | null, 
-  ecstasyPrice: number | null
-): number | null => {
-  if (dvdPrice === null || xanaxPrice === null || ecstasyPrice === null) {
-    return null;
-  }
-  // Cost = (DVDs * DVD price) + (4 * Xanax price) + (1 * Ecstasy price)
-  return (dvdsUsed * dvdPrice) + (4 * xanaxPrice) + ecstasyPrice;
-};
-
 export default function GymComparison() {
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
     try {
@@ -590,6 +576,11 @@ export default function GymComparison() {
               logoEnergyClick: state.diabetesDayLogoClick,
             } : undefined,
             daysSkippedPerMonth: state.daysSkippedPerMonth,
+            itemPrices: itemPricesData ? {
+              dvdPrice: itemPricesData.prices[366],
+              xanaxPrice: itemPricesData.prices[206],
+              ecstasyPrice: itemPricesData.prices[196],
+            } : undefined,
           };
           
           const result = simulateGymProgression(GYMS, inputs);
@@ -1261,37 +1252,14 @@ export default function GymComparison() {
                               <TableRow sx={{ borderTop: 2, borderColor: 'divider' }}>
                                 <TableCell sx={{ fontWeight: 'bold' }}>EDVD Cost</TableCell>
                                 {comparisonStates.map((state) => {
-                                  if (!state.edvdJumpEnabled) {
+                                  const result = results[state.id];
+                                  if (!result || !result.edvdJumpCosts) {
                                     return <TableCell key={state.id} align="right">-</TableCell>;
                                   }
                                   
-                                  const edvdCost = calculateEdvdJumpCost(
-                                    state.edvdJumpDvds,
-                                    itemPricesData.prices[366],
-                                    itemPricesData.prices[206],
-                                    itemPricesData.prices[196]
-                                  );
-                                  
-                                  if (edvdCost === null) {
-                                    return <TableCell key={state.id} align="right">N/A</TableCell>;
-                                  }
-                                  
-                                  // Calculate number of jumps performed in the simulation
-                                  let jumpsPerformed = 0;
-                                  if (state.edvdJumpLimit === 'indefinite') {
-                                    jumpsPerformed = Math.floor(months * 30 / state.edvdJumpFrequency);
-                                  } else if (state.edvdJumpLimit === 'count') {
-                                    jumpsPerformed = state.edvdJumpCount;
-                                  } else if (state.edvdJumpLimit === 'stat') {
-                                    // Estimate - would need to track in simulation
-                                    jumpsPerformed = Math.floor(months * 30 / state.edvdJumpFrequency);
-                                  }
-                                  
-                                  const totalCost = edvdCost * jumpsPerformed;
-                                  
                                   return (
                                     <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
-                                      {formatCurrency(totalCost)}
+                                      {formatCurrency(result.edvdJumpCosts.totalCost)}
                                     </TableCell>
                                   );
                                 })}
@@ -1299,24 +1267,14 @@ export default function GymComparison() {
                               <TableRow>
                                 <TableCell sx={{ fontWeight: 'bold' }}>$/EDVD Jump</TableCell>
                                 {comparisonStates.map((state) => {
-                                  if (!state.edvdJumpEnabled) {
+                                  const result = results[state.id];
+                                  if (!result || !result.edvdJumpCosts) {
                                     return <TableCell key={state.id} align="right">-</TableCell>;
-                                  }
-                                  
-                                  const edvdCost = calculateEdvdJumpCost(
-                                    state.edvdJumpDvds,
-                                    itemPricesData.prices[366],
-                                    itemPricesData.prices[206],
-                                    itemPricesData.prices[196]
-                                  );
-                                  
-                                  if (edvdCost === null) {
-                                    return <TableCell key={state.id} align="right">N/A</TableCell>;
                                   }
                                   
                                   return (
                                     <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
-                                      {formatCurrency(edvdCost)}
+                                      {formatCurrency(result.edvdJumpCosts.costPerJump)}
                                     </TableCell>
                                   );
                                 })}
@@ -1324,16 +1282,14 @@ export default function GymComparison() {
                               <TableRow>
                                 <TableCell sx={{ fontWeight: 'bold' }}>Xanax Cost</TableCell>
                                 {comparisonStates.map((state) => {
-                                  const xanaxPrice = itemPricesData.prices[206];
-                                  if (xanaxPrice === null || state.xanaxPerDay === 0) {
+                                  const result = results[state.id];
+                                  if (!result || !result.xanaxCosts) {
                                     return <TableCell key={state.id} align="right">-</TableCell>;
                                   }
                                   
-                                  const totalCost = xanaxPrice * state.xanaxPerDay * months * 30;
-                                  
                                   return (
                                     <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
-                                      {formatCurrency(totalCost)}
+                                      {formatCurrency(result.xanaxCosts.totalCost)}
                                     </TableCell>
                                   );
                                 })}

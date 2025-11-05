@@ -72,6 +72,11 @@ export interface SimulationInputs {
     logoEnergyClick: boolean; // 50 energy for first jump only
   };
   daysSkippedPerMonth?: number; // Days per month with no energy (wars, vacations)
+  itemPrices?: {
+    dvdPrice: number | null;
+    xanaxPrice: number | null;
+    ecstasyPrice: number | null;
+  };
 }
 
 export interface DailySnapshot {
@@ -98,6 +103,14 @@ export interface SimulationResult {
     speed: number;
     defense: number;
     dexterity: number;
+  };
+  edvdJumpCosts?: {
+    totalJumps: number;
+    costPerJump: number;
+    totalCost: number;
+  };
+  xanaxCosts?: {
+    totalCost: number;
   };
   diabetesDayTotalGains?: {
     strength: number;
@@ -655,6 +668,33 @@ export function simulateGymProgression(
     }
   }
   
+  // Calculate cost information if prices are available
+  let edvdJumpCosts: { totalJumps: number; costPerJump: number; totalCost: number } | undefined;
+  let xanaxCosts: { totalCost: number } | undefined;
+  
+  if (inputs.itemPrices) {
+    // Calculate EDVD jump costs
+    if (inputs.edvdJump?.enabled && inputs.itemPrices.dvdPrice !== null && 
+        inputs.itemPrices.xanaxPrice !== null && inputs.itemPrices.ecstasyPrice !== null) {
+      const costPerJump = (inputs.edvdJump.dvdsUsed * inputs.itemPrices.dvdPrice) + 
+                          (4 * inputs.itemPrices.xanaxPrice) + 
+                          inputs.itemPrices.ecstasyPrice;
+      
+      edvdJumpCosts = {
+        totalJumps: edvdJumpsPerformed,
+        costPerJump,
+        totalCost: costPerJump * edvdJumpsPerformed,
+      };
+    }
+    
+    // Calculate xanax costs (daily usage, not including EDVD jumps)
+    if (inputs.xanaxPerDay > 0 && inputs.itemPrices.xanaxPrice !== null) {
+      xanaxCosts = {
+        totalCost: inputs.itemPrices.xanaxPrice * inputs.xanaxPerDay * totalDays,
+      };
+    }
+  }
+  
   return {
     dailySnapshots,
     finalStats: {
@@ -663,6 +703,8 @@ export function simulateGymProgression(
       defense: Math.round(stats.defense),
       dexterity: Math.round(stats.dexterity),
     },
+    edvdJumpCosts,
+    xanaxCosts,
     diabetesDayTotalGains: inputs.diabetesDay?.enabled ? diabetesDayTotalGains : undefined,
     diabetesDayJump1Gains: inputs.diabetesDay?.enabled ? diabetesDayJump1Gains : undefined,
     diabetesDayJump2Gains: inputs.diabetesDay?.enabled ? diabetesDayJump2Gains : undefined,
