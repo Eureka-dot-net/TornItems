@@ -198,6 +198,10 @@ interface ComparisonState {
   edvdJumpLimit: 'indefinite' | 'count' | 'stat';
   edvdJumpCount: number; // Used when edvdJumpLimit is 'count'
   edvdJumpStatTarget: number; // Used when edvdJumpLimit is 'stat'
+  candyJumpEnabled: boolean;
+  candyJumpItemId: number; // Item ID: 310 (25 happy), 36 (35 happy), 528 (75 happy), 529 (100 happy), 151 (150 happy)
+  candyJumpUseEcstasy: boolean; // If true, use ecstasy to double happiness after candy
+  candyJumpQuantity: number; // Number of candies used per day (default 48)
   diabetesDayEnabled: boolean;
   diabetesDayNumberOfJumps: 1 | 2;
   diabetesDayFHC: 0 | 1 | 2;
@@ -369,6 +373,10 @@ export default function GymComparison() {
         edvdJumpLimit: 'indefinite',
         edvdJumpCount: 10,
         edvdJumpStatTarget: 10000000,
+        candyJumpEnabled: false,
+        candyJumpItemId: 310, // Default to 25 happy candy
+        candyJumpUseEcstasy: false,
+        candyJumpQuantity: 48,
         diabetesDayEnabled: false,
         diabetesDayNumberOfJumps: 1,
         diabetesDayFHC: 0,
@@ -390,9 +398,9 @@ export default function GymComparison() {
   
   const { data: gymStatsData, isLoading: isLoadingGymStats, error: gymStatsError, refetch: refetchGymStats } = useGymStats(apiKey || null);
   
-  // Fetch item prices for EDVD jumps and xanax - only if costs should be shown
-  // Item IDs: 366 (DVDs), 206 (Xanax), 196 (Ecstasy)
-  const { data: itemPricesData } = useItemPrices(showCosts ? [366, 206, 196] : []);
+  // Fetch item prices for EDVD jumps, xanax, and candy items - only if costs should be shown
+  // Item IDs: 366 (DVDs), 206 (Xanax), 196 (Ecstasy for EDVD), 197 (Ecstasy for candy), 310 (25 happy), 36 (35 happy), 528 (75 happy), 529 (100 happy), 151 (150 happy)
+  const { data: itemPricesData } = useItemPrices(showCosts ? [366, 206, 196, 197, 310, 36, 528, 529, 151] : []);
   
   // Auto-populate stats when fetched
   useEffect(() => {
@@ -442,13 +450,13 @@ export default function GymComparison() {
     if (mode === 'future' && comparisonStates.length > 0) {
       handleSimulate();
     }
-  }, [comparisonStates, initialStats, months]);
+  }, [comparisonStates, initialStats, months, showCosts, itemPricesData]);
   
   useEffect(() => {
     if (mode === 'manual') {
       handleSimulate();
     }
-  }, [manualEnergy, autoUpgradeGyms, manualHappy, initialStats, currentGymIndex, manualStatWeights, manualCompanyBenefitKey, manualCandleShopStars, manualPerkPercs]);
+  }, [manualEnergy, autoUpgradeGyms, manualHappy, initialStats, currentGymIndex, manualStatWeights, manualCompanyBenefitKey, manualCandleShopStars, manualPerkPercs, showCosts, itemPricesData]);
   
   const handleFetchStats = async () => {
     if (!apiKey.trim()) {
@@ -483,6 +491,10 @@ export default function GymComparison() {
       edvdJumpLimit: sourceState.edvdJumpLimit,
       edvdJumpCount: sourceState.edvdJumpCount,
       edvdJumpStatTarget: sourceState.edvdJumpStatTarget,
+      candyJumpEnabled: sourceState.candyJumpEnabled,
+      candyJumpItemId: sourceState.candyJumpItemId,
+      candyJumpUseEcstasy: sourceState.candyJumpUseEcstasy,
+      candyJumpQuantity: sourceState.candyJumpQuantity,
       diabetesDayEnabled: sourceState.diabetesDayEnabled,
       diabetesDayNumberOfJumps: sourceState.diabetesDayNumberOfJumps,
       diabetesDayFHC: sourceState.diabetesDayFHC,
@@ -577,11 +589,25 @@ export default function GymComparison() {
               seasonalMail: state.diabetesDaySeasonalMail,
               logoEnergyClick: state.diabetesDayLogoClick,
             } : undefined,
+            candyJump: state.candyJumpEnabled ? {
+              enabled: true,
+              itemId: state.candyJumpItemId,
+              useEcstasy: state.candyJumpUseEcstasy,
+              quantity: state.candyJumpQuantity,
+            } : undefined,
             daysSkippedPerMonth: state.daysSkippedPerMonth,
             itemPrices: (showCosts && itemPricesData) ? {
               dvdPrice: itemPricesData.prices[366],
               xanaxPrice: itemPricesData.prices[206],
               ecstasyPrice: itemPricesData.prices[196],
+              candyEcstasyPrice: itemPricesData.prices[197],
+              candyPrices: {
+                310: itemPricesData.prices[310],
+                36: itemPricesData.prices[36],
+                528: itemPricesData.prices[528],
+                529: itemPricesData.prices[529],
+                151: itemPricesData.prices[151],
+              },
             } : undefined,
           };
           
@@ -1066,9 +1092,68 @@ export default function GymComparison() {
                   )}
                   
                   <FormControlLabel 
+                    control={<Switch checked={activeState.diabetesDayEnabled} onChange={(e) => updateState(activeState.id, { diabetesDayEnabled: e.target.checked })} size="small" />} 
+                    label="Diabetes Day" 
+                    sx={{ mt: 1 }}
+                  />
+                  {activeState.diabetesDayEnabled && (
+                    <>
+                      <FormControl fullWidth margin="dense" size="small">
+                        <InputLabel>Jumps</InputLabel>
+                        <Select 
+                          value={activeState.diabetesDayNumberOfJumps} 
+                          label="Jumps" 
+                          onChange={(e) => updateState(activeState.id, { diabetesDayNumberOfJumps: Number(e.target.value) as 1 | 2 })}
+                        >
+                          <MenuItem value={1}>1</MenuItem>
+                          <MenuItem value={2}>2</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <FormControl fullWidth margin="dense" size="small">
+                        <InputLabel>FHC</InputLabel>
+                        <Select 
+                          value={activeState.diabetesDayFHC} 
+                          label="FHC" 
+                          onChange={(e) => updateState(activeState.id, { diabetesDayFHC: Number(e.target.value) as 0 | 1 | 2 })}
+                        >
+                          <MenuItem value={0}>0</MenuItem>
+                          <MenuItem value={1}>1</MenuItem>
+                          <MenuItem value={2}>2</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <FormControl fullWidth margin="dense" size="small">
+                        <InputLabel>Green Egg</InputLabel>
+                        <Select 
+                          value={activeState.diabetesDayGreenEgg} 
+                          label="Green Egg" 
+                          onChange={(e) => updateState(activeState.id, { diabetesDayGreenEgg: Number(e.target.value) as 0 | 1 | 2 })}
+                        >
+                          <MenuItem value={0}>0</MenuItem>
+                          <MenuItem value={1}>1</MenuItem>
+                          <MenuItem value={2}>2</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <FormControlLabel 
+                        control={<Switch checked={activeState.diabetesDaySeasonalMail} onChange={(e) => updateState(activeState.id, { diabetesDaySeasonalMail: e.target.checked })} size="small" />} 
+                        label="Seasonal Mail" 
+                      />
+                      <FormControlLabel 
+                        control={<Switch checked={activeState.diabetesDayLogoClick} onChange={(e) => updateState(activeState.id, { diabetesDayLogoClick: e.target.checked })} size="small" />} 
+                        label="Logo Click" 
+                      />
+                    </>
+                  )}
+                </Grid>
+              </Grid>
+
+              {/* New Row for Stat Jumps (EDVD and Candy) */}
+              <Typography variant="subtitle2" gutterBottom sx={{ mt: 3 }}>Stat Jumps</Typography>
+              <Grid container spacing={2}>
+                {/* EDVD Jumps Column */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <FormControlLabel 
                     control={<Switch checked={activeState.edvdJumpEnabled} onChange={(e) => updateState(activeState.id, { edvdJumpEnabled: e.target.checked })} size="small" />} 
                     label="EDVD Jumps" 
-                    sx={{ mt: 1 }}
                   />
                   {activeState.edvdJumpEnabled && (
                     <>
@@ -1130,57 +1215,55 @@ export default function GymComparison() {
                       )}
                     </>
                   )}
-                  
+                </Grid>
+
+                {/* Candy Jumps Column */}
+                <Grid size={{ xs: 12, md: 6 }}>
                   <FormControlLabel 
-                    control={<Switch checked={activeState.diabetesDayEnabled} onChange={(e) => updateState(activeState.id, { diabetesDayEnabled: e.target.checked })} size="small" />} 
-                    label="Diabetes Day" 
-                    sx={{ mt: 1 }}
+                    control={<Switch checked={activeState.candyJumpEnabled} onChange={(e) => updateState(activeState.id, { candyJumpEnabled: e.target.checked })} size="small" />} 
+                    label="Candy" 
                   />
-                  {activeState.diabetesDayEnabled && (
+                  {activeState.candyJumpEnabled && (
                     <>
                       <FormControl fullWidth margin="dense" size="small">
-                        <InputLabel>Jumps</InputLabel>
+                        <InputLabel>Candy Type</InputLabel>
                         <Select 
-                          value={activeState.diabetesDayNumberOfJumps} 
-                          label="Jumps" 
-                          onChange={(e) => updateState(activeState.id, { diabetesDayNumberOfJumps: Number(e.target.value) as 1 | 2 })}
+                          value={activeState.candyJumpItemId} 
+                          label="Candy Type" 
+                          onChange={(e) => updateState(activeState.id, { candyJumpItemId: Number(e.target.value) })}
                         >
-                          <MenuItem value={1}>1</MenuItem>
-                          <MenuItem value={2}>2</MenuItem>
+                          <MenuItem value={310}>25 Happy</MenuItem>
+                          <MenuItem value={36}>35 Happy</MenuItem>
+                          <MenuItem value={528}>75 Happy</MenuItem>
+                          <MenuItem value={529}>100 Happy</MenuItem>
+                          <MenuItem value={151}>150 Happy</MenuItem>
                         </Select>
                       </FormControl>
-                      <FormControl fullWidth margin="dense" size="small">
-                        <InputLabel>FHC</InputLabel>
-                        <Select 
-                          value={activeState.diabetesDayFHC} 
-                          label="FHC" 
-                          onChange={(e) => updateState(activeState.id, { diabetesDayFHC: Number(e.target.value) as 0 | 1 | 2 })}
-                        >
-                          <MenuItem value={0}>0</MenuItem>
-                          <MenuItem value={1}>1</MenuItem>
-                          <MenuItem value={2}>2</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <FormControl fullWidth margin="dense" size="small">
-                        <InputLabel>Green Egg</InputLabel>
-                        <Select 
-                          value={activeState.diabetesDayGreenEgg} 
-                          label="Green Egg" 
-                          onChange={(e) => updateState(activeState.id, { diabetesDayGreenEgg: Number(e.target.value) as 0 | 1 | 2 })}
-                        >
-                          <MenuItem value={0}>0</MenuItem>
-                          <MenuItem value={1}>1</MenuItem>
-                          <MenuItem value={2}>2</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <FormControlLabel 
-                        control={<Switch checked={activeState.diabetesDaySeasonalMail} onChange={(e) => updateState(activeState.id, { diabetesDaySeasonalMail: e.target.checked })} size="small" />} 
-                        label="Seasonal Mail" 
+                      <TextField 
+                        label="Candies per Day" 
+                        type="number" 
+                        value={activeState.candyJumpQuantity ?? ''} 
+                        onChange={(e) => updateState(activeState.id, { candyJumpQuantity: e.target.value === '' ? 48 : Math.max(1, Number(e.target.value))})} 
+                        fullWidth 
+                        margin="dense" 
+                        size="small" 
+                        inputProps={{ step: 'any', min: 1 }} 
                       />
                       <FormControlLabel 
-                        control={<Switch checked={activeState.diabetesDayLogoClick} onChange={(e) => updateState(activeState.id, { diabetesDayLogoClick: e.target.checked })} size="small" />} 
-                        label="Logo Click" 
+                        control={<Switch checked={activeState.candyJumpUseEcstasy} onChange={(e) => updateState(activeState.id, { candyJumpUseEcstasy: e.target.checked })} size="small" />} 
+                        label="Use Ecstasy" 
+                        sx={{ mt: 1 }}
                       />
+                      <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
+                        One candy train per day using {(() => {
+                          const hasPoints = activeState.hasPointsRefill;
+                          const hasXanax = activeState.xanaxPerDay >= 1;
+                          if (hasPoints && hasXanax) return '550';
+                          if (hasXanax) return '400';
+                          if (hasPoints) return '300';
+                          return '150';
+                        })()} energy at {activeState.candyJumpUseEcstasy ? `(base happy + candy happy × ${activeState.candyJumpQuantity}) × 2` : `base happy + (candy happy × ${activeState.candyJumpQuantity})`}
+                      </Typography>
                     </>
                   )}
                 </Grid>
@@ -1348,6 +1431,21 @@ export default function GymComparison() {
                                         );
                                       })}
                                     </TableRow>
+                                    <TableRow>
+                                      <TableCell sx={{ fontWeight: 'bold' }}>Candy Cost</TableCell>
+                                      {comparisonStates.map((state) => {
+                                        const result = results[state.id];
+                                        if (!result || !result.candyJumpCosts) {
+                                          return <TableCell key={state.id} align="right">-</TableCell>;
+                                        }
+                                        
+                                        return (
+                                          <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
+                                            {formatCurrency(result.candyJumpCosts.totalCost)}
+                                          </TableCell>
+                                        );
+                                      })}
+                                    </TableRow>
                                     <TableRow sx={{ borderTop: 2, borderColor: 'divider' }}>
                                       <TableCell sx={{ fontWeight: 'bold' }}>Total Cost</TableCell>
                                       {comparisonStates.map((state) => {
@@ -1358,7 +1456,8 @@ export default function GymComparison() {
                                         
                                         const edvdCost = result.edvdJumpCosts?.totalCost || 0;
                                         const xanaxCost = result.xanaxCosts?.totalCost || 0;
-                                        const totalCost = edvdCost + xanaxCost;
+                                        const candyCost = result.candyJumpCosts?.totalCost || 0;
+                                        const totalCost = edvdCost + xanaxCost + candyCost;
                                         
                                         return (
                                           <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}>
@@ -1403,7 +1502,8 @@ export default function GymComparison() {
                                           
                                           const edvdCost = result.edvdJumpCosts?.totalCost || 0;
                                           const xanaxCost = result.xanaxCosts?.totalCost || 0;
-                                          const totalCost = edvdCost + xanaxCost;
+                                          const candyCost = result.candyJumpCosts?.totalCost || 0;
+                                          const totalCost = edvdCost + xanaxCost + candyCost;
                                           const totalGain = calculateTotalGain(result);
                                           
                                           if (totalCost === 0 || totalGain === 0) {

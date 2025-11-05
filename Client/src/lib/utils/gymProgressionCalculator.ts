@@ -71,11 +71,25 @@ export interface SimulationInputs {
     seasonalMail: boolean; // 250 energy for first jump only
     logoEnergyClick: boolean; // 50 energy for first jump only
   };
+  candyJump?: {
+    enabled: boolean;
+    itemId: number; // 310 (25 happy), 36 (35 happy), 528 (75 happy), 529 (100 happy), 151 (150 happy)
+    useEcstasy: boolean; // If true, double happiness after candy
+    quantity: number; // Number of candies used per day (default 48)
+  };
   daysSkippedPerMonth?: number; // Days per month with no energy (wars, vacations)
   itemPrices?: {
     dvdPrice: number | null;
     xanaxPrice: number | null;
     ecstasyPrice: number | null;
+    candyEcstasyPrice: number | null;
+    candyPrices?: {
+      310: number | null;
+      36: number | null;
+      528: number | null;
+      529: number | null;
+      151: number | null;
+    };
   };
 }
 
@@ -110,6 +124,12 @@ export interface SimulationResult {
     totalCost: number;
   };
   xanaxCosts?: {
+    totalCost: number;
+  };
+  
+  candyJumpCosts?: {
+    totalDays: number;
+    costPerDay: number;
     totalCost: number;
   };
   diabetesDayTotalGains?: {
@@ -354,6 +374,9 @@ export function simulateGymProgression(
   let diabetesDayJump1Gains: { strength: number; speed: number; defense: number; dexterity: number } | undefined;
   let diabetesDayJump2Gains: { strength: number; speed: number; defense: number; dexterity: number } | undefined;
   
+  // Track candy jump days
+  let candyJumpDaysPerformed = 0;
+  
   if (inputs.diabetesDay?.enabled) {
     if (inputs.diabetesDay.numberOfJumps === 1) {
       diabetesDayJumpDays.push(7); // Single jump on day 7
@@ -507,6 +530,114 @@ export function simulateGymProgression(
     
     // Track stats before training for DD jumps
     const statsBeforeTraining = isDiabetesDayJump ? { ...stats } : undefined;
+    
+    // Handle candy jump if enabled and not on an EDVD or DD jump day
+    if (inputs.candyJump?.enabled && !shouldPerformEdvdJump && !isDiabetesDayJump && !isSkipped) {
+      // Map item IDs to happiness values
+      const candyHappinessMap: Record<number, number> = {
+        310: 25,
+        36: 35,
+        528: 75,
+        529: 100,
+        151: 150,
+      };
+      
+      const candyHappy = candyHappinessMap[inputs.candyJump.itemId];
+      
+      if (!candyHappy) {
+        throw new Error(`Invalid candy item ID: ${inputs.candyJump.itemId}`);
+      }
+      
+      // Calculate energy to use for candy jump
+      // Base: maxEnergy (150 or 100), +maxEnergy if points refill, +250 if at least one xanax, +150 more if both points and xanax
+      let candyEnergy = maxEnergyValue; // 150 or 100 based on maxEnergy setting
+      
+      if (inputs.hasPointsRefill && inputs.xanaxPerDay >= 1) {
+        // Both points and xanax: 550 total (150 base + 150 points + 250 xanax)
+        candyEnergy = maxEnergyValue + maxEnergyValue + 250;
+      } else if (inputs.xanaxPerDay >= 1) {
+        // Xanax but no points: 400 total (150 base + 250 xanax)
+        candyEnergy = maxEnergyValue + 250;
+      } else if (inputs.hasPointsRefill) {
+        // Points but no xanax: 300 total (150 base + 150 points)
+        candyEnergy = maxEnergyValue + maxEnergyValue;
+      }
+      // else: just base 150
+      
+      // Make sure we don't use more energy than available
+      const energyToUse = Math.min(candyEnergy, remainingEnergy);
+      
+      // Calculate candy happiness: base happy + (candyHappy * quantity)
+      // If ecstasy is enabled, double the happiness: ((base happy) + (candyHappy * quantity)) * 2
+      const candyQuantity = inputs.candyJump.quantity || 48;
+      let candyTrainHappy = inputs.happy + (candyHappy * candyQuantity);
+      if (inputs.candyJump.useEcstasy) {
+        candyTrainHappy = candyTrainHappy * 2;
+      }
+      
+      // Train with candy happiness for the allocated energy
+      let candyRemainingEnergy = energyToUse;
+      
+      while (candyRemainingEnergy > 0) {
+        const statOrder: Array<keyof typeof stats> = ['strength', 'speed', 'defense', 'dexterity'];
+        const trainableStats = statOrder.filter(stat => inputs.statWeights[stat] > 0);
+        
+        if (trainableStats.length === 0) break;
+        
+        let selectedStat: keyof typeof stats | null = null;
+        let lowestRatio = Infinity;
+        
+        for (const stat of trainableStats) {
+          const ratio = stats[stat] / inputs.statWeights[stat];
+          if (ratio < lowestRatio) {
+            lowestRatio = ratio;
+            selectedStat = stat;
+          }
+        }
+        
+        if (!selectedStat) break;
+        
+        let trainSuccessful = false;
+        
+        try {
+          let gym: Gym;
+          if (shouldLockGym && inputs.currentGymIndex >= 0 && inputs.currentGymIndex < gyms.length) {
+            gym = gyms[inputs.currentGymIndex];
+          } else {
+            gym = findBestGym(gyms, selectedStat, totalEnergySpent, inputs.companyBenefit.gymUnlockSpeedMultiplier, stats);
+          }
+          
+          const statDots = gym[selectedStat as keyof Pick<Gym, 'strength' | 'speed' | 'defense' | 'dexterity'>];
+          if (statDots) {
+            if (candyRemainingEnergy >= gym.energyPerTrain) {
+              const currentStatValue = stats[selectedStat];
+              
+              const gain = computeStatGain(
+                selectedStat,
+                currentStatValue,
+                candyTrainHappy,
+                inputs.perkPercs[selectedStat],
+                statDots,
+                gym.energyPerTrain
+              );
+              
+              const actualGain = gain * inputs.companyBenefit.gymGainMultiplier;
+              stats[selectedStat] += actualGain;
+              totalEnergySpent += gym.energyPerTrain;
+              candyRemainingEnergy -= gym.energyPerTrain;
+              remainingEnergy -= gym.energyPerTrain;
+              trainSuccessful = true;
+            }
+          }
+        } catch {
+          // Gym not found for this stat
+        }
+        
+        if (!trainSuccessful) break;
+      }
+      
+      candyJumpDaysPerformed++;
+    }
     
     while (remainingEnergy > 0) {
       // Determine which stat to train next based on how far each is from its target ratio
@@ -671,6 +802,7 @@ export function simulateGymProgression(
   // Calculate cost information if prices are available
   let edvdJumpCosts: { totalJumps: number; costPerJump: number; totalCost: number } | undefined;
   let xanaxCosts: { totalCost: number } | undefined;
+  let candyJumpCosts: { totalDays: number; costPerDay: number; totalCost: number } | undefined;
   
   if (inputs.itemPrices) {
     // Calculate EDVD jump costs
@@ -693,6 +825,29 @@ export function simulateGymProgression(
         totalCost: inputs.itemPrices.xanaxPrice * inputs.xanaxPerDay * totalDays,
       };
     }
+    
+    // Calculate candy jump costs
+    if (inputs.candyJump?.enabled && inputs.itemPrices.candyPrices) {
+      const itemId = inputs.candyJump.itemId;
+      const candyPrice = inputs.itemPrices.candyPrices[itemId as keyof typeof inputs.itemPrices.candyPrices];
+      
+      if (candyPrice !== null && candyPrice !== undefined) {
+        // Cost: quantity * candy price per day
+        const candyQuantity = inputs.candyJump.quantity || 48;
+        let costPerDay = candyQuantity * candyPrice;
+        
+        // Add ecstasy cost if enabled
+        if (inputs.candyJump.useEcstasy && inputs.itemPrices.candyEcstasyPrice !== null) {
+          costPerDay += inputs.itemPrices.candyEcstasyPrice;
+        }
+        
+        candyJumpCosts = {
+          totalDays: candyJumpDaysPerformed,
+          costPerDay,
+          totalCost: costPerDay * candyJumpDaysPerformed,
+        };
+      }
+    }
   }
   
   return {
@@ -705,6 +860,7 @@ export function simulateGymProgression(
     },
     edvdJumpCosts,
     xanaxCosts,
+    candyJumpCosts,
     diabetesDayTotalGains: inputs.diabetesDay?.enabled ? diabetesDayTotalGains : undefined,
     diabetesDayJump1Gains: inputs.diabetesDay?.enabled ? diabetesDayJump1Gains : undefined,
     diabetesDayJump2Gains: inputs.diabetesDay?.enabled ? diabetesDayJump2Gains : undefined,
