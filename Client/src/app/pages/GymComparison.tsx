@@ -48,6 +48,7 @@ import {
   type StatWeights,
 } from '../../lib/utils/gymProgressionCalculator';
 import { useGymStats } from '../../lib/hooks/useGymStats';
+import { useItemPrices } from '../../lib/hooks/useItemPrices';
 
 // Hardcoded gym data
 const GYMS: Gym[] = [
@@ -191,9 +192,12 @@ interface ComparisonState {
   hasPointsRefill: boolean;
   maxEnergy: number; // 150 or 100
   perkPercs: { strength: number; speed: number; defense: number; dexterity: number };
-  happyJumpEnabled: boolean;
-  happyJumpFrequency: number;
-  happyJumpDvds: number;
+  edvdJumpEnabled: boolean;
+  edvdJumpFrequency: number;
+  edvdJumpDvds: number;
+  edvdJumpLimit: 'indefinite' | 'count' | 'stat';
+  edvdJumpCount: number; // Used when edvdJumpLimit is 'count'
+  edvdJumpStatTarget: number; // Used when edvdJumpLimit is 'stat'
   diabetesDayEnabled: boolean;
   diabetesDayNumberOfJumps: 1 | 2;
   diabetesDayFHC: 0 | 1 | 2;
@@ -301,6 +305,32 @@ const getDefensiveBuildRatio = (primaryStat: 'defense' | 'dexterity'): StatWeigh
   }
 };
 
+// Helper function to format currency
+const formatCurrency = (value: number): string => {
+  if (value >= 1_000_000_000) {
+    return `$${(value / 1_000_000_000).toFixed(2)}b`;
+  } else if (value >= 1_000_000) {
+    return `$${(value / 1_000_000).toFixed(2)}m`;
+  } else if (value >= 1_000) {
+    return `$${(value / 1_000).toFixed(2)}k`;
+  }
+  return `$${value.toFixed(0)}`;
+};
+
+// Calculate EDVD jump cost
+const calculateEdvdJumpCost = (
+  dvdsUsed: number, 
+  dvdPrice: number | null, 
+  xanaxPrice: number | null, 
+  ecstasyPrice: number | null
+): number | null => {
+  if (dvdPrice === null || xanaxPrice === null || ecstasyPrice === null) {
+    return null;
+  }
+  // Cost = (DVDs * DVD price) + (4 * Xanax price) + (1 * Ecstasy price)
+  return (dvdsUsed * dvdPrice) + (4 * xanaxPrice) + ecstasyPrice;
+};
+
 export default function GymComparison() {
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
     try {
@@ -347,9 +377,12 @@ export default function GymComparison() {
         hasPointsRefill: true,
         maxEnergy: 150,
         perkPercs: { strength: 2, speed: 2, defense: 2, dexterity: 2 },
-        happyJumpEnabled: false,
-        happyJumpFrequency: 7,
-        happyJumpDvds: 1,
+        edvdJumpEnabled: false,
+        edvdJumpFrequency: 7,
+        edvdJumpDvds: 1,
+        edvdJumpLimit: 'indefinite',
+        edvdJumpCount: 10,
+        edvdJumpStatTarget: 10000000,
         diabetesDayEnabled: false,
         diabetesDayNumberOfJumps: 1,
         diabetesDayFHC: 0,
@@ -369,6 +402,10 @@ export default function GymComparison() {
   const [error, setError] = useState<string | null>(null);
   
   const { data: gymStatsData, isLoading: isLoadingGymStats, error: gymStatsError, refetch: refetchGymStats } = useGymStats(apiKey || null);
+  
+  // Fetch item prices for EDVD jumps and xanax
+  // Item IDs: 366 (DVDs), 206 (Xanax), 196 (Ecstasy)
+  const { data: itemPricesData } = useItemPrices([366, 206, 196]);
   
   // Auto-populate stats when fetched
   useEffect(() => {
@@ -452,9 +489,12 @@ export default function GymComparison() {
       hasPointsRefill: sourceState.hasPointsRefill,
       maxEnergy: sourceState.maxEnergy,
       perkPercs: { ...sourceState.perkPercs },
-      happyJumpEnabled: sourceState.happyJumpEnabled,
-      happyJumpFrequency: sourceState.happyJumpFrequency,
-      happyJumpDvds: sourceState.happyJumpDvds,
+      edvdJumpEnabled: sourceState.edvdJumpEnabled,
+      edvdJumpFrequency: sourceState.edvdJumpFrequency,
+      edvdJumpDvds: sourceState.edvdJumpDvds,
+      edvdJumpLimit: sourceState.edvdJumpLimit,
+      edvdJumpCount: sourceState.edvdJumpCount,
+      edvdJumpStatTarget: sourceState.edvdJumpStatTarget,
       diabetesDayEnabled: sourceState.diabetesDayEnabled,
       diabetesDayNumberOfJumps: sourceState.diabetesDayNumberOfJumps,
       diabetesDayFHC: sourceState.diabetesDayFHC,
@@ -533,10 +573,13 @@ export default function GymComparison() {
             perkPercs: state.perkPercs,
             currentGymIndex: currentGymIndex, // Start from current/selected gym and auto-upgrade
             lockGym: false, // Always use auto-upgrade in future mode to allow unlock speed multiplier to work
-            happyJump: state.happyJumpEnabled ? {
+            edvdJump: state.edvdJumpEnabled ? {
               enabled: true,
-              frequencyDays: state.happyJumpFrequency,
-              dvdsUsed: state.happyJumpDvds,
+              frequencyDays: state.edvdJumpFrequency,
+              dvdsUsed: state.edvdJumpDvds,
+              limit: state.edvdJumpLimit,
+              count: state.edvdJumpCount,
+              statTarget: state.edvdJumpStatTarget,
             } : undefined,
             diabetesDay: state.diabetesDayEnabled ? {
               enabled: true,
@@ -1000,17 +1043,17 @@ export default function GymComparison() {
                   )}
                   
                   <FormControlLabel 
-                    control={<Switch checked={activeState.happyJumpEnabled} onChange={(e) => updateState(activeState.id, { happyJumpEnabled: e.target.checked })} size="small" />} 
-                    label="Happy Jumps" 
+                    control={<Switch checked={activeState.edvdJumpEnabled} onChange={(e) => updateState(activeState.id, { edvdJumpEnabled: e.target.checked })} size="small" />} 
+                    label="EDVD Jumps" 
                     sx={{ mt: 1 }}
                   />
-                  {activeState.happyJumpEnabled && (
+                  {activeState.edvdJumpEnabled && (
                     <>
                       <TextField 
                         label="Days Between" 
                         type="number" 
-                        value={activeState.happyJumpFrequency ?? ''} 
-                        onChange={(e) => updateState(activeState.id, { happyJumpFrequency: e.target.value === '' ? 1 : Math.max(1, Number(e.target.value))})} 
+                        value={activeState.edvdJumpFrequency ?? ''} 
+                        onChange={(e) => updateState(activeState.id, { edvdJumpFrequency: e.target.value === '' ? 1 : Math.max(1, Number(e.target.value))})} 
                         fullWidth 
                         margin="dense" 
                         size="small" 
@@ -1019,13 +1062,49 @@ export default function GymComparison() {
                       <TextField 
                         label="DVDs Used" 
                         type="number" 
-                        value={activeState.happyJumpDvds ?? ''} 
-                        onChange={(e) => updateState(activeState.id, { happyJumpDvds: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value))})} 
+                        value={activeState.edvdJumpDvds ?? ''} 
+                        onChange={(e) => updateState(activeState.id, { edvdJumpDvds: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value))})} 
                         fullWidth 
                         margin="dense" 
                         size="small" 
                         inputProps={{ step: 'any', min: 0 }} 
                       />
+                      <FormControl fullWidth margin="dense" size="small">
+                        <InputLabel>Jump Limit</InputLabel>
+                        <Select 
+                          value={activeState.edvdJumpLimit} 
+                          label="Jump Limit" 
+                          onChange={(e) => updateState(activeState.id, { edvdJumpLimit: e.target.value as 'indefinite' | 'count' | 'stat' })}
+                        >
+                          <MenuItem value="indefinite">Indefinite</MenuItem>
+                          <MenuItem value="count">Set Amount</MenuItem>
+                          <MenuItem value="stat">Until Stat Level</MenuItem>
+                        </Select>
+                      </FormControl>
+                      {activeState.edvdJumpLimit === 'count' && (
+                        <TextField 
+                          label="Number of Jumps" 
+                          type="number" 
+                          value={activeState.edvdJumpCount ?? ''} 
+                          onChange={(e) => updateState(activeState.id, { edvdJumpCount: e.target.value === '' ? 1 : Math.max(1, Number(e.target.value))})} 
+                          fullWidth 
+                          margin="dense" 
+                          size="small" 
+                          inputProps={{ step: 'any', min: 1 }} 
+                        />
+                      )}
+                      {activeState.edvdJumpLimit === 'stat' && (
+                        <TextField 
+                          label="Stat Target (Total)" 
+                          type="number" 
+                          value={activeState.edvdJumpStatTarget ?? ''} 
+                          onChange={(e) => updateState(activeState.id, { edvdJumpStatTarget: e.target.value === '' ? 1000000 : Math.max(0, Number(e.target.value))})} 
+                          fullWidth 
+                          margin="dense" 
+                          size="small" 
+                          inputProps={{ step: 'any', min: 0 }} 
+                        />
+                      )}
                     </>
                   )}
                   
@@ -1176,6 +1255,91 @@ export default function GymComparison() {
                               );
                             })}
                           </TableRow>
+                          {/* Cost Information */}
+                          {itemPricesData && (
+                            <>
+                              <TableRow sx={{ borderTop: 2, borderColor: 'divider' }}>
+                                <TableCell sx={{ fontWeight: 'bold' }}>EDVD Cost</TableCell>
+                                {comparisonStates.map((state) => {
+                                  if (!state.edvdJumpEnabled) {
+                                    return <TableCell key={state.id} align="right">-</TableCell>;
+                                  }
+                                  
+                                  const edvdCost = calculateEdvdJumpCost(
+                                    state.edvdJumpDvds,
+                                    itemPricesData.prices[366],
+                                    itemPricesData.prices[206],
+                                    itemPricesData.prices[196]
+                                  );
+                                  
+                                  if (edvdCost === null) {
+                                    return <TableCell key={state.id} align="right">N/A</TableCell>;
+                                  }
+                                  
+                                  // Calculate number of jumps performed in the simulation
+                                  let jumpsPerformed = 0;
+                                  if (state.edvdJumpLimit === 'indefinite') {
+                                    jumpsPerformed = Math.floor(months * 30 / state.edvdJumpFrequency);
+                                  } else if (state.edvdJumpLimit === 'count') {
+                                    jumpsPerformed = state.edvdJumpCount;
+                                  } else if (state.edvdJumpLimit === 'stat') {
+                                    // Estimate - would need to track in simulation
+                                    jumpsPerformed = Math.floor(months * 30 / state.edvdJumpFrequency);
+                                  }
+                                  
+                                  const totalCost = edvdCost * jumpsPerformed;
+                                  
+                                  return (
+                                    <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
+                                      {formatCurrency(totalCost)}
+                                    </TableCell>
+                                  );
+                                })}
+                              </TableRow>
+                              <TableRow>
+                                <TableCell sx={{ fontWeight: 'bold' }}>$/EDVD Jump</TableCell>
+                                {comparisonStates.map((state) => {
+                                  if (!state.edvdJumpEnabled) {
+                                    return <TableCell key={state.id} align="right">-</TableCell>;
+                                  }
+                                  
+                                  const edvdCost = calculateEdvdJumpCost(
+                                    state.edvdJumpDvds,
+                                    itemPricesData.prices[366],
+                                    itemPricesData.prices[206],
+                                    itemPricesData.prices[196]
+                                  );
+                                  
+                                  if (edvdCost === null) {
+                                    return <TableCell key={state.id} align="right">N/A</TableCell>;
+                                  }
+                                  
+                                  return (
+                                    <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
+                                      {formatCurrency(edvdCost)}
+                                    </TableCell>
+                                  );
+                                })}
+                              </TableRow>
+                              <TableRow>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Xanax Cost</TableCell>
+                                {comparisonStates.map((state) => {
+                                  const xanaxPrice = itemPricesData.prices[206];
+                                  if (xanaxPrice === null || state.xanaxPerDay === 0) {
+                                    return <TableCell key={state.id} align="right">-</TableCell>;
+                                  }
+                                  
+                                  const totalCost = xanaxPrice * state.xanaxPerDay * months * 30;
+                                  
+                                  return (
+                                    <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
+                                      {formatCurrency(totalCost)}
+                                    </TableCell>
+                                  );
+                                })}
+                              </TableRow>
+                            </>
+                          )}
                         </TableBody>
                       </Table>
                     </TableContainer>
