@@ -582,7 +582,7 @@ export default function GymComparison() {
             companyBenefit: benefit,
             apiKey,
             initialStats,
-            happy: state.diabetesDayEnabled ? 99999 : state.happy, // DD overrides happy to 99999
+            happy: state.happy, 
             perkPercs: state.perkPercs,
             currentGymIndex: currentGymIndex, // Start from current/selected gym and auto-upgrade
             lockGym: false, // Always use auto-upgrade in future mode to allow unlock speed multiplier to work
