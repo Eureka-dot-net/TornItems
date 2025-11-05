@@ -1360,40 +1360,24 @@ export default function GymComparison() {
                         </TableRow>
                         <TableRow>
                           <TableCell sx={{ fontWeight: 'bold' }}>Cost per Stat Gain</TableCell>
-                          {comparisonStates.map((state) => {
-                            const result = results[state.id];
-                            if (!result) {
-                              return <TableCell key={state.id} align="right">-</TableCell>;
-                            }
+                          {(() => {
+                            // Helper function to calculate total stat gain
+                            const calculateTotalGain = (result: SimulationResult) => {
+                              return (result.finalStats.strength - initialStats.strength) + 
+                                     (result.finalStats.speed - initialStats.speed) + 
+                                     (result.finalStats.defense - initialStats.defense) + 
+                                     (result.finalStats.dexterity - initialStats.dexterity);
+                            };
                             
-                            const edvdCost = result.edvdJumpCosts?.totalCost || 0;
-                            const xanaxCost = result.xanaxCosts?.totalCost || 0;
-                            const totalCost = edvdCost + xanaxCost;
-                            
-                            const totalGain = (result.finalStats.strength - initialStats.strength) + 
-                                            (result.finalStats.speed - initialStats.speed) + 
-                                            (result.finalStats.defense - initialStats.defense) + 
-                                            (result.finalStats.dexterity - initialStats.dexterity);
-                            
-                            if (totalCost === 0 || totalGain === 0) {
-                              return <TableCell key={state.id} align="right">-</TableCell>;
-                            }
-                            
-                            // Determine appropriate baseline (1k, 10k, or 100k)
-                            // Use the same baseline for all states for comparison
-                            let baseline = 1000;
-                            let baselineLabel = '1k';
-                            
-                            // Check the maximum total gain across all states to pick appropriate baseline
+                            // Calculate max gain across all states once for baseline determination
                             const maxGain = Math.max(...comparisonStates.map(s => {
                               const r = results[s.id];
-                              if (!r) return 0;
-                              return (r.finalStats.strength - initialStats.strength) + 
-                                     (r.finalStats.speed - initialStats.speed) + 
-                                     (r.finalStats.defense - initialStats.defense) + 
-                                     (r.finalStats.dexterity - initialStats.dexterity);
+                              return r ? calculateTotalGain(r) : 0;
                             }));
                             
+                            // Determine appropriate baseline (1k, 10k, or 100k)
+                            let baseline = 1000;
+                            let baselineLabel = '1k';
                             if (maxGain >= 100000) {
                               baseline = 100000;
                               baselineLabel = '100k';
@@ -1402,14 +1386,30 @@ export default function GymComparison() {
                               baselineLabel = '10k';
                             }
                             
-                            const costPerBaseline = (totalCost / totalGain) * baseline;
-                            
-                            return (
-                              <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
-                                {formatCurrency(costPerBaseline)}/{baselineLabel}
-                              </TableCell>
-                            );
-                          })}
+                            return comparisonStates.map((state) => {
+                              const result = results[state.id];
+                              if (!result) {
+                                return <TableCell key={state.id} align="right">-</TableCell>;
+                              }
+                              
+                              const edvdCost = result.edvdJumpCosts?.totalCost || 0;
+                              const xanaxCost = result.xanaxCosts?.totalCost || 0;
+                              const totalCost = edvdCost + xanaxCost;
+                              const totalGain = calculateTotalGain(result);
+                              
+                              if (totalCost === 0 || totalGain === 0) {
+                                return <TableCell key={state.id} align="right">-</TableCell>;
+                              }
+                              
+                              const costPerBaseline = (totalCost / totalGain) * baseline;
+                              
+                              return (
+                                <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
+                                  {formatCurrency(costPerBaseline)}/{baselineLabel}
+                                </TableCell>
+                              );
+                            });
+                          })()}
                         </TableRow>
                       </TableBody>
                     </Table>
