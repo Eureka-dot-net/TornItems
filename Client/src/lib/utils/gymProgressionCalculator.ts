@@ -123,6 +123,7 @@ export interface SimulationResult {
   xanaxCosts?: {
     totalCost: number;
   };
+  
   candyJumpCosts?: {
     totalDays: number;
     costPerDay: number;
@@ -538,11 +539,15 @@ export function simulateGymProgression(
         151: 150,
       };
       
-      const candyHappy = candyHappinessMap[inputs.candyJump.itemId] || 25;
+      const candyHappy = candyHappinessMap[inputs.candyJump.itemId];
+      
+      if (!candyHappy) {
+        throw new Error(`Invalid candy item ID: ${inputs.candyJump.itemId}`);
+      }
       
       // Calculate energy to use for candy jump
-      // Base: 150 (maxEnergy), +150 if points refill, +250 if at least one xanax, +150 more if both points and xanax
-      let candyEnergy = maxEnergyValue; // 150 or 100
+      // Base: maxEnergy (150 or 100), +maxEnergy if points refill, +250 if at least one xanax, +150 more if both points and xanax
+      let candyEnergy = maxEnergyValue; // 150 or 100 based on maxEnergy setting
       
       if (inputs.hasPointsRefill && inputs.xanaxPerDay >= 1) {
         // Both points and xanax: 550 total (150 base + 150 points + 250 xanax)
