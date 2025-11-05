@@ -17,8 +17,10 @@ router.get('/market-prices', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'itemIds query parameter is required (comma-separated list)' });
     }
     
-    // Parse comma-separated item IDs
-    const ids = itemIds.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+    // Parse comma-separated item IDs and validate
+    const ids = itemIds.split(',')
+      .map(id => parseInt(id.trim(), 10))
+      .filter(id => !isNaN(id) && id > 0);
     
     if (ids.length === 0) {
       return res.status(400).json({ error: 'No valid item IDs provided' });

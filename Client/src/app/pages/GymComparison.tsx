@@ -638,16 +638,24 @@ export default function GymComparison() {
                     </Typography>
                     {state && results[state.id] && itemPricesData && (
                       <>
-                        {results[state.id].edvdJumpCosts && (
-                          <Typography variant="caption" sx={{ color: '#ffa726', display: 'block', ml: 1 }}>
-                            EDVD: {formatCurrency(results[state.id].edvdJumpCosts!.totalCost)} ({results[state.id].edvdJumpCosts!.totalJumps} jumps)
-                          </Typography>
-                        )}
-                        {results[state.id].xanaxCosts && (
-                          <Typography variant="caption" sx={{ color: '#ffa726', display: 'block', ml: 1 }}>
-                            Xanax: {formatCurrency(results[state.id].xanaxCosts!.totalCost)}
-                          </Typography>
-                        )}
+                        {(() => {
+                          const edvdCosts = results[state.id].edvdJumpCosts;
+                          const xanaxCosts = results[state.id].xanaxCosts;
+                          return (
+                            <>
+                              {edvdCosts && (
+                                <Typography variant="caption" sx={{ color: '#ffa726', display: 'block', ml: 1 }}>
+                                  EDVD: {formatCurrency(edvdCosts.totalCost)} ({edvdCosts.totalJumps} jumps)
+                                </Typography>
+                              )}
+                              {xanaxCosts && (
+                                <Typography variant="caption" sx={{ color: '#ffa726', display: 'block', ml: 1 }}>
+                                  Xanax: {formatCurrency(xanaxCosts.totalCost)}
+                                </Typography>
+                              )}
+                            </>
+                          );
+                        })()}
                       </>
                     )}
                   </>

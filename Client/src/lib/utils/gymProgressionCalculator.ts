@@ -60,8 +60,8 @@ export interface SimulationInputs {
     frequencyDays: number; // e.g., 7 for weekly, 14 for every 2 weeks
     dvdsUsed: number;
     limit: 'indefinite' | 'count' | 'stat';
-    count: number; // Number of jumps to perform when limit is 'count'
-    statTarget: number; // Total stat target when limit is 'stat'
+    count?: number; // Number of jumps to perform when limit is 'count'
+    statTarget?: number; // Total stat target when limit is 'stat'
   };
   diabetesDay?: {
     enabled: boolean;
@@ -396,9 +396,9 @@ export function simulateGymProgression(
     
     if (shouldPerformEdvdJump && inputs.edvdJump) {
       // Check limit conditions
-      if (inputs.edvdJump.limit === 'count' && edvdJumpsPerformed >= inputs.edvdJump.count) {
+      if (inputs.edvdJump.limit === 'count' && inputs.edvdJump.count !== undefined && edvdJumpsPerformed >= inputs.edvdJump.count) {
         shouldPerformEdvdJump = false;
-      } else if (inputs.edvdJump.limit === 'stat') {
+      } else if (inputs.edvdJump.limit === 'stat' && inputs.edvdJump.statTarget !== undefined) {
         const currentTotal = stats.strength + stats.speed + stats.defense + stats.dexterity;
         if (currentTotal >= inputs.edvdJump.statTarget) {
           shouldPerformEdvdJump = false;
