@@ -1290,7 +1290,18 @@ export default function GymComparison() {
                           if (hasXanax) return '400';
                           if (hasPoints) return '300';
                           return '150';
-                        })()} energy at {activeState.candyJumpUseEcstasy ? `(base happy + candy happy × ${activeState.candyJumpQuantity}) × 2` : `base happy + (candy happy × ${activeState.candyJumpQuantity})`}
+                        })()} energy at {activeState.candyJumpUseEcstasy ? `(base happy + candy happy × ${activeState.candyJumpQuantity}) × 2` : `base happy + (candy happy × ${activeState.candyJumpQuantity})`}${
+                          showCosts && itemPricesData && itemPricesData.prices[activeState.candyJumpItemId] !== null
+                            ? ` costing ${(() => {
+                                const candyPrice = itemPricesData.prices[activeState.candyJumpItemId]!;
+                                let costPerDay = activeState.candyJumpQuantity * candyPrice;
+                                if (activeState.candyJumpUseEcstasy && itemPricesData.prices[197] !== null) {
+                                  costPerDay += itemPricesData.prices[197]!;
+                                }
+                                return formatCurrency(costPerDay);
+                              })()} per day`
+                            : ''
+                        }
                       </Typography>
                     </>
                   )}
