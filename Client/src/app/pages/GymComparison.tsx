@@ -448,13 +448,13 @@ export default function GymComparison() {
     if (mode === 'future' && comparisonStates.length > 0) {
       handleSimulate();
     }
-  }, [comparisonStates, initialStats, months]);
+  }, [comparisonStates, initialStats, months, showCosts, itemPricesData]);
   
   useEffect(() => {
     if (mode === 'manual') {
       handleSimulate();
     }
-  }, [manualEnergy, autoUpgradeGyms, manualHappy, initialStats, currentGymIndex, manualStatWeights, manualCompanyBenefitKey, manualCandleShopStars, manualPerkPercs]);
+  }, [manualEnergy, autoUpgradeGyms, manualHappy, initialStats, currentGymIndex, manualStatWeights, manualCompanyBenefitKey, manualCandleShopStars, manualPerkPercs, showCosts, itemPricesData]);
   
   const handleFetchStats = async () => {
     if (!apiKey.trim()) {
