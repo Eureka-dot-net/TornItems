@@ -75,6 +75,7 @@ export interface SimulationInputs {
     enabled: boolean;
     itemId: number; // 310 (25 happy), 36 (35 happy), 528 (75 happy), 529 (100 happy), 151 (150 happy)
     useEcstasy: boolean; // If true, double happiness after candy
+    quantity: number; // Number of candies used per day (default 48)
   };
   daysSkippedPerMonth?: number; // Days per month with no energy (wars, vacations)
   itemPrices?: {
@@ -566,9 +567,10 @@ export function simulateGymProgression(
       // Make sure we don't use more energy than available
       const energyToUse = Math.min(candyEnergy, remainingEnergy);
       
-      // Calculate candy happiness: base happy + (candyHappy * 48)
-      // If ecstasy is enabled, double the happiness: ((base happy) + (candyHappy * 48)) * 2
-      let candyTrainHappy = inputs.happy + (candyHappy * 48);
+      // Calculate candy happiness: base happy + (candyHappy * quantity)
+      // If ecstasy is enabled, double the happiness: ((base happy) + (candyHappy * quantity)) * 2
+      const candyQuantity = inputs.candyJump.quantity || 48;
+      let candyTrainHappy = inputs.happy + (candyHappy * candyQuantity);
       if (inputs.candyJump.useEcstasy) {
         candyTrainHappy = candyTrainHappy * 2;
       }
@@ -830,8 +832,9 @@ export function simulateGymProgression(
       const candyPrice = inputs.itemPrices.candyPrices[itemId as keyof typeof inputs.itemPrices.candyPrices];
       
       if (candyPrice !== null && candyPrice !== undefined) {
-        // Cost: 48 * candy price per day
-        let costPerDay = 48 * candyPrice;
+        // Cost: quantity * candy price per day
+        const candyQuantity = inputs.candyJump.quantity || 48;
+        let costPerDay = candyQuantity * candyPrice;
         
         // Add ecstasy cost if enabled
         if (inputs.candyJump.useEcstasy && inputs.itemPrices.candyEcstasyPrice !== null) {

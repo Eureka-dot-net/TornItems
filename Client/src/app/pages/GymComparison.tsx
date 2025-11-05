@@ -201,6 +201,7 @@ interface ComparisonState {
   candyJumpEnabled: boolean;
   candyJumpItemId: number; // Item ID: 310 (25 happy), 36 (35 happy), 528 (75 happy), 529 (100 happy), 151 (150 happy)
   candyJumpUseEcstasy: boolean; // If true, use ecstasy to double happiness after candy
+  candyJumpQuantity: number; // Number of candies used per day (default 48)
   diabetesDayEnabled: boolean;
   diabetesDayNumberOfJumps: 1 | 2;
   diabetesDayFHC: 0 | 1 | 2;
@@ -375,6 +376,7 @@ export default function GymComparison() {
         candyJumpEnabled: false,
         candyJumpItemId: 310, // Default to 25 happy candy
         candyJumpUseEcstasy: false,
+        candyJumpQuantity: 48,
         diabetesDayEnabled: false,
         diabetesDayNumberOfJumps: 1,
         diabetesDayFHC: 0,
@@ -492,6 +494,7 @@ export default function GymComparison() {
       candyJumpEnabled: sourceState.candyJumpEnabled,
       candyJumpItemId: sourceState.candyJumpItemId,
       candyJumpUseEcstasy: sourceState.candyJumpUseEcstasy,
+      candyJumpQuantity: sourceState.candyJumpQuantity,
       diabetesDayEnabled: sourceState.diabetesDayEnabled,
       diabetesDayNumberOfJumps: sourceState.diabetesDayNumberOfJumps,
       diabetesDayFHC: sourceState.diabetesDayFHC,
@@ -590,6 +593,7 @@ export default function GymComparison() {
               enabled: true,
               itemId: state.candyJumpItemId,
               useEcstasy: state.candyJumpUseEcstasy,
+              quantity: state.candyJumpQuantity,
             } : undefined,
             daysSkippedPerMonth: state.daysSkippedPerMonth,
             itemPrices: (showCosts && itemPricesData) ? {
@@ -1235,6 +1239,16 @@ export default function GymComparison() {
                           <MenuItem value={151}>150 Happy</MenuItem>
                         </Select>
                       </FormControl>
+                      <TextField 
+                        label="Candies per Day" 
+                        type="number" 
+                        value={activeState.candyJumpQuantity ?? ''} 
+                        onChange={(e) => updateState(activeState.id, { candyJumpQuantity: e.target.value === '' ? 48 : Math.max(1, Number(e.target.value))})} 
+                        fullWidth 
+                        margin="dense" 
+                        size="small" 
+                        inputProps={{ step: 'any', min: 1 }} 
+                      />
                       <FormControlLabel 
                         control={<Switch checked={activeState.candyJumpUseEcstasy} onChange={(e) => updateState(activeState.id, { candyJumpUseEcstasy: e.target.checked })} size="small" />} 
                         label="Use Ecstasy" 
@@ -1248,7 +1262,7 @@ export default function GymComparison() {
                           if (hasXanax) return '400';
                           if (hasPoints) return '300';
                           return '150';
-                        })()} energy at {activeState.candyJumpUseEcstasy ? '(base happy + candy happy × 48) × 2' : 'base happy + (candy happy × 48)'}
+                        })()} energy at {activeState.candyJumpUseEcstasy ? `(base happy + candy happy × ${activeState.candyJumpQuantity}) × 2` : `base happy + (candy happy × ${activeState.candyJumpQuantity})`}
                       </Typography>
                     </>
                   )}
