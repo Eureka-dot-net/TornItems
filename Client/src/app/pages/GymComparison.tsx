@@ -386,12 +386,13 @@ export default function GymComparison() {
   const [activeTabIndex, setActiveTabIndex] = useState<number>(0);
   const [results, setResults] = useState<Record<string, SimulationResult>>({});
   const [error, setError] = useState<string | null>(null);
+  const [showCosts, setShowCosts] = useState<boolean>(() => loadSavedValue('showCosts', false));
   
   const { data: gymStatsData, isLoading: isLoadingGymStats, error: gymStatsError, refetch: refetchGymStats } = useGymStats(apiKey || null);
   
-  // Fetch item prices for EDVD jumps and xanax
+  // Fetch item prices for EDVD jumps and xanax - only if costs should be shown
   // Item IDs: 366 (DVDs), 206 (Xanax), 196 (Ecstasy)
-  const { data: itemPricesData } = useItemPrices([366, 206, 196]);
+  const { data: itemPricesData } = useItemPrices(showCosts ? [366, 206, 196] : []);
   
   // Auto-populate stats when fetched
   useEffect(() => {
@@ -422,6 +423,7 @@ export default function GymComparison() {
   
   // Save to localStorage
   useEffect(() => { localStorage.setItem('gymComparison_mode', JSON.stringify(mode)); setResults({}); }, [mode]);
+  useEffect(() => { localStorage.setItem('gymComparison_showCosts', JSON.stringify(showCosts)); }, [showCosts]);
   useEffect(() => { localStorage.setItem('gymComparison_manualEnergy', JSON.stringify(manualEnergy)); }, [manualEnergy]);
   useEffect(() => { localStorage.setItem('gymComparison_autoUpgradeGyms', JSON.stringify(autoUpgradeGyms)); }, [autoUpgradeGyms]);
   useEffect(() => { localStorage.setItem('gymComparison_manualHappy', JSON.stringify(manualHappy)); }, [manualHappy]);
@@ -576,7 +578,7 @@ export default function GymComparison() {
               logoEnergyClick: state.diabetesDayLogoClick,
             } : undefined,
             daysSkippedPerMonth: state.daysSkippedPerMonth,
-            itemPrices: itemPricesData ? {
+            itemPrices: (showCosts && itemPricesData) ? {
               dvdPrice: itemPricesData.prices[366],
               xanaxPrice: itemPricesData.prices[206],
               ecstasyPrice: itemPricesData.prices[196],
@@ -636,7 +638,7 @@ export default function GymComparison() {
                     <Typography variant="caption" sx={{ color: '#aaa', display: 'block', ml: 1 }}>
                       Gym: {snapshot.currentGym}
                     </Typography>
-                    {state && results[state.id] && itemPricesData && (
+                    {showCosts && state && results[state.id] && itemPricesData && (
                       <>
                         {(() => {
                           const edvdCosts = results[state.id].edvdJumpCosts;
@@ -720,6 +722,12 @@ export default function GymComparison() {
         <Button variant={mode === 'manual' ? 'contained' : 'outlined'} onClick={() => setMode('manual')}>
           Manual Testing
         </Button>
+        <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center' }}>
+          <FormControlLabel 
+            control={<Switch checked={showCosts} onChange={(e) => setShowCosts(e.target.checked)} />} 
+            label="Include Cost Estimates" 
+          />
+        </Box>
       </Box>
 
       {mode === 'future' && (
@@ -1270,62 +1278,144 @@ export default function GymComparison() {
                               );
                             })}
                           </TableRow>
-                          {/* Cost Information */}
-                          {itemPricesData && (
-                            <>
-                              <TableRow sx={{ borderTop: 2, borderColor: 'divider' }}>
-                                <TableCell sx={{ fontWeight: 'bold' }}>EDVD Cost</TableCell>
-                                {comparisonStates.map((state) => {
-                                  const result = results[state.id];
-                                  if (!result || !result.edvdJumpCosts) {
-                                    return <TableCell key={state.id} align="right">-</TableCell>;
-                                  }
-                                  
-                                  return (
-                                    <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
-                                      {formatCurrency(result.edvdJumpCosts.totalCost)}
-                                    </TableCell>
-                                  );
-                                })}
-                              </TableRow>
-                              <TableRow>
-                                <TableCell sx={{ fontWeight: 'bold' }}>$/EDVD Jump</TableCell>
-                                {comparisonStates.map((state) => {
-                                  const result = results[state.id];
-                                  if (!result || !result.edvdJumpCosts) {
-                                    return <TableCell key={state.id} align="right">-</TableCell>;
-                                  }
-                                  
-                                  return (
-                                    <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
-                                      {formatCurrency(result.edvdJumpCosts.costPerJump)}
-                                    </TableCell>
-                                  );
-                                })}
-                              </TableRow>
-                              <TableRow>
-                                <TableCell sx={{ fontWeight: 'bold' }}>Xanax Cost</TableCell>
-                                {comparisonStates.map((state) => {
-                                  const result = results[state.id];
-                                  if (!result || !result.xanaxCosts) {
-                                    return <TableCell key={state.id} align="right">-</TableCell>;
-                                  }
-                                  
-                                  return (
-                                    <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
-                                      {formatCurrency(result.xanaxCosts.totalCost)}
-                                    </TableCell>
-                                  );
-                                })}
-                              </TableRow>
-                            </>
-                          )}
                         </TableBody>
                       </Table>
                     </TableContainer>
                   </Paper>
                 </Grid>
               </Grid>
+
+              {/* Cost Estimate Card */}
+              {showCosts && itemPricesData && (
+                <Paper sx={{ p: 2, mb: 3 }}>
+                  <Typography variant="h6" gutterBottom>Cost Estimate</Typography>
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 'bold' }}>Cost Type</TableCell>
+                          {comparisonStates.map((state, index) => (
+                            <TableCell 
+                              key={state.id} 
+                              align="right" 
+                              sx={{ 
+                                fontWeight: 'bold',
+                                color: CHART_COLORS[index % CHART_COLORS.length]
+                              }}
+                            >
+                              {state.name}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 'bold' }}>EDVD Cost</TableCell>
+                          {comparisonStates.map((state) => {
+                            const result = results[state.id];
+                            if (!result || !result.edvdJumpCosts) {
+                              return <TableCell key={state.id} align="right">-</TableCell>;
+                            }
+                            
+                            return (
+                              <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
+                                {formatCurrency(result.edvdJumpCosts.totalCost)}
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 'bold' }}>Xanax Cost</TableCell>
+                          {comparisonStates.map((state) => {
+                            const result = results[state.id];
+                            if (!result || !result.xanaxCosts) {
+                              return <TableCell key={state.id} align="right">-</TableCell>;
+                            }
+                            
+                            return (
+                              <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
+                                {formatCurrency(result.xanaxCosts.totalCost)}
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+                        <TableRow sx={{ borderTop: 2, borderColor: 'divider' }}>
+                          <TableCell sx={{ fontWeight: 'bold' }}>Total Cost</TableCell>
+                          {comparisonStates.map((state) => {
+                            const result = results[state.id];
+                            if (!result) {
+                              return <TableCell key={state.id} align="right">-</TableCell>;
+                            }
+                            
+                            const edvdCost = result.edvdJumpCosts?.totalCost || 0;
+                            const xanaxCost = result.xanaxCosts?.totalCost || 0;
+                            const totalCost = edvdCost + xanaxCost;
+                            
+                            return (
+                              <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}>
+                                {formatCurrency(totalCost)}
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 'bold' }}>Cost per Stat Gain</TableCell>
+                          {comparisonStates.map((state) => {
+                            const result = results[state.id];
+                            if (!result) {
+                              return <TableCell key={state.id} align="right">-</TableCell>;
+                            }
+                            
+                            const edvdCost = result.edvdJumpCosts?.totalCost || 0;
+                            const xanaxCost = result.xanaxCosts?.totalCost || 0;
+                            const totalCost = edvdCost + xanaxCost;
+                            
+                            const totalGain = (result.finalStats.strength - initialStats.strength) + 
+                                            (result.finalStats.speed - initialStats.speed) + 
+                                            (result.finalStats.defense - initialStats.defense) + 
+                                            (result.finalStats.dexterity - initialStats.dexterity);
+                            
+                            if (totalCost === 0 || totalGain === 0) {
+                              return <TableCell key={state.id} align="right">-</TableCell>;
+                            }
+                            
+                            // Determine appropriate baseline (1k, 10k, or 100k)
+                            // Use the same baseline for all states for comparison
+                            let baseline = 1000;
+                            let baselineLabel = '1k';
+                            
+                            // Check the maximum total gain across all states to pick appropriate baseline
+                            const maxGain = Math.max(...comparisonStates.map(s => {
+                              const r = results[s.id];
+                              if (!r) return 0;
+                              return (r.finalStats.strength - initialStats.strength) + 
+                                     (r.finalStats.speed - initialStats.speed) + 
+                                     (r.finalStats.defense - initialStats.defense) + 
+                                     (r.finalStats.dexterity - initialStats.dexterity);
+                            }));
+                            
+                            if (maxGain >= 100000) {
+                              baseline = 100000;
+                              baselineLabel = '100k';
+                            } else if (maxGain >= 10000) {
+                              baseline = 10000;
+                              baselineLabel = '10k';
+                            }
+                            
+                            const costPerBaseline = (totalCost / totalGain) * baseline;
+                            
+                            return (
+                              <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
+                                {formatCurrency(costPerBaseline)}/{baselineLabel}
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Paper>
+              )}
 
               {/* DD Grid BELOW */}
               {comparisonStates.some(state => state.diabetesDayEnabled) && (
