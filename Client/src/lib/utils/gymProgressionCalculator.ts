@@ -77,6 +77,12 @@ export interface SimulationInputs {
     useEcstasy: boolean; // If true, double happiness after candy
     quantity: number; // Number of candies used per day (default 48)
   };
+  energyJump?: {
+    enabled: boolean;
+    itemId: number; // 985 (5 energy), 986 (10 energy), 987 (15 energy), 530 (20 energy), 532 (25 energy), 533 (30 energy), 357 (FHC - refills energy bar)
+    quantity: number; // Number of energy items used per day (default 24)
+    factionBenefitPercent: number; // % increase in energy from faction benefits
+  };
   daysSkippedPerMonth?: number; // Days per month with no energy (wars, vacations)
   itemPrices?: {
     dvdPrice: number | null;
@@ -89,6 +95,15 @@ export interface SimulationInputs {
       528: number | null;
       529: number | null;
       151: number | null;
+    };
+    energyPrices?: {
+      985: number | null;
+      986: number | null;
+      987: number | null;
+      530: number | null;
+      532: number | null;
+      533: number | null;
+      357: number | null;
     };
   };
 }
@@ -128,6 +143,11 @@ export interface SimulationResult {
   };
   
   candyJumpCosts?: {
+    totalDays: number;
+    costPerDay: number;
+    totalCost: number;
+  };
+  energyJumpCosts?: {
     totalDays: number;
     costPerDay: number;
     totalCost: number;
@@ -376,6 +396,9 @@ export function simulateGymProgression(
   
   // Track candy jump days
   let candyJumpDaysPerformed = 0;
+  
+  // Track energy jump days
+  let energyJumpDaysPerformed = 0;
   
   if (inputs.diabetesDay?.enabled) {
     if (inputs.diabetesDay.numberOfJumps === 1) {
@@ -639,6 +662,48 @@ export function simulateGymProgression(
       candyJumpDaysPerformed++;
     }
     
+    // Energy Jump - add extra energy per day from energy items
+    if (inputs.energyJump?.enabled && !shouldPerformEdvdJump && !isDiabetesDayJump && !isSkipped) {
+      // Map item IDs to energy values
+      const energyItemMap: Record<number, number> = {
+        985: 5,
+        986: 10,
+        987: 15,
+        530: 20,
+        532: 25,
+        533: 30,
+        357: 0, // FHC - special case, refills energy bar
+      };
+      
+      const energyPerItem = energyItemMap[inputs.energyJump.itemId];
+      
+      if (energyPerItem === undefined) {
+        throw new Error(`Invalid energy item ID: ${inputs.energyJump.itemId}`);
+      }
+      
+      // Calculate extra energy from items
+      let extraEnergy = 0;
+      const energyQuantity = inputs.energyJump.quantity || 24;
+      
+      if (inputs.energyJump.itemId === 357) {
+        // FHC refills energy bar - use maxEnergy value
+        extraEnergy = maxEnergyValue * energyQuantity;
+      } else {
+        // Regular energy items
+        extraEnergy = energyPerItem * energyQuantity;
+      }
+      
+      // Apply faction benefit percentage increase
+      if (inputs.energyJump.factionBenefitPercent > 0) {
+        extraEnergy = extraEnergy * (1 + inputs.energyJump.factionBenefitPercent / 100);
+      }
+      
+      // Add extra energy to remaining energy pool
+      remainingEnergy += extraEnergy;
+      
+      energyJumpDaysPerformed++;
+    }
+    
     while (remainingEnergy > 0) {
       // Determine which stat to train next based on how far each is from its target ratio
       // For each stat, calculate: currentStat / targetWeight
@@ -803,6 +868,7 @@ export function simulateGymProgression(
   let edvdJumpCosts: { totalJumps: number; costPerJump: number; totalCost: number } | undefined;
   let xanaxCosts: { totalCost: number } | undefined;
   let candyJumpCosts: { totalDays: number; costPerDay: number; totalCost: number } | undefined;
+  let energyJumpCosts: { totalDays: number; costPerDay: number; totalCost: number } | undefined;
   
   if (inputs.itemPrices) {
     // Calculate EDVD jump costs
@@ -848,6 +914,24 @@ export function simulateGymProgression(
         };
       }
     }
+    
+    // Calculate energy jump costs
+    if (inputs.energyJump?.enabled && inputs.itemPrices.energyPrices) {
+      const itemId = inputs.energyJump.itemId;
+      const energyPrice = inputs.itemPrices.energyPrices[itemId as keyof typeof inputs.itemPrices.energyPrices];
+      
+      if (energyPrice !== null && energyPrice !== undefined) {
+        // Cost: quantity * energy item price per day
+        const energyQuantity = inputs.energyJump.quantity || (itemId === 357 ? 6 : 24);
+        const costPerDay = energyQuantity * energyPrice;
+        
+        energyJumpCosts = {
+          totalDays: energyJumpDaysPerformed,
+          costPerDay,
+          totalCost: costPerDay * energyJumpDaysPerformed,
+        };
+      }
+    }
   }
   
   return {
@@ -861,6 +945,7 @@ export function simulateGymProgression(
     edvdJumpCosts,
     xanaxCosts,
     candyJumpCosts,
+    energyJumpCosts,
     diabetesDayTotalGains: inputs.diabetesDay?.enabled ? diabetesDayTotalGains : undefined,
     diabetesDayJump1Gains: inputs.diabetesDay?.enabled ? diabetesDayJump1Gains : undefined,
     diabetesDayJump2Gains: inputs.diabetesDay?.enabled ? diabetesDayJump2Gains : undefined,
