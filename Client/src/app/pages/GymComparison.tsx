@@ -200,6 +200,7 @@ interface ComparisonState {
   edvdJumpStatTarget: number; // Used when edvdJumpLimit is 'stat'
   candyJumpEnabled: boolean;
   candyJumpItemId: number; // Item ID: 310 (25 happy), 36 (35 happy), 528 (75 happy), 529 (100 happy), 151 (150 happy)
+  candyJumpUseEcstasy: boolean; // If true, use ecstasy to double happiness after candy
   diabetesDayEnabled: boolean;
   diabetesDayNumberOfJumps: 1 | 2;
   diabetesDayFHC: 0 | 1 | 2;
@@ -373,6 +374,7 @@ export default function GymComparison() {
         edvdJumpStatTarget: 10000000,
         candyJumpEnabled: false,
         candyJumpItemId: 310, // Default to 25 happy candy
+        candyJumpUseEcstasy: false,
         diabetesDayEnabled: false,
         diabetesDayNumberOfJumps: 1,
         diabetesDayFHC: 0,
@@ -395,8 +397,8 @@ export default function GymComparison() {
   const { data: gymStatsData, isLoading: isLoadingGymStats, error: gymStatsError, refetch: refetchGymStats } = useGymStats(apiKey || null);
   
   // Fetch item prices for EDVD jumps, xanax, and candy items - only if costs should be shown
-  // Item IDs: 366 (DVDs), 206 (Xanax), 196 (Ecstasy), 310 (25 happy), 36 (35 happy), 528 (75 happy), 529 (100 happy), 151 (150 happy)
-  const { data: itemPricesData } = useItemPrices(showCosts ? [366, 206, 196, 310, 36, 528, 529, 151] : []);
+  // Item IDs: 366 (DVDs), 206 (Xanax), 196 (Ecstasy for EDVD), 197 (Ecstasy for candy), 310 (25 happy), 36 (35 happy), 528 (75 happy), 529 (100 happy), 151 (150 happy)
+  const { data: itemPricesData } = useItemPrices(showCosts ? [366, 206, 196, 197, 310, 36, 528, 529, 151] : []);
   
   // Auto-populate stats when fetched
   useEffect(() => {
@@ -489,6 +491,7 @@ export default function GymComparison() {
       edvdJumpStatTarget: sourceState.edvdJumpStatTarget,
       candyJumpEnabled: sourceState.candyJumpEnabled,
       candyJumpItemId: sourceState.candyJumpItemId,
+      candyJumpUseEcstasy: sourceState.candyJumpUseEcstasy,
       diabetesDayEnabled: sourceState.diabetesDayEnabled,
       diabetesDayNumberOfJumps: sourceState.diabetesDayNumberOfJumps,
       diabetesDayFHC: sourceState.diabetesDayFHC,
@@ -586,12 +589,14 @@ export default function GymComparison() {
             candyJump: state.candyJumpEnabled ? {
               enabled: true,
               itemId: state.candyJumpItemId,
+              useEcstasy: state.candyJumpUseEcstasy,
             } : undefined,
             daysSkippedPerMonth: state.daysSkippedPerMonth,
             itemPrices: (showCosts && itemPricesData) ? {
               dvdPrice: itemPricesData.prices[366],
               xanaxPrice: itemPricesData.prices[206],
               ecstasyPrice: itemPricesData.prices[196],
+              candyEcstasyPrice: itemPricesData.prices[197],
               candyPrices: {
                 310: itemPricesData.prices[310],
                 36: itemPricesData.prices[36],
@@ -1230,6 +1235,11 @@ export default function GymComparison() {
                           <MenuItem value={151}>150 Happy</MenuItem>
                         </Select>
                       </FormControl>
+                      <FormControlLabel 
+                        control={<Switch checked={activeState.candyJumpUseEcstasy} onChange={(e) => updateState(activeState.id, { candyJumpUseEcstasy: e.target.checked })} size="small" />} 
+                        label="Use Ecstasy" 
+                        sx={{ mt: 1 }}
+                      />
                       <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
                         One candy train per day using {(() => {
                           const hasPoints = activeState.hasPointsRefill;
@@ -1238,7 +1248,7 @@ export default function GymComparison() {
                           if (hasXanax) return '400';
                           if (hasPoints) return '300';
                           return '150';
-                        })()} energy at base happy + (candy happy × 48)
+                        })()} energy at {activeState.candyJumpUseEcstasy ? '(base happy + candy happy × 48) × 2' : 'base happy + (candy happy × 48)'}
                       </Typography>
                     </>
                   )}
@@ -1478,7 +1488,8 @@ export default function GymComparison() {
                                           
                                           const edvdCost = result.edvdJumpCosts?.totalCost || 0;
                                           const xanaxCost = result.xanaxCosts?.totalCost || 0;
-                                          const totalCost = edvdCost + xanaxCost;
+                                          const candyCost = result.candyJumpCosts?.totalCost || 0;
+                                          const totalCost = edvdCost + xanaxCost + candyCost;
                                           const totalGain = calculateTotalGain(result);
                                           
                                           if (totalCost === 0 || totalGain === 0) {
