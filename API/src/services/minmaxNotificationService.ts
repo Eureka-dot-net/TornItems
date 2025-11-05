@@ -95,6 +95,11 @@ export async function checkMinMaxSubscriptions() {
           }
         }
         
+        // Check skimmers (optional)
+        if (subscription.notifySkimmers && status.skimmers && !status.skimmers.completed) {
+          incompleteTasks.push(`❌ **Skimmers:** ${status.skimmers.active}/${status.skimmers.target}`);
+        }
+        
         // Only send notification if there are incomplete tasks
         if (incompleteTasks.length > 0) {
           const hoursUntilReset = subscription.hoursBeforeReset;

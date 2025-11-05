@@ -52,6 +52,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       activities.push(`${status.virusCoding.active ? '✅' : '❌'} **Virus Coding:** ${status.virusCoding.active ? 'Yes' : 'No'}`);
     if (status.factionOC)
       activities.push(`${status.factionOC.active ? '✅' : '❌'} **Faction OC:** ${status.factionOC.active ? 'Yes' : 'No'}`);
+    if (status.skimmers) {
+      const skimmerIcon = status.skimmers.completed ? '✅' : '❌';
+      activities.push(`${skimmerIcon} **Skimmers:** ${status.skimmers.active}/${status.skimmers.target}`);
+    }
     
     const casinoActivities = [];
     let needsFullKeyMessage = false;

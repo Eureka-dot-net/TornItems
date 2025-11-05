@@ -499,4 +499,281 @@ describe('MinMax Helper - New Features', () => {
       expect(status.wheels?.awesomeness.spun).toBe(true);
     });
   });
+
+  describe('Skimmers Detection', () => {
+    it('should detect active skimmers and mark as completed when >= 20', async () => {
+      // Create user
+      const user = new DiscordUser({
+        discordId: testDiscordId,
+        tornId: testTornId,
+        name: 'TestUser',
+        apiKey: encrypt(testApiKey),
+        apiKeyType: 'full',
+        level: 50
+      });
+      await user.save();
+
+      // Mock API responses
+      mockedAxios.get
+        .mockResolvedValueOnce({
+          data: {
+            personalstats: {
+              trading: { items: { bought: { shops: 50 } } },
+              drugs: { xanax: 2 },
+              other: { refills: { energy: 1 } }
+            }
+          }
+        })
+        .mockResolvedValueOnce({
+          data: {
+            personalstats: [
+              { name: 'cityitemsbought', value: 0, timestamp: 0 },
+              { name: 'xantaken', value: 0, timestamp: 0 },
+              { name: 'refills', value: 0, timestamp: 0 }
+            ]
+          }
+        })
+        .mockResolvedValueOnce({
+          data: {
+            education: { current: null, complete: [] }
+          }
+        })
+        .mockResolvedValueOnce({
+          data: {
+            money: { city_bank: null }
+          }
+        })
+        .mockResolvedValueOnce({
+          data: {
+            virus: null
+          }
+        })
+        .mockResolvedValueOnce({
+          data: {
+            organizedCrime: null
+          }
+        })
+        .mockResolvedValueOnce({
+          data: {
+            crimes: {
+              miscellaneous: {
+                skimmers: {
+                  active: 20,
+                  most_lucrative: 257,
+                  oldest_recovered: 1799909,
+                  lost: 14
+                }
+              }
+            }
+          }
+        });
+
+      const status = await fetchMinMaxStatus(testDiscordId, undefined, true);
+
+      expect(status.skimmers).toBeDefined();
+      expect(status.skimmers?.active).toBe(20);
+      expect(status.skimmers?.target).toBe(20);
+      expect(status.skimmers?.completed).toBe(true);
+    });
+
+    it('should detect active skimmers and mark as incomplete when < 20', async () => {
+      // Create user
+      const user = new DiscordUser({
+        discordId: testDiscordId,
+        tornId: testTornId,
+        name: 'TestUser',
+        apiKey: encrypt(testApiKey),
+        apiKeyType: 'full',
+        level: 50
+      });
+      await user.save();
+
+      // Mock API responses
+      mockedAxios.get
+        .mockResolvedValueOnce({
+          data: {
+            personalstats: {
+              trading: { items: { bought: { shops: 50 } } },
+              drugs: { xanax: 2 },
+              other: { refills: { energy: 1 } }
+            }
+          }
+        })
+        .mockResolvedValueOnce({
+          data: {
+            personalstats: [
+              { name: 'cityitemsbought', value: 0, timestamp: 0 },
+              { name: 'xantaken', value: 0, timestamp: 0 },
+              { name: 'refills', value: 0, timestamp: 0 }
+            ]
+          }
+        })
+        .mockResolvedValueOnce({
+          data: {
+            education: { current: null, complete: [] }
+          }
+        })
+        .mockResolvedValueOnce({
+          data: {
+            money: { city_bank: null }
+          }
+        })
+        .mockResolvedValueOnce({
+          data: {
+            virus: null
+          }
+        })
+        .mockResolvedValueOnce({
+          data: {
+            organizedCrime: null
+          }
+        })
+        .mockResolvedValueOnce({
+          data: {
+            crimes: {
+              miscellaneous: {
+                skimmers: {
+                  active: 15,
+                  most_lucrative: 257,
+                  oldest_recovered: 1799909,
+                  lost: 14
+                }
+              }
+            }
+          }
+        });
+
+      const status = await fetchMinMaxStatus(testDiscordId, undefined, true);
+
+      expect(status.skimmers).toBeDefined();
+      expect(status.skimmers?.active).toBe(15);
+      expect(status.skimmers?.target).toBe(20);
+      expect(status.skimmers?.completed).toBe(false);
+    });
+  });
+
+  describe('Energy Refill Display Limit', () => {
+    it('should limit energy refill display to max of 1 even when 2 refills done', async () => {
+      // Create user
+      const user = new DiscordUser({
+        discordId: testDiscordId,
+        tornId: testTornId,
+        name: 'TestUser',
+        apiKey: encrypt(testApiKey),
+        apiKeyType: 'full',
+        level: 50
+      });
+      await user.save();
+
+      // Mock API responses with 2 refills
+      mockedAxios.get
+        .mockResolvedValueOnce({
+          data: {
+            personalstats: {
+              trading: { items: { bought: { shops: 100 } } },
+              drugs: { xanax: 3 },
+              other: { refills: { energy: 2 } } // User did 2 refills
+            }
+          }
+        })
+        .mockResolvedValueOnce({
+          data: {
+            personalstats: [
+              { name: 'cityitemsbought', value: 0, timestamp: 0 },
+              { name: 'xantaken', value: 0, timestamp: 0 },
+              { name: 'refills', value: 0, timestamp: 0 }
+            ]
+          }
+        });
+
+      const status = await fetchMinMaxStatus(testDiscordId, undefined, false);
+
+      expect(status.energyRefill).toBeDefined();
+      expect(status.energyRefill.current).toBe(1); // Should be limited to 1, not 2
+      expect(status.energyRefill.target).toBe(1);
+      expect(status.energyRefill.completed).toBe(true);
+    });
+
+    it('should show 0/1 when no refills done', async () => {
+      // Create user
+      const user = new DiscordUser({
+        discordId: testDiscordId,
+        tornId: testTornId,
+        name: 'TestUser',
+        apiKey: encrypt(testApiKey),
+        apiKeyType: 'full',
+        level: 50
+      });
+      await user.save();
+
+      // Mock API responses with 0 refills
+      mockedAxios.get
+        .mockResolvedValueOnce({
+          data: {
+            personalstats: {
+              trading: { items: { bought: { shops: 100 } } },
+              drugs: { xanax: 3 },
+              other: { refills: { energy: 0 } } // No refills
+            }
+          }
+        })
+        .mockResolvedValueOnce({
+          data: {
+            personalstats: [
+              { name: 'cityitemsbought', value: 0, timestamp: 0 },
+              { name: 'xantaken', value: 0, timestamp: 0 },
+              { name: 'refills', value: 0, timestamp: 0 }
+            ]
+          }
+        });
+
+      const status = await fetchMinMaxStatus(testDiscordId, undefined, false);
+
+      expect(status.energyRefill).toBeDefined();
+      expect(status.energyRefill.current).toBe(0);
+      expect(status.energyRefill.target).toBe(1);
+      expect(status.energyRefill.completed).toBe(false);
+    });
+
+    it('should show 1/1 when exactly 1 refill done', async () => {
+      // Create user
+      const user = new DiscordUser({
+        discordId: testDiscordId,
+        tornId: testTornId,
+        name: 'TestUser',
+        apiKey: encrypt(testApiKey),
+        apiKeyType: 'full',
+        level: 50
+      });
+      await user.save();
+
+      // Mock API responses with 1 refill
+      mockedAxios.get
+        .mockResolvedValueOnce({
+          data: {
+            personalstats: {
+              trading: { items: { bought: { shops: 100 } } },
+              drugs: { xanax: 3 },
+              other: { refills: { energy: 1 } } // 1 refill
+            }
+          }
+        })
+        .mockResolvedValueOnce({
+          data: {
+            personalstats: [
+              { name: 'cityitemsbought', value: 0, timestamp: 0 },
+              { name: 'xantaken', value: 0, timestamp: 0 },
+              { name: 'refills', value: 0, timestamp: 0 }
+            ]
+          }
+        });
+
+      const status = await fetchMinMaxStatus(testDiscordId, undefined, false);
+
+      expect(status.energyRefill).toBeDefined();
+      expect(status.energyRefill.current).toBe(1);
+      expect(status.energyRefill.target).toBe(1);
+      expect(status.energyRefill.completed).toBe(true);
+    });
+  });
 });
