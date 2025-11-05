@@ -632,9 +632,25 @@ export default function GymComparison() {
                   {entry.name}: {entry.value?.toLocaleString()}
                 </Typography>
                 {snapshot && (
-                  <Typography variant="caption" sx={{ color: '#aaa', display: 'block', ml: 1 }}>
-                    Gym: {snapshot.currentGym}
-                  </Typography>
+                  <>
+                    <Typography variant="caption" sx={{ color: '#aaa', display: 'block', ml: 1 }}>
+                      Gym: {snapshot.currentGym}
+                    </Typography>
+                    {state && results[state.id] && itemPricesData && (
+                      <>
+                        {results[state.id].edvdJumpCosts && (
+                          <Typography variant="caption" sx={{ color: '#ffa726', display: 'block', ml: 1 }}>
+                            EDVD: {formatCurrency(results[state.id].edvdJumpCosts!.totalCost)} ({results[state.id].edvdJumpCosts!.totalJumps} jumps)
+                          </Typography>
+                        )}
+                        {results[state.id].xanaxCosts && (
+                          <Typography variant="caption" sx={{ color: '#ffa726', display: 'block', ml: 1 }}>
+                            Xanax: {formatCurrency(results[state.id].xanaxCosts!.totalCost)}
+                          </Typography>
+                        )}
+                      </>
+                    )}
+                  </>
                 )}
               </Box>
             );
