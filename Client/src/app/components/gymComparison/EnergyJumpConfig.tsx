@@ -66,7 +66,7 @@ export default function EnergyJumpConfig({
               label="Energy Item"
               onChange={(e) => {
                 const newItemId = Number(e.target.value);
-                // Update quantity based on item type: 4 for FHC, 12 for others
+                // Update quantity based on item type (uses constants for default values)
                 const newQuantity =
                   newItemId === ENERGY_ITEM_IDS.FHC ? DEFAULT_FHC_QUANTITY : DEFAULT_ENERGY_DRINK_QUANTITY;
                 onUpdate({
