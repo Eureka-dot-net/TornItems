@@ -11,6 +11,7 @@ import {
 import {
   CANDY_ITEM_IDS,
   DEFAULT_CANDY_QUANTITY,
+  CONSUMABLE_ITEM_IDS,
 } from '../../../lib/constants/gymConstants';
 import { formatCurrency } from '../../../lib/utils/gymHelpers';
 
@@ -122,8 +123,8 @@ export default function CandyJumpConfig({
             {showCosts && itemPricesData && itemPricesData.prices[itemId] !== null && (() => {
               const candyPrice = itemPricesData.prices[itemId]!;
               let costPerDay = quantity * candyPrice;
-              if (useEcstasy && itemPricesData.prices[197] !== null) {
-                costPerDay += itemPricesData.prices[197]!;
+              if (useEcstasy && itemPricesData.prices[CONSUMABLE_ITEM_IDS.ECSTASY_CANDY] !== null) {
+                costPerDay += itemPricesData.prices[CONSUMABLE_ITEM_IDS.ECSTASY_CANDY]!;
               }
               return ` costing ${formatCurrency(costPerDay)} per day`;
             })()}
