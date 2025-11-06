@@ -204,7 +204,7 @@ interface ComparisonState {
   candyJumpQuantity: number; // Number of candies used per day (default 48)
   energyJumpEnabled: boolean;
   energyJumpItemId: number; // Item ID: 985 (5 energy), 986 (10 energy), 987 (15 energy), 530 (20 energy), 532 (25 energy), 533 (30 energy), 357 (FHC)
-  energyJumpQuantity: number; // Number of energy items used per day (default 24 for drinks, 6 for FHC)
+  energyJumpQuantity: number; // Number of energy items used per day (default 12 for drinks, 4 for FHC)
   energyJumpFactionBenefit: number; // % increase in energy from faction benefits
   diabetesDayEnabled: boolean;
   diabetesDayNumberOfJumps: 1 | 2;
@@ -383,7 +383,7 @@ export default function GymComparison() {
         candyJumpQuantity: 48,
         energyJumpEnabled: false,
         energyJumpItemId: 985, // Default to 5 energy item
-        energyJumpQuantity: 24,
+        energyJumpQuantity: 12,
         energyJumpFactionBenefit: 0,
         diabetesDayEnabled: false,
         diabetesDayNumberOfJumps: 1,
@@ -1322,8 +1322,8 @@ export default function GymComparison() {
                           label="Energy Item" 
                           onChange={(e) => {
                             const newItemId = Number(e.target.value);
-                            // Update quantity based on item type: 6 for FHC, 24 for others
-                            const newQuantity = newItemId === 357 ? 6 : 24;
+                            // Update quantity based on item type: 4 for FHC, 12 for others
+                            const newQuantity = newItemId === 357 ? 4 : 12;
                             updateState(activeState.id, { 
                               energyJumpItemId: newItemId,
                               energyJumpQuantity: newQuantity
@@ -1343,7 +1343,7 @@ export default function GymComparison() {
                         label="Items per Day" 
                         type="number" 
                         value={activeState.energyJumpQuantity ?? ''} 
-                        onChange={(e) => updateState(activeState.id, { energyJumpQuantity: e.target.value === '' ? (activeState.energyJumpItemId === 357 ? 6 : 24) : Math.max(1, Number(e.target.value))})} 
+                        onChange={(e) => updateState(activeState.id, { energyJumpQuantity: e.target.value === '' ? (activeState.energyJumpItemId === 357 ? 4 : 12) : Math.max(1, Number(e.target.value))})} 
                         fullWidth 
                         margin="dense" 
                         size="small" 
