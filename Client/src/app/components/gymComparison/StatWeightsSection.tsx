@@ -26,9 +26,19 @@ export default function StatWeightsSection({
 }: StatWeightsSectionProps) {
   return (
     <>
-      <Typography variant="subtitle2" gutterBottom>
-        Stat Target Ratios
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+        <Typography variant="subtitle2">
+          Stat Target Ratios
+        </Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => onUpdate({ strength: 1, speed: 1, defense: 1, dexterity: 1 })}
+          sx={{ fontSize: '0.7rem', minWidth: '70px', p: 0.5 }}
+        >
+          Balanced
+        </Button>
+      </Box>
 
       {/* Strength */}
       <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 1 }}>

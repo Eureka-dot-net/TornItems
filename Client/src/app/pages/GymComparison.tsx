@@ -502,7 +502,26 @@ export default function GymComparison() {
       return;
     }
     setError(null);
-    refetchGymStats();
+    const result = await refetchGymStats();
+    
+    // Force update the values even if they were manually changed
+    if (result.data) {
+      setInitialStats({
+        strength: result.data.battlestats.strength,
+        speed: result.data.battlestats.speed,
+        defense: result.data.battlestats.defense,
+        dexterity: result.data.battlestats.dexterity,
+      });
+      setCurrentGymIndex(Math.max(0, result.data.activeGym - 1));
+      
+      // Update manual mode perk percs
+      setManualPerkPercs(result.data.perkPercs);
+      
+      setComparisonStates((prev) => prev.map((state) => ({
+        ...state,
+        perkPercs: result.data.perkPercs,
+      })));
+    }
   };
   
   const handleAddState = () => {
@@ -1718,6 +1737,31 @@ export default function GymComparison() {
           <Grid size={{ xs: 12, md: 4 }}>
             <Paper sx={{ p: 2 }}>
               <Typography variant="h6" gutterBottom>Manual Test Configuration</Typography>
+              
+              {/* Starting Stats Display */}
+              <Box sx={{ mb: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
+                <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>
+                  Starting Stats
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  <Box sx={{ flex: '1 1 45%' }}>
+                    <Typography variant="caption" color="text.secondary">Str:</Typography>
+                    <Typography variant="body2">{initialStats.strength.toLocaleString()}</Typography>
+                  </Box>
+                  <Box sx={{ flex: '1 1 45%' }}>
+                    <Typography variant="caption" color="text.secondary">Spd:</Typography>
+                    <Typography variant="body2">{initialStats.speed.toLocaleString()}</Typography>
+                  </Box>
+                  <Box sx={{ flex: '1 1 45%' }}>
+                    <Typography variant="caption" color="text.secondary">Def:</Typography>
+                    <Typography variant="body2">{initialStats.defense.toLocaleString()}</Typography>
+                  </Box>
+                  <Box sx={{ flex: '1 1 45%' }}>
+                    <Typography variant="caption" color="text.secondary">Dex:</Typography>
+                    <Typography variant="body2">{initialStats.dexterity.toLocaleString()}</Typography>
+                  </Box>
+                </Box>
+              </Box>
               
               <TextField 
                 label="Total Energy" 
