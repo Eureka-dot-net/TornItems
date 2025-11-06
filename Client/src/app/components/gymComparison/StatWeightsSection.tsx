@@ -35,6 +35,7 @@ export default function StatWeightsSection({
           variant="outlined"
           onClick={() => onUpdate({ strength: 1, speed: 1, defense: 1, dexterity: 1 })}
           sx={{ fontSize: '0.7rem', minWidth: '70px', p: 0.5 }}
+          aria-label="Set all stat weights to balanced (1:1:1:1)"
         >
           Balanced
         </Button>

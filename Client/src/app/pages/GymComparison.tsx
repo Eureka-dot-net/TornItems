@@ -505,7 +505,7 @@ export default function GymComparison() {
     const result = await refetchGymStats();
     
     // Force update the values even if they were manually changed
-    if (result.data) {
+    if (result.isSuccess && result.data) {
       setInitialStats({
         strength: result.data.battlestats.strength,
         speed: result.data.battlestats.speed,
