@@ -138,6 +138,20 @@ export interface SimulationResult {
     costPerJump: number;
     totalCost: number;
   };
+  edvdJumpGains?: {
+    averagePerJump: {
+      strength: number;
+      speed: number;
+      defense: number;
+      dexterity: number;
+    };
+    totalGains: {
+      strength: number;
+      speed: number;
+      defense: number;
+      dexterity: number;
+    };
+  };
   xanaxCosts?: {
     totalCost: number;
   };
@@ -385,6 +399,7 @@ export function simulateGymProgression(
     ? inputs.edvdJump.frequencyDays 
     : -1;
   let edvdJumpsPerformed = 0;
+  const edvdJumpTotalGains = { strength: 0, speed: 0, defense: 0, dexterity: 0 };
   
   // Track Diabetes Day jumps
   // DD jumps occur on day 7 for 1 jump, or days 5 and 7 for 2 jumps
@@ -551,8 +566,8 @@ export function simulateGymProgression(
     // Train one energy at a time, always choosing the stat that is most out of sync with target ratio
     let remainingEnergy = energyAvailableToday;
     
-    // Track stats before training for DD jumps
-    const statsBeforeTraining = isDiabetesDayJump ? { ...stats } : undefined;
+    // Track stats before training for DD jumps and eDVD jumps
+    const statsBeforeTraining = (isDiabetesDayJump || shouldPerformEdvdJump) ? { ...stats } : undefined;
     
     // Handle candy jump if enabled and not on an EDVD or DD jump day
     if (inputs.candyJump?.enabled && !shouldPerformEdvdJump && !isDiabetesDayJump && !isSkipped) {
@@ -815,6 +830,22 @@ export function simulateGymProgression(
       diabetesDayTotalGains.dexterity += diabetesDayJumpGains.dexterity;
     }
     
+    // Calculate eDVD jump gains if this was an eDVD jump day
+    if (shouldPerformEdvdJump && statsBeforeTraining) {
+      const edvdGains = {
+        strength: stats.strength - statsBeforeTraining.strength,
+        speed: stats.speed - statsBeforeTraining.speed,
+        defense: stats.defense - statsBeforeTraining.defense,
+        dexterity: stats.dexterity - statsBeforeTraining.dexterity,
+      };
+      
+      // Add to total eDVD gains
+      edvdJumpTotalGains.strength += edvdGains.strength;
+      edvdJumpTotalGains.speed += edvdGains.speed;
+      edvdJumpTotalGains.defense += edvdGains.defense;
+      edvdJumpTotalGains.dexterity += edvdGains.dexterity;
+    }
+    
     // Take snapshot every 7 days or on first day
     // For DD mode with 2 jumps, also snapshot on day 5 to show the first jump clearly
     // (Day 7 is already captured by the day % 7 === 0 condition)
@@ -943,6 +974,20 @@ export function simulateGymProgression(
       dexterity: Math.round(stats.dexterity),
     },
     edvdJumpCosts,
+    edvdJumpGains: inputs.edvdJump?.enabled && edvdJumpsPerformed > 0 ? {
+      averagePerJump: {
+        strength: edvdJumpTotalGains.strength / edvdJumpsPerformed,
+        speed: edvdJumpTotalGains.speed / edvdJumpsPerformed,
+        defense: edvdJumpTotalGains.defense / edvdJumpsPerformed,
+        dexterity: edvdJumpTotalGains.dexterity / edvdJumpsPerformed,
+      },
+      totalGains: {
+        strength: edvdJumpTotalGains.strength,
+        speed: edvdJumpTotalGains.speed,
+        defense: edvdJumpTotalGains.defense,
+        dexterity: edvdJumpTotalGains.dexterity,
+      },
+    } : undefined,
     xanaxCosts,
     candyJumpCosts,
     energyJumpCosts,
