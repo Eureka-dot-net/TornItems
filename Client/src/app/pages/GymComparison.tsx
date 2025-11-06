@@ -40,7 +40,6 @@ import {
 } from 'recharts';
 import {
   simulateGymProgression,
-  calculateDailyEnergy,
   type Gym,
   type SimulationInputs,
   type CompanyBenefit,
@@ -49,6 +48,33 @@ import {
 } from '../../lib/utils/gymProgressionCalculator';
 import { useGymStats } from '../../lib/hooks/useGymStats';
 import { useItemPrices } from '../../lib/hooks/useItemPrices';
+import { formatCurrency, formatDaysToHumanReadable } from '../../lib/utils/gymHelpers';
+import {
+  CANDY_ITEM_IDS,
+  ENERGY_ITEM_IDS,
+  CONSUMABLE_ITEM_IDS,
+  CHART_COLORS,
+  MAX_COMPARISON_STATES,
+  DEFAULT_STAT_WEIGHTS,
+  DEFAULT_PERK_PERCS,
+  DEFAULT_HAPPY,
+  DEFAULT_INITIAL_STATS,
+  DEFAULT_SIMULATION_MONTHS,
+  DEFAULT_HOURS_PER_DAY,
+  DEFAULT_XANAX_PER_DAY,
+  COMPANY_BENEFIT_TYPES,
+  DEFAULT_CANDLE_SHOP_STARS,
+  DEFAULT_CANDY_QUANTITY,
+  DEFAULT_ENERGY_DRINK_QUANTITY,
+  DEFAULT_EDVD_FREQUENCY_DAYS,
+  DEFAULT_EDVD_DVDS,
+  MAX_ENERGY_DEFAULT,
+} from '../../lib/constants/gymConstants';
+import StatWeightsSection from '../components/gymComparison/StatWeightsSection';
+import EnergySourcesSection from '../components/gymComparison/EnergySourcesSection';
+import HappyPerksSection from '../components/gymComparison/HappyPerksSection';
+import BenefitsEventsSection from '../components/gymComparison/BenefitsEventsSection';
+import StatJumpsSection from '../components/gymComparison/StatJumpsSection';
 
 // Hardcoded gym data
 const GYMS: Gym[] = [
@@ -221,28 +247,28 @@ interface ComparisonState {
 // Get company benefit - keeps Music Store and Fitness Center unchanged
 const getCompanyBenefit = (benefitKey: string, candleShopStars: number): CompanyBenefit => {
   switch (benefitKey) {
-    case 'none':
+    case COMPANY_BENEFIT_TYPES.NONE:
       return {
         name: 'No Benefits',
         gymUnlockSpeedMultiplier: 1.0,
         bonusEnergyPerDay: 0,
         gymGainMultiplier: 1.0,
       };
-    case 'musicStore':
+    case COMPANY_BENEFIT_TYPES.MUSIC_STORE:
       return {
         name: '3★ Music Store',
         gymUnlockSpeedMultiplier: 1.3, // 30% faster (unchanged)
         bonusEnergyPerDay: 0,
         gymGainMultiplier: 1.0,
       };
-    case 'candleShop':
+    case COMPANY_BENEFIT_TYPES.CANDLE_SHOP:
       return {
         name: `${candleShopStars}★ Candle Shop`,
         gymUnlockSpeedMultiplier: 1.0,
         bonusEnergyPerDay: candleShopStars * 5, // 5 energy per star
         gymGainMultiplier: 1.0,
       };
-    case 'fitnessCenter':
+    case COMPANY_BENEFIT_TYPES.FITNESS_CENTER:
       return {
         name: '10★ Fitness Center',
         gymUnlockSpeedMultiplier: 1.0,
@@ -313,18 +339,6 @@ const getDefensiveBuildRatio = (primaryStat: 'defense' | 'dexterity'): StatWeigh
   }
 };
 
-// Helper function to format currency
-const formatCurrency = (value: number): string => {
-  if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toFixed(2)}b`;
-  } else if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(2)}m`;
-  } else if (value >= 1_000) {
-    return `$${(value / 1_000).toFixed(2)}k`;
-  }
-  return `$${value.toFixed(0)}`;
-};
-
 export default function GymComparison() {
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
     try {
@@ -345,8 +359,8 @@ export default function GymComparison() {
   const [manualStatWeights, setManualStatWeights] = useState(() => 
     loadSavedValue('manualStatWeights', { strength: 1, speed: 1, defense: 1, dexterity: 1 })
   );
-  const [manualCompanyBenefitKey, setManualCompanyBenefitKey] = useState<string>(() => loadSavedValue('manualCompanyBenefitKey', 'none'));
-  const [manualCandleShopStars, setManualCandleShopStars] = useState<number>(() => loadSavedValue('manualCandleShopStars', 10));
+  const [manualCompanyBenefitKey, setManualCompanyBenefitKey] = useState<string>(() => loadSavedValue('manualCompanyBenefitKey', COMPANY_BENEFIT_TYPES.NONE));
+  const [manualCandleShopStars, setManualCandleShopStars] = useState<number>(() => loadSavedValue('manualCandleShopStars', DEFAULT_CANDLE_SHOP_STARS));
   const [manualPerkPercs, setManualPerkPercs] = useState(() => 
     loadSavedValue('manualPerkPercs', { strength: 0, speed: 0, defense: 0, dexterity: 0 })
   );
@@ -354,10 +368,10 @@ export default function GymComparison() {
   // Shared player stats
   const [apiKey, setApiKey] = useState<string>(() => loadSavedValue('apiKey', ''));
   const [initialStats, setInitialStats] = useState(() => 
-    loadSavedValue('initialStats', { strength: 1000, speed: 1000, defense: 1000, dexterity: 1000 })
+    loadSavedValue('initialStats', DEFAULT_INITIAL_STATS)
   );
   const [currentGymIndex, setCurrentGymIndex] = useState<number>(() => loadSavedValue('currentGymIndex', 0));
-  const [months, setMonths] = useState<number>(() => loadSavedValue('months', 12));
+  const [months, setMonths] = useState<number>(() => loadSavedValue('months', DEFAULT_SIMULATION_MONTHS));
   
   // Comparison states
   const [comparisonStates, setComparisonStates] = useState<ComparisonState[]>(() => 
@@ -365,25 +379,25 @@ export default function GymComparison() {
       {
         id: '1',
         name: 'State 1',
-        statWeights: { strength: 1, speed: 1, defense: 1, dexterity: 1 },
-        hoursPlayedPerDay: 16,
-        xanaxPerDay: 3,
+        statWeights: DEFAULT_STAT_WEIGHTS,
+        hoursPlayedPerDay: DEFAULT_HOURS_PER_DAY,
+        xanaxPerDay: DEFAULT_XANAX_PER_DAY,
         hasPointsRefill: true,
-        maxEnergy: 150,
-        perkPercs: { strength: 2, speed: 2, defense: 2, dexterity: 2 },
+        maxEnergy: MAX_ENERGY_DEFAULT,
+        perkPercs: DEFAULT_PERK_PERCS,
         edvdJumpEnabled: false,
-        edvdJumpFrequency: 7,
-        edvdJumpDvds: 1,
+        edvdJumpFrequency: DEFAULT_EDVD_FREQUENCY_DAYS,
+        edvdJumpDvds: DEFAULT_EDVD_DVDS,
         edvdJumpLimit: 'indefinite',
         edvdJumpCount: 10,
         edvdJumpStatTarget: 10000000,
         candyJumpEnabled: false,
-        candyJumpItemId: 310, // Default to 25 happy candy
+        candyJumpItemId: CANDY_ITEM_IDS.HAPPY_25,
         candyJumpUseEcstasy: false,
-        candyJumpQuantity: 48,
+        candyJumpQuantity: DEFAULT_CANDY_QUANTITY,
         energyJumpEnabled: false,
-        energyJumpItemId: 985, // Default to 5 energy item
-        energyJumpQuantity: 12,
+        energyJumpItemId: ENERGY_ITEM_IDS.ENERGY_5,
+        energyJumpQuantity: DEFAULT_ENERGY_DRINK_QUANTITY,
         energyJumpFactionBenefit: 0,
         diabetesDayEnabled: false,
         diabetesDayNumberOfJumps: 1,
@@ -391,9 +405,9 @@ export default function GymComparison() {
         diabetesDayGreenEgg: 0,
         diabetesDaySeasonalMail: false,
         diabetesDayLogoClick: false,
-        companyBenefitKey: 'none',
-        candleShopStars: 10,
-        happy: 5025,
+        companyBenefitKey: COMPANY_BENEFIT_TYPES.NONE,
+        candleShopStars: DEFAULT_CANDLE_SHOP_STARS,
+        happy: DEFAULT_HAPPY,
         daysSkippedPerMonth: 0,
       },
     ])
@@ -407,9 +421,24 @@ export default function GymComparison() {
   const { data: gymStatsData, isLoading: isLoadingGymStats, error: gymStatsError, refetch: refetchGymStats } = useGymStats(apiKey || null);
   
   // Fetch item prices for EDVD jumps, xanax, candy items, and energy items - only if costs should be shown
-  // Item IDs: 366 (DVDs), 206 (Xanax), 196 (Ecstasy for EDVD), 197 (Ecstasy for candy), 310 (25 happy), 36 (35 happy), 528 (75 happy), 529 (100 happy), 151 (150 happy)
-  // Energy IDs: 985 (5 energy), 986 (10 energy), 987 (15 energy), 530 (20 energy), 532 (25 energy), 533 (30 energy), 357 (FHC)
-  const { data: itemPricesData } = useItemPrices(showCosts ? [366, 206, 196, 197, 310, 36, 528, 529, 151, 985, 986, 987, 530, 532, 533, 357] : []);
+  const { data: itemPricesData } = useItemPrices(showCosts ? [
+    CONSUMABLE_ITEM_IDS.DVD,
+    CONSUMABLE_ITEM_IDS.XANAX,
+    CONSUMABLE_ITEM_IDS.ECSTASY_EDVD,
+    CONSUMABLE_ITEM_IDS.ECSTASY_CANDY,
+    CANDY_ITEM_IDS.HAPPY_25,
+    CANDY_ITEM_IDS.HAPPY_35,
+    CANDY_ITEM_IDS.HAPPY_75,
+    CANDY_ITEM_IDS.HAPPY_100,
+    CANDY_ITEM_IDS.HAPPY_150,
+    ENERGY_ITEM_IDS.ENERGY_5,
+    ENERGY_ITEM_IDS.ENERGY_10,
+    ENERGY_ITEM_IDS.ENERGY_15,
+    ENERGY_ITEM_IDS.ENERGY_20,
+    ENERGY_ITEM_IDS.ENERGY_25,
+    ENERGY_ITEM_IDS.ENERGY_30,
+    ENERGY_ITEM_IDS.FHC,
+  ] : []);
   
   // Auto-populate stats when fetched
   useEffect(() => {
@@ -477,8 +506,8 @@ export default function GymComparison() {
   };
   
   const handleAddState = () => {
-    if (comparisonStates.length >= 4) {
-      setError('Maximum 4 comparison states allowed');
+    if (comparisonStates.length >= MAX_COMPARISON_STATES) {
+      setError(`Maximum ${MAX_COMPARISON_STATES} comparison states allowed`);
       return;
     }
     
@@ -650,21 +679,6 @@ export default function GymComparison() {
     }
   };
   
-  // Helper function to format days into human-readable time
-  const formatDaysToHumanReadable = (days: number): string => {
-    const years = Math.floor(days / 365);
-    const remainingAfterYears = days % 365;
-    const months = Math.floor(remainingAfterYears / 30);
-    const remainingDays = remainingAfterYears % 30;
-    
-    const parts = [];
-    if (years > 0) parts.push(`${years} year${years > 1 ? 's' : ''}`);
-    if (months > 0) parts.push(`${months} month${months > 1 ? 's' : ''}`);
-    if (remainingDays > 0 || parts.length === 0) parts.push(`${remainingDays} day${remainingDays !== 1 ? 's' : ''}`);
-    
-    return parts.join(', ');
-  };
-  
   // Custom tooltip component for the chart
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { day: number }; name: string; value: number; color: string }> }) => {
     if (active && payload && payload.length) {
@@ -756,7 +770,6 @@ export default function GymComparison() {
       return [day0, ...restOfDays];
     })() : [];
   
-  const CHART_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042'];
   const activeState = comparisonStates[activeTabIndex];
   
   return (
@@ -927,464 +940,88 @@ export default function GymComparison() {
               <Grid container spacing={2}>
                 {/* Stat Weights Column */}
                 <Grid size={{ xs: 12, md: 3 }}>
-                  <Typography variant="subtitle2" gutterBottom>Stat Target Ratios</Typography>
-                  
-                  <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 1 }}>
-                    <TextField 
-                      label="Str" 
-                      type="number" 
-                      value={activeState.statWeights.strength ?? ''} 
-                      onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) }})} 
-                      size="small" 
-                      inputProps={{ step: 'any', min: 0 }}
-                      sx={{ width: 80 }}
-                    />
-                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('strength') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Hank</Button>
-                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('strength') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Baldr</Button>
-                  </Box>
-                  
-                  <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 1 }}>
-                    <TextField 
-                      label="Spd" 
-                      type="number" 
-                      value={activeState.statWeights.speed ?? ''} 
-                      onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) }})} 
-                      size="small" 
-                      inputProps={{ step: 'any', min: 0 }}
-                      sx={{ width: 80 }}
-                    />
-                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('speed') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Hank</Button>
-                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('speed') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Baldr</Button>
-                  </Box>
-                  
-                  <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 1 }}>
-                    <TextField 
-                      label="Def" 
-                      type="number" 
-                      value={activeState.statWeights.defense ?? ''} 
-                      onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) }})} 
-                      size="small" 
-                      inputProps={{ step: 'any', min: 0 }}
-                      sx={{ width: 80 }}
-                    />
-                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('defense') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Hank</Button>
-                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('defense') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Baldr</Button>
-                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getDefensiveBuildRatio('defense') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Def</Button>
-                  </Box>
-                  
-                  <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 1 }}>
-                    <TextField 
-                      label="Dex" 
-                      type="number" 
-                      value={activeState.statWeights.dexterity ?? ''} 
-                      onChange={(e) => updateState(activeState.id, { statWeights: { ...activeState.statWeights, dexterity: e.target.value === '' ? 0 : Number(e.target.value) }})} 
-                      size="small" 
-                      inputProps={{ step: 'any', min: 0 }}
-                      sx={{ width: 80 }}
-                    />
-                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getHanksRatio('dexterity') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Hank</Button>
-                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getBaldrsRatio('dexterity') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Baldr</Button>
-                    <Button size="small" variant="outlined" onClick={() => updateState(activeState.id, { statWeights: getDefensiveBuildRatio('dexterity') })} sx={{ fontSize: '0.65rem', minWidth: '45px', p: 0.5 }}>Dex</Button>
-                  </Box>
+                  <StatWeightsSection
+                    statWeights={activeState.statWeights}
+                    onUpdate={(updates) => {
+                      if ('strength' in updates || 'speed' in updates || 'defense' in updates || 'dexterity' in updates) {
+                        updateState(activeState.id, { statWeights: { ...activeState.statWeights, ...updates } });
+                      }
+                    }}
+                    getHanksRatio={getHanksRatio}
+                    getBaldrsRatio={getBaldrsRatio}
+                    getDefensiveBuildRatio={getDefensiveBuildRatio}
+                  />
                 </Grid>
 
                 {/* Energy Sources Column */}
                 <Grid size={{ xs: 12, md: 3 }}>
-                  <Typography variant="subtitle2" gutterBottom>Energy Sources</Typography>
-                  <FormControl fullWidth margin="dense" size="small">
-                    <InputLabel>Max Energy</InputLabel>
-                    <Select value={activeState.maxEnergy} label="Max Energy" onChange={(e) => updateState(activeState.id, { maxEnergy: Number(e.target.value) })}>
-                      <MenuItem value={150}>150</MenuItem>
-                      <MenuItem value={100}>100</MenuItem>
-                    </Select>
-                  </FormControl>
-                  <TextField 
-                    label="Hours/Day" 
-                    type="number" 
-                    value={activeState.hoursPlayedPerDay ?? ''} 
-                    onChange={(e) => updateState(activeState.id, { hoursPlayedPerDay: e.target.value === '' ? 0 : Math.max(0, Math.min(24, Number(e.target.value)))})} 
-                    fullWidth 
-                    margin="dense" 
-                    size="small" 
-                    inputProps={{ step: 'any', min: 0, max: 24 }} 
+                  <EnergySourcesSection
+                    maxEnergy={activeState.maxEnergy}
+                    hoursPlayedPerDay={activeState.hoursPlayedPerDay}
+                    xanaxPerDay={activeState.xanaxPerDay}
+                    hasPointsRefill={activeState.hasPointsRefill}
+                    daysSkippedPerMonth={activeState.daysSkippedPerMonth}
+                    companyBenefit={getCompanyBenefit(activeState.companyBenefitKey, activeState.candleShopStars)}
+                    onUpdate={(updates) => updateState(activeState.id, updates)}
                   />
-                  <TextField 
-                    label="Xanax/Day" 
-                    type="number" 
-                    value={activeState.xanaxPerDay ?? ''} 
-                    onChange={(e) => updateState(activeState.id, { xanaxPerDay: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value))})} 
-                    fullWidth 
-                    margin="dense" 
-                    size="small" 
-                    inputProps={{ step: 'any', min: 0 }} 
-                  />
-                  <FormControlLabel 
-                    control={<Switch checked={activeState.hasPointsRefill} onChange={(e) => updateState(activeState.id, { hasPointsRefill: e.target.checked })} size="small" />} 
-                    label="Points Refill" 
-                    sx={{ mt: 1 }}
-                  />
-                  <TextField 
-                    label="Days Skipped/Month" 
-                    type="number" 
-                    value={activeState.daysSkippedPerMonth ?? ''} 
-                    onChange={(e) => updateState(activeState.id, { daysSkippedPerMonth: e.target.value === '' ? 0 : Math.max(0, Math.min(30, Number(e.target.value)))})} 
-                    fullWidth 
-                    margin="dense" 
-                    size="small" 
-                    inputProps={{ step: 'any', min: 0, max: 30 }} 
-                  />
-                  <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 1 }}>
-                    Daily E: {calculateDailyEnergy(activeState.hoursPlayedPerDay, activeState.xanaxPerDay, activeState.hasPointsRefill, getCompanyBenefit(activeState.companyBenefitKey, activeState.candleShopStars).bonusEnergyPerDay, activeState.maxEnergy).toLocaleString()}
-                  </Typography>
                 </Grid>
 
                 {/* Happy & Perks Column */}
                 <Grid size={{ xs: 12, md: 3 }}>
-                  <Typography variant="subtitle2" gutterBottom>Happy & Perks</Typography>
-                  <TextField 
-                    label="Happy" 
-                    type="number" 
-                    value={activeState.happy ?? ''} 
-                    onChange={(e) => updateState(activeState.id, { happy: e.target.value === '' ? 0 : Math.max(0, Math.min(99999, Number(e.target.value)))})} 
-                    fullWidth 
-                    margin="dense" 
-                    size="small" 
-                    inputProps={{ step: 'any', min: 0, max: 99999 }} 
-                  />
-                  <TextField 
-                    label="Str Perk %" 
-                    type="number" 
-                    value={activeState.perkPercs.strength ?? ''} 
-                    onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, strength: e.target.value === '' ? 0 : Number(e.target.value)}})} 
-                    fullWidth 
-                    margin="dense" 
-                    size="small" 
-                    inputProps={{ step: 'any', min: 0 }} 
-                  />
-                  <TextField 
-                    label="Spd Perk %" 
-                    type="number" 
-                    value={activeState.perkPercs.speed ?? ''} 
-                    onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, speed: e.target.value === '' ? 0 : Number(e.target.value)}})} 
-                    fullWidth 
-                    margin="dense" 
-                    size="small" 
-                    inputProps={{ step: 'any', min: 0 }} 
-                  />
-                  <TextField 
-                    label="Def Perk %" 
-                    type="number" 
-                    value={activeState.perkPercs.defense ?? ''} 
-                    onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, defense: e.target.value === '' ? 0 : Number(e.target.value)}})} 
-                    fullWidth 
-                    margin="dense" 
-                    size="small" 
-                    inputProps={{ step: 'any', min: 0 }} 
-                  />
-                  <TextField 
-                    label="Dex Perk %" 
-                    type="number" 
-                    value={activeState.perkPercs.dexterity ?? ''} 
-                    onChange={(e) => updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, dexterity: e.target.value === '' ? 0 : Number(e.target.value)}})} 
-                    fullWidth 
-                    margin="dense" 
-                    size="small" 
-                    inputProps={{ step: 'any', min: 0 }} 
+                  <HappyPerksSection
+                    happy={activeState.happy}
+                    perkPercs={activeState.perkPercs}
+                    onUpdate={(updates) => {
+                      if ('happy' in updates) {
+                        updateState(activeState.id, { happy: updates.happy });
+                      }
+                      if ('perkPercs' in updates) {
+                        updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, ...updates.perkPercs } });
+                      }
+                    }}
                   />
                 </Grid>
 
                 {/* Company Benefits & Special Events Column */}
                 <Grid size={{ xs: 12, md: 3 }}>
-                  <Typography variant="subtitle2" gutterBottom>Benefits & Events</Typography>
-                  <FormControl fullWidth margin="dense" size="small">
-                    <InputLabel>Company Benefit</InputLabel>
-                    <Select value={activeState.companyBenefitKey} label="Company Benefit" onChange={(e) => updateState(activeState.id, { companyBenefitKey: e.target.value })}>
-                      <MenuItem value="none">None</MenuItem>
-                      <MenuItem value="musicStore">3★ Music Store</MenuItem>
-                      <MenuItem value="candleShop">Candle Shop</MenuItem>
-                      <MenuItem value="fitnessCenter">10★ Fitness Center</MenuItem>
-                    </Select>
-                  </FormControl>
-                  
-                  {activeState.companyBenefitKey === 'candleShop' && (
-                    <TextField 
-                      label="Candle Stars" 
-                      type="number" 
-                      value={activeState.candleShopStars ?? ''} 
-                      onChange={(e) => updateState(activeState.id, { candleShopStars: e.target.value === '' ? 1 : Math.max(1, Math.min(10, Number(e.target.value)))})} 
-                      fullWidth 
-                      margin="dense" 
-                      size="small" 
-                      inputProps={{ step: 'any', min: 1, max: 10 }} 
-                    />
-                  )}
-                  
-                  <FormControlLabel 
-                    control={<Switch checked={activeState.diabetesDayEnabled} onChange={(e) => updateState(activeState.id, { diabetesDayEnabled: e.target.checked })} size="small" />} 
-                    label="Diabetes Day" 
-                    sx={{ mt: 1 }}
+                  <BenefitsEventsSection
+                    companyBenefitKey={activeState.companyBenefitKey}
+                    candleShopStars={activeState.candleShopStars}
+                    diabetesDayEnabled={activeState.diabetesDayEnabled}
+                    diabetesDayNumberOfJumps={activeState.diabetesDayNumberOfJumps}
+                    diabetesDayFHC={activeState.diabetesDayFHC}
+                    diabetesDayGreenEgg={activeState.diabetesDayGreenEgg}
+                    diabetesDaySeasonalMail={activeState.diabetesDaySeasonalMail}
+                    diabetesDayLogoClick={activeState.diabetesDayLogoClick}
+                    onUpdate={(updates) => updateState(activeState.id, updates)}
                   />
-                  {activeState.diabetesDayEnabled && (
-                    <>
-                      <FormControl fullWidth margin="dense" size="small">
-                        <InputLabel>Jumps</InputLabel>
-                        <Select 
-                          value={activeState.diabetesDayNumberOfJumps} 
-                          label="Jumps" 
-                          onChange={(e) => updateState(activeState.id, { diabetesDayNumberOfJumps: Number(e.target.value) as 1 | 2 })}
-                        >
-                          <MenuItem value={1}>1</MenuItem>
-                          <MenuItem value={2}>2</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <FormControl fullWidth margin="dense" size="small">
-                        <InputLabel>FHC</InputLabel>
-                        <Select 
-                          value={activeState.diabetesDayFHC} 
-                          label="FHC" 
-                          onChange={(e) => updateState(activeState.id, { diabetesDayFHC: Number(e.target.value) as 0 | 1 | 2 })}
-                        >
-                          <MenuItem value={0}>0</MenuItem>
-                          <MenuItem value={1}>1</MenuItem>
-                          <MenuItem value={2}>2</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <FormControl fullWidth margin="dense" size="small">
-                        <InputLabel>Green Egg</InputLabel>
-                        <Select 
-                          value={activeState.diabetesDayGreenEgg} 
-                          label="Green Egg" 
-                          onChange={(e) => updateState(activeState.id, { diabetesDayGreenEgg: Number(e.target.value) as 0 | 1 | 2 })}
-                        >
-                          <MenuItem value={0}>0</MenuItem>
-                          <MenuItem value={1}>1</MenuItem>
-                          <MenuItem value={2}>2</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <FormControlLabel 
-                        control={<Switch checked={activeState.diabetesDaySeasonalMail} onChange={(e) => updateState(activeState.id, { diabetesDaySeasonalMail: e.target.checked })} size="small" />} 
-                        label="Seasonal Mail" 
-                      />
-                      <FormControlLabel 
-                        control={<Switch checked={activeState.diabetesDayLogoClick} onChange={(e) => updateState(activeState.id, { diabetesDayLogoClick: e.target.checked })} size="small" />} 
-                        label="Logo Click" 
-                      />
-                    </>
-                  )}
                 </Grid>
               </Grid>
 
-              {/* New Row for Stat Jumps (EDVD, Candy, and Energy) */}
+              {/* Stat Jumps Section */}
               <Typography variant="subtitle2" gutterBottom sx={{ mt: 3 }}>Stat Jumps</Typography>
-              <Grid container spacing={2}>
-                {/* EDVD Jumps Column */}
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <FormControlLabel 
-                    control={<Switch checked={activeState.edvdJumpEnabled} onChange={(e) => updateState(activeState.id, { edvdJumpEnabled: e.target.checked })} size="small" />} 
-                    label="EDVD Jumps" 
-                  />
-                  {activeState.edvdJumpEnabled && (
-                    <>
-                      <TextField 
-                        label="Days Between" 
-                        type="number" 
-                        value={activeState.edvdJumpFrequency ?? ''} 
-                        onChange={(e) => updateState(activeState.id, { edvdJumpFrequency: e.target.value === '' ? 1 : Math.max(1, Number(e.target.value))})} 
-                        fullWidth 
-                        margin="dense" 
-                        size="small" 
-                        inputProps={{ step: 'any', min: 1 }} 
-                      />
-                      <TextField 
-                        label="DVDs Used" 
-                        type="number" 
-                        value={activeState.edvdJumpDvds ?? ''} 
-                        onChange={(e) => updateState(activeState.id, { edvdJumpDvds: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value))})} 
-                        fullWidth 
-                        margin="dense" 
-                        size="small" 
-                        inputProps={{ step: 'any', min: 0 }} 
-                      />
-                      <FormControl fullWidth margin="dense" size="small">
-                        <InputLabel>Jump Limit</InputLabel>
-                        <Select 
-                          value={activeState.edvdJumpLimit} 
-                          label="Jump Limit" 
-                          onChange={(e) => updateState(activeState.id, { edvdJumpLimit: e.target.value as 'indefinite' | 'count' | 'stat' })}
-                        >
-                          <MenuItem value="indefinite">Indefinite</MenuItem>
-                          <MenuItem value="count">Set Amount</MenuItem>
-                          <MenuItem value="stat">Until Stat Level</MenuItem>
-                        </Select>
-                      </FormControl>
-                      {activeState.edvdJumpLimit === 'count' && (
-                        <TextField 
-                          label="Number of Jumps" 
-                          type="number" 
-                          value={activeState.edvdJumpCount ?? ''} 
-                          onChange={(e) => updateState(activeState.id, { edvdJumpCount: e.target.value === '' ? 1 : Math.max(1, Number(e.target.value))})} 
-                          fullWidth 
-                          margin="dense" 
-                          size="small" 
-                          inputProps={{ step: 'any', min: 1 }} 
-                        />
-                      )}
-                      {activeState.edvdJumpLimit === 'stat' && (
-                        <TextField 
-                          label="Stat Target (Total)" 
-                          type="number" 
-                          value={activeState.edvdJumpStatTarget ?? ''} 
-                          onChange={(e) => updateState(activeState.id, { edvdJumpStatTarget: e.target.value === '' ? 1000000 : Math.max(0, Number(e.target.value))})} 
-                          fullWidth 
-                          margin="dense" 
-                          size="small" 
-                          inputProps={{ step: 'any', min: 0 }} 
-                        />
-                      )}
-                    </>
-                  )}
-                </Grid>
-
-                {/* Candy Jumps Column */}
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <FormControlLabel 
-                    control={<Switch checked={activeState.candyJumpEnabled} onChange={(e) => updateState(activeState.id, { candyJumpEnabled: e.target.checked })} size="small" />} 
-                    label="Candy" 
-                  />
-                  {activeState.candyJumpEnabled && (
-                    <>
-                      <FormControl fullWidth margin="dense" size="small">
-                        <InputLabel>Candy Type</InputLabel>
-                        <Select 
-                          value={activeState.candyJumpItemId} 
-                          label="Candy Type" 
-                          onChange={(e) => updateState(activeState.id, { candyJumpItemId: Number(e.target.value) })}
-                        >
-                          <MenuItem value={310}>25 Happy</MenuItem>
-                          <MenuItem value={36}>35 Happy</MenuItem>
-                          <MenuItem value={528}>75 Happy</MenuItem>
-                          <MenuItem value={529}>100 Happy</MenuItem>
-                          <MenuItem value={151}>150 Happy</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <TextField 
-                        label="Candies per Day" 
-                        type="number" 
-                        value={activeState.candyJumpQuantity ?? ''} 
-                        onChange={(e) => updateState(activeState.id, { candyJumpQuantity: e.target.value === '' ? 48 : Math.max(1, Number(e.target.value))})} 
-                        fullWidth 
-                        margin="dense" 
-                        size="small" 
-                        inputProps={{ step: 'any', min: 1 }} 
-                      />
-                      <FormControlLabel 
-                        control={<Switch checked={activeState.candyJumpUseEcstasy} onChange={(e) => updateState(activeState.id, { candyJumpUseEcstasy: e.target.checked })} size="small" />} 
-                        label="Use Ecstasy" 
-                        sx={{ mt: 1 }}
-                      />
-                      <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
-                        One candy train per day using {(() => {
-                          const hasPoints = activeState.hasPointsRefill;
-                          const hasXanax = activeState.xanaxPerDay >= 1;
-                          if (hasPoints && hasXanax) return '550';
-                          if (hasXanax) return '400';
-                          if (hasPoints) return '300';
-                          return '150';
-                        })()} energy at {activeState.candyJumpUseEcstasy ? `(base happy + candy happy × ${activeState.candyJumpQuantity}) × 2` : `base happy + (candy happy × ${activeState.candyJumpQuantity})`}${
-                          showCosts && itemPricesData && itemPricesData.prices[activeState.candyJumpItemId] !== null
-                            ? ` costing ${(() => {
-                                const candyPrice = itemPricesData.prices[activeState.candyJumpItemId]!;
-                                let costPerDay = activeState.candyJumpQuantity * candyPrice;
-                                if (activeState.candyJumpUseEcstasy && itemPricesData.prices[197] !== null) {
-                                  costPerDay += itemPricesData.prices[197]!;
-                                }
-                                return formatCurrency(costPerDay);
-                              })()} per day`
-                            : ''
-                        }
-                      </Typography>
-                    </>
-                  )}
-                </Grid>
-                
-                {/* Energy Jumps Column */}
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <FormControlLabel 
-                    control={<Switch checked={activeState.energyJumpEnabled} onChange={(e) => updateState(activeState.id, { energyJumpEnabled: e.target.checked })} size="small" />} 
-                    label="Energy" 
-                  />
-                  {activeState.energyJumpEnabled && (
-                    <>
-                      <FormControl fullWidth margin="dense" size="small">
-                        <InputLabel>Energy Item</InputLabel>
-                        <Select 
-                          value={activeState.energyJumpItemId} 
-                          label="Energy Item" 
-                          onChange={(e) => {
-                            const newItemId = Number(e.target.value);
-                            // Update quantity based on item type: 4 for FHC, 12 for others
-                            const newQuantity = newItemId === 357 ? 4 : 12;
-                            updateState(activeState.id, { 
-                              energyJumpItemId: newItemId,
-                              energyJumpQuantity: newQuantity
-                            });
-                          }}
-                        >
-                          <MenuItem value={985}>5 Energy</MenuItem>
-                          <MenuItem value={986}>10 Energy</MenuItem>
-                          <MenuItem value={987}>15 Energy</MenuItem>
-                          <MenuItem value={530}>20 Energy</MenuItem>
-                          <MenuItem value={532}>25 Energy</MenuItem>
-                          <MenuItem value={533}>30 Energy</MenuItem>
-                          <MenuItem value={357}>FHC (Refill)</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <TextField 
-                        label="Items per Day" 
-                        type="number" 
-                        value={activeState.energyJumpQuantity ?? ''} 
-                        onChange={(e) => updateState(activeState.id, { energyJumpQuantity: e.target.value === '' ? (activeState.energyJumpItemId === 357 ? 4 : 12) : Math.max(1, Number(e.target.value))})} 
-                        fullWidth 
-                        margin="dense" 
-                        size="small" 
-                        inputProps={{ step: 'any', min: 1 }} 
-                      />
-                      <TextField 
-                        label="Faction Benefit %" 
-                        type="number" 
-                        value={activeState.energyJumpFactionBenefit ?? ''} 
-                        onChange={(e) => updateState(activeState.id, { energyJumpFactionBenefit: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value))})} 
-                        fullWidth 
-                        margin="dense" 
-                        size="small" 
-                        inputProps={{ step: 'any', min: 0 }} 
-                      />
-                      <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
-                        {activeState.energyJumpItemId === 357 
-                          ? `FHC refills ${activeState.maxEnergy} energy per use${
-                              showCosts && itemPricesData && itemPricesData.prices[357] !== null
-                                ? ` costing ${formatCurrency(activeState.energyJumpQuantity * itemPricesData.prices[357]!)} per day`
-                                : ''
-                            }`
-                          : `${(() => {
-                              const energyMap: Record<number, number> = {985: 5, 986: 10, 987: 15, 530: 20, 532: 25, 533: 30};
-                              const baseEnergy = energyMap[activeState.energyJumpItemId] || 0;
-                              const totalEnergy = baseEnergy * activeState.energyJumpQuantity;
-                              const withBenefit = activeState.energyJumpFactionBenefit > 0 
-                                ? totalEnergy * (1 + activeState.energyJumpFactionBenefit / 100)
-                                : totalEnergy;
-                              return Math.round(withBenefit);
-                            })()} extra energy per day${
-                              showCosts && itemPricesData && itemPricesData.prices[activeState.energyJumpItemId] !== null
-                                ? ` costing ${formatCurrency(activeState.energyJumpQuantity * itemPricesData.prices[activeState.energyJumpItemId]!)} per day`
-                                : ''
-                            }`
-                        }
-                      </Typography>
-                    </>
-                  )}
-                </Grid>
-              </Grid>
+              <StatJumpsSection
+                edvdJumpEnabled={activeState.edvdJumpEnabled}
+                edvdJumpFrequency={activeState.edvdJumpFrequency}
+                edvdJumpDvds={activeState.edvdJumpDvds}
+                edvdJumpLimit={activeState.edvdJumpLimit}
+                edvdJumpCount={activeState.edvdJumpCount}
+                edvdJumpStatTarget={activeState.edvdJumpStatTarget}
+                candyJumpEnabled={activeState.candyJumpEnabled}
+                candyJumpItemId={activeState.candyJumpItemId}
+                candyJumpUseEcstasy={activeState.candyJumpUseEcstasy}
+                candyJumpQuantity={activeState.candyJumpQuantity}
+                energyJumpEnabled={activeState.energyJumpEnabled}
+                energyJumpItemId={activeState.energyJumpItemId}
+                energyJumpQuantity={activeState.energyJumpQuantity}
+                energyJumpFactionBenefit={activeState.energyJumpFactionBenefit}
+                hasPointsRefill={activeState.hasPointsRefill}
+                xanaxPerDay={activeState.xanaxPerDay}
+                maxEnergy={activeState.maxEnergy}
+                showCosts={showCosts}
+                itemPricesData={itemPricesData}
+                onUpdate={(updates) => updateState(activeState.id, updates)}
+              />
             </Paper>
           )}
 
