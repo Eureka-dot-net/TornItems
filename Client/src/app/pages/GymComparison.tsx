@@ -49,6 +49,28 @@ import {
 } from '../../lib/utils/gymProgressionCalculator';
 import { useGymStats } from '../../lib/hooks/useGymStats';
 import { useItemPrices } from '../../lib/hooks/useItemPrices';
+import { formatCurrency, formatDaysToHumanReadable } from '../../lib/utils/gymHelpers';
+import {
+  CANDY_ITEM_IDS,
+  ENERGY_ITEM_IDS,
+  CONSUMABLE_ITEM_IDS,
+  CHART_COLORS,
+  MAX_COMPARISON_STATES,
+  DEFAULT_STAT_WEIGHTS,
+  DEFAULT_PERK_PERCS,
+  DEFAULT_HAPPY,
+  DEFAULT_INITIAL_STATS,
+  DEFAULT_SIMULATION_MONTHS,
+  DEFAULT_HOURS_PER_DAY,
+  DEFAULT_XANAX_PER_DAY,
+  COMPANY_BENEFIT_TYPES,
+  DEFAULT_CANDLE_SHOP_STARS,
+  DEFAULT_CANDY_QUANTITY,
+  DEFAULT_ENERGY_DRINK_QUANTITY,
+  DEFAULT_EDVD_FREQUENCY_DAYS,
+  DEFAULT_EDVD_DVDS,
+  MAX_ENERGY_DEFAULT,
+} from '../../lib/constants/gymConstants';
 
 // Hardcoded gym data
 const GYMS: Gym[] = [
@@ -221,28 +243,28 @@ interface ComparisonState {
 // Get company benefit - keeps Music Store and Fitness Center unchanged
 const getCompanyBenefit = (benefitKey: string, candleShopStars: number): CompanyBenefit => {
   switch (benefitKey) {
-    case 'none':
+    case COMPANY_BENEFIT_TYPES.NONE:
       return {
         name: 'No Benefits',
         gymUnlockSpeedMultiplier: 1.0,
         bonusEnergyPerDay: 0,
         gymGainMultiplier: 1.0,
       };
-    case 'musicStore':
+    case COMPANY_BENEFIT_TYPES.MUSIC_STORE:
       return {
         name: '3★ Music Store',
         gymUnlockSpeedMultiplier: 1.3, // 30% faster (unchanged)
         bonusEnergyPerDay: 0,
         gymGainMultiplier: 1.0,
       };
-    case 'candleShop':
+    case COMPANY_BENEFIT_TYPES.CANDLE_SHOP:
       return {
         name: `${candleShopStars}★ Candle Shop`,
         gymUnlockSpeedMultiplier: 1.0,
         bonusEnergyPerDay: candleShopStars * 5, // 5 energy per star
         gymGainMultiplier: 1.0,
       };
-    case 'fitnessCenter':
+    case COMPANY_BENEFIT_TYPES.FITNESS_CENTER:
       return {
         name: '10★ Fitness Center',
         gymUnlockSpeedMultiplier: 1.0,
@@ -313,18 +335,6 @@ const getDefensiveBuildRatio = (primaryStat: 'defense' | 'dexterity'): StatWeigh
   }
 };
 
-// Helper function to format currency
-const formatCurrency = (value: number): string => {
-  if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toFixed(2)}b`;
-  } else if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(2)}m`;
-  } else if (value >= 1_000) {
-    return `$${(value / 1_000).toFixed(2)}k`;
-  }
-  return `$${value.toFixed(0)}`;
-};
-
 export default function GymComparison() {
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
     try {
@@ -345,8 +355,8 @@ export default function GymComparison() {
   const [manualStatWeights, setManualStatWeights] = useState(() => 
     loadSavedValue('manualStatWeights', { strength: 1, speed: 1, defense: 1, dexterity: 1 })
   );
-  const [manualCompanyBenefitKey, setManualCompanyBenefitKey] = useState<string>(() => loadSavedValue('manualCompanyBenefitKey', 'none'));
-  const [manualCandleShopStars, setManualCandleShopStars] = useState<number>(() => loadSavedValue('manualCandleShopStars', 10));
+  const [manualCompanyBenefitKey, setManualCompanyBenefitKey] = useState<string>(() => loadSavedValue('manualCompanyBenefitKey', COMPANY_BENEFIT_TYPES.NONE));
+  const [manualCandleShopStars, setManualCandleShopStars] = useState<number>(() => loadSavedValue('manualCandleShopStars', DEFAULT_CANDLE_SHOP_STARS));
   const [manualPerkPercs, setManualPerkPercs] = useState(() => 
     loadSavedValue('manualPerkPercs', { strength: 0, speed: 0, defense: 0, dexterity: 0 })
   );
@@ -354,10 +364,10 @@ export default function GymComparison() {
   // Shared player stats
   const [apiKey, setApiKey] = useState<string>(() => loadSavedValue('apiKey', ''));
   const [initialStats, setInitialStats] = useState(() => 
-    loadSavedValue('initialStats', { strength: 1000, speed: 1000, defense: 1000, dexterity: 1000 })
+    loadSavedValue('initialStats', DEFAULT_INITIAL_STATS)
   );
   const [currentGymIndex, setCurrentGymIndex] = useState<number>(() => loadSavedValue('currentGymIndex', 0));
-  const [months, setMonths] = useState<number>(() => loadSavedValue('months', 12));
+  const [months, setMonths] = useState<number>(() => loadSavedValue('months', DEFAULT_SIMULATION_MONTHS));
   
   // Comparison states
   const [comparisonStates, setComparisonStates] = useState<ComparisonState[]>(() => 
@@ -365,25 +375,25 @@ export default function GymComparison() {
       {
         id: '1',
         name: 'State 1',
-        statWeights: { strength: 1, speed: 1, defense: 1, dexterity: 1 },
-        hoursPlayedPerDay: 16,
-        xanaxPerDay: 3,
+        statWeights: DEFAULT_STAT_WEIGHTS,
+        hoursPlayedPerDay: DEFAULT_HOURS_PER_DAY,
+        xanaxPerDay: DEFAULT_XANAX_PER_DAY,
         hasPointsRefill: true,
-        maxEnergy: 150,
-        perkPercs: { strength: 2, speed: 2, defense: 2, dexterity: 2 },
+        maxEnergy: MAX_ENERGY_DEFAULT,
+        perkPercs: DEFAULT_PERK_PERCS,
         edvdJumpEnabled: false,
-        edvdJumpFrequency: 7,
-        edvdJumpDvds: 1,
+        edvdJumpFrequency: DEFAULT_EDVD_FREQUENCY_DAYS,
+        edvdJumpDvds: DEFAULT_EDVD_DVDS,
         edvdJumpLimit: 'indefinite',
         edvdJumpCount: 10,
         edvdJumpStatTarget: 10000000,
         candyJumpEnabled: false,
-        candyJumpItemId: 310, // Default to 25 happy candy
+        candyJumpItemId: CANDY_ITEM_IDS.HAPPY_25,
         candyJumpUseEcstasy: false,
-        candyJumpQuantity: 48,
+        candyJumpQuantity: DEFAULT_CANDY_QUANTITY,
         energyJumpEnabled: false,
-        energyJumpItemId: 985, // Default to 5 energy item
-        energyJumpQuantity: 12,
+        energyJumpItemId: ENERGY_ITEM_IDS.ENERGY_5,
+        energyJumpQuantity: DEFAULT_ENERGY_DRINK_QUANTITY,
         energyJumpFactionBenefit: 0,
         diabetesDayEnabled: false,
         diabetesDayNumberOfJumps: 1,
@@ -391,9 +401,9 @@ export default function GymComparison() {
         diabetesDayGreenEgg: 0,
         diabetesDaySeasonalMail: false,
         diabetesDayLogoClick: false,
-        companyBenefitKey: 'none',
-        candleShopStars: 10,
-        happy: 5025,
+        companyBenefitKey: COMPANY_BENEFIT_TYPES.NONE,
+        candleShopStars: DEFAULT_CANDLE_SHOP_STARS,
+        happy: DEFAULT_HAPPY,
         daysSkippedPerMonth: 0,
       },
     ])
@@ -407,9 +417,24 @@ export default function GymComparison() {
   const { data: gymStatsData, isLoading: isLoadingGymStats, error: gymStatsError, refetch: refetchGymStats } = useGymStats(apiKey || null);
   
   // Fetch item prices for EDVD jumps, xanax, candy items, and energy items - only if costs should be shown
-  // Item IDs: 366 (DVDs), 206 (Xanax), 196 (Ecstasy for EDVD), 197 (Ecstasy for candy), 310 (25 happy), 36 (35 happy), 528 (75 happy), 529 (100 happy), 151 (150 happy)
-  // Energy IDs: 985 (5 energy), 986 (10 energy), 987 (15 energy), 530 (20 energy), 532 (25 energy), 533 (30 energy), 357 (FHC)
-  const { data: itemPricesData } = useItemPrices(showCosts ? [366, 206, 196, 197, 310, 36, 528, 529, 151, 985, 986, 987, 530, 532, 533, 357] : []);
+  const { data: itemPricesData } = useItemPrices(showCosts ? [
+    CONSUMABLE_ITEM_IDS.DVD,
+    CONSUMABLE_ITEM_IDS.XANAX,
+    CONSUMABLE_ITEM_IDS.ECSTASY_EDVD,
+    CONSUMABLE_ITEM_IDS.ECSTASY_CANDY,
+    CANDY_ITEM_IDS.HAPPY_25,
+    CANDY_ITEM_IDS.HAPPY_35,
+    CANDY_ITEM_IDS.HAPPY_75,
+    CANDY_ITEM_IDS.HAPPY_100,
+    CANDY_ITEM_IDS.HAPPY_150,
+    ENERGY_ITEM_IDS.ENERGY_5,
+    ENERGY_ITEM_IDS.ENERGY_10,
+    ENERGY_ITEM_IDS.ENERGY_15,
+    ENERGY_ITEM_IDS.ENERGY_20,
+    ENERGY_ITEM_IDS.ENERGY_25,
+    ENERGY_ITEM_IDS.ENERGY_30,
+    ENERGY_ITEM_IDS.FHC,
+  ] : []);
   
   // Auto-populate stats when fetched
   useEffect(() => {
@@ -477,8 +502,8 @@ export default function GymComparison() {
   };
   
   const handleAddState = () => {
-    if (comparisonStates.length >= 4) {
-      setError('Maximum 4 comparison states allowed');
+    if (comparisonStates.length >= MAX_COMPARISON_STATES) {
+      setError(`Maximum ${MAX_COMPARISON_STATES} comparison states allowed`);
       return;
     }
     
@@ -650,21 +675,6 @@ export default function GymComparison() {
     }
   };
   
-  // Helper function to format days into human-readable time
-  const formatDaysToHumanReadable = (days: number): string => {
-    const years = Math.floor(days / 365);
-    const remainingAfterYears = days % 365;
-    const months = Math.floor(remainingAfterYears / 30);
-    const remainingDays = remainingAfterYears % 30;
-    
-    const parts = [];
-    if (years > 0) parts.push(`${years} year${years > 1 ? 's' : ''}`);
-    if (months > 0) parts.push(`${months} month${months > 1 ? 's' : ''}`);
-    if (remainingDays > 0 || parts.length === 0) parts.push(`${remainingDays} day${remainingDays !== 1 ? 's' : ''}`);
-    
-    return parts.join(', ');
-  };
-  
   // Custom tooltip component for the chart
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { day: number }; name: string; value: number; color: string }> }) => {
     if (active && payload && payload.length) {
@@ -756,7 +766,6 @@ export default function GymComparison() {
       return [day0, ...restOfDays];
     })() : [];
   
-  const CHART_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042'];
   const activeState = comparisonStates[activeTabIndex];
   
   return (

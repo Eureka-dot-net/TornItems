@@ -10,7 +10,6 @@ import {
 } from '@mui/material';
 import {
   CANDY_ITEM_IDS,
-  CANDY_HAPPINESS_VALUES,
   DEFAULT_CANDY_QUANTITY,
 } from '../../../lib/constants/gymConstants';
 import { formatCurrency } from '../../../lib/utils/gymHelpers';
@@ -47,8 +46,6 @@ export default function CandyJumpConfig({
   itemPricesData,
   onUpdate,
 }: CandyJumpConfigProps) {
-  const candyHappy = CANDY_HAPPINESS_VALUES[itemId] || 0;
-
   // Calculate energy used
   let energyUsed = maxEnergy;
   if (hasPointsRefill && xanaxPerDay >= 1) {
