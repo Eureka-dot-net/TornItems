@@ -83,6 +83,13 @@ export interface SimulationInputs {
     quantity: number; // Number of energy items used per day (default 24)
     factionBenefitPercent: number; // % increase in energy from faction benefits
   };
+  lossRevive?: {
+    enabled: boolean;
+    numberPerDay: number; // Number of losses/revives per day
+    energyCost: number; // Energy cost per loss/revive (default 25)
+    daysBetween: number; // Days between loss/revive events
+    pricePerLoss: number; // Price paid per loss/revive (income, reduces total cost)
+  };
   daysSkippedPerMonth?: number; // Days per month with no energy (wars, vacations)
   itemPrices?: {
     dvdPrice: number | null;
@@ -165,6 +172,11 @@ export interface SimulationResult {
     totalDays: number;
     costPerDay: number;
     totalCost: number;
+  };
+  lossReviveIncome?: {
+    totalDays: number;
+    incomePerDay: number;
+    totalIncome: number;
   };
   diabetesDayTotalGains?: {
     strength: number;
@@ -415,6 +427,12 @@ export function simulateGymProgression(
   // Track energy jump days
   let energyJumpDaysPerformed = 0;
   
+  // Track loss/revive days
+  let lossReviveDaysPerformed = 0;
+  let nextLossReviveDay = inputs.lossRevive?.enabled && inputs.lossRevive.daysBetween > 0 
+    ? inputs.lossRevive.daysBetween 
+    : -1;
+  
   if (inputs.diabetesDay?.enabled) {
     if (inputs.diabetesDay.numberOfJumps === 1) {
       diabetesDayJumpDays.push(7); // Single jump on day 7
@@ -560,6 +578,15 @@ export function simulateGymProgression(
       
       energyAvailableToday = ddEnergy;
       currentHappy = 99999; // DD happy is always 99999
+    }
+    
+    // Check if this is a loss/revive day and reduce energy
+    if (inputs.lossRevive?.enabled && day === nextLossReviveDay && !shouldPerformEdvdJump && !isDiabetesDayJump && !isSkipped) {
+      const energyReduction = inputs.lossRevive.numberPerDay * inputs.lossRevive.energyCost;
+      energyAvailableToday = Math.max(0, energyAvailableToday - energyReduction);
+      
+      lossReviveDaysPerformed++;
+      nextLossReviveDay = day + inputs.lossRevive.daysBetween;
     }
     
     // Train stats based on target ratios (weights represent desired build, not training proportion)
@@ -965,6 +992,18 @@ export function simulateGymProgression(
     }
   }
   
+  // Calculate loss/revive income
+  let lossReviveIncome: { totalDays: number; incomePerDay: number; totalIncome: number } | undefined;
+  
+  if (inputs.lossRevive?.enabled && inputs.lossRevive.pricePerLoss > 0) {
+    const incomePerDay = inputs.lossRevive.numberPerDay * inputs.lossRevive.pricePerLoss;
+    lossReviveIncome = {
+      totalDays: lossReviveDaysPerformed,
+      incomePerDay,
+      totalIncome: incomePerDay * lossReviveDaysPerformed,
+    };
+  }
+  
   return {
     dailySnapshots,
     finalStats: {
@@ -991,6 +1030,7 @@ export function simulateGymProgression(
     xanaxCosts,
     candyJumpCosts,
     energyJumpCosts,
+    lossReviveIncome,
     diabetesDayTotalGains: inputs.diabetesDay?.enabled ? diabetesDayTotalGains : undefined,
     diabetesDayJump1Gains: inputs.diabetesDay?.enabled ? diabetesDayJump1Gains : undefined,
     diabetesDayJump2Gains: inputs.diabetesDay?.enabled ? diabetesDayJump2Gains : undefined,
