@@ -5,9 +5,9 @@ export default function BuyMeXanaxCard() {
   return (
     <Card 
       sx={{ 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.7) 0%, rgba(118, 75, 162, 0.7) 100%)',
         color: 'white',
-        boxShadow: 3,
+        boxShadow: 2,
       }}
     >
       <CardContent>

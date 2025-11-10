@@ -77,9 +77,9 @@ Report this issue at: https://www.torn.com/profiles.php?XID=3926388
     <>
       <Card 
         sx={{ 
-          background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+          background: 'linear-gradient(135deg, rgba(240, 147, 251, 0.7) 0%, rgba(245, 87, 108, 0.7) 100%)',
           color: 'white',
-          boxShadow: 3,
+          boxShadow: 2,
         }}
       >
         <CardContent>
