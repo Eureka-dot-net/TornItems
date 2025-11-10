@@ -230,11 +230,13 @@ interface ComparisonState {
   edvdJumpDvds: number;
   edvdJumpLimit: 'indefinite' | 'count' | 'stat';
   edvdJumpCount: number; // Used when edvdJumpLimit is 'count'
-  edvdJumpStatTarget: number; // Used when edvdJumpLimit is 'stat'
+  edvdJumpStatTarget: number; // Used when edvdJumpLimit is 'stat' - now per individual stat
+  edvdJumpAdultNovelties: boolean; // If true, double happiness from DVDs (10★ Adult Novelties)
   candyJumpEnabled: boolean;
   candyJumpItemId: number; // Item ID: 310 (25 happy), 36 (35 happy), 528 (75 happy), 529 (100 happy), 151 (150 happy)
   candyJumpUseEcstasy: boolean; // If true, use ecstasy to double happiness after candy
   candyJumpQuantity: number; // Number of candies used per day (default 48)
+  candyJumpFactionBenefit: number; // % increase in happiness from chocolate faction benefits
   energyJumpEnabled: boolean;
   energyJumpItemId: number; // Item ID: 985 (5 energy), 986 (10 energy), 987 (15 energy), 530 (20 energy), 532 (25 energy), 533 (30 energy), 357 (FHC)
   energyJumpQuantity: number; // Number of energy items used per day (default 12 for drinks, 4 for FHC)
@@ -403,10 +405,12 @@ export default function GymComparison() {
         edvdJumpLimit: 'indefinite',
         edvdJumpCount: 10,
         edvdJumpStatTarget: 10000000,
+        edvdJumpAdultNovelties: false,
         candyJumpEnabled: false,
         candyJumpItemId: CANDY_ITEM_IDS.HAPPY_25,
         candyJumpUseEcstasy: false,
         candyJumpQuantity: DEFAULT_CANDY_QUANTITY,
+        candyJumpFactionBenefit: 0,
         energyJumpEnabled: false,
         energyJumpItemId: ENERGY_ITEM_IDS.ENERGY_5,
         energyJumpQuantity: DEFAULT_ENERGY_DRINK_QUANTITY,
@@ -565,10 +569,12 @@ export default function GymComparison() {
       edvdJumpLimit: sourceState.edvdJumpLimit,
       edvdJumpCount: sourceState.edvdJumpCount,
       edvdJumpStatTarget: sourceState.edvdJumpStatTarget,
+      edvdJumpAdultNovelties: sourceState.edvdJumpAdultNovelties,
       candyJumpEnabled: sourceState.candyJumpEnabled,
       candyJumpItemId: sourceState.candyJumpItemId,
       candyJumpUseEcstasy: sourceState.candyJumpUseEcstasy,
       candyJumpQuantity: sourceState.candyJumpQuantity,
+      candyJumpFactionBenefit: sourceState.candyJumpFactionBenefit,
       energyJumpEnabled: sourceState.energyJumpEnabled,
       energyJumpItemId: sourceState.energyJumpItemId,
       energyJumpQuantity: sourceState.energyJumpQuantity,
@@ -663,6 +669,7 @@ export default function GymComparison() {
               limit: state.edvdJumpLimit,
               count: state.edvdJumpCount,
               statTarget: state.edvdJumpStatTarget,
+              adultNovelties: state.edvdJumpAdultNovelties,
             } : undefined,
             diabetesDay: state.diabetesDayEnabled ? {
               enabled: true,
@@ -677,6 +684,7 @@ export default function GymComparison() {
               itemId: state.candyJumpItemId,
               useEcstasy: state.candyJumpUseEcstasy,
               quantity: state.candyJumpQuantity,
+              factionBenefitPercent: state.candyJumpFactionBenefit,
             } : undefined,
             energyJump: state.energyJumpEnabled ? {
               enabled: true,
@@ -905,10 +913,12 @@ export default function GymComparison() {
               edvdJumpLimit: (s.edvdJumpLimit === 'indefinite' || s.edvdJumpLimit === 'count' || s.edvdJumpLimit === 'stat') ? s.edvdJumpLimit as 'indefinite' | 'count' | 'stat' : 'indefinite',
               edvdJumpCount: typeof s.edvdJumpCount === 'number' ? s.edvdJumpCount : 10,
               edvdJumpStatTarget: typeof s.edvdJumpStatTarget === 'number' ? s.edvdJumpStatTarget : 10000000,
+              edvdJumpAdultNovelties: typeof s.edvdJumpAdultNovelties === 'boolean' ? s.edvdJumpAdultNovelties : false,
               candyJumpEnabled: typeof s.candyJumpEnabled === 'boolean' ? s.candyJumpEnabled : false,
               candyJumpItemId: typeof s.candyJumpItemId === 'number' ? s.candyJumpItemId : CANDY_ITEM_IDS.HAPPY_25,
               candyJumpUseEcstasy: typeof s.candyJumpUseEcstasy === 'boolean' ? s.candyJumpUseEcstasy : false,
               candyJumpQuantity: typeof s.candyJumpQuantity === 'number' ? s.candyJumpQuantity : DEFAULT_CANDY_QUANTITY,
+              candyJumpFactionBenefit: typeof s.candyJumpFactionBenefit === 'number' ? s.candyJumpFactionBenefit : 0,
               energyJumpEnabled: typeof s.energyJumpEnabled === 'boolean' ? s.energyJumpEnabled : false,
               energyJumpItemId: typeof s.energyJumpItemId === 'number' ? s.energyJumpItemId : ENERGY_ITEM_IDS.ENERGY_5,
               energyJumpQuantity: typeof s.energyJumpQuantity === 'number' ? s.energyJumpQuantity : DEFAULT_ENERGY_DRINK_QUANTITY,
@@ -945,10 +955,12 @@ export default function GymComparison() {
             edvdJumpLimit: 'indefinite' as const,
             edvdJumpCount: 10,
             edvdJumpStatTarget: 10000000,
+            edvdJumpAdultNovelties: false,
             candyJumpEnabled: false,
             candyJumpItemId: CANDY_ITEM_IDS.HAPPY_25,
             candyJumpUseEcstasy: false,
             candyJumpQuantity: DEFAULT_CANDY_QUANTITY,
+            candyJumpFactionBenefit: 0,
             energyJumpEnabled: false,
             energyJumpItemId: ENERGY_ITEM_IDS.ENERGY_5,
             energyJumpQuantity: DEFAULT_ENERGY_DRINK_QUANTITY,
@@ -1246,10 +1258,12 @@ export default function GymComparison() {
                 edvdJumpLimit={activeState.edvdJumpLimit}
                 edvdJumpCount={activeState.edvdJumpCount}
                 edvdJumpStatTarget={activeState.edvdJumpStatTarget}
+                edvdJumpAdultNovelties={activeState.edvdJumpAdultNovelties}
                 candyJumpEnabled={activeState.candyJumpEnabled}
                 candyJumpItemId={activeState.candyJumpItemId}
                 candyJumpUseEcstasy={activeState.candyJumpUseEcstasy}
                 candyJumpQuantity={activeState.candyJumpQuantity}
+                candyJumpFactionBenefit={activeState.candyJumpFactionBenefit}
                 energyJumpEnabled={activeState.energyJumpEnabled}
                 energyJumpItemId={activeState.energyJumpItemId}
                 energyJumpQuantity={activeState.energyJumpQuantity}

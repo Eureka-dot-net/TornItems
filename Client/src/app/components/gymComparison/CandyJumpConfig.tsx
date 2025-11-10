@@ -20,6 +20,7 @@ interface CandyJumpConfigProps {
   itemId: number;
   useEcstasy: boolean;
   quantity: number;
+  factionBenefit: number;
   hasPointsRefill: boolean;
   xanaxPerDay: number;
   maxEnergy: number;
@@ -32,6 +33,7 @@ interface CandyJumpConfigProps {
     candyJumpItemId?: number;
     candyJumpUseEcstasy?: boolean;
     candyJumpQuantity?: number;
+    candyJumpFactionBenefit?: number;
   }) => void;
 }
 
@@ -40,6 +42,7 @@ export default function CandyJumpConfig({
   itemId,
   useEcstasy,
   quantity,
+  factionBenefit,
   hasPointsRefill,
   xanaxPerDay,
   maxEnergy,
@@ -113,6 +116,22 @@ export default function CandyJumpConfig({
             }
             label="Use Ecstasy"
             sx={{ mt: 1 }}
+          />
+
+          <TextField
+            label="Faction Benefit %"
+            type="number"
+            value={factionBenefit ?? ''}
+            onChange={(e) =>
+              onUpdate({
+                candyJumpFactionBenefit:
+                  e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)),
+              })
+            }
+            fullWidth
+            margin="dense"
+            size="small"
+            inputProps={{ step: 'any', min: 0 }}
           />
 
           <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
