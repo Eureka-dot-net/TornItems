@@ -580,6 +580,15 @@ export function simulateGymProgression(
       currentHappy = 99999; // DD happy is always 99999
     }
     
+    // Check if this is a loss/revive day and reduce energy
+    if (inputs.lossRevive?.enabled && day === nextLossReviveDay && !shouldPerformEdvdJump && !isDiabetesDayJump && !isSkipped) {
+      const energyReduction = inputs.lossRevive.numberPerDay * inputs.lossRevive.energyCost;
+      energyAvailableToday = Math.max(0, energyAvailableToday - energyReduction);
+      
+      lossReviveDaysPerformed++;
+      nextLossReviveDay = day + inputs.lossRevive.daysBetween;
+    }
+    
     // Train stats based on target ratios (weights represent desired build, not training proportion)
     // Train one energy at a time, always choosing the stat that is most out of sync with target ratio
     let remainingEnergy = energyAvailableToday;
@@ -735,15 +744,6 @@ export function simulateGymProgression(
       remainingEnergy += extraEnergy;
       
       energyJumpDaysPerformed++;
-    }
-    
-    // Check if this is a loss/revive day and reduce energy
-    if (inputs.lossRevive?.enabled && day === nextLossReviveDay && !shouldPerformEdvdJump && !isDiabetesDayJump && !isSkipped) {
-      const energyReduction = inputs.lossRevive.numberPerDay * inputs.lossRevive.energyCost;
-      energyAvailableToday = Math.max(0, energyAvailableToday - energyReduction);
-      
-      lossReviveDaysPerformed++;
-      nextLossReviveDay = day + inputs.lossRevive.daysBetween;
     }
     
     while (remainingEnergy > 0) {
