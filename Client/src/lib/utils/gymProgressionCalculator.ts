@@ -61,7 +61,8 @@ export interface SimulationInputs {
     dvdsUsed: number;
     limit: 'indefinite' | 'count' | 'stat';
     count?: number; // Number of jumps to perform when limit is 'count'
-    statTarget?: number; // Total stat target when limit is 'stat'
+    statTarget?: number; // Individual stat target when limit is 'stat'
+    adultNovelties?: boolean; // If true, double happiness from DVDs (10★ Adult Novelties)
   };
   diabetesDay?: {
     enabled: boolean;
@@ -76,6 +77,7 @@ export interface SimulationInputs {
     itemId: number; // 310 (25 happy), 36 (35 happy), 528 (75 happy), 529 (100 happy), 151 (150 happy)
     useEcstasy: boolean; // If true, double happiness after candy
     quantity: number; // Number of candies used per day (default 48)
+    factionBenefitPercent?: number; // % increase in happiness from chocolate faction benefits
   };
   energyJump?: {
     enabled: boolean;
@@ -473,14 +475,31 @@ export function simulateGymProgression(
     // Skip if limit is reached based on configuration
     let shouldPerformEdvdJump = inputs.edvdJump?.enabled && day === nextEdvdJumpDay && !isSkipped;
     
+    // Track which stats should be trained during this eDVD jump (for 'stat' limit mode)
+    let edvdStatsToTrain: Set<keyof typeof stats> | null = null;
+    
     if (shouldPerformEdvdJump && inputs.edvdJump) {
       // Check limit conditions
       if (inputs.edvdJump.limit === 'count' && inputs.edvdJump.count !== undefined && edvdJumpsPerformed >= inputs.edvdJump.count) {
         shouldPerformEdvdJump = false;
       } else if (inputs.edvdJump.limit === 'stat' && inputs.edvdJump.statTarget !== undefined) {
-        const currentTotal = stats.strength + stats.speed + stats.defense + stats.dexterity;
-        if (currentTotal >= inputs.edvdJump.statTarget) {
+        // Check if ANY stat is under the individual stat limit
+        // Only train stats that are under the limit
+        const statsUnderLimit: Array<keyof typeof stats> = [];
+        const statOrder: Array<keyof typeof stats> = ['strength', 'speed', 'defense', 'dexterity'];
+        
+        for (const stat of statOrder) {
+          if (stats[stat] < inputs.edvdJump.statTarget && inputs.statWeights[stat] > 0) {
+            statsUnderLimit.push(stat);
+          }
+        }
+        
+        if (statsUnderLimit.length === 0) {
+          // All stats are at or above the target, no more jumps
           shouldPerformEdvdJump = false;
+        } else {
+          // Some stats are under the limit - train only those stats during this jump
+          edvdStatsToTrain = new Set(statsUnderLimit);
         }
       }
     }
@@ -496,7 +515,8 @@ export function simulateGymProgression(
       // 2. Takes 4 xanax over ~32 hours (8 hours between each, no natural regen)
       // 3. Waits 8 hours for drug cooldown
       // 4. Uses DVDs: happy becomes (baseHappy + 2500*numDVDs)
-      // 5. Pops ecstasy: happy doubles to ((baseHappy + 2500*numDVDs)*2)
+      //    - If 10★ Adult Novelties enabled, DVD happiness doubles: (baseHappy + 5000*numDVDs)
+      // 5. Pops ecstasy: happy doubles to final value
       // 6. Trains 1000 energy (4 xanax * 250)
       // 7. Uses points refill for maxEnergy and trains that
       // 8. Must wait 6 more hours before can use xanax again
@@ -508,7 +528,9 @@ export function simulateGymProgression(
       energyAvailableToday = 1000 + maxEnergyValue;
       
       // Happy during jump
-      currentHappy = (inputs.happy + 2500 * inputs.edvdJump.dvdsUsed) * 2;
+      // DVD happiness: 2500 per DVD normally, 5000 per DVD with Adult Novelties
+      const dvdHappinessPerDvd = inputs.edvdJump.adultNovelties ? 5000 : 2500;
+      currentHappy = (inputs.happy + dvdHappinessPerDvd * inputs.edvdJump.dvdsUsed) * 2;
       
       // Increment jump counter and schedule next jump
       edvdJumpsPerformed++;
@@ -627,15 +649,23 @@ export function simulateGymProgression(
         // Points but no xanax: 300 total (150 base + 150 points)
         candyEnergy = maxEnergyValue + maxEnergyValue;
       }
-      // else: just base 150
+      // else: just base maxEnergyValue
       
       // Make sure we don't use more energy than available
       const energyToUse = Math.min(candyEnergy, remainingEnergy);
       
-      // Calculate candy happiness: base happy + (candyHappy * quantity)
-      // If ecstasy is enabled, double the happiness: ((base happy) + (candyHappy * quantity)) * 2
+      // Calculate candy happiness with faction benefit applied
       const candyQuantity = inputs.candyJump.quantity || 48;
-      let candyTrainHappy = inputs.happy + (candyHappy * candyQuantity);
+      let effectiveCandyHappy = candyHappy;
+      
+      // Apply faction benefit to candy happiness (increases chocolate happiness)
+      if (inputs.candyJump.factionBenefitPercent && inputs.candyJump.factionBenefitPercent > 0) {
+        effectiveCandyHappy = candyHappy * (1 + inputs.candyJump.factionBenefitPercent / 100);
+      }
+      
+      // Calculate total happiness: base happy + (effective candy happy * quantity)
+      // If ecstasy is enabled, double the total happiness
+      let candyTrainHappy = inputs.happy + (effectiveCandyHappy * candyQuantity);
       if (inputs.candyJump.useEcstasy) {
         candyTrainHappy = candyTrainHappy * 2;
       }
@@ -754,7 +784,13 @@ export function simulateGymProgression(
       const statOrder: Array<keyof typeof stats> = ['strength', 'speed', 'defense', 'dexterity'];
       
       // Filter to only stats with non-zero target weights
-      const trainableStats = statOrder.filter(stat => inputs.statWeights[stat] > 0);
+      // If this is an eDVD jump with stat limit, also filter to stats that should be trained
+      let trainableStats = statOrder.filter(stat => inputs.statWeights[stat] > 0);
+      
+      // If this is an eDVD jump with stat-based limit, only train stats in edvdStatsToTrain
+      if (shouldPerformEdvdJump && edvdStatsToTrain !== null) {
+        trainableStats = trainableStats.filter(stat => edvdStatsToTrain.has(stat));
+      }
       
       if (trainableStats.length === 0) {
         // No stats to train

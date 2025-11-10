@@ -15,6 +15,7 @@ interface EdvdJumpConfigProps {
   limit: 'indefinite' | 'count' | 'stat';
   count: number;
   statTarget: number;
+  adultNovelties: boolean;
   onUpdate: (updates: {
     edvdJumpEnabled?: boolean;
     edvdJumpFrequency?: number;
@@ -22,6 +23,7 @@ interface EdvdJumpConfigProps {
     edvdJumpLimit?: 'indefinite' | 'count' | 'stat';
     edvdJumpCount?: number;
     edvdJumpStatTarget?: number;
+    edvdJumpAdultNovelties?: boolean;
   }) => void;
 }
 
@@ -32,6 +34,7 @@ export default function EdvdJumpConfig({
   limit,
   count,
   statTarget,
+  adultNovelties,
   onUpdate,
 }: EdvdJumpConfigProps) {
   return (
@@ -113,7 +116,7 @@ export default function EdvdJumpConfig({
 
           {limit === 'stat' && (
             <TextField
-              label="Stat Target (Total)"
+              label="Stat Target (Individual)"
               type="number"
               value={statTarget ?? ''}
               onChange={(e) =>
@@ -128,6 +131,18 @@ export default function EdvdJumpConfig({
               inputProps={{ step: 'any', min: 0 }}
             />
           )}
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={adultNovelties}
+                onChange={(e) => onUpdate({ edvdJumpAdultNovelties: e.target.checked })}
+                size="small"
+              />
+            }
+            label="10★ Adult Novelties"
+            sx={{ mt: 1 }}
+          />
         </>
       )}
     </>
