@@ -984,16 +984,6 @@ export default function GymComparison() {
         Compare gym stat gains with different configurations
       </Typography>
       
-      {/* Support and Problem Report Cards */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <BuyMeXanaxCard />
-        </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <ReportProblemCard getCurrentSettings={getCurrentSettings} />
-        </Grid>
-      </Grid>
-      
       <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
         <Button variant={mode === 'future' ? 'contained' : 'outlined'} onClick={() => setMode('future')}>
           Future Comparison
@@ -2090,6 +2080,16 @@ export default function GymComparison() {
           </Grid>
         </Grid>
       )}
+      
+      {/* Support and Problem Report Cards */}
+      <Grid container spacing={2} sx={{ mt: 3 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <BuyMeXanaxCard />
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <ReportProblemCard getCurrentSettings={getCurrentSettings} />
+        </Grid>
+      </Grid>
     </Box>
   );
 }

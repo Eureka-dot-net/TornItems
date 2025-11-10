@@ -117,8 +117,17 @@ Report this issue at: https://www.torn.com/profiles.php?XID=3926388
         <DialogContent>
           <Alert severity="info" sx={{ mb: 2 }}>
             Since this is a hobby project without email service, please copy the report below 
-            and send it to me via Torn mail or the forums. The report includes your current settings 
-            so I can reproduce the issue.
+            and send it to me via{' '}
+            <a 
+              href="https://www.torn.com/messages.php#/p=compose&XID=3926388" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ color: 'inherit', fontWeight: 'bold', textDecoration: 'underline' }}
+            >
+              Torn mail
+            </a>
+            {' '}or the forums. The report includes your current settings so I can reproduce the issue. 
+            Your API key will NOT be included in the report for security reasons.
           </Alert>
           
           <TextField
