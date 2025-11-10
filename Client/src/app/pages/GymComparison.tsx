@@ -1062,6 +1062,7 @@ export default function GymComparison() {
             name: state.name,
             finalStats: result.finalStats,
             statGains,
+            dailySnapshots: result.dailySnapshots,
             costs,
           };
         }),
