@@ -116,17 +116,6 @@ export function exportToCSV(data: ExportData): string {
 export function exportToIncrementalCSV(data: ExportData): string {
   const lines: string[] = [];
   
-  // Determine sampling interval based on months
-  // 1) Every day for less than 12 months
-  // 2) Every two days for less than 24 months
-  // 3) Every three days otherwise
-  let interval = 1;
-  if (data.months >= 24) {
-    interval = 3;
-  } else if (data.months >= 12) {
-    interval = 2;
-  }
-  
   // Check if we have daily snapshots data
   const hasIncrementalData = data.comparisonStates.some(s => s.dailySnapshots && s.dailySnapshots.length > 0);
   
@@ -135,12 +124,34 @@ export function exportToIncrementalCSV(data: ExportData): string {
     return exportToCSV(data);
   }
   
+  // Get all unique day numbers from all snapshots and sort them
+  const allDays = new Set<number>();
+  data.comparisonStates.forEach(state => {
+    if (state.dailySnapshots) {
+      state.dailySnapshots.forEach(snapshot => {
+        allDays.add(snapshot.day);
+      });
+    }
+  });
+  const sortedDays = Array.from(allDays).sort((a, b) => a - b);
+  
+  // Determine actual sampling from the data
+  let actualInterval = 1;
+  if (sortedDays.length > 2) {
+    // Calculate the most common interval between consecutive days
+    const intervals: number[] = [];
+    for (let i = 1; i < Math.min(sortedDays.length, 10); i++) {
+      intervals.push(sortedDays[i] - sortedDays[i-1]);
+    }
+    actualInterval = Math.round(intervals.reduce((a, b) => a + b, 0) / intervals.length);
+  }
+  
   // Header
-  lines.push(`Gym Comparison Data - ${data.months} months simulation (sampled every ${interval} day${interval > 1 ? 's' : ''})`);
+  lines.push(`Gym Comparison Data - ${data.months} months simulation (sampled every ${actualInterval} day${actualInterval > 1 ? 's' : ''})`);
   lines.push('');
   
   // Build header row for incremental data
-  // Format: Day | Comparison 1 - Strength | Speed | Defense | Dexterity | Comparison 2 - Strength | ...
+  // Format: Day | Comparison 1 - Strength | Speed | Defense | Dexterity | Comparison 2 - Strength | ... | Total
   const headerParts = ['Day'];
   data.comparisonStates.forEach(state => {
     headerParts.push(`${state.name} - Strength`);
@@ -148,50 +159,53 @@ export function exportToIncrementalCSV(data: ExportData): string {
     headerParts.push(`${state.name} - Defense`);
     headerParts.push(`${state.name} - Dexterity`);
   });
+  headerParts.push('Total');
   lines.push(headerParts.join(','));
   
   // Add initial stats (Day 0)
   const day0Parts = ['0'];
+  let day0Total = 0;
   data.comparisonStates.forEach(() => {
     day0Parts.push(String(data.initialStats.strength));
     day0Parts.push(String(data.initialStats.speed));
     day0Parts.push(String(data.initialStats.defense));
     day0Parts.push(String(data.initialStats.dexterity));
+    day0Total += data.initialStats.strength + data.initialStats.speed + data.initialStats.defense + data.initialStats.dexterity;
   });
+  day0Parts.push(String(day0Total));
   lines.push(day0Parts.join(','));
   
-  // Get the maximum number of days from all snapshots
-  const maxDays = Math.max(...data.comparisonStates
-    .filter(s => s.dailySnapshots)
-    .map(s => s.dailySnapshots!.length));
-  
-  // Add daily data with the specified interval
-  for (let i = 0; i < maxDays; i += interval) {
-    const dayParts: string[] = [];
-    
-    // Get day number from first comparison that has data
-    const firstSnapshot = data.comparisonStates.find(s => s.dailySnapshots && s.dailySnapshots[i]);
-    if (!firstSnapshot || !firstSnapshot.dailySnapshots) continue;
-    
-    const day = firstSnapshot.dailySnapshots[i].day;
-    dayParts.push(String(day));
+  // Add daily data for all available days
+  sortedDays.forEach(day => {
+    const dayParts: string[] = [String(day)];
+    let rowTotal = 0;
     
     // Add stats for each comparison state
     data.comparisonStates.forEach(state => {
-      if (state.dailySnapshots && state.dailySnapshots[i]) {
-        const snapshot = state.dailySnapshots[i];
-        dayParts.push(String(Math.round(snapshot.strength)));
-        dayParts.push(String(Math.round(snapshot.speed)));
-        dayParts.push(String(Math.round(snapshot.defense)));
-        dayParts.push(String(Math.round(snapshot.dexterity)));
+      if (state.dailySnapshots) {
+        const snapshot = state.dailySnapshots.find(s => s.day === day);
+        if (snapshot) {
+          const str = Math.round(snapshot.strength);
+          const spd = Math.round(snapshot.speed);
+          const def = Math.round(snapshot.defense);
+          const dex = Math.round(snapshot.dexterity);
+          dayParts.push(String(str));
+          dayParts.push(String(spd));
+          dayParts.push(String(def));
+          dayParts.push(String(dex));
+          rowTotal += str + spd + def + dex;
+        } else {
+          // If no data for this state, use empty
+          dayParts.push('', '', '', '');
+        }
       } else {
-        // If no data for this state, use empty or zero
         dayParts.push('', '', '', '');
       }
     });
     
+    dayParts.push(String(rowTotal));
     lines.push(dayParts.join(','));
-  }
+  });
   
   lines.push('');
   lines.push('');
