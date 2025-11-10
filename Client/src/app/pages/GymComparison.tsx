@@ -2155,7 +2155,7 @@ export default function GymComparison() {
       )}
       
       {/* Support and Problem Report Cards */}
-      <Grid container spacing={2} sx={{ mt: 3 }}>
+      <Grid container spacing={2} sx={{ mt: 5 }}>
         <Grid size={{ xs: 12, md: 6 }}>
           <BuyMeXanaxCard />
         </Grid>
