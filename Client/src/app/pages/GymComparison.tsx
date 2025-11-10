@@ -69,6 +69,10 @@ import {
   DEFAULT_EDVD_FREQUENCY_DAYS,
   DEFAULT_EDVD_DVDS,
   MAX_ENERGY_DEFAULT,
+  DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY,
+  DEFAULT_LOSS_REVIVE_ENERGY_COST,
+  DEFAULT_LOSS_REVIVE_DAYS_BETWEEN,
+  DEFAULT_LOSS_REVIVE_PRICE,
 } from '../../lib/constants/gymConstants';
 import StatWeightsSection from '../components/gymComparison/StatWeightsSection';
 import EnergySourcesSection from '../components/gymComparison/EnergySourcesSection';
@@ -235,6 +239,11 @@ interface ComparisonState {
   energyJumpItemId: number; // Item ID: 985 (5 energy), 986 (10 energy), 987 (15 energy), 530 (20 energy), 532 (25 energy), 533 (30 energy), 357 (FHC)
   energyJumpQuantity: number; // Number of energy items used per day (default 12 for drinks, 4 for FHC)
   energyJumpFactionBenefit: number; // % increase in energy from faction benefits
+  lossReviveEnabled: boolean;
+  lossReviveNumberPerDay: number; // Number of losses/revives per day
+  lossReviveEnergyCost: number; // Energy cost per loss/revive (default 25)
+  lossReviveDaysBetween: number; // Days between loss/revive events
+  lossRevivePricePerLoss: number; // Price paid per loss/revive (income)
   diabetesDayEnabled: boolean;
   diabetesDayNumberOfJumps: 1 | 2;
   diabetesDayFHC: 0 | 1 | 2;
@@ -402,6 +411,11 @@ export default function GymComparison() {
         energyJumpItemId: ENERGY_ITEM_IDS.ENERGY_5,
         energyJumpQuantity: DEFAULT_ENERGY_DRINK_QUANTITY,
         energyJumpFactionBenefit: 0,
+        lossReviveEnabled: false,
+        lossReviveNumberPerDay: DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY,
+        lossReviveEnergyCost: DEFAULT_LOSS_REVIVE_ENERGY_COST,
+        lossReviveDaysBetween: DEFAULT_LOSS_REVIVE_DAYS_BETWEEN,
+        lossRevivePricePerLoss: DEFAULT_LOSS_REVIVE_PRICE,
         diabetesDayEnabled: false,
         diabetesDayNumberOfJumps: 1,
         diabetesDayFHC: 0,
@@ -559,6 +573,11 @@ export default function GymComparison() {
       energyJumpItemId: sourceState.energyJumpItemId,
       energyJumpQuantity: sourceState.energyJumpQuantity,
       energyJumpFactionBenefit: sourceState.energyJumpFactionBenefit,
+      lossReviveEnabled: sourceState.lossReviveEnabled,
+      lossReviveNumberPerDay: sourceState.lossReviveNumberPerDay,
+      lossReviveEnergyCost: sourceState.lossReviveEnergyCost,
+      lossReviveDaysBetween: sourceState.lossReviveDaysBetween,
+      lossRevivePricePerLoss: sourceState.lossRevivePricePerLoss,
       diabetesDayEnabled: sourceState.diabetesDayEnabled,
       diabetesDayNumberOfJumps: sourceState.diabetesDayNumberOfJumps,
       diabetesDayFHC: sourceState.diabetesDayFHC,
@@ -664,6 +683,13 @@ export default function GymComparison() {
               itemId: state.energyJumpItemId,
               quantity: state.energyJumpQuantity,
               factionBenefitPercent: state.energyJumpFactionBenefit,
+            } : undefined,
+            lossRevive: state.lossReviveEnabled ? {
+              enabled: true,
+              numberPerDay: state.lossReviveNumberPerDay,
+              energyCost: state.lossReviveEnergyCost,
+              daysBetween: state.lossReviveDaysBetween,
+              pricePerLoss: state.lossRevivePricePerLoss,
             } : undefined,
             daysSkippedPerMonth: state.daysSkippedPerMonth,
             itemPrices: (showCosts && itemPricesData) ? {
@@ -887,6 +913,11 @@ export default function GymComparison() {
               energyJumpItemId: typeof s.energyJumpItemId === 'number' ? s.energyJumpItemId : ENERGY_ITEM_IDS.ENERGY_5,
               energyJumpQuantity: typeof s.energyJumpQuantity === 'number' ? s.energyJumpQuantity : DEFAULT_ENERGY_DRINK_QUANTITY,
               energyJumpFactionBenefit: typeof s.energyJumpFactionBenefit === 'number' ? s.energyJumpFactionBenefit : 0,
+              lossReviveEnabled: typeof s.lossReviveEnabled === 'boolean' ? s.lossReviveEnabled : false,
+              lossReviveNumberPerDay: typeof s.lossReviveNumberPerDay === 'number' ? s.lossReviveNumberPerDay : DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY,
+              lossReviveEnergyCost: typeof s.lossReviveEnergyCost === 'number' ? s.lossReviveEnergyCost : DEFAULT_LOSS_REVIVE_ENERGY_COST,
+              lossReviveDaysBetween: typeof s.lossReviveDaysBetween === 'number' ? s.lossReviveDaysBetween : DEFAULT_LOSS_REVIVE_DAYS_BETWEEN,
+              lossRevivePricePerLoss: typeof s.lossRevivePricePerLoss === 'number' ? s.lossRevivePricePerLoss : DEFAULT_LOSS_REVIVE_PRICE,
               diabetesDayEnabled: typeof s.diabetesDayEnabled === 'boolean' ? s.diabetesDayEnabled : false,
               diabetesDayNumberOfJumps: (s.diabetesDayNumberOfJumps === 1 || s.diabetesDayNumberOfJumps === 2) ? s.diabetesDayNumberOfJumps as 1 | 2 : 1,
               diabetesDayFHC: (s.diabetesDayFHC === 0 || s.diabetesDayFHC === 1 || s.diabetesDayFHC === 2) ? s.diabetesDayFHC as 0 | 1 | 2 : 0,
@@ -922,6 +953,11 @@ export default function GymComparison() {
             energyJumpItemId: ENERGY_ITEM_IDS.ENERGY_5,
             energyJumpQuantity: DEFAULT_ENERGY_DRINK_QUANTITY,
             energyJumpFactionBenefit: 0,
+            lossReviveEnabled: false,
+            lossReviveNumberPerDay: DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY,
+            lossReviveEnergyCost: DEFAULT_LOSS_REVIVE_ENERGY_COST,
+            lossReviveDaysBetween: DEFAULT_LOSS_REVIVE_DAYS_BETWEEN,
+            lossRevivePricePerLoss: DEFAULT_LOSS_REVIVE_PRICE,
             diabetesDayEnabled: false,
             diabetesDayNumberOfJumps: 1 as const,
             diabetesDayFHC: 0 as const,
@@ -1218,6 +1254,11 @@ export default function GymComparison() {
                 energyJumpItemId={activeState.energyJumpItemId}
                 energyJumpQuantity={activeState.energyJumpQuantity}
                 energyJumpFactionBenefit={activeState.energyJumpFactionBenefit}
+                lossReviveEnabled={activeState.lossReviveEnabled}
+                lossReviveNumberPerDay={activeState.lossReviveNumberPerDay}
+                lossReviveEnergyCost={activeState.lossReviveEnergyCost}
+                lossReviveDaysBetween={activeState.lossReviveDaysBetween}
+                lossRevivePricePerLoss={activeState.lossRevivePricePerLoss}
                 hasPointsRefill={activeState.hasPointsRefill}
                 xanaxPerDay={activeState.xanaxPerDay}
                 maxEnergy={activeState.maxEnergy}
@@ -1427,6 +1468,21 @@ export default function GymComparison() {
                                         );
                                       })}
                                     </TableRow>
+                                    <TableRow>
+                                      <TableCell sx={{ fontWeight: 'bold', color: 'success.main' }}>Loss/Revive Income</TableCell>
+                                      {comparisonStates.map((state) => {
+                                        const result = results[state.id];
+                                        if (!result || !result.lossReviveIncome) {
+                                          return <TableCell key={state.id} align="right">-</TableCell>;
+                                        }
+                                        
+                                        return (
+                                          <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem', color: 'success.main' }}>
+                                            {formatCurrency(result.lossReviveIncome.totalIncome)}
+                                          </TableCell>
+                                        );
+                                      })}
+                                    </TableRow>
                                     <TableRow sx={{ borderTop: 2, borderColor: 'divider' }}>
                                       <TableCell sx={{ fontWeight: 'bold' }}>Total Cost</TableCell>
                                       {comparisonStates.map((state) => {
@@ -1439,7 +1495,8 @@ export default function GymComparison() {
                                         const xanaxCost = result.xanaxCosts?.totalCost || 0;
                                         const candyCost = result.candyJumpCosts?.totalCost || 0;
                                         const energyCost = result.energyJumpCosts?.totalCost || 0;
-                                        const totalCost = edvdCost + xanaxCost + candyCost + energyCost;
+                                        const lossReviveIncome = result.lossReviveIncome?.totalIncome || 0;
+                                        const totalCost = edvdCost + xanaxCost + candyCost + energyCost - lossReviveIncome;
                                         
                                         return (
                                           <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}>
@@ -1460,7 +1517,8 @@ export default function GymComparison() {
                                         const xanaxCost = result.xanaxCosts?.totalCost || 0;
                                         const candyCost = result.candyJumpCosts?.totalCost || 0;
                                         const energyCost = result.energyJumpCosts?.totalCost || 0;
-                                        const totalCost = edvdCost + xanaxCost + candyCost + energyCost;
+                                        const lossReviveIncome = result.lossReviveIncome?.totalIncome || 0;
+                                        const totalCost = edvdCost + xanaxCost + candyCost + energyCost - lossReviveIncome;
                                         
                                         // Calculate total days from months
                                         const totalDays = months * 30;
@@ -1511,10 +1569,11 @@ export default function GymComparison() {
                                           const xanaxCost = result.xanaxCosts?.totalCost || 0;
                                           const candyCost = result.candyJumpCosts?.totalCost || 0;
                                           const energyCost = result.energyJumpCosts?.totalCost || 0;
-                                          const totalCost = edvdCost + xanaxCost + candyCost + energyCost;
+                                          const lossReviveIncome = result.lossReviveIncome?.totalIncome || 0;
+                                          const totalCost = edvdCost + xanaxCost + candyCost + energyCost - lossReviveIncome;
                                           const totalGain = calculateTotalGain(result);
                                           
-                                          if (totalCost === 0 || totalGain === 0) {
+                                          if (totalGain === 0) {
                                             return <TableCell key={state.id} align="right">-</TableCell>;
                                           }
                                           

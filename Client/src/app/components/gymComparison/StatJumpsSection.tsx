@@ -2,6 +2,7 @@ import { Grid } from '@mui/material';
 import EdvdJumpConfig from './EdvdJumpConfig';
 import CandyJumpConfig from './CandyJumpConfig';
 import EnergyJumpConfig from './EnergyJumpConfig';
+import LossReviveConfig from './LossReviveConfig';
 
 interface StatJumpsSectionProps {
   // EDVD Jump
@@ -23,6 +24,13 @@ interface StatJumpsSectionProps {
   energyJumpItemId: number;
   energyJumpQuantity: number;
   energyJumpFactionBenefit: number;
+
+  // Loss/Revive
+  lossReviveEnabled: boolean;
+  lossReviveNumberPerDay: number;
+  lossReviveEnergyCost: number;
+  lossReviveDaysBetween: number;
+  lossRevivePricePerLoss: number;
 
   // Additional props needed for display
   hasPointsRefill: boolean;
@@ -49,6 +57,11 @@ interface StatJumpsSectionProps {
     energyJumpItemId?: number;
     energyJumpQuantity?: number;
     energyJumpFactionBenefit?: number;
+    lossReviveEnabled?: boolean;
+    lossReviveNumberPerDay?: number;
+    lossReviveEnergyCost?: number;
+    lossReviveDaysBetween?: number;
+    lossRevivePricePerLoss?: number;
   }) => void;
 }
 
@@ -56,7 +69,7 @@ export default function StatJumpsSection(props: StatJumpsSectionProps) {
   return (
     <Grid container spacing={2}>
       {/* EDVD Jumps Column */}
-      <Grid size={{ xs: 12, md: 4 }}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <EdvdJumpConfig
           enabled={props.edvdJumpEnabled}
           frequency={props.edvdJumpFrequency}
@@ -69,7 +82,7 @@ export default function StatJumpsSection(props: StatJumpsSectionProps) {
       </Grid>
 
       {/* Candy Jumps Column */}
-      <Grid size={{ xs: 12, md: 4 }}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <CandyJumpConfig
           enabled={props.candyJumpEnabled}
           itemId={props.candyJumpItemId}
@@ -85,7 +98,7 @@ export default function StatJumpsSection(props: StatJumpsSectionProps) {
       </Grid>
 
       {/* Energy Jumps Column */}
-      <Grid size={{ xs: 12, md: 4 }}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <EnergyJumpConfig
           enabled={props.energyJumpEnabled}
           itemId={props.energyJumpItemId}
@@ -94,6 +107,19 @@ export default function StatJumpsSection(props: StatJumpsSectionProps) {
           maxEnergy={props.maxEnergy}
           showCosts={props.showCosts}
           itemPricesData={props.itemPricesData}
+          onUpdate={props.onUpdate}
+        />
+      </Grid>
+
+      {/* Loss/Revive Column */}
+      <Grid size={{ xs: 12, md: 3 }}>
+        <LossReviveConfig
+          enabled={props.lossReviveEnabled}
+          numberPerDay={props.lossReviveNumberPerDay}
+          energyCost={props.lossReviveEnergyCost}
+          daysBetween={props.lossReviveDaysBetween}
+          pricePerLoss={props.lossRevivePricePerLoss}
+          showCosts={props.showCosts}
           onUpdate={props.onUpdate}
         />
       </Grid>
