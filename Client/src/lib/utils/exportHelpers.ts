@@ -151,34 +151,32 @@ export function exportToIncrementalCSV(data: ExportData): string {
   lines.push('');
   
   // Build header row for incremental data
-  // Format: Day | Comparison 1 - Strength | Speed | Defense | Dexterity | Comparison 2 - Strength | ... | Total
+  // Format: Day | Comparison 1 - Strength | Speed | Defense | Dexterity | Total | Comparison 2 - Strength | ... | Total
   const headerParts = ['Day'];
   data.comparisonStates.forEach(state => {
     headerParts.push(`${state.name} - Strength`);
     headerParts.push(`${state.name} - Speed`);
     headerParts.push(`${state.name} - Defense`);
     headerParts.push(`${state.name} - Dexterity`);
+    headerParts.push(`${state.name} - Total`);
   });
-  headerParts.push('Total');
   lines.push(headerParts.join(','));
   
   // Add initial stats (Day 0)
   const day0Parts = ['0'];
-  let day0Total = 0;
   data.comparisonStates.forEach(() => {
     day0Parts.push(String(data.initialStats.strength));
     day0Parts.push(String(data.initialStats.speed));
     day0Parts.push(String(data.initialStats.defense));
     day0Parts.push(String(data.initialStats.dexterity));
-    day0Total += data.initialStats.strength + data.initialStats.speed + data.initialStats.defense + data.initialStats.dexterity;
+    const stateTotal = data.initialStats.strength + data.initialStats.speed + data.initialStats.defense + data.initialStats.dexterity;
+    day0Parts.push(String(stateTotal));
   });
-  day0Parts.push(String(day0Total));
   lines.push(day0Parts.join(','));
   
   // Add daily data for all available days
   sortedDays.forEach(day => {
     const dayParts: string[] = [String(day)];
-    let rowTotal = 0;
     
     // Add stats for each comparison state
     data.comparisonStates.forEach(state => {
@@ -189,21 +187,21 @@ export function exportToIncrementalCSV(data: ExportData): string {
           const spd = Math.round(snapshot.speed);
           const def = Math.round(snapshot.defense);
           const dex = Math.round(snapshot.dexterity);
+          const stateTotal = str + spd + def + dex;
           dayParts.push(String(str));
           dayParts.push(String(spd));
           dayParts.push(String(def));
           dayParts.push(String(dex));
-          rowTotal += str + spd + def + dex;
+          dayParts.push(String(stateTotal));
         } else {
           // If no data for this state, use empty
-          dayParts.push('', '', '', '');
+          dayParts.push('', '', '', '', '');
         }
       } else {
-        dayParts.push('', '', '', '');
+        dayParts.push('', '', '', '', '');
       }
     });
     
-    dayParts.push(String(rowTotal));
     lines.push(dayParts.join(','));
   });
   
