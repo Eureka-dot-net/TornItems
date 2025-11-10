@@ -28,6 +28,7 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
+import DownloadIcon from '@mui/icons-material/Download';
 import {
   LineChart,
   Line,
@@ -82,6 +83,7 @@ import StatJumpsSection from '../components/gymComparison/StatJumpsSection';
 import BuyMeXanaxCard from '../components/gymComparison/BuyMeXanaxCard';
 import ReportProblemCard from '../components/gymComparison/ReportProblemCard';
 import LoadSettingsButton from '../components/gymComparison/LoadSettingsButton';
+import { exportGymComparisonData, type ExportData } from '../../lib/utils/exportHelpers';
 
 // Hardcoded gym data
 const GYMS: Gym[] = [
@@ -1021,6 +1023,55 @@ export default function GymComparison() {
       setError('Failed to load settings from report. Please check the format and try again.');
     }
   };
+
+  // Function to handle data export
+  const handleExportData = () => {
+    if (mode === 'future' && Object.keys(results).length > 0) {
+      const exportData: ExportData = {
+        comparisonStates: comparisonStates.map(state => {
+          const result = results[state.id];
+          if (!result) {
+            return {
+              name: state.name,
+              finalStats: { strength: 0, speed: 0, defense: 0, dexterity: 0 },
+              statGains: { strength: 0, speed: 0, defense: 0, dexterity: 0 },
+            };
+          }
+          
+          const statGains = {
+            strength: result.finalStats.strength - initialStats.strength,
+            speed: result.finalStats.speed - initialStats.speed,
+            defense: result.finalStats.defense - initialStats.defense,
+            dexterity: result.finalStats.dexterity - initialStats.dexterity,
+          };
+          
+          const costs = (showCosts && itemPricesData) ? {
+            edvd: result.edvdJumpCosts?.totalCost || 0,
+            xanax: result.xanaxCosts?.totalCost || 0,
+            candy: result.candyJumpCosts?.totalCost || 0,
+            energy: result.energyJumpCosts?.totalCost || 0,
+            lossReviveIncome: result.lossReviveIncome?.totalIncome || 0,
+            total: (result.edvdJumpCosts?.totalCost || 0) + 
+                   (result.xanaxCosts?.totalCost || 0) + 
+                   (result.candyJumpCosts?.totalCost || 0) + 
+                   (result.energyJumpCosts?.totalCost || 0) - 
+                   (result.lossReviveIncome?.totalIncome || 0),
+          } : undefined;
+          
+          return {
+            name: state.name,
+            finalStats: result.finalStats,
+            statGains,
+            costs,
+          };
+        }),
+        initialStats,
+        months,
+      };
+      
+      exportGymComparisonData(exportData);
+    }
+  };
   
   return (
     <Box sx={{ width: '100%', p: { xs: 2, md: 3 } }}>
@@ -1040,6 +1091,15 @@ export default function GymComparison() {
           Manual Testing
         </Button>
         <LoadSettingsButton onLoadSettings={loadSettingsFromReport} />
+        {mode === 'future' && Object.keys(results).length > 0 && (
+          <Button 
+            variant="outlined" 
+            startIcon={<DownloadIcon />} 
+            onClick={handleExportData}
+          >
+            Export Data
+          </Button>
+        )}
         <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center' }}>
           <FormControlLabel 
             control={<Switch checked={showCosts} onChange={(e) => setShowCosts(e.target.checked)} />} 
