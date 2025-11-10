@@ -75,6 +75,9 @@ import EnergySourcesSection from '../components/gymComparison/EnergySourcesSecti
 import HappyPerksSection from '../components/gymComparison/HappyPerksSection';
 import BenefitsEventsSection from '../components/gymComparison/BenefitsEventsSection';
 import StatJumpsSection from '../components/gymComparison/StatJumpsSection';
+import BuyMeXanaxCard from '../components/gymComparison/BuyMeXanaxCard';
+import ReportProblemCard from '../components/gymComparison/ReportProblemCard';
+import LoadSettingsButton from '../components/gymComparison/LoadSettingsButton';
 
 // Hardcoded gym data
 const GYMS: Gym[] = [
@@ -791,6 +794,186 @@ export default function GymComparison() {
   
   const activeState = comparisonStates[activeTabIndex];
   
+  // Function to get current settings for problem reporting
+  const getCurrentSettings = () => {
+    return {
+      mode,
+      apiKey: apiKey ? '***REDACTED***' : '', // Don't include actual API key
+      initialStats,
+      currentGymIndex,
+      months,
+      comparisonStates: comparisonStates.map(state => ({
+        ...state,
+        id: 'redacted', // Don't include internal IDs
+      })),
+      activeTabIndex,
+      showCosts,
+      manualEnergy: mode === 'manual' ? manualEnergy : undefined,
+      autoUpgradeGyms: mode === 'manual' ? autoUpgradeGyms : undefined,
+      manualHappy: mode === 'manual' ? manualHappy : undefined,
+      manualStatWeights: mode === 'manual' ? manualStatWeights : undefined,
+      manualCompanyBenefitKey: mode === 'manual' ? manualCompanyBenefitKey : undefined,
+      manualCandleShopStars: mode === 'manual' ? manualCandleShopStars : undefined,
+      manualPerkPercs: mode === 'manual' ? manualPerkPercs : undefined,
+    };
+  };
+
+  // Function to load settings from a problem report
+  const loadSettingsFromReport = (settings: Record<string, unknown>) => {
+    try {
+      // Load mode
+      if (settings.mode === 'future' || settings.mode === 'manual') {
+        setMode(settings.mode);
+      }
+
+      // Load initial stats
+      if (settings.initialStats && typeof settings.initialStats === 'object') {
+        const stats = settings.initialStats as Record<string, number>;
+        if (stats.strength !== undefined && stats.speed !== undefined && 
+            stats.defense !== undefined && stats.dexterity !== undefined) {
+          setInitialStats({
+            strength: stats.strength,
+            speed: stats.speed,
+            defense: stats.defense,
+            dexterity: stats.dexterity,
+          });
+        }
+      }
+
+      // Load gym index
+      if (typeof settings.currentGymIndex === 'number') {
+        setCurrentGymIndex(settings.currentGymIndex);
+      }
+
+      // Load months
+      if (typeof settings.months === 'number') {
+        setMonths(settings.months);
+      }
+
+      // Load show costs
+      if (typeof settings.showCosts === 'boolean') {
+        setShowCosts(settings.showCosts);
+      }
+
+      // Load comparison states (future mode)
+      if (Array.isArray(settings.comparisonStates) && settings.comparisonStates.length > 0) {
+        const loadedStates = settings.comparisonStates.map((state: unknown, index: number) => {
+          if (typeof state === 'object' && state !== null) {
+            const s = state as Record<string, unknown>;
+            return {
+              id: Date.now().toString() + index, // Generate new IDs
+              name: typeof s.name === 'string' ? s.name : `State ${index + 1}`,
+              statWeights: typeof s.statWeights === 'object' ? s.statWeights as StatWeights : DEFAULT_STAT_WEIGHTS,
+              hoursPlayedPerDay: typeof s.hoursPlayedPerDay === 'number' ? s.hoursPlayedPerDay : DEFAULT_HOURS_PER_DAY,
+              xanaxPerDay: typeof s.xanaxPerDay === 'number' ? s.xanaxPerDay : DEFAULT_XANAX_PER_DAY,
+              hasPointsRefill: typeof s.hasPointsRefill === 'boolean' ? s.hasPointsRefill : true,
+              maxEnergy: typeof s.maxEnergy === 'number' ? s.maxEnergy : MAX_ENERGY_DEFAULT,
+              perkPercs: (typeof s.perkPercs === 'object' && s.perkPercs !== null && 
+                         'strength' in s.perkPercs && 'speed' in s.perkPercs && 
+                         'defense' in s.perkPercs && 'dexterity' in s.perkPercs) 
+                         ? s.perkPercs as { strength: number; speed: number; defense: number; dexterity: number } 
+                         : DEFAULT_PERK_PERCS,
+              edvdJumpEnabled: typeof s.edvdJumpEnabled === 'boolean' ? s.edvdJumpEnabled : false,
+              edvdJumpFrequency: typeof s.edvdJumpFrequency === 'number' ? s.edvdJumpFrequency : DEFAULT_EDVD_FREQUENCY_DAYS,
+              edvdJumpDvds: typeof s.edvdJumpDvds === 'number' ? s.edvdJumpDvds : DEFAULT_EDVD_DVDS,
+              edvdJumpLimit: (s.edvdJumpLimit === 'indefinite' || s.edvdJumpLimit === 'count' || s.edvdJumpLimit === 'stat') ? s.edvdJumpLimit as 'indefinite' | 'count' | 'stat' : 'indefinite',
+              edvdJumpCount: typeof s.edvdJumpCount === 'number' ? s.edvdJumpCount : 10,
+              edvdJumpStatTarget: typeof s.edvdJumpStatTarget === 'number' ? s.edvdJumpStatTarget : 10000000,
+              candyJumpEnabled: typeof s.candyJumpEnabled === 'boolean' ? s.candyJumpEnabled : false,
+              candyJumpItemId: typeof s.candyJumpItemId === 'number' ? s.candyJumpItemId : CANDY_ITEM_IDS.HAPPY_25,
+              candyJumpUseEcstasy: typeof s.candyJumpUseEcstasy === 'boolean' ? s.candyJumpUseEcstasy : false,
+              candyJumpQuantity: typeof s.candyJumpQuantity === 'number' ? s.candyJumpQuantity : DEFAULT_CANDY_QUANTITY,
+              energyJumpEnabled: typeof s.energyJumpEnabled === 'boolean' ? s.energyJumpEnabled : false,
+              energyJumpItemId: typeof s.energyJumpItemId === 'number' ? s.energyJumpItemId : ENERGY_ITEM_IDS.ENERGY_5,
+              energyJumpQuantity: typeof s.energyJumpQuantity === 'number' ? s.energyJumpQuantity : DEFAULT_ENERGY_DRINK_QUANTITY,
+              energyJumpFactionBenefit: typeof s.energyJumpFactionBenefit === 'number' ? s.energyJumpFactionBenefit : 0,
+              diabetesDayEnabled: typeof s.diabetesDayEnabled === 'boolean' ? s.diabetesDayEnabled : false,
+              diabetesDayNumberOfJumps: (s.diabetesDayNumberOfJumps === 1 || s.diabetesDayNumberOfJumps === 2) ? s.diabetesDayNumberOfJumps as 1 | 2 : 1,
+              diabetesDayFHC: (s.diabetesDayFHC === 0 || s.diabetesDayFHC === 1 || s.diabetesDayFHC === 2) ? s.diabetesDayFHC as 0 | 1 | 2 : 0,
+              diabetesDayGreenEgg: (s.diabetesDayGreenEgg === 0 || s.diabetesDayGreenEgg === 1 || s.diabetesDayGreenEgg === 2) ? s.diabetesDayGreenEgg as 0 | 1 | 2 : 0,
+              diabetesDaySeasonalMail: typeof s.diabetesDaySeasonalMail === 'boolean' ? s.diabetesDaySeasonalMail : false,
+              diabetesDayLogoClick: typeof s.diabetesDayLogoClick === 'boolean' ? s.diabetesDayLogoClick : false,
+              companyBenefitKey: typeof s.companyBenefitKey === 'string' ? s.companyBenefitKey : COMPANY_BENEFIT_TYPES.NONE,
+              candleShopStars: typeof s.candleShopStars === 'number' ? s.candleShopStars : DEFAULT_CANDLE_SHOP_STARS,
+              happy: typeof s.happy === 'number' ? s.happy : DEFAULT_HAPPY,
+              daysSkippedPerMonth: typeof s.daysSkippedPerMonth === 'number' ? s.daysSkippedPerMonth : 0,
+            };
+          }
+          return {
+            id: Date.now().toString() + index,
+            name: `State ${index + 1}`,
+            statWeights: DEFAULT_STAT_WEIGHTS,
+            hoursPlayedPerDay: DEFAULT_HOURS_PER_DAY,
+            xanaxPerDay: DEFAULT_XANAX_PER_DAY,
+            hasPointsRefill: true,
+            maxEnergy: MAX_ENERGY_DEFAULT,
+            perkPercs: DEFAULT_PERK_PERCS,
+            edvdJumpEnabled: false,
+            edvdJumpFrequency: DEFAULT_EDVD_FREQUENCY_DAYS,
+            edvdJumpDvds: DEFAULT_EDVD_DVDS,
+            edvdJumpLimit: 'indefinite' as const,
+            edvdJumpCount: 10,
+            edvdJumpStatTarget: 10000000,
+            candyJumpEnabled: false,
+            candyJumpItemId: CANDY_ITEM_IDS.HAPPY_25,
+            candyJumpUseEcstasy: false,
+            candyJumpQuantity: DEFAULT_CANDY_QUANTITY,
+            energyJumpEnabled: false,
+            energyJumpItemId: ENERGY_ITEM_IDS.ENERGY_5,
+            energyJumpQuantity: DEFAULT_ENERGY_DRINK_QUANTITY,
+            energyJumpFactionBenefit: 0,
+            diabetesDayEnabled: false,
+            diabetesDayNumberOfJumps: 1 as const,
+            diabetesDayFHC: 0 as const,
+            diabetesDayGreenEgg: 0 as const,
+            diabetesDaySeasonalMail: false,
+            diabetesDayLogoClick: false,
+            companyBenefitKey: COMPANY_BENEFIT_TYPES.NONE,
+            candleShopStars: DEFAULT_CANDLE_SHOP_STARS,
+            happy: DEFAULT_HAPPY,
+            daysSkippedPerMonth: 0,
+          };
+        });
+        setComparisonStates(loadedStates);
+      }
+
+      // Load manual mode settings
+      if (settings.mode === 'manual') {
+        if (typeof settings.manualEnergy === 'number') {
+          setManualEnergy(settings.manualEnergy);
+        }
+        if (typeof settings.autoUpgradeGyms === 'boolean') {
+          setAutoUpgradeGyms(settings.autoUpgradeGyms);
+        }
+        if (typeof settings.manualHappy === 'number') {
+          setManualHappy(settings.manualHappy);
+        }
+        if (settings.manualStatWeights && typeof settings.manualStatWeights === 'object') {
+          setManualStatWeights(settings.manualStatWeights as StatWeights);
+        }
+        if (typeof settings.manualCompanyBenefitKey === 'string') {
+          setManualCompanyBenefitKey(settings.manualCompanyBenefitKey);
+        }
+        if (typeof settings.manualCandleShopStars === 'number') {
+          setManualCandleShopStars(settings.manualCandleShopStars);
+        }
+        if (settings.manualPerkPercs && typeof settings.manualPerkPercs === 'object' &&
+            'strength' in settings.manualPerkPercs && 'speed' in settings.manualPerkPercs && 
+            'defense' in settings.manualPerkPercs && 'dexterity' in settings.manualPerkPercs) {
+          setManualPerkPercs(settings.manualPerkPercs as { strength: number; speed: number; defense: number; dexterity: number });
+        }
+      }
+
+      // Load active tab index
+      if (typeof settings.activeTabIndex === 'number') {
+        setActiveTabIndex(Math.min(settings.activeTabIndex, comparisonStates.length - 1));
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+      setError('Failed to load settings from report. Please check the format and try again.');
+    }
+  };
+  
   return (
     <Box sx={{ width: '100%', p: { xs: 2, md: 3 } }}>
       <Typography variant="h4" gutterBottom>
@@ -801,6 +984,16 @@ export default function GymComparison() {
         Compare gym stat gains with different configurations
       </Typography>
       
+      {/* Support and Problem Report Cards */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <BuyMeXanaxCard />
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <ReportProblemCard getCurrentSettings={getCurrentSettings} />
+        </Grid>
+      </Grid>
+      
       <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
         <Button variant={mode === 'future' ? 'contained' : 'outlined'} onClick={() => setMode('future')}>
           Future Comparison
@@ -808,6 +1001,7 @@ export default function GymComparison() {
         <Button variant={mode === 'manual' ? 'contained' : 'outlined'} onClick={() => setMode('manual')}>
           Manual Testing
         </Button>
+        <LoadSettingsButton onLoadSettings={loadSettingsFromReport} />
         <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center' }}>
           <FormControlLabel 
             control={<Switch checked={showCosts} onChange={(e) => setShowCosts(e.target.checked)} />} 
