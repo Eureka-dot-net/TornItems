@@ -464,11 +464,14 @@ export class DiscordUserManager {
         }
       }
 
-      // Add points refill cost (30 points at 30k each)
+      // Add points refill cost (30 points at dynamic market price)
       if (pointsRefill) {
-        const pointsCost = 30 * 30000;
+        // Fetch current points market price from database (itemId 0)
+        const pointsItem = await TornItem.findOne({ itemId: 0 });
+        const pointsPrice = pointsItem?.market_price || 30000; // Fallback to 30k if not found
+        const pointsCost = 30 * pointsPrice;
         total += pointsCost;
-        breakdownParts.push(`Points Refill (30 pts): $${pointsCost.toLocaleString()}`);
+        breakdownParts.push(`Points Refill (30 pts @ $${pointsPrice.toLocaleString()}/pt): $${pointsCost.toLocaleString()}`);
       }
 
       return {

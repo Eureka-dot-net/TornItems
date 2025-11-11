@@ -27,7 +27,7 @@ export const ENERGY_ITEM_IDS = {
   ENERGY_20: 530,
   ENERGY_25: 532,
   ENERGY_30: 533,
-  FHC: 357, // Feathery Hotel Coupon - refills energy bar
+  FHC: 367, // Feathery Hotel Coupon - refills energy bar
 } as const;
 
 // Item IDs for other consumables

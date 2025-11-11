@@ -82,7 +82,7 @@ interface ComparisonState {
   candyJumpQuantity: number; // Number of candies used per day (default 48)
   candyJumpFactionBenefit: number; // % increase in happiness from chocolate faction benefits
   energyJumpEnabled: boolean;
-  energyJumpItemId: number; // Item ID: 985 (5 energy), 986 (10 energy), 987 (15 energy), 530 (20 energy), 532 (25 energy), 533 (30 energy), 357 (FHC)
+  energyJumpItemId: number; // Item ID: 985 (5 energy), 986 (10 energy), 987 (15 energy), 530 (20 energy), 532 (25 energy), 533 (30 energy), 367 (FHC)
   energyJumpQuantity: number; // Number of energy items used per day (default 12 for drinks, 4 for FHC)
   energyJumpFactionBenefit: number; // % increase in energy from faction benefits
   lossReviveEnabled: boolean;
@@ -190,8 +190,9 @@ export default function GymComparison() {
   
   const { data: gymStatsData, isLoading: isLoadingGymStats, error: gymStatsError, refetch: refetchGymStats } = useGymStats(apiKey || null);
   
-  // Fetch item prices for EDVD jumps, xanax, candy items, and energy items - only if costs should be shown
+  // Fetch item prices for EDVD jumps, xanax, candy items, energy items, and points - only if costs should be shown
   const { data: itemPricesData } = useItemPrices(showCosts ? [
+    0, // Points market price
     CONSUMABLE_ITEM_IDS.DVD,
     CONSUMABLE_ITEM_IDS.XANAX,
     CONSUMABLE_ITEM_IDS.ECSTASY_EDVD,
@@ -454,6 +455,7 @@ export default function GymComparison() {
               xanaxPrice: itemPricesData.prices[206],
               ecstasyPrice: itemPricesData.prices[196],
               candyEcstasyPrice: itemPricesData.prices[197],
+              pointsPrice: itemPricesData.prices[0], // Points market price
               candyPrices: {
                 310: itemPricesData.prices[310],
                 36: itemPricesData.prices[36],
@@ -468,7 +470,7 @@ export default function GymComparison() {
                 530: itemPricesData.prices[530],
                 532: itemPricesData.prices[532],
                 533: itemPricesData.prices[533],
-                357: itemPricesData.prices[357],
+                367: itemPricesData.prices[367],
               },
             } : undefined,
           };
@@ -735,11 +737,13 @@ export default function GymComparison() {
           const costs = (showCosts && itemPricesData) ? {
             edvd: result.edvdJumpCosts?.totalCost || 0,
             xanax: result.xanaxCosts?.totalCost || 0,
+            points: result.pointsRefillCosts?.totalCost || 0,
             candy: result.candyJumpCosts?.totalCost || 0,
             energy: result.energyJumpCosts?.totalCost || 0,
             lossReviveIncome: result.lossReviveIncome?.totalIncome || 0,
             total: (result.edvdJumpCosts?.totalCost || 0) + 
                    (result.xanaxCosts?.totalCost || 0) + 
+                   (result.pointsRefillCosts?.totalCost || 0) + 
                    (result.candyJumpCosts?.totalCost || 0) + 
                    (result.energyJumpCosts?.totalCost || 0) - 
                    (result.lossReviveIncome?.totalIncome || 0),
