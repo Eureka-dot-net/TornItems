@@ -81,7 +81,7 @@ export interface SimulationInputs {
   };
   energyJump?: {
     enabled: boolean;
-    itemId: number; // 985 (5 energy), 986 (10 energy), 987 (15 energy), 530 (20 energy), 532 (25 energy), 533 (30 energy), 357 (FHC - refills energy bar)
+    itemId: number; // 985 (5 energy), 986 (10 energy), 987 (15 energy), 530 (20 energy), 532 (25 energy), 533 (30 energy), 367 (FHC - refills energy bar)
     quantity: number; // Number of energy items used per day (default 24)
     factionBenefitPercent: number; // % increase in energy from faction benefits
   };
@@ -98,6 +98,7 @@ export interface SimulationInputs {
     xanaxPrice: number | null;
     ecstasyPrice: number | null;
     candyEcstasyPrice: number | null;
+    pointsPrice?: number | null; // Price per point (itemId 0)
     candyPrices?: {
       310: number | null;
       36: number | null;
@@ -112,7 +113,7 @@ export interface SimulationInputs {
       530: number | null;
       532: number | null;
       533: number | null;
-      357: number | null;
+      367: number | null;
     };
   };
 }
@@ -162,6 +163,9 @@ export interface SimulationResult {
     };
   };
   xanaxCosts?: {
+    totalCost: number;
+  };
+  pointsRefillCosts?: {
     totalCost: number;
   };
   
@@ -744,7 +748,7 @@ export function simulateGymProgression(
         530: 20,
         532: 25,
         533: 30,
-        357: 0, // FHC - special case, refills energy bar
+        367: 0, // FHC - special case, refills energy bar
       };
       
       const energyPerItem = energyItemMap[inputs.energyJump.itemId];
@@ -757,7 +761,7 @@ export function simulateGymProgression(
       let extraEnergy = 0;
       const energyQuantity = inputs.energyJump.quantity || 24;
       
-      if (inputs.energyJump.itemId === 357) {
+      if (inputs.energyJump.itemId === 367) {
         // FHC refills energy bar - use maxEnergy value
         extraEnergy = maxEnergyValue * energyQuantity;
       } else {
@@ -961,6 +965,7 @@ export function simulateGymProgression(
   // Calculate cost information if prices are available
   let edvdJumpCosts: { totalJumps: number; costPerJump: number; totalCost: number } | undefined;
   let xanaxCosts: { totalCost: number } | undefined;
+  let pointsRefillCosts: { totalCost: number } | undefined;
   let candyJumpCosts: { totalDays: number; costPerDay: number; totalCost: number } | undefined;
   let energyJumpCosts: { totalDays: number; costPerDay: number; totalCost: number } | undefined;
   
@@ -983,6 +988,14 @@ export function simulateGymProgression(
     if (inputs.xanaxPerDay > 0 && inputs.itemPrices.xanaxPrice !== null) {
       xanaxCosts = {
         totalCost: inputs.itemPrices.xanaxPrice * inputs.xanaxPerDay * totalDays,
+      };
+    }
+    
+    // Calculate points refill costs if enabled and price is available
+    if (inputs.hasPointsRefill && inputs.itemPrices.pointsPrice !== null && inputs.itemPrices.pointsPrice !== undefined) {
+      // Points refill costs 30 points per day
+      pointsRefillCosts = {
+        totalCost: inputs.itemPrices.pointsPrice * 30 * totalDays,
       };
     }
     
@@ -1016,7 +1029,7 @@ export function simulateGymProgression(
       
       if (energyPrice !== null && energyPrice !== undefined) {
         // Cost: quantity * energy item price per day
-        const energyQuantity = inputs.energyJump.quantity || (itemId === 357 ? 6 : 24);
+        const energyQuantity = inputs.energyJump.quantity || (itemId === 367 ? 6 : 24);
         const costPerDay = energyQuantity * energyPrice;
         
         energyJumpCosts = {
@@ -1064,6 +1077,7 @@ export function simulateGymProgression(
       },
     } : undefined,
     xanaxCosts,
+    pointsRefillCosts,
     candyJumpCosts,
     energyJumpCosts,
     lossReviveIncome,

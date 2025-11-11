@@ -8,6 +8,7 @@ const router = express.Router({ mergeParams: true });
  * GET /api/items/market-prices
  * Fetch market prices for specific items by their IDs
  * Query parameter: itemIds (comma-separated list of item IDs)
+ * Special handling: itemId 0 returns points market price
  */
 router.get('/market-prices', async (req: Request, res: Response) => {
   try {
@@ -18,9 +19,10 @@ router.get('/market-prices', async (req: Request, res: Response) => {
     }
     
     // Parse comma-separated item IDs and validate
+    // Allow 0 for points market
     const ids = itemIds.split(',')
       .map(id => parseInt(id.trim(), 10))
-      .filter(id => !isNaN(id) && id > 0);
+      .filter(id => !isNaN(id) && id >= 0);
     
     if (ids.length === 0) {
       return res.status(400).json({ error: 'No valid item IDs provided' });
@@ -28,7 +30,7 @@ router.get('/market-prices', async (req: Request, res: Response) => {
     
     logInfo(`Fetching market prices for items: ${ids.join(', ')}`);
     
-    // Fetch items from database
+    // Fetch items from database (including itemId 0 for points)
     const items = await TornItem.find({ itemId: { $in: ids } }).lean();
     
     // Build response object mapping itemId to market_price

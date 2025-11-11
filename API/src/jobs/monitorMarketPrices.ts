@@ -1,6 +1,8 @@
 import axios from 'axios';
 import Bottleneck from 'bottleneck';
 import { MarketWatchlistItem } from '../models/MarketWatchlistItem';
+import { TornItem } from '../models/TornItem';
+import { DiscordUser } from '../models/DiscordUser';
 import { logInfo, logError } from '../utils/logger';
 import { logApiCall } from '../utils/apiCallLogger';
 import { sendDiscordChannelAlert } from '../utils/discord';
@@ -8,6 +10,7 @@ import { calculateBestStockToSell } from '../utils/stockSellHelper';
 import { decrypt } from '../utils/encryption';
 
 const RATE_LIMIT_PER_MINUTE = parseInt(process.env.TORN_RATE_LIMIT || '60', 10);
+const API_KEY = process.env.TORN_API_KEY;
 
 // Create a shared rate limiter for market monitoring
 // This ensures we don't exceed Torn API rate limits
@@ -70,12 +73,83 @@ export function calculateQuantityIntervals(availableQuantity: number): number[] 
 }
 
 /**
+ * Update points market price in database
+ * This ensures points price is always available even without an active watch
+ * Only fetches once per day to avoid excessive API calls
+ */
+async function updatePointsPrice(): Promise<void> {
+  try {
+    // Check if we have the API key
+    if (!API_KEY) {
+      logInfo('Skipping points price update - no API key configured');
+      return;
+    }
+
+    // Check if points price was updated in the last 24 hours
+    const existingPoints = await TornItem.findOne({ itemId: 0 });
+    if (existingPoints && existingPoints.lastUpdated) {
+      const hoursSinceUpdate = (Date.now() - existingPoints.lastUpdated.getTime()) / (1000 * 60 * 60);
+      if (hoursSinceUpdate < 24) {
+        // Already updated within last 24 hours, skip
+        return;
+      }
+    }
+
+    logInfo('Fetching points market price (daily update)...');
+
+    // Fetch points market data
+    const response = await retryWithBackoff(() =>
+      limiter.schedule(() =>
+        axios.get(`https://api.torn.com/v2/market?selections=pointsmarket&limit=20&key=${API_KEY}`)
+      )
+    ) as { data: { pointsmarket: any } };
+
+    await logApiCall('market/pointsmarket', 'updatePointsPrice');
+
+    const pointsmarket = response.data?.pointsmarket;
+    if (!pointsmarket || Object.keys(pointsmarket).length === 0) {
+      logInfo('No points market data available');
+      return;
+    }
+
+    // Find the lowest cost per point
+    const listings = Object.values(pointsmarket) as Array<{ cost: number; quantity: number; total_cost: number }>;
+    const lowestListing = listings.reduce((min, listing) => 
+      listing.cost < min.cost ? listing : min
+    , listings[0]);
+
+    // Store/update points price in TornItem table
+    await TornItem.findOneAndUpdate(
+      { itemId: 0 },
+      { 
+        itemId: 0,
+        name: 'Points',
+        description: 'Torn Points',
+        type: 'Special',
+        is_tradable: true,
+        is_found_in_city: false,
+        market_price: lowestListing.cost,
+        lastUpdated: new Date()
+      },
+      { upsert: true, new: true }
+    );
+
+    logInfo(`Updated points market price: $${lowestListing.cost.toLocaleString()}`);
+  } catch (error) {
+    logError('Error updating points price', error instanceof Error ? error : new Error(String(error)));
+  }
+}
+
+/**
  * Monitors market prices for watchlist items and sends Discord alerts when prices drop below thresholds.
  * Uses random API keys from users watching each item and sends alerts to user-specific channels.
  * Includes deduplication logic to prevent spam for the same price.
  */
 export async function monitorMarketPrices(): Promise<void> {
   try {
+    // Always update points price first (uses main API key)
+    await updatePointsPrice();
+
     // Get all enabled watchlist items
     const watchlistItems = await MarketWatchlistItem.find({ enabled: true });
     
@@ -132,6 +206,24 @@ export async function monitorMarketPrices(): Promise<void> {
           
           lowestPrice = lowestListing.cost;
           availableQuantity = lowestListing.quantity;
+          
+          // Store/update points price in TornItem table for API access
+          await TornItem.findOneAndUpdate(
+            { itemId: 0 },
+            { 
+              itemId: 0,
+              name: 'Points',
+              description: 'Torn Points',
+              type: 'Special',
+              is_tradable: true,
+              is_found_in_city: false,
+              market_price: lowestPrice,
+              lastUpdated: new Date()
+            },
+            { upsert: true, new: true }
+          );
+          
+          logInfo(`Updated points market price: $${lowestPrice.toLocaleString()}`);
         } else {
           // Fetch regular item market data
           const response = await retryWithBackoff(() =>
