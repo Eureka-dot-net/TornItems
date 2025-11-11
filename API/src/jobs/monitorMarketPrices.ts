@@ -1,6 +1,7 @@
 import axios from 'axios';
 import Bottleneck from 'bottleneck';
 import { MarketWatchlistItem } from '../models/MarketWatchlistItem';
+import { TornItem } from '../models/TornItem';
 import { logInfo, logError } from '../utils/logger';
 import { logApiCall } from '../utils/apiCallLogger';
 import { sendDiscordChannelAlert } from '../utils/discord';
@@ -132,6 +133,24 @@ export async function monitorMarketPrices(): Promise<void> {
           
           lowestPrice = lowestListing.cost;
           availableQuantity = lowestListing.quantity;
+          
+          // Store/update points price in TornItem table for API access
+          await TornItem.findOneAndUpdate(
+            { itemId: 0 },
+            { 
+              itemId: 0,
+              name: 'Points',
+              description: 'Torn Points',
+              type: 'Special',
+              is_tradable: true,
+              is_found_in_city: false,
+              market_price: lowestPrice,
+              lastUpdated: new Date()
+            },
+            { upsert: true, new: true }
+          );
+          
+          logInfo(`Updated points market price: $${lowestPrice.toLocaleString()}`);
         } else {
           // Fetch regular item market data
           const response = await retryWithBackoff(() =>
