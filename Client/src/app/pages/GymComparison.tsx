@@ -83,6 +83,8 @@ import StatJumpsSection from '../components/gymComparison/StatJumpsSection';
 import BuyMeXanaxCard from '../components/gymComparison/BuyMeXanaxCard';
 import ReportProblemCard from '../components/gymComparison/ReportProblemCard';
 import LoadSettingsButton from '../components/gymComparison/LoadSettingsButton';
+import SaveConfigurationButton from '../components/gymComparison/SaveConfigurationButton';
+import LoadConfigurationButton from '../components/gymComparison/LoadConfigurationButton';
 import { exportGymComparisonData, type ExportData } from '../../lib/utils/exportHelpers';
 
 // Hardcoded gym data
@@ -1084,28 +1086,42 @@ export default function GymComparison() {
         Compare gym stat gains with different configurations
       </Typography>
       
-      <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
-        <Button variant={mode === 'future' ? 'contained' : 'outlined'} onClick={() => setMode('future')}>
-          Future Comparison
-        </Button>
-        <Button variant={mode === 'manual' ? 'contained' : 'outlined'} onClick={() => setMode('manual')}>
-          Manual Testing
-        </Button>
-        <LoadSettingsButton onLoadSettings={loadSettingsFromReport} />
-        {mode === 'future' && Object.keys(results).length > 0 && (
-          <Button 
-            variant="outlined" 
-            startIcon={<DownloadIcon />} 
-            onClick={handleExportData}
-          >
-            Export Data
+      <Box sx={{ mb: 3 }}>
+        {/* First row: Mode selection buttons */}
+        <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+          <Button variant={mode === 'future' ? 'contained' : 'outlined'} onClick={() => setMode('future')}>
+            Future Comparison
           </Button>
-        )}
-        <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center' }}>
-          <FormControlLabel 
-            control={<Switch checked={showCosts} onChange={(e) => setShowCosts(e.target.checked)} />} 
-            label="Include Cost Estimates" 
-          />
+          <Button variant={mode === 'manual' ? 'contained' : 'outlined'} onClick={() => setMode('manual')}>
+            Manual Testing
+          </Button>
+        </Box>
+        
+        {/* Second row: Configuration and utility buttons - responsive layout */}
+        <Box sx={{ 
+          display: 'flex', 
+          gap: 1, 
+          flexWrap: 'wrap',
+          alignItems: 'center',
+        }}>
+          <SaveConfigurationButton getCurrentSettings={getCurrentSettings} />
+          <LoadConfigurationButton onLoadSettings={loadSettingsFromReport} />
+          <LoadSettingsButton onLoadSettings={loadSettingsFromReport} />
+          {mode === 'future' && Object.keys(results).length > 0 && (
+            <Button 
+              variant="outlined" 
+              startIcon={<DownloadIcon />} 
+              onClick={handleExportData}
+            >
+              Export Data
+            </Button>
+          )}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <FormControlLabel 
+              control={<Switch checked={showCosts} onChange={(e) => setShowCosts(e.target.checked)} />} 
+              label="Include Cost Estimates" 
+            />
+          </Box>
         </Box>
       </Box>
 
