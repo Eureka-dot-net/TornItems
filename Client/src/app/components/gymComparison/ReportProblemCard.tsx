@@ -78,7 +78,7 @@ Report this issue at: https://www.torn.com/profiles.php?XID=3926388
       <Card 
         sx={{ 
           border: '2px solid',
-          borderColor: 'error.dark',
+          borderColor: '#8e4b48ff',
           backgroundColor: 'background.paper',
           boxShadow: 2,
         }}
@@ -97,11 +97,14 @@ Report this issue at: https://www.torn.com/profiles.php?XID=3926388
           <Button
             variant="contained"
             onClick={handleOpen}
-            color="error"
             sx={{
               fontWeight: 'bold',
               textTransform: 'none',
               borderRadius: 2,
+              backgroundColor: '#8e4b48ff',
+              '&:hover': {
+                backgroundColor: '#4a3a39ff',
+              }
             }}
           >
             Report Issue 🐛
