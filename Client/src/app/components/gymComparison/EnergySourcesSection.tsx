@@ -10,6 +10,8 @@ import {
 } from '@mui/material';
 import { calculateDailyEnergy } from '../../../lib/utils/gymProgressionCalculator';
 import type { CompanyBenefit } from '../../../lib/utils/gymProgressionCalculator';
+import { formatCurrency } from '../../../lib/utils/gymHelpers';
+import { CONSUMABLE_ITEM_IDS } from '../../../lib/constants/gymConstants';
 
 interface EnergySourcesSectionProps {
   maxEnergy: number;
@@ -18,6 +20,10 @@ interface EnergySourcesSectionProps {
   hasPointsRefill: boolean;
   daysSkippedPerMonth: number;
   companyBenefit: CompanyBenefit;
+  showCosts?: boolean;
+  itemPricesData?: {
+    prices: Record<number, number | null>;
+  };
   onUpdate: (updates: {
     maxEnergy?: number;
     hoursPlayedPerDay?: number;
@@ -34,6 +40,8 @@ export default function EnergySourcesSection({
   hasPointsRefill,
   daysSkippedPerMonth,
   companyBenefit,
+  showCosts,
+  itemPricesData,
   onUpdate,
 }: EnergySourcesSectionProps) {
   return (
@@ -85,6 +93,12 @@ export default function EnergySourcesSection({
         inputProps={{ step: 'any', min: 0 }}
       />
 
+      {showCosts && itemPricesData && xanaxPerDay > 0 && itemPricesData.prices[CONSUMABLE_ITEM_IDS.XANAX] !== null && (
+        <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>
+          Cost: {formatCurrency(xanaxPerDay * itemPricesData.prices[CONSUMABLE_ITEM_IDS.XANAX]!)} per day
+        </Typography>
+      )}
+
       <FormControlLabel
         control={
           <Switch
@@ -96,6 +110,12 @@ export default function EnergySourcesSection({
         label="Points Refill"
         sx={{ mt: 1 }}
       />
+
+      {showCosts && itemPricesData && hasPointsRefill && itemPricesData.prices[0] !== null && (
+        <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>
+          Cost: {formatCurrency(itemPricesData.prices[0]! * 30)} per day
+        </Typography>
+      )}
 
       <TextField
         label="Days Skipped/Month"
