@@ -78,7 +78,7 @@ Report this issue at: https://www.torn.com/profiles.php?XID=3926388
       <Card 
         sx={{ 
           border: '2px solid',
-          borderColor: 'error.main',
+          borderColor: 'error.dark',
           backgroundColor: 'background.paper',
           boxShadow: 2,
         }}

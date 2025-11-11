@@ -113,7 +113,7 @@ export default function EnergySourcesSection({
 
       {showCosts && itemPricesData && hasPointsRefill && itemPricesData.prices[0] !== null && (
         <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>
-          Cost: {formatCurrency(itemPricesData.prices[0]! * maxEnergy)} per day
+          Cost: {formatCurrency(itemPricesData.prices[0]! * 30)} per day
         </Typography>
       )}
 
