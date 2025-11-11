@@ -77,8 +77,9 @@ Report this issue at: https://www.torn.com/profiles.php?XID=3926388
     <>
       <Card 
         sx={{ 
-          background: 'linear-gradient(135deg, rgba(240, 147, 251, 0.7) 0%, rgba(245, 87, 108, 0.7) 100%)',
-          color: 'white',
+          border: '2px solid',
+          borderColor: 'error.main',
+          backgroundColor: 'background.paper',
           boxShadow: 2,
         }}
       >
@@ -89,19 +90,15 @@ Report this issue at: https://www.torn.com/profiles.php?XID=3926388
               Report a Problem
             </Typography>
           </Box>
-          <Typography variant="body2" sx={{ mb: 2, opacity: 0.95 }}>
+          <Typography variant="body2" sx={{ mb: 2, opacity: 0.85 }}>
             Found a bug or have a suggestion? Report it here! Your current settings will be included 
             to help me reproduce and fix the issue faster.
           </Typography>
           <Button
             variant="contained"
             onClick={handleOpen}
+            color="error"
             sx={{
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              color: 'white',
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.3)',
-              },
               fontWeight: 'bold',
               textTransform: 'none',
               borderRadius: 2,

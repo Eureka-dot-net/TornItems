@@ -47,9 +47,10 @@ import {
   type SimulationResult,
   type StatWeights,
 } from '../../lib/utils/gymProgressionCalculator';
-import { useGymStats } from '../../lib/hooks/useGymStats';
+import { type GymStatsResponse } from '../../lib/hooks/useGymStats';
 import { useItemPrices } from '../../lib/hooks/useItemPrices';
 import { formatCurrency, formatDaysToHumanReadable } from '../../lib/utils/gymHelpers';
+import { agent } from '../../lib/api/agent';
 import {
   CANDY_ITEM_IDS,
   ENERGY_ITEM_IDS,
@@ -442,8 +443,9 @@ export default function GymComparison() {
   const [results, setResults] = useState<Record<string, SimulationResult>>({});
   const [error, setError] = useState<string | null>(null);
   const [showCosts, setShowCosts] = useState<boolean>(() => loadSavedValue('showCosts', false));
+  const [isLoadingGymStats, setIsLoadingGymStats] = useState<boolean>(false);
   
-  const { data: gymStatsData, isLoading: isLoadingGymStats, error: gymStatsError, refetch: refetchGymStats } = useGymStats(apiKey || null);
+  // Don't use the hook for auto-fetching, we'll fetch manually with the button
   
   // Fetch item prices for EDVD jumps, xanax, candy items, energy items, and points - only if costs should be shown
   const { data: itemPricesData } = useItemPrices(showCosts ? [
@@ -465,33 +467,6 @@ export default function GymComparison() {
     ENERGY_ITEM_IDS.ENERGY_30,
     ENERGY_ITEM_IDS.FHC,
   ] : []);
-  
-  // Auto-populate stats when fetched
-  useEffect(() => {
-    if (gymStatsData) {
-      setInitialStats({
-        strength: gymStatsData.battlestats.strength,
-        speed: gymStatsData.battlestats.speed,
-        defense: gymStatsData.battlestats.defense,
-        dexterity: gymStatsData.battlestats.dexterity,
-      });
-      setCurrentGymIndex(Math.max(0, gymStatsData.activeGym - 1));
-      
-      // Update manual mode perk percs
-      setManualPerkPercs(gymStatsData.perkPercs);
-      
-      setComparisonStates((prev) => prev.map((state) => ({
-        ...state,
-        perkPercs: gymStatsData.perkPercs,
-      })));
-    }
-  }, [gymStatsData]);
-  
-  useEffect(() => {
-    if (gymStatsError) {
-      setError(gymStatsError instanceof Error ? gymStatsError.message : 'Failed to fetch gym stats');
-    }
-  }, [gymStatsError]);
   
   // Save to localStorage
   useEffect(() => { localStorage.setItem('gymComparison_mode', JSON.stringify(mode)); setResults({}); }, [mode]);
@@ -528,25 +503,32 @@ export default function GymComparison() {
       return;
     }
     setError(null);
-    const result = await refetchGymStats();
     
-    // Force update the values even if they were manually changed
-    if (result.isSuccess && result.data) {
+    try {
+      setIsLoadingGymStats(true);
+      const response = await agent.get<GymStatsResponse>(`/gym/stats?apiKey=${encodeURIComponent(apiKey)}`);
+      const data = response.data;
+      
+      // Update the values with fetched data
       setInitialStats({
-        strength: result.data.battlestats.strength,
-        speed: result.data.battlestats.speed,
-        defense: result.data.battlestats.defense,
-        dexterity: result.data.battlestats.dexterity,
+        strength: data.battlestats.strength,
+        speed: data.battlestats.speed,
+        defense: data.battlestats.defense,
+        dexterity: data.battlestats.dexterity,
       });
-      setCurrentGymIndex(Math.max(0, result.data.activeGym - 1));
+      setCurrentGymIndex(Math.max(0, data.activeGym - 1));
       
       // Update manual mode perk percs
-      setManualPerkPercs(result.data.perkPercs);
+      setManualPerkPercs(data.perkPercs);
       
       setComparisonStates((prev) => prev.map((state) => ({
         ...state,
-        perkPercs: result.data.perkPercs,
+        perkPercs: data.perkPercs,
       })));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch gym stats');
+    } finally {
+      setIsLoadingGymStats(false);
     }
   };
   
@@ -1294,6 +1276,8 @@ export default function GymComparison() {
                     hasPointsRefill={activeState.hasPointsRefill}
                     daysSkippedPerMonth={activeState.daysSkippedPerMonth}
                     companyBenefit={getCompanyBenefit(activeState.companyBenefitKey, activeState.candleShopStars)}
+                    showCosts={showCosts}
+                    itemPricesData={itemPricesData}
                     onUpdate={(updates) => updateState(activeState.id, updates)}
                   />
                 </Grid>
@@ -2254,7 +2238,7 @@ export default function GymComparison() {
       )}
       
       {/* Support and Problem Report Cards */}
-      <Grid container spacing={2} sx={{ mt: 5 }}>
+      <Grid container spacing={2} sx={{ mt: 8 }}>
         <Grid size={{ xs: 12, md: 6 }}>
           <BuyMeXanaxCard />
         </Grid>

@@ -5,8 +5,9 @@ export default function BuyMeXanaxCard() {
   return (
     <Card 
       sx={{ 
-        background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.7) 0%, rgba(118, 75, 162, 0.7) 100%)',
-        color: 'white',
+        border: '2px solid',
+        borderColor: 'primary.main',
+        backgroundColor: 'background.paper',
         boxShadow: 2,
       }}
     >
@@ -17,7 +18,7 @@ export default function BuyMeXanaxCard() {
             Support This Tool
           </Typography>
         </Box>
-        <Typography variant="body2" sx={{ mb: 2, opacity: 0.95 }}>
+        <Typography variant="body2" sx={{ mb: 2, opacity: 0.85 }}>
           If this gym comparison tool has helped you optimize your training, consider buying me a Xanax in-game! 
           Your support helps keep this hobby project running and motivates me to add more features.
         </Typography>
@@ -27,11 +28,6 @@ export default function BuyMeXanaxCard() {
           target="_blank"
           rel="noopener noreferrer"
           sx={{
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            color: 'white',
-            '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.3)',
-            },
             fontWeight: 'bold',
             textTransform: 'none',
             borderRadius: 2,
