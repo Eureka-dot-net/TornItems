@@ -8,14 +8,8 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 
-interface ComparisonState {
-  id: string;
-  name: string;
-  [key: string]: unknown;
-}
-
 interface ComparisonSelectorProps {
-  comparisonStates: ComparisonState[];
+  comparisonStates: Array<{ id: string; name: string }>;
   activeTabIndex: number;
   onTabChange: (newIndex: number) => void;
   onAddComparison: () => void;

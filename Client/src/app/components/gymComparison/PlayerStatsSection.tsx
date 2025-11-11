@@ -12,7 +12,7 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
-import type { Gym } from '../../lib/utils/gymProgressionCalculator';
+import type { Gym } from '../../../lib/utils/gymProgressionCalculator';
 
 interface PlayerStatsSectionProps {
   apiKey: string;

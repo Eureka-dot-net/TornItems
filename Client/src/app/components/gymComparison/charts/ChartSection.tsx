@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { CustomTooltip } from './CustomTooltip';
-import type { SimulationResult } from '../../../lib/utils/gymProgressionCalculator';
+import type { SimulationResult } from '../../../../lib/utils/gymProgressionCalculator';
 
 interface ChartSectionProps {
   chartData: Array<Record<string, number>>;
@@ -18,7 +18,7 @@ interface ChartSectionProps {
   results: Record<string, SimulationResult>;
   chartColors: string[];
   showCosts: boolean;
-  itemPricesData: { prices: Record<number, number> } | undefined;
+  itemPricesData: { prices: Record<number, number | null> } | undefined;
 }
 
 export default function ChartSection({

@@ -2,54 +2,29 @@ import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  Paper,
-  TextField,
   Button,
   Grid,
   FormControlLabel,
   Switch,
-  Card,
-  CardContent,
   Alert,
-  CircularProgress,
-  Tabs,
-  Tab,
-  IconButton,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Paper,
 } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
 import DownloadIcon from '@mui/icons-material/Download';
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
-import {
   simulateGymProgression,
-  type Gym,
   type SimulationInputs,
-  type CompanyBenefit,
   type SimulationResult,
   type StatWeights,
 } from '../../lib/utils/gymProgressionCalculator';
 import { useGymStats } from '../../lib/hooks/useGymStats';
 import { useItemPrices } from '../../lib/hooks/useItemPrices';
-import { formatCurrency, formatDaysToHumanReadable } from '../../lib/utils/gymHelpers';
+import { formatCurrency } from '../../lib/utils/gymHelpers';
 import {
   CANDY_ITEM_IDS,
   ENERGY_ITEM_IDS,
@@ -63,7 +38,6 @@ import {
   DEFAULT_SIMULATION_MONTHS,
   DEFAULT_HOURS_PER_DAY,
   DEFAULT_XANAX_PER_DAY,
-  COMPANY_BENEFIT_TYPES,
   DEFAULT_CANDLE_SHOP_STARS,
   DEFAULT_CANDY_QUANTITY,
   DEFAULT_ENERGY_DRINK_QUANTITY,
@@ -74,150 +48,23 @@ import {
   DEFAULT_LOSS_REVIVE_ENERGY_COST,
   DEFAULT_LOSS_REVIVE_DAYS_BETWEEN,
   DEFAULT_LOSS_REVIVE_PRICE,
+  COMPANY_BENEFIT_TYPES,
 } from '../../lib/constants/gymConstants';
-import StatWeightsSection from '../components/gymComparison/StatWeightsSection';
-import EnergySourcesSection from '../components/gymComparison/EnergySourcesSection';
-import HappyPerksSection from '../components/gymComparison/HappyPerksSection';
-import BenefitsEventsSection from '../components/gymComparison/BenefitsEventsSection';
-import StatJumpsSection from '../components/gymComparison/StatJumpsSection';
+import { GYMS } from '../../lib/data/gymData';
+import { getCompanyBenefit } from '../../lib/utils/companyBenefits';
+import { getHanksRatio, getBaldrsRatio, getDefensiveBuildRatio } from '../../lib/utils/statWeightPresets';
+import PlayerStatsSection from '../components/gymComparison/PlayerStatsSection';
+import ComparisonSelector from '../components/gymComparison/ComparisonSelector';
+import ComparisonConfiguration from '../components/gymComparison/ComparisonConfiguration';
+import ChartSection from '../components/gymComparison/charts/ChartSection';
+import ManualTestingConfiguration from '../components/gymComparison/ManualTestingConfiguration';
+import ManualTestingResults from '../components/gymComparison/ManualTestingResults';
 import BuyMeXanaxCard from '../components/gymComparison/BuyMeXanaxCard';
 import ReportProblemCard from '../components/gymComparison/ReportProblemCard';
 import LoadSettingsButton from '../components/gymComparison/LoadSettingsButton';
 import SaveConfigurationButton from '../components/gymComparison/SaveConfigurationButton';
 import LoadConfigurationButton from '../components/gymComparison/LoadConfigurationButton';
 import { exportGymComparisonData, type ExportData } from '../../lib/utils/exportHelpers';
-
-// Hardcoded gym data
-const GYMS: Gym[] = [
-  { name: "premierfitness", displayName: "Premier Fitness", strength: 2, speed: 2, defense: 2, dexterity: 2, energyPerTrain: 5, costToUnlock: 10, energyToUnlock: 0 },
-  { name: "averagejoes", displayName: "Average Joes", strength: 2.4, speed: 2.4, defense: 2.7, dexterity: 2.4, energyPerTrain: 5, costToUnlock: 100, energyToUnlock: 200 },
-  { name: "woodysworkout", displayName: "Woody's Workout", strength: 2.7, speed: 3.2, defense: 3, dexterity: 2.7, energyPerTrain: 5, costToUnlock: 250, energyToUnlock: 700 },
-  { name: "beachbods", displayName: "Beach Bods", strength: 3.2, speed: 3.2, defense: 3.2, dexterity: null, energyPerTrain: 5, costToUnlock: 500, energyToUnlock: 1700 },
-  { name: "silvergym", displayName: "Silver Gym", strength: 3.4, speed: 3.6, defense: 3.4, dexterity: 3.2, energyPerTrain: 5, costToUnlock: 1000, energyToUnlock: 3700 },
-  { name: "pourfemme", displayName: "Pour Femme", strength: 3.4, speed: 3.6, defense: 3.6, dexterity: 3.8, energyPerTrain: 5, costToUnlock: 2500, energyToUnlock: 6450 },
-  { name: "daviesden", displayName: "Davies Den", strength: 3.7, speed: null, defense: 3.7, dexterity: 3.7, energyPerTrain: 5, costToUnlock: 5000, energyToUnlock: 9450 },
-  { name: "globalgym", displayName: "Global Gym", strength: 4, speed: 4, defense: 4, dexterity: 4, energyPerTrain: 5, costToUnlock: 10000, energyToUnlock: 12950 },
-  { name: "knuckleheads", displayName: "Knuckle Heads", strength: 4.8, speed: 4.4, defense: 4, dexterity: 4.2, energyPerTrain: 10, costToUnlock: 50000, energyToUnlock: 16950 },
-  { name: "pioneerfitness", displayName: "Pioneer Fitness", strength: 4.4, speed: 4.6, defense: 4.8, dexterity: 4.4, energyPerTrain: 10, costToUnlock: 100000, energyToUnlock: 22950 },
-  { name: "anabolicanomalies", displayName: "Anabolic Anomalies", strength: 5, speed: 4.6, defense: 5.2, dexterity: 4.6, energyPerTrain: 10, costToUnlock: 250000, energyToUnlock: 29950 },
-  { name: "core", displayName: "Core", strength: 5, speed: 5.2, defense: 5, dexterity: 5, energyPerTrain: 10, costToUnlock: 500000, energyToUnlock: 37950 },
-  { name: "racingfitness", displayName: "Racing Fitness", strength: 5, speed: 5.4, defense: 4.8, dexterity: 5.2, energyPerTrain: 10, costToUnlock: 1000000, energyToUnlock: 48950 },
-  { name: "completecardio", displayName: "Complete Cardio", strength: 5.5, speed: 5.7, defense: 5.5, dexterity: 5.2, energyPerTrain: 10, costToUnlock: 2000000, energyToUnlock: 61370 },
-  { name: "legsbumsandtums", displayName: "Legs, Bums and Tums", strength: null, speed: 5.5, defense: 5.5, dexterity: 5.7, energyPerTrain: 10, costToUnlock: 3000000, energyToUnlock: 79370 },
-  { name: "deepburn", displayName: "Deep Burn", strength: 6, speed: 6, defense: 6, dexterity: 6, energyPerTrain: 10, costToUnlock: 5000000, energyToUnlock: 97470 },
-  { name: "apollogym", displayName: "Apollo Gym", strength: 6, speed: 6.2, defense: 6.4, dexterity: 6.2, energyPerTrain: 10, costToUnlock: 7500000, energyToUnlock: 121610 },
-  { name: "gunshop", displayName: "Gun Shop", strength: 6.5, speed: 6.4, defense: 6.2, dexterity: 6.2, energyPerTrain: 10, costToUnlock: 10000000, energyToUnlock: 152870 },
-  { name: "forcetraining", displayName: "Force Training", strength: 6.4, speed: 6.5, defense: 6.4, dexterity: 6.8, energyPerTrain: 10, costToUnlock: 15000000, energyToUnlock: 189480 },
-  { name: "chachas", displayName: "Cha Cha's", strength: 6.4, speed: 6.4, defense: 6.8, dexterity: 7, energyPerTrain: 10, costToUnlock: 20000000, energyToUnlock: 236120 },
-  { name: "atlas", displayName: "Atlas", strength: 7, speed: 6.4, defense: 6.4, dexterity: 6.5, energyPerTrain: 10, costToUnlock: 30000000, energyToUnlock: 292640 },
-  { name: "lastround", displayName: "Last Round", strength: 6.8, speed: 6.5, defense: 7, dexterity: 6.5, energyPerTrain: 10, costToUnlock: 50000000, energyToUnlock: 360415 },
-  { name: "theedge", displayName: "The Edge", strength: 6.8, speed: 7, defense: 7, dexterity: 6.8, energyPerTrain: 10, costToUnlock: 75000000, energyToUnlock: 444950 },
-  { name: "georges", displayName: "George's", strength: 7.3, speed: 7.3, defense: 7.3, dexterity: 7.3, energyPerTrain: 10, costToUnlock: 100000000, energyToUnlock: 551255 },
-  // Specialty gyms - unlocked when Cha Cha's is unlocked
-  { 
-    name: "balboasgym", 
-    displayName: "Balboa's Gym", 
-    strength: null, 
-    speed: null, 
-    defense: 7.5, 
-    dexterity: 7.5, 
-    energyPerTrain: 25, 
-    costToUnlock: 50000000, 
-    energyToUnlock: 236120, // Same as Cha Cha's
-    specialtyRequirement: (stats) => {
-      // Defense + Dexterity must be 25% higher than Strength + Speed
-      const defDex = stats.defense + stats.dexterity;
-      const strSpd = stats.strength + stats.speed;
-      return defDex >= strSpd * 1.25;
-    }
-  },
-  { 
-    name: "frontlinefitness", 
-    displayName: "Frontline Fitness", 
-    strength: 7.5, 
-    speed: 7.5, 
-    defense: null, 
-    dexterity: null, 
-    energyPerTrain: 25, 
-    costToUnlock: 50000000, 
-    energyToUnlock: 236120, // Same as Cha Cha's
-    specialtyRequirement: (stats) => {
-      // Strength + Speed must be 25% higher than Dexterity + Defense
-      const strSpd = stats.strength + stats.speed;
-      const defDex = stats.defense + stats.dexterity;
-      return strSpd >= defDex * 1.25;
-    }
-  },
-  // Specialty gyms - unlocked when George's is unlocked
-  { 
-    name: "gym3000", 
-    displayName: "Gym 3000", 
-    strength: 8.0, 
-    speed: null, 
-    defense: null, 
-    dexterity: null, 
-    energyPerTrain: 50, 
-    costToUnlock: 100000000, 
-    energyToUnlock: 551255, // Same as George's
-    specialtyRequirement: (stats) => {
-      // Strength must be 25% higher than second highest stat
-      const sortedStats = [stats.speed, stats.defense, stats.dexterity].sort((a, b) => b - a);
-      const secondHighest = sortedStats[0];
-      return stats.strength >= secondHighest * 1.25;
-    }
-  },
-  { 
-    name: "mrisoyamas", 
-    displayName: "Mr. Isoyama's", 
-    strength: null, 
-    speed: null, 
-    defense: 8.0, 
-    dexterity: null, 
-    energyPerTrain: 50, 
-    costToUnlock: 100000000, 
-    energyToUnlock: 551255, // Same as George's
-    specialtyRequirement: (stats) => {
-      // Defense must be 25% higher than second highest stat
-      const sortedStats = [stats.strength, stats.speed, stats.dexterity].sort((a, b) => b - a);
-      const secondHighest = sortedStats[0];
-      return stats.defense >= secondHighest * 1.25;
-    }
-  },
-  { 
-    name: "totalrebound", 
-    displayName: "Total Rebound", 
-    strength: null, 
-    speed: 8.0, 
-    defense: null, 
-    dexterity: null, 
-    energyPerTrain: 50, 
-    costToUnlock: 100000000, 
-    energyToUnlock: 551255, // Same as George's
-    specialtyRequirement: (stats) => {
-      // Speed must be 25% higher than second highest stat
-      const sortedStats = [stats.strength, stats.defense, stats.dexterity].sort((a, b) => b - a);
-      const secondHighest = sortedStats[0];
-      return stats.speed >= secondHighest * 1.25;
-    }
-  },
-  { 
-    name: "elites", 
-    displayName: "Elites", 
-    strength: null, 
-    speed: null, 
-    defense: null, 
-    dexterity: 8.0, 
-    energyPerTrain: 50, 
-    costToUnlock: 100000000, 
-    energyToUnlock: 551255, // Same as George's
-    specialtyRequirement: (stats) => {
-      // Dexterity must be 25% higher than second highest stat
-      const sortedStats = [stats.strength, stats.speed, stats.defense].sort((a, b) => b - a);
-      const secondHighest = sortedStats[0];
-      return stats.dexterity >= secondHighest * 1.25;
-    }
-  },
-];
 
 // Comparison state interface
 interface ComparisonState {
@@ -261,101 +108,6 @@ interface ComparisonState {
   happy: number;
   daysSkippedPerMonth: number;
 }
-
-// Get company benefit - keeps Music Store and Fitness Center unchanged
-const getCompanyBenefit = (benefitKey: string, candleShopStars: number): CompanyBenefit => {
-  switch (benefitKey) {
-    case COMPANY_BENEFIT_TYPES.NONE:
-      return {
-        name: 'No Benefits',
-        gymUnlockSpeedMultiplier: 1.0,
-        bonusEnergyPerDay: 0,
-        gymGainMultiplier: 1.0,
-      };
-    case COMPANY_BENEFIT_TYPES.MUSIC_STORE:
-      return {
-        name: '3★ Music Store',
-        gymUnlockSpeedMultiplier: 1.3, // 30% faster (unchanged)
-        bonusEnergyPerDay: 0,
-        gymGainMultiplier: 1.0,
-      };
-    case COMPANY_BENEFIT_TYPES.CANDLE_SHOP:
-      return {
-        name: `${candleShopStars}★ Candle Shop`,
-        gymUnlockSpeedMultiplier: 1.0,
-        bonusEnergyPerDay: candleShopStars * 5, // 5 energy per star
-        gymGainMultiplier: 1.0,
-      };
-    case COMPANY_BENEFIT_TYPES.FITNESS_CENTER:
-      return {
-        name: '10★ Fitness Center',
-        gymUnlockSpeedMultiplier: 1.0,
-        bonusEnergyPerDay: 0,
-        gymGainMultiplier: 1.03, // 3% gym gains (unchanged)
-      };
-    default:
-      return {
-        name: 'No Benefits',
-        gymUnlockSpeedMultiplier: 1.0,
-        bonusEnergyPerDay: 0,
-        gymGainMultiplier: 1.0,
-      };
-  }
-};
-
-// Preset stat weight formulas
-type StatType = 'strength' | 'speed' | 'defense' | 'dexterity';
-
-// Hank's Ratio presets - focuses on one high stat (using 50e gym) and two medium stats (using 25e gym)
-const getHanksRatio = (primaryStat: StatType): StatWeights => {
-  // Based on the description, if defense is high (100m), the ratios are:
-  // Str: 80m (27.78%), Def: 100m (34.72%), Spd: 80m (27.78%), Dex: 28m (9.72%)
-  // These percentages are: 0.2778, 0.3472, 0.2778, 0.0972
-  // Normalized to weights: 2.86, 3.57, 2.86, 1.00
-  // Simplified to approximately: 2.86, 3.57, 2.86, 1
-  
-  if (primaryStat === 'defense') {
-    return { strength: 2.86, speed: 2.86, defense: 3.57, dexterity: 1 };
-  } else if (primaryStat === 'dexterity') {
-    return { strength: 2.86, speed: 2.86, defense: 1, dexterity: 3.57 };
-  } else if (primaryStat === 'strength') {
-    return { strength: 3.57, speed: 1, defense: 2.86, dexterity: 2.86 };
-  } else { // speed
-    return { strength: 1, speed: 3.57, defense: 2.86, dexterity: 2.86 };
-  }
-};
-
-// Baldr's Ratio presets - more balanced, focuses on two stats (one using 50e gym, one using 25e gym)
-const getBaldrsRatio = (primaryStat: StatType): StatWeights => {
-  // Based on the description, if strength is high (100m), the ratios are:
-  // Str: 100m (30.86%), Def: 72m (22.22%), Spd: 80m (24.69%), Dex: 72m (22.22%)
-  // These percentages are: 0.3086, 0.2222, 0.2469, 0.2222
-  // Normalized to weights: 1.389, 1.000, 1.111, 1.000
-  // Simplified to approximately: 1.39, 1, 1.11, 1
-  
-  if (primaryStat === 'strength') {
-    return { strength: 1.39, speed: 1.11, defense: 1, dexterity: 1 };
-  } else if (primaryStat === 'speed') {
-    return { strength: 1.11, speed: 1.39, defense: 1, dexterity: 1 };
-  } else if (primaryStat === 'defense') {
-    return { strength: 1, speed: 1, defense: 1.39, dexterity: 1.11 };
-  } else { // dexterity
-    return { strength: 1, speed: 1, defense: 1.11, dexterity: 1.39 };
-  }
-};
-
-// Dex or Def build - for dex and def only
-// If Dex build: 1.25 dex, 0 def, 1 str, 1 spd
-// If Def build: 1.25 def, 0 dex, 1 str, 1 spd
-const getDefensiveBuildRatio = (primaryStat: 'defense' | 'dexterity'): StatWeights => {
-  if (primaryStat === 'defense') {
-    // 1/1/1.25/0 - high defense, no dexterity
-    return { strength: 1, speed: 1, defense: 1.25, dexterity: 0 };
-  } else {
-    // 1/1/0/1.25 - high dexterity, no defense
-    return { strength: 1, speed: 1, defense: 0, dexterity: 1.25 };
-  }
-};
 
 export default function GymComparison() {
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
@@ -739,66 +491,6 @@ export default function GymComparison() {
     }
   };
   
-  // Custom tooltip component for the chart
-  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { day: number }; name: string; value: number; color: string }> }) => {
-    if (active && payload && payload.length) {
-      const day = payload[0].payload.day;
-      const timeStr = formatDaysToHumanReadable(day);
-      
-      return (
-        <Paper sx={{ p: 2, backgroundColor: 'rgba(0, 0, 0, 0.9)', border: '1px solid #555' }}>
-          <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-            Time: {timeStr}
-          </Typography>
-          {payload.map((entry, index: number) => {
-            // Find the state that matches this entry
-            const state = comparisonStates.find(s => s.name === entry.name);
-            const snapshot = state && results[state.id] ? 
-              results[state.id].dailySnapshots.find(s => s.day === day) : null;
-            
-            return (
-              <Box key={index} sx={{ mb: 1 }}>
-                <Typography variant="body2" style={{ color: entry.color }}>
-                  {entry.name}: {entry.value?.toLocaleString()}
-                </Typography>
-                {snapshot && (
-                  <>
-                    <Typography variant="caption" sx={{ color: '#aaa', display: 'block', ml: 1 }}>
-                      Gym: {snapshot.currentGym}
-                    </Typography>
-                    {showCosts && state && results[state.id] && itemPricesData && (
-                      <>
-                        {(() => {
-                          const edvdCosts = results[state.id].edvdJumpCosts;
-                          const xanaxCosts = results[state.id].xanaxCosts;
-                          return (
-                            <>
-                              {edvdCosts && (
-                                <Typography variant="caption" sx={{ color: '#ffa726', display: 'block', ml: 1 }}>
-                                  EDVD: {formatCurrency(edvdCosts.totalCost)} ({edvdCosts.totalJumps} jumps)
-                                </Typography>
-                              )}
-                              {xanaxCosts && (
-                                <Typography variant="caption" sx={{ color: '#ffa726', display: 'block', ml: 1 }}>
-                                  Xanax: {formatCurrency(xanaxCosts.totalCost)}
-                                </Typography>
-                              )}
-                            </>
-                          );
-                        })()}
-                      </>
-                    )}
-                  </>
-                )}
-              </Box>
-            );
-          })}
-        </Paper>
-      );
-    }
-    return null;
-  };
-  
   const chartData = mode === 'future' && Object.keys(results).length > 0 ? 
     (() => {
       // Add day 0 with initial stats
@@ -1127,237 +819,46 @@ export default function GymComparison() {
 
       {mode === 'future' && (
         <>
-          {/* Player Stats - HORIZONTAL COMPACT LAYOUT */}
-          <Paper sx={{ p: 2, mb: 3 }}>
-            <Typography variant="h6" gutterBottom>Player Stats</Typography>
-            
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Alert severity="info" sx={{ mb: 2 }}>
-                  Optional: Enter a Limited API Key to auto-fetch your stats, or fill them in manually below. Get one from{' '}
-                  <a href="https://www.torn.com/preferences.php#tab=api" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
-                    Torn Settings → API Key
-                  </a>
-                </Alert>
-                
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <TextField
-                    label="Torn API Key"
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    size="small"
-                    sx={{ flex: 1 }}
-                  />
-                  <Button variant="outlined" onClick={handleFetchStats} disabled={isLoadingGymStats || !apiKey.trim()}>
-                    {isLoadingGymStats ? <CircularProgress size={20} /> : 'Fetch'}
-                  </Button>
-                </Box>
-              </Grid>
-              
-              <Grid size={{ xs: 6, md: 1.5 }}>
-                <TextField 
-                  label="Strength" 
-                  type="number" 
-                  value={initialStats.strength ?? ''} 
-                  onChange={(e) => setInitialStats({ ...initialStats, strength: e.target.value === '' ? 0 : Number(e.target.value) })} 
-                  size="small" 
-                  fullWidth
-                  inputProps={{ step: 'any', min: 0 }} 
-                />
-              </Grid>
-              <Grid size={{ xs: 6, md: 1.5 }}>
-                <TextField 
-                  label="Speed" 
-                  type="number" 
-                  value={initialStats.speed ?? ''} 
-                  onChange={(e) => setInitialStats({ ...initialStats, speed: e.target.value === '' ? 0 : Number(e.target.value) })} 
-                  size="small" 
-                  fullWidth
-                  inputProps={{ step: 'any', min: 0 }} 
-                />
-              </Grid>
-              <Grid size={{ xs: 6, md: 1.5 }}>
-                <TextField 
-                  label="Defense" 
-                  type="number" 
-                  value={initialStats.defense ?? ''} 
-                  onChange={(e) => setInitialStats({ ...initialStats, defense: e.target.value === '' ? 0 : Number(e.target.value) })} 
-                  size="small" 
-                  fullWidth
-                  inputProps={{ step: 'any', min: 0 }} 
-                />
-              </Grid>
-              <Grid size={{ xs: 6, md: 1.5 }}>
-                <TextField 
-                  label="Dexterity" 
-                  type="number" 
-                  value={initialStats.dexterity ?? ''} 
-                  onChange={(e) => setInitialStats({ ...initialStats, dexterity: e.target.value === '' ? 0 : Number(e.target.value) })} 
-                  size="small" 
-                  fullWidth
-                  inputProps={{ step: 'any', min: 0 }} 
-                />
-              </Grid>
-              
-              <Grid size={{ xs: 6, md: 3 }}>
-                <TextField 
-                  label="Duration (months)" 
-                  type="number" 
-                  value={months ?? ''} 
-                  onChange={(e) => setMonths(e.target.value === '' ? 1 : Math.max(1, Math.min(36, Number(e.target.value))))} 
-                  size="small" 
-                  fullWidth
-                  inputProps={{ step: 'any' }} 
-                />
-              </Grid>
-              <Grid size={{ xs: 6, md: 3 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Starting Gym</InputLabel>
-                  <Select value={currentGymIndex} label="Starting Gym" onChange={(e) => setCurrentGymIndex(Number(e.target.value))}>
-                    {GYMS.map((gym, index) => (
-                      <MenuItem key={gym.name} value={index}>{gym.displayName}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </Paper>
+          {/* Player Stats */}
+          <PlayerStatsSection
+            apiKey={apiKey}
+            setApiKey={setApiKey}
+            initialStats={initialStats}
+            setInitialStats={setInitialStats}
+            months={months}
+            setMonths={setMonths}
+            currentGymIndex={currentGymIndex}
+            setCurrentGymIndex={setCurrentGymIndex}
+            gyms={GYMS}
+            isLoadingGymStats={isLoadingGymStats}
+            onFetchStats={handleFetchStats}
+          />
 
-          {/* Comparison Selector BELOW Player Stats */}
-          <Paper sx={{ p: 2, mb: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">Select Comparison</Typography>
-              <Button size="small" startIcon={<AddIcon />} onClick={handleAddState} disabled={comparisonStates.length >= 4}>
-                Add Comparison
-              </Button>
-            </Box>
-            
-            <Tabs 
-              value={activeTabIndex} 
-              onChange={(_, newValue) => setActiveTabIndex(newValue)} 
-              variant="scrollable" 
-              scrollButtons="auto"
-            >
-              {comparisonStates.map((state) => (
-                <Tab key={state.id} label={state.name} />
-              ))}
-            </Tabs>
-          </Paper>
+          {/* Comparison Selector */}
+          <ComparisonSelector
+            comparisonStates={comparisonStates}
+            activeTabIndex={activeTabIndex}
+            onTabChange={setActiveTabIndex}
+            onAddComparison={handleAddState}
+            maxComparisonStates={MAX_COMPARISON_STATES}
+          />
 
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-          {/* Comparison Configuration - COLUMNS LAYOUT */}
+          {/* Comparison Configuration */}
           {activeState && (
-            <Paper sx={{ p: 2, mb: 3 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <TextField 
-                  label="Comparison Name" 
-                  value={activeState.name} 
-                  onChange={(e) => updateState(activeState.id, { name: e.target.value })} 
-                  size="small"
-                  sx={{ width: 250 }}
-                />
-                {comparisonStates.length > 1 && (
-                  <IconButton color="error" onClick={() => handleRemoveState(activeState.id)} size="small">
-                    <DeleteIcon />
-                  </IconButton>
-                )}
-              </Box>
-
-              <Grid container spacing={2}>
-                {/* Stat Weights Column */}
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <StatWeightsSection
-                    statWeights={activeState.statWeights}
-                    onUpdate={(updates) => {
-                      if ('strength' in updates || 'speed' in updates || 'defense' in updates || 'dexterity' in updates) {
-                        updateState(activeState.id, { statWeights: { ...activeState.statWeights, ...updates } });
-                      }
-                    }}
-                    getHanksRatio={getHanksRatio}
-                    getBaldrsRatio={getBaldrsRatio}
-                    getDefensiveBuildRatio={getDefensiveBuildRatio}
-                  />
-                </Grid>
-
-                {/* Energy Sources Column */}
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <EnergySourcesSection
-                    maxEnergy={activeState.maxEnergy}
-                    hoursPlayedPerDay={activeState.hoursPlayedPerDay}
-                    xanaxPerDay={activeState.xanaxPerDay}
-                    hasPointsRefill={activeState.hasPointsRefill}
-                    daysSkippedPerMonth={activeState.daysSkippedPerMonth}
-                    companyBenefit={getCompanyBenefit(activeState.companyBenefitKey, activeState.candleShopStars)}
-                    onUpdate={(updates) => updateState(activeState.id, updates)}
-                  />
-                </Grid>
-
-                {/* Happy & Perks Column */}
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <HappyPerksSection
-                    happy={activeState.happy}
-                    perkPercs={activeState.perkPercs}
-                    onUpdate={(updates) => {
-                      if ('happy' in updates) {
-                        updateState(activeState.id, { happy: updates.happy });
-                      }
-                      if ('perkPercs' in updates) {
-                        updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, ...updates.perkPercs } });
-                      }
-                    }}
-                  />
-                </Grid>
-
-                {/* Company Benefits & Special Events Column */}
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <BenefitsEventsSection
-                    companyBenefitKey={activeState.companyBenefitKey}
-                    candleShopStars={activeState.candleShopStars}
-                    diabetesDayEnabled={activeState.diabetesDayEnabled}
-                    diabetesDayNumberOfJumps={activeState.diabetesDayNumberOfJumps}
-                    diabetesDayFHC={activeState.diabetesDayFHC}
-                    diabetesDayGreenEgg={activeState.diabetesDayGreenEgg}
-                    diabetesDaySeasonalMail={activeState.diabetesDaySeasonalMail}
-                    diabetesDayLogoClick={activeState.diabetesDayLogoClick}
-                    onUpdate={(updates) => updateState(activeState.id, updates)}
-                  />
-                </Grid>
-              </Grid>
-
-              {/* Stat Jumps Section */}
-              <Typography variant="subtitle2" gutterBottom sx={{ mt: 3 }}>Stat Jumps</Typography>
-              <StatJumpsSection
-                edvdJumpEnabled={activeState.edvdJumpEnabled}
-                edvdJumpFrequency={activeState.edvdJumpFrequency}
-                edvdJumpDvds={activeState.edvdJumpDvds}
-                edvdJumpLimit={activeState.edvdJumpLimit}
-                edvdJumpCount={activeState.edvdJumpCount}
-                edvdJumpStatTarget={activeState.edvdJumpStatTarget}
-                edvdJumpAdultNovelties={activeState.edvdJumpAdultNovelties}
-                candyJumpEnabled={activeState.candyJumpEnabled}
-                candyJumpItemId={activeState.candyJumpItemId}
-                candyJumpUseEcstasy={activeState.candyJumpUseEcstasy}
-                candyJumpQuantity={activeState.candyJumpQuantity}
-                candyJumpFactionBenefit={activeState.candyJumpFactionBenefit}
-                energyJumpEnabled={activeState.energyJumpEnabled}
-                energyJumpItemId={activeState.energyJumpItemId}
-                energyJumpQuantity={activeState.energyJumpQuantity}
-                energyJumpFactionBenefit={activeState.energyJumpFactionBenefit}
-                lossReviveEnabled={activeState.lossReviveEnabled}
-                lossReviveNumberPerDay={activeState.lossReviveNumberPerDay}
-                lossReviveEnergyCost={activeState.lossReviveEnergyCost}
-                lossReviveDaysBetween={activeState.lossReviveDaysBetween}
-                lossRevivePricePerLoss={activeState.lossRevivePricePerLoss}
-                hasPointsRefill={activeState.hasPointsRefill}
-                xanaxPerDay={activeState.xanaxPerDay}
-                maxEnergy={activeState.maxEnergy}
-                showCosts={showCosts}
-                itemPricesData={itemPricesData}
-                onUpdate={(updates) => updateState(activeState.id, updates)}
-              />
-            </Paper>
+            <ComparisonConfiguration
+              state={activeState}
+              canDelete={comparisonStates.length > 1}
+              companyBenefit={getCompanyBenefit(activeState.companyBenefitKey, activeState.candleShopStars)}
+              showCosts={showCosts}
+              itemPricesData={itemPricesData}
+              onUpdate={(updates) => updateState(activeState.id, updates)}
+              onDelete={() => handleRemoveState(activeState.id)}
+              getHanksRatio={getHanksRatio}
+              getBaldrsRatio={getBaldrsRatio}
+              getDefensiveBuildRatio={getDefensiveBuildRatio}
+            />
           )}
 
           {/* Results Section */}
@@ -1373,21 +874,14 @@ export default function GymComparison() {
                   return (
                     <>
                       {/* Graph - Full Width */}
-                      <Paper sx={{ p: 2, mb: 3 }}>
-                        <Typography variant="h6" gutterBottom>Total Battle Stats Over Time</Typography>
-                        <ResponsiveContainer width="100%" height={400}>
-                          <LineChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="day" label={{ value: 'Days', position: 'insideBottom', offset: -5 }} />
-                            <YAxis label={{ value: 'Total Stats', angle: -90, position: 'insideLeft' }} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Legend />
-                            {comparisonStates.map((state, index) => (
-                              <Line key={state.id} type="monotone" dataKey={state.name} stroke={CHART_COLORS[index % CHART_COLORS.length]} strokeWidth={2} dot={false} />
-                            ))}
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </Paper>
+                      <ChartSection
+                        chartData={chartData}
+                        comparisonStates={comparisonStates}
+                        results={results}
+                        chartColors={CHART_COLORS}
+                        showCosts={showCosts}
+                        itemPricesData={itemPricesData}
+                      />
 
                       {/* Cards Row: Final Stats | Cost Estimate | DD Estimate */}
                       <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -1855,21 +1349,14 @@ export default function GymComparison() {
                     <>
                       <Grid container spacing={2} sx={{ mb: 3 }}>
                       <Grid size={{ xs: 12, lg: 8 }}>
-                        <Paper sx={{ p: 2 }}>
-                          <Typography variant="h6" gutterBottom>Total Battle Stats Over Time</Typography>
-                          <ResponsiveContainer width="100%" height={400}>
-                            <LineChart data={chartData}>
-                              <CartesianGrid strokeDasharray="3 3" />
-                              <XAxis dataKey="day" label={{ value: 'Days', position: 'insideBottom', offset: -5 }} />
-                              <YAxis label={{ value: 'Total Stats', angle: -90, position: 'insideLeft' }} />
-                              <Tooltip content={<CustomTooltip />} />
-                              <Legend />
-                              {comparisonStates.map((state, index) => (
-                                <Line key={state.id} type="monotone" dataKey={state.name} stroke={CHART_COLORS[index % CHART_COLORS.length]} strokeWidth={2} dot={false} />
-                              ))}
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </Paper>
+                        <ChartSection
+                          chartData={chartData}
+                          comparisonStates={comparisonStates}
+                          results={results}
+                          chartColors={CHART_COLORS}
+                          showCosts={showCosts}
+                          itemPricesData={itemPricesData}
+                        />
                       </Grid>
 
                       <Grid size={{ xs: 12, lg: 4 }}>
@@ -2069,164 +1556,43 @@ export default function GymComparison() {
       {mode === 'manual' && (
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>Manual Test Configuration</Typography>
-              
-              {/* Starting Stats Display */}
-              <Box sx={{ mb: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
-                <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>
-                  Starting Stats
-                </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  <Box sx={{ flex: '1 1 45%' }}>
-                    <Typography variant="caption" color="text.secondary">Str:</Typography>
-                    <Typography variant="body2">{initialStats.strength.toLocaleString()}</Typography>
-                  </Box>
-                  <Box sx={{ flex: '1 1 45%' }}>
-                    <Typography variant="caption" color="text.secondary">Spd:</Typography>
-                    <Typography variant="body2">{initialStats.speed.toLocaleString()}</Typography>
-                  </Box>
-                  <Box sx={{ flex: '1 1 45%' }}>
-                    <Typography variant="caption" color="text.secondary">Def:</Typography>
-                    <Typography variant="body2">{initialStats.defense.toLocaleString()}</Typography>
-                  </Box>
-                  <Box sx={{ flex: '1 1 45%' }}>
-                    <Typography variant="caption" color="text.secondary">Dex:</Typography>
-                    <Typography variant="body2">{initialStats.dexterity.toLocaleString()}</Typography>
-                  </Box>
-                </Box>
-              </Box>
-              
-              <TextField 
-                label="Total Energy" 
-                type="number" 
-                value={manualEnergy ?? ''} 
-                onChange={(e) => setManualEnergy(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))} 
-                fullWidth 
-                margin="dense" 
-                size="small" 
-                inputProps={{ step: 'any', min: 0 }} 
-              />
-              <TextField 
-                label="Happy" 
-                type="number" 
-                value={manualHappy ?? ''} 
-                onChange={(e) => setManualHappy(e.target.value === '' ? 0 : Math.max(0, Math.min(99999, Number(e.target.value))))} 
-                fullWidth 
-                margin="dense" 
-                size="small" 
-                inputProps={{ step: 'any', min: 0, max: 99999 }} 
-              />
-              <FormControlLabel 
-                control={<Switch checked={autoUpgradeGyms} onChange={(e) => setAutoUpgradeGyms(e.target.checked)} />} 
-                label="Auto-upgrade gyms" 
-              />
-              
-              <FormControl fullWidth margin="dense" size="small">
-                <InputLabel>{autoUpgradeGyms ? 'Starting Gym' : 'Current Gym'}</InputLabel>
-                <Select value={currentGymIndex} label={autoUpgradeGyms ? 'Starting Gym' : 'Current Gym'} onChange={(e) => setCurrentGymIndex(Number(e.target.value))}>
-                  {GYMS.map((gym, index) => (
-                    <MenuItem key={gym.name} value={index}>{gym.displayName}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              
-              <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Stat Targets</Typography>
-              <TextField label="Str" type="number" value={manualStatWeights.strength ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-              <TextField label="Spd" type="number" value={manualStatWeights.speed ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-              <TextField label="Def" type="number" value={manualStatWeights.defense ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-              <TextField label="Dex" type="number" value={manualStatWeights.dexterity ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, dexterity: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-              
-              <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Perk %</Typography>
-              <TextField label="Str %" type="number" value={manualPerkPercs.strength ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-              <TextField label="Spd %" type="number" value={manualPerkPercs.speed ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, speed: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-              <TextField label="Def %" type="number" value={manualPerkPercs.defense ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, defense: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-              <TextField label="Dex %" type="number" value={manualPerkPercs.dexterity ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, dexterity: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-              
-              <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Company Benefit</Typography>
-              <FormControl fullWidth margin="dense" size="small">
-                <InputLabel>Benefit</InputLabel>
-                <Select value={manualCompanyBenefitKey} label="Benefit" onChange={(e) => setManualCompanyBenefitKey(e.target.value)}>
-                  <MenuItem value="none">None</MenuItem>
-                  <MenuItem value="musicStore">3★ Music Store</MenuItem>
-                  <MenuItem value="candleShop">Candle Shop</MenuItem>
-                  <MenuItem value="fitnessCenter">10★ Fitness Center</MenuItem>
-                </Select>
-              </FormControl>
-              
-              {manualCompanyBenefitKey === 'candleShop' && (
-                <TextField label="Stars" type="number" value={manualCandleShopStars ?? ''} onChange={(e) => setManualCandleShopStars(e.target.value === '' ? 1 : Math.max(1, Math.min(10, Number(e.target.value))))} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 1, max: 10 }} />
-              )}
-            </Paper>
+            <ManualTestingConfiguration
+              initialStats={initialStats}
+              manualEnergy={manualEnergy}
+              setManualEnergy={setManualEnergy}
+              manualHappy={manualHappy}
+              setManualHappy={setManualHappy}
+              autoUpgradeGyms={autoUpgradeGyms}
+              setAutoUpgradeGyms={setAutoUpgradeGyms}
+              currentGymIndex={currentGymIndex}
+              setCurrentGymIndex={setCurrentGymIndex}
+              gyms={GYMS}
+              manualStatWeights={manualStatWeights}
+              setManualStatWeights={setManualStatWeights}
+              manualPerkPercs={manualPerkPercs}
+              setManualPerkPercs={setManualPerkPercs}
+              manualCompanyBenefitKey={manualCompanyBenefitKey}
+              setManualCompanyBenefitKey={setManualCompanyBenefitKey}
+              manualCandleShopStars={manualCandleShopStars}
+              setManualCandleShopStars={setManualCandleShopStars}
+            />
           </Grid>
           
           <Grid size={{ xs: 12, md: 8 }}>
-            {results.manual && (
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="h6" gutterBottom>Training Results</Typography>
-                <Grid container spacing={2}>
-                  <Grid size={{ xs: 6, md: 3 }}>
-                    <Card>
-                      <CardContent>
-                        <Typography variant="subtitle2" color="text.secondary">Strength</Typography>
-                        <Typography variant="h6">{Math.round(results.manual.finalStats.strength).toLocaleString()}</Typography>
-                        <Typography variant="caption" color="success.main">+{Math.round(results.manual.finalStats.strength - initialStats.strength).toLocaleString()}</Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                  <Grid size={{ xs: 6, md: 3 }}>
-                    <Card>
-                      <CardContent>
-                        <Typography variant="subtitle2" color="text.secondary">Speed</Typography>
-                        <Typography variant="h6">{Math.round(results.manual.finalStats.speed).toLocaleString()}</Typography>
-                        <Typography variant="caption" color="success.main">+{Math.round(results.manual.finalStats.speed - initialStats.speed).toLocaleString()}</Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                  <Grid size={{ xs: 6, md: 3 }}>
-                    <Card>
-                      <CardContent>
-                        <Typography variant="subtitle2" color="text.secondary">Defense</Typography>
-                        <Typography variant="h6">{Math.round(results.manual.finalStats.defense).toLocaleString()}</Typography>
-                        <Typography variant="caption" color="success.main">+{Math.round(results.manual.finalStats.defense - initialStats.defense).toLocaleString()}</Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                  <Grid size={{ xs: 6, md: 3 }}>
-                    <Card>
-                      <CardContent>
-                        <Typography variant="subtitle2" color="text.secondary">Dexterity</Typography>
-                        <Typography variant="h6">{Math.round(results.manual.finalStats.dexterity).toLocaleString()}</Typography>
-                        <Typography variant="caption" color="success.main">+{Math.round(results.manual.finalStats.dexterity - initialStats.dexterity).toLocaleString()}</Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                </Grid>
-                <Button 
-                  variant="outlined" 
-                  fullWidth 
-                  sx={{ mt: 2 }}
-                  onClick={() => {
-                    setInitialStats({
-                      strength: Math.round(results.manual.finalStats.strength),
-                      speed: Math.round(results.manual.finalStats.speed),
-                      defense: Math.round(results.manual.finalStats.defense),
-                      dexterity: Math.round(results.manual.finalStats.dexterity),
-                    });
-                  }}
-                >
-                  Use as Initial Stats
-                </Button>
-              </Paper>
-            )}
-            
-            {!results.manual && (
-              <Paper sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body1" color="text.secondary">
-                  Configure energy and options to see results
-                </Typography>
-              </Paper>
-            )}
+            <ManualTestingResults
+              result={results.manual}
+              initialStats={initialStats}
+              onUseAsInitialStats={() => {
+                if (results.manual) {
+                  setInitialStats({
+                    strength: Math.round(results.manual.finalStats.strength),
+                    speed: Math.round(results.manual.finalStats.speed),
+                    defense: Math.round(results.manual.finalStats.defense),
+                    dexterity: Math.round(results.manual.finalStats.dexterity),
+                  });
+                }
+              }}
+            />
           </Grid>
         </Grid>
       )}

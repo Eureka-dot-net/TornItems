@@ -1,6 +1,6 @@
 import { Box, Typography, Paper } from '@mui/material';
-import { formatCurrency, formatDaysToHumanReadable } from '../../../lib/utils/gymHelpers';
-import type { SimulationResult } from '../../../lib/utils/gymProgressionCalculator';
+import { formatCurrency, formatDaysToHumanReadable } from '../../../../lib/utils/gymHelpers';
+import type { SimulationResult } from '../../../../lib/utils/gymProgressionCalculator';
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -13,7 +13,7 @@ interface CustomTooltipProps {
   comparisonStates: Array<{ id: string; name: string }>;
   results: Record<string, SimulationResult>;
   showCosts: boolean;
-  itemPricesData: { prices: Record<number, number> } | undefined;
+  itemPricesData: { prices: Record<number, number | null> } | undefined;
 }
 
 export function CustomTooltip({
@@ -37,7 +37,7 @@ export function CustomTooltip({
           // Find the state that matches this entry
           const state = comparisonStates.find(s => s.name === entry.name);
           const snapshot = state && results[state.id] ? 
-            results[state.id].dailySnapshots.find(s => s.day === day) : null;
+            results[state.id].dailySnapshots.find((s: { day: number }) => s.day === day) : null;
           
           return (
             <Box key={index} sx={{ mb: 1 }}>

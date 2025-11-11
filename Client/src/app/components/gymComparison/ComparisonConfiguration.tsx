@@ -12,8 +12,8 @@ import EnergySourcesSection from './EnergySourcesSection';
 import HappyPerksSection from './HappyPerksSection';
 import BenefitsEventsSection from './BenefitsEventsSection';
 import StatJumpsSection from './StatJumpsSection';
-import type { StatType } from '../../lib/utils/statWeightPresets';
-import type { CompanyBenefit } from '../../lib/utils/gymProgressionCalculator';
+import type { StatType } from '../../../lib/utils/statWeightPresets';
+import type { CompanyBenefit } from '../../../lib/utils/gymProgressionCalculator';
 
 interface ComparisonConfigurationProps {
   state: {
@@ -60,7 +60,7 @@ interface ComparisonConfigurationProps {
   canDelete: boolean;
   companyBenefit: CompanyBenefit;
   showCosts: boolean;
-  itemPricesData: { prices: Record<number, number> } | undefined;
+  itemPricesData: { prices: Record<number, number | null> } | undefined;
   onUpdate: (updates: Record<string, unknown>) => void;
   onDelete: () => void;
   getHanksRatio: (stat: StatType) => { strength: number; speed: number; defense: number; dexterity: number };
