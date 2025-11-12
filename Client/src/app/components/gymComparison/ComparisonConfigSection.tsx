@@ -5,9 +5,11 @@ import EnergySourcesSection from './EnergySourcesSection';
 import HappyPerksSection from './HappyPerksSection';
 import BenefitsEventsSection from './BenefitsEventsSection';
 import StatJumpsSection from './StatJumpsSection';
+import SegmentManagement from './SegmentManagement';
 import { Typography } from '@mui/material';
 import { getCompanyBenefit, getHanksRatio, getBaldrsRatio, getDefensiveBuildRatio } from '../../../lib/utils/gymHelpers';
 import type { ItemPrices } from '../../../lib/hooks/useItemPrices';
+import { type ComparisonSegment } from '../../../lib/types/gymComparison';
 
 interface ComparisonState {
   id: string;
@@ -49,6 +51,7 @@ interface ComparisonState {
   candleShopStars: number;
   happy: number;
   daysSkippedPerMonth: number;
+  segments?: ComparisonSegment[];
 }
 
 interface ComparisonConfigSectionProps {
@@ -58,6 +61,8 @@ interface ComparisonConfigSectionProps {
   canRemoveState: boolean;
   showCosts: boolean;
   itemPricesData?: ItemPrices;
+  onRemoveSegment: (stateId: string, segmentId: string) => void;
+  onEditSegment: (segmentId: string) => void;
 }
 
 export default function ComparisonConfigSection({
@@ -66,7 +71,9 @@ export default function ComparisonConfigSection({
   handleRemoveState,
   canRemoveState,
   showCosts,
-  itemPricesData
+  itemPricesData,
+  onRemoveSegment,
+  onEditSegment
 }: ComparisonConfigSectionProps) {
   return (
     <Paper sx={{ p: 2, mb: 3 }}>
@@ -84,6 +91,15 @@ export default function ComparisonConfigSection({
           </IconButton>
         )}
       </Box>
+
+      {/* Segment Management */}
+      <SegmentManagement
+        stateId={activeState.id}
+        stateName={activeState.name}
+        segments={activeState.segments || []}
+        onRemoveSegment={onRemoveSegment}
+        onEditSegment={onEditSegment}
+      />
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 3 }}>

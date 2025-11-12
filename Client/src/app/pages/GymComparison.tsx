@@ -56,51 +56,7 @@ import ComparisonConfigSection from '../components/gymComparison/ComparisonConfi
 import ManualTestingSection from '../components/gymComparison/ManualTestingSection';
 import ResultsSection from '../components/gymComparison/ResultsSection';
 import { exportGymComparisonData, type ExportData } from '../../lib/utils/exportHelpers';
-
-// Segment interface for time-based configuration changes
-interface ComparisonSegment {
-  id: string;
-  startDay: number;
-  name?: string; // Optional override for segment name, e.g., "day 180"
-  // Partial overrides - only specified fields will override the base configuration
-  statWeights?: { strength: number; speed: number; defense: number; dexterity: number };
-  hoursPlayedPerDay?: number;
-  xanaxPerDay?: number;
-  hasPointsRefill?: boolean;
-  maxEnergy?: number;
-  perkPercs?: { strength: number; speed: number; defense: number; dexterity: number };
-  edvdJumpEnabled?: boolean;
-  edvdJumpFrequency?: number;
-  edvdJumpDvds?: number;
-  edvdJumpLimit?: 'indefinite' | 'count' | 'stat';
-  edvdJumpCount?: number;
-  edvdJumpStatTarget?: number;
-  edvdJumpAdultNovelties?: boolean;
-  candyJumpEnabled?: boolean;
-  candyJumpItemId?: number;
-  candyJumpUseEcstasy?: boolean;
-  candyJumpQuantity?: number;
-  candyJumpFactionBenefit?: number;
-  energyJumpEnabled?: boolean;
-  energyJumpItemId?: number;
-  energyJumpQuantity?: number;
-  energyJumpFactionBenefit?: number;
-  lossReviveEnabled?: boolean;
-  lossReviveNumberPerDay?: number;
-  lossReviveEnergyCost?: number;
-  lossReviveDaysBetween?: number;
-  lossRevivePricePerLoss?: number;
-  diabetesDayEnabled?: boolean;
-  diabetesDayNumberOfJumps?: 1 | 2;
-  diabetesDayFHC?: 0 | 1 | 2;
-  diabetesDayGreenEgg?: 0 | 1 | 2;
-  diabetesDaySeasonalMail?: boolean;
-  diabetesDayLogoClick?: boolean;
-  companyBenefitKey?: string;
-  candleShopStars?: number;
-  happy?: number;
-  daysSkippedPerMonth?: number;
-}
+import { type ComparisonSegment } from '../../lib/types/gymComparison';
 
 // Comparison state interface
 interface ComparisonState {
@@ -419,6 +375,21 @@ export default function GymComparison() {
         segments: [...segments, newSegment].sort((a, b) => a.startDay - b.startDay),
       };
     }));
+  };
+  
+  const handleRemoveSegment = (stateId: string, segmentId: string) => {
+    setComparisonStates((prev) => prev.map((state) => {
+      if (state.id !== stateId) return state;
+      return {
+        ...state,
+        segments: (state.segments || []).filter(seg => seg.id !== segmentId),
+      };
+    }));
+  };
+  
+  const handleEditSegment = (segmentId: string) => {
+    // For now, just show an alert. Will implement full editing later
+    alert(`Editing segment ${segmentId} - Full UI coming soon! For now, you can remove the segment and create a new one.`);
   };
   
   
@@ -1122,6 +1093,8 @@ export default function GymComparison() {
               canRemoveState={comparisonStates.length > 1}
               showCosts={showCosts}
               itemPricesData={itemPricesData}
+              onRemoveSegment={handleRemoveSegment}
+              onEditSegment={handleEditSegment}
             />
           )}
 
