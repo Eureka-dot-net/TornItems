@@ -54,8 +54,8 @@ export default function SegmentManagement({
       </Box>
       <Alert severity="info" sx={{ mb: 2 }}>
         {activeSegmentId 
-          ? 'Editing segment configuration. Changes only affect this segment period. Click "Edit Base Config" to edit the base state.'
-          : 'Click on the chart to add more segments. Click a segment below to edit its configuration.'}
+          ? 'Editing segment configuration. Changes affect this time period only (keeping original config intact). Click "Edit Base Config" to edit the base period.'
+          : 'Click any segment below to edit its configuration independently. The chart shows a continuous line with all segments applied over time.'}
       </Alert>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         {segments.map((segment) => {

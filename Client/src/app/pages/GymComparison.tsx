@@ -683,30 +683,9 @@ export default function GymComparison() {
       const initialTotal = initialStats.strength + initialStats.speed + initialStats.defense + initialStats.dexterity;
       const day0: Record<string, number> = { day: 0 };
       
-      // Create series names for base states and segments
-      const seriesNames: string[] = [];
+      // Each state gets a single series name, regardless of segments
       for (const state of comparisonStates) {
-        const segments = (state.segments || []).sort((a, b) => a.startDay - b.startDay);
-        if (segments.length === 0) {
-          // No segments, just use the base name
-          seriesNames.push(state.name);
-          day0[state.name] = initialTotal;
-        } else {
-          // Has segments - create series for base period (0 to first segment) and each segment
-          const firstSegmentDay = segments[0].startDay;
-          if (firstSegmentDay > 0) {
-            // Base period exists
-            seriesNames.push(state.name);
-            day0[state.name] = initialTotal;
-          }
-          
-          // Add series for each segment
-          for (const segment of segments) {
-            const segmentName = `${state.name} ${segment.name || `day ${segment.startDay}`}`;
-            seriesNames.push(segmentName);
-            // Segments don't start at day 0, so no initial value
-          }
-        }
+        day0[state.name] = initialTotal;
       }
       
       // Map the rest of the days
@@ -722,32 +701,9 @@ export default function GymComparison() {
           if (!snapshot || snapshot.strength === undefined) continue;
           
           const totalStats = snapshot.strength + snapshot.speed + snapshot.defense + snapshot.dexterity;
-          const currentDay = snapshot.day;
           
-          const segments = (state.segments || []).sort((a, b) => a.startDay - b.startDay);
-          
-          if (segments.length === 0) {
-            // No segments, use base name
-            dataPoint[state.name] = totalStats;
-          } else {
-            // Find which segment this day belongs to
-            let activeSegment = null;
-            for (let i = segments.length - 1; i >= 0; i--) {
-              if (currentDay >= segments[i].startDay) {
-                activeSegment = segments[i];
-                break;
-              }
-            }
-            
-            if (activeSegment) {
-              // Day belongs to a segment
-              const segmentName = `${state.name} ${activeSegment.name || `day ${activeSegment.startDay}`}`;
-              dataPoint[segmentName] = totalStats;
-            } else {
-              // Day is before first segment (base period)
-              dataPoint[state.name] = totalStats;
-            }
-          }
+          // Always use the base state name - segments don't create separate lines
+          dataPoint[state.name] = totalStats;
         }
         
         return dataPoint;
@@ -756,34 +712,12 @@ export default function GymComparison() {
       return [day0, ...restOfDays];
     })() : [];
   
-  // Prepare series for chart rendering (includes base states and segments)
-  const chartSeries = mode === 'future' ? comparisonStates.flatMap((state) => {
-    const segments = (state.segments || []).sort((a, b) => a.startDay - b.startDay);
-    if (segments.length === 0) {
-      return [{ id: state.id, name: state.name, stateId: state.id }];
-    }
-    
-    const series = [];
-    const firstSegmentDay = segments[0].startDay;
-    if (firstSegmentDay > 0) {
-      // Base period exists
-      series.push({ id: state.id, name: state.name, stateId: state.id });
-    }
-    
-    // Add series for each segment
-    for (const segment of segments) {
-      const segmentName = `${state.name} ${segment.name || `day ${segment.startDay}`}`;
-      series.push({ 
-        id: segment.id, 
-        name: segmentName, 
-        stateId: state.id,
-        segmentId: segment.id,
-        isSegment: true 
-      });
-    }
-    
-    return series;
-  }) : [];
+  // Prepare series for chart rendering - one series per state (segments don't create separate visual lines)
+  const chartSeries = mode === 'future' ? comparisonStates.map((state) => ({
+    id: state.id,
+    name: state.name,
+    stateId: state.id,
+  })) : [];
   
   const activeState = comparisonStates[activeTabIndex];
   
