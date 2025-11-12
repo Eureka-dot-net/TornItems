@@ -19,6 +19,7 @@ import { type GymStatsResponse } from '../../lib/hooks/useGymStats';
 import { useItemPrices } from '../../lib/hooks/useItemPrices';
 import { getCompanyBenefit, type StatWeights } from '../../lib/utils/gymHelpers';
 import { agent } from '../../lib/api/agent';
+import type { SegmentedSimulationConfig, TimeSegment } from '../../lib/types/gymComparison';
 import {
   CANDY_ITEM_IDS,
   ENERGY_ITEM_IDS,
@@ -52,6 +53,7 @@ import LoadConfigurationButton from '../components/gymComparison/LoadConfigurati
 import PlayerStatsSection from '../components/gymComparison/PlayerStatsSection';
 import ComparisonSelector from '../components/gymComparison/ComparisonSelector';
 import ComparisonConfigSection from '../components/gymComparison/ComparisonConfigSection';
+import SegmentConfigSection from '../components/gymComparison/SegmentConfigSection';
 import ManualTestingSection from '../components/gymComparison/ManualTestingSection';
 import ResultsSection from '../components/gymComparison/ResultsSection';
 import { exportGymComparisonData, type ExportData } from '../../lib/utils/exportHelpers';
@@ -97,7 +99,49 @@ interface ComparisonState {
   candleShopStars: number;
   happy: number;
   daysSkippedPerMonth: number;
+  segmentConfig?: SegmentedSimulationConfig; // Optional segment configuration
   [key: string]: unknown;
+}
+
+/**
+ * Merge base state with segment overrides
+ * Returns a new state with segment overrides applied on top of base values
+ */
+function mergeStateWithSegment(baseState: ComparisonState, segment: TimeSegment): ComparisonState {
+  const merged = { ...baseState };
+  const overrides = segment.overrides;
+  
+  // Merge stat weights
+  if (overrides.statWeights) {
+    merged.statWeights = { ...merged.statWeights, ...overrides.statWeights };
+  }
+  
+  // Merge perk percs
+  if (overrides.perkPercs) {
+    merged.perkPercs = { ...merged.perkPercs, ...overrides.perkPercs };
+  }
+  
+  // Apply simple overrides
+  const simpleKeys = [
+    'hoursPlayedPerDay', 'xanaxPerDay', 'hasPointsRefill', 'maxEnergy', 'happy',
+    'edvdJumpEnabled', 'edvdJumpFrequency', 'edvdJumpDvds', 'edvdJumpLimit', 
+    'edvdJumpCount', 'edvdJumpStatTarget', 'edvdJumpAdultNovelties',
+    'candyJumpEnabled', 'candyJumpItemId', 'candyJumpUseEcstasy', 'candyJumpQuantity', 'candyJumpFactionBenefit',
+    'energyJumpEnabled', 'energyJumpItemId', 'energyJumpQuantity', 'energyJumpFactionBenefit',
+    'lossReviveEnabled', 'lossReviveNumberPerDay', 'lossReviveEnergyCost', 'lossReviveDaysBetween', 'lossRevivePricePerLoss',
+    'diabetesDayEnabled', 'diabetesDayNumberOfJumps', 'diabetesDayFHC', 'diabetesDayGreenEgg', 
+    'diabetesDaySeasonalMail', 'diabetesDayLogoClick',
+    'companyBenefitKey', 'candleShopStars', 'daysSkippedPerMonth'
+  ] as const;
+  
+  for (const key of simpleKeys) {
+    if (overrides[key] !== undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (merged as any)[key] = overrides[key];
+    }
+  }
+  
+  return merged;
 }
 
 export default function GymComparison() {
@@ -347,6 +391,138 @@ export default function GymComparison() {
     ));
   };
   
+  // Segment management functions
+  const toggleSegments = (stateId: string, enabled: boolean) => {
+    setComparisonStates((prev) => prev.map((state) => {
+      if (state.id === stateId) {
+        const segmentConfig = state.segmentConfig || { enabled: false, segments: [], activeSegmentId: null };
+        return {
+          ...state,
+          segmentConfig: {
+            ...segmentConfig,
+            enabled,
+            activeSegmentId: enabled ? segmentConfig.activeSegmentId : null,
+          },
+        };
+      }
+      return state;
+    }));
+  };
+  
+  const createSegment = (stateId: string, day: number) => {
+    setComparisonStates((prev) => prev.map((state) => {
+      if (state.id === stateId) {
+        const segmentConfig = state.segmentConfig || { enabled: true, segments: [], activeSegmentId: null };
+        
+        // Check if segment already exists at this day
+        if (segmentConfig.segments.some(seg => seg.startDay === day)) {
+          return state; // Don't create duplicate
+        }
+        
+        const newSegment: TimeSegment = {
+          id: `${stateId}-seg-${Date.now()}`,
+          startDay: day,
+          name: `Day ${day}`,
+          overrides: {}, // Start with empty overrides
+        };
+        
+        return {
+          ...state,
+          segmentConfig: {
+            ...segmentConfig,
+            segments: [...segmentConfig.segments, newSegment].sort((a, b) => a.startDay - b.startDay),
+            activeSegmentId: newSegment.id, // Set as active for editing
+          },
+        };
+      }
+      return state;
+    }));
+  };
+  
+  const deleteSegment = (stateId: string, segmentId: string) => {
+    setComparisonStates((prev) => prev.map((state) => {
+      if (state.id === stateId && state.segmentConfig) {
+        return {
+          ...state,
+          segmentConfig: {
+            ...state.segmentConfig,
+            segments: state.segmentConfig.segments.filter(seg => seg.id !== segmentId),
+            activeSegmentId: state.segmentConfig.activeSegmentId === segmentId ? null : state.segmentConfig.activeSegmentId,
+          },
+        };
+      }
+      return state;
+    }));
+  };
+  
+  const setActiveSegment = (stateId: string, segmentId: string | null) => {
+    setComparisonStates((prev) => prev.map((state) => {
+      if (state.id === stateId && state.segmentConfig) {
+        return {
+          ...state,
+          segmentConfig: {
+            ...state.segmentConfig,
+            activeSegmentId: segmentId,
+          },
+        };
+      }
+      return state;
+    }));
+  };
+  
+  const updateSegment = (stateId: string, segmentId: string, overrides: Partial<ComparisonState>) => {
+    setComparisonStates((prev) => prev.map((state) => {
+      if (state.id === stateId && state.segmentConfig) {
+        return {
+          ...state,
+          segmentConfig: {
+            ...state.segmentConfig,
+            segments: state.segmentConfig.segments.map(seg => {
+              if (seg.id === segmentId) {
+                // Convert full state updates to partial overrides
+                const newOverrides = { ...seg.overrides };
+                
+                // Handle stat weights
+                if (overrides.statWeights) {
+                  newOverrides.statWeights = { ...seg.overrides.statWeights, ...overrides.statWeights };
+                }
+                
+                // Handle perk percs
+                if (overrides.perkPercs) {
+                  newOverrides.perkPercs = { ...seg.overrides.perkPercs, ...overrides.perkPercs };
+                }
+                
+                // Handle all other simple properties
+                const simpleKeys = [
+                  'hoursPlayedPerDay', 'xanaxPerDay', 'hasPointsRefill', 'maxEnergy', 'happy',
+                  'edvdJumpEnabled', 'edvdJumpFrequency', 'edvdJumpDvds', 'edvdJumpLimit', 
+                  'edvdJumpCount', 'edvdJumpStatTarget', 'edvdJumpAdultNovelties',
+                  'candyJumpEnabled', 'candyJumpItemId', 'candyJumpUseEcstasy', 'candyJumpQuantity', 'candyJumpFactionBenefit',
+                  'energyJumpEnabled', 'energyJumpItemId', 'energyJumpQuantity', 'energyJumpFactionBenefit',
+                  'lossReviveEnabled', 'lossReviveNumberPerDay', 'lossReviveEnergyCost', 'lossReviveDaysBetween', 'lossRevivePricePerLoss',
+                  'diabetesDayEnabled', 'diabetesDayNumberOfJumps', 'diabetesDayFHC', 'diabetesDayGreenEgg', 
+                  'diabetesDaySeasonalMail', 'diabetesDayLogoClick',
+                  'companyBenefitKey', 'candleShopStars', 'daysSkippedPerMonth'
+                ] as const;
+                
+                for (const key of simpleKeys) {
+                  if (key in overrides) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    (newOverrides as any)[key] = overrides[key];
+                  }
+                }
+                
+                return { ...seg, overrides: newOverrides };
+              }
+              return seg;
+            }),
+          },
+        };
+      }
+      return state;
+    }));
+  };
+  
   const handleSimulate = () => {
     setError(null);
     
@@ -375,87 +551,16 @@ export default function GymComparison() {
         const newResults: Record<string, SimulationResult> = {};
         
         for (const state of comparisonStates) {
-          const benefit = getCompanyBenefit(state.companyBenefitKey, state.candleShopStars);
-          
-          const inputs: SimulationInputs = {
-            statWeights: state.statWeights,
-            months,
-            xanaxPerDay: state.xanaxPerDay,
-            hasPointsRefill: state.hasPointsRefill,
-            hoursPlayedPerDay: state.hoursPlayedPerDay,
-            maxEnergy: state.maxEnergy,
-            companyBenefit: benefit,
-            apiKey,
-            initialStats,
-            happy: state.happy, 
-            perkPercs: state.perkPercs,
-            currentGymIndex: currentGymIndex, // Start from current/selected gym and auto-upgrade
-            lockGym: false, // Always use auto-upgrade in future mode to allow unlock speed multiplier to work
-            edvdJump: state.edvdJumpEnabled ? {
-              enabled: true,
-              frequencyDays: state.edvdJumpFrequency,
-              dvdsUsed: state.edvdJumpDvds,
-              limit: state.edvdJumpLimit,
-              count: state.edvdJumpCount,
-              statTarget: state.edvdJumpStatTarget,
-              adultNovelties: state.edvdJumpAdultNovelties,
-            } : undefined,
-            diabetesDay: state.diabetesDayEnabled ? {
-              enabled: true,
-              numberOfJumps: state.diabetesDayNumberOfJumps,
-              featheryHotelCoupon: state.diabetesDayFHC,
-              greenEgg: state.diabetesDayGreenEgg,
-              seasonalMail: state.diabetesDaySeasonalMail,
-              logoEnergyClick: state.diabetesDayLogoClick,
-            } : undefined,
-            candyJump: state.candyJumpEnabled ? {
-              enabled: true,
-              itemId: state.candyJumpItemId,
-              useEcstasy: state.candyJumpUseEcstasy,
-              quantity: state.candyJumpQuantity,
-              factionBenefitPercent: state.candyJumpFactionBenefit,
-            } : undefined,
-            energyJump: state.energyJumpEnabled ? {
-              enabled: true,
-              itemId: state.energyJumpItemId,
-              quantity: state.energyJumpQuantity,
-              factionBenefitPercent: state.energyJumpFactionBenefit,
-            } : undefined,
-            lossRevive: state.lossReviveEnabled ? {
-              enabled: true,
-              numberPerDay: state.lossReviveNumberPerDay,
-              energyCost: state.lossReviveEnergyCost,
-              daysBetween: state.lossReviveDaysBetween,
-              pricePerLoss: state.lossRevivePricePerLoss,
-            } : undefined,
-            daysSkippedPerMonth: state.daysSkippedPerMonth,
-            itemPrices: (showCosts && itemPricesData) ? {
-              dvdPrice: itemPricesData.prices[366],
-              xanaxPrice: itemPricesData.prices[206],
-              ecstasyPrice: itemPricesData.prices[196],
-              candyEcstasyPrice: itemPricesData.prices[197],
-              pointsPrice: itemPricesData.prices[0], // Points market price
-              candyPrices: {
-                310: itemPricesData.prices[310],
-                36: itemPricesData.prices[36],
-                528: itemPricesData.prices[528],
-                529: itemPricesData.prices[529],
-                151: itemPricesData.prices[151],
-              },
-              energyPrices: {
-                985: itemPricesData.prices[985],
-                986: itemPricesData.prices[986],
-                987: itemPricesData.prices[987],
-                530: itemPricesData.prices[530],
-                532: itemPricesData.prices[532],
-                533: itemPricesData.prices[533],
-                367: itemPricesData.prices[367],
-              },
-            } : undefined,
-          };
-          
-          const result = simulateGymProgression(GYMS, inputs);
-          newResults[state.id] = result;
+          // Check if segments are enabled
+          if (state.segmentConfig?.enabled && state.segmentConfig.segments.length > 0) {
+            // Simulate with segments
+            const result = simulateWithSegments(state);
+            newResults[state.id] = result;
+          } else {
+            // Normal simulation without segments
+            const result = simulateState(state, initialStats, months);
+            newResults[state.id] = result;
+          }
         }
         
         setResults(newResults);
@@ -463,6 +568,205 @@ export default function GymComparison() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
     }
+  };
+  
+  /**
+   * Run simulation without segments
+   */
+  const simulateState = (state: ComparisonState, startStats: { strength: number; speed: number; defense: number; dexterity: number }, monthsToSimulate: number) => {
+    const benefit = getCompanyBenefit(state.companyBenefitKey, state.candleShopStars);
+    
+    const inputs: SimulationInputs = {
+      statWeights: state.statWeights,
+      months: monthsToSimulate,
+      xanaxPerDay: state.xanaxPerDay,
+      hasPointsRefill: state.hasPointsRefill,
+      hoursPlayedPerDay: state.hoursPlayedPerDay,
+      maxEnergy: state.maxEnergy,
+      companyBenefit: benefit,
+      apiKey,
+      initialStats: startStats,
+      happy: state.happy, 
+      perkPercs: state.perkPercs,
+      currentGymIndex: currentGymIndex,
+      lockGym: false,
+      edvdJump: state.edvdJumpEnabled ? {
+        enabled: true,
+        frequencyDays: state.edvdJumpFrequency,
+        dvdsUsed: state.edvdJumpDvds,
+        limit: state.edvdJumpLimit,
+        count: state.edvdJumpCount,
+        statTarget: state.edvdJumpStatTarget,
+        adultNovelties: state.edvdJumpAdultNovelties,
+      } : undefined,
+      diabetesDay: state.diabetesDayEnabled ? {
+        enabled: true,
+        numberOfJumps: state.diabetesDayNumberOfJumps,
+        featheryHotelCoupon: state.diabetesDayFHC,
+        greenEgg: state.diabetesDayGreenEgg,
+        seasonalMail: state.diabetesDaySeasonalMail,
+        logoEnergyClick: state.diabetesDayLogoClick,
+      } : undefined,
+      candyJump: state.candyJumpEnabled ? {
+        enabled: true,
+        itemId: state.candyJumpItemId,
+        useEcstasy: state.candyJumpUseEcstasy,
+        quantity: state.candyJumpQuantity,
+        factionBenefitPercent: state.candyJumpFactionBenefit,
+      } : undefined,
+      energyJump: state.energyJumpEnabled ? {
+        enabled: true,
+        itemId: state.energyJumpItemId,
+        quantity: state.energyJumpQuantity,
+        factionBenefitPercent: state.energyJumpFactionBenefit,
+      } : undefined,
+      lossRevive: state.lossReviveEnabled ? {
+        enabled: true,
+        numberPerDay: state.lossReviveNumberPerDay,
+        energyCost: state.lossReviveEnergyCost,
+        daysBetween: state.lossReviveDaysBetween,
+        pricePerLoss: state.lossRevivePricePerLoss,
+      } : undefined,
+      daysSkippedPerMonth: state.daysSkippedPerMonth,
+      itemPrices: (showCosts && itemPricesData) ? {
+        dvdPrice: itemPricesData.prices[366],
+        xanaxPrice: itemPricesData.prices[206],
+        ecstasyPrice: itemPricesData.prices[196],
+        candyEcstasyPrice: itemPricesData.prices[197],
+        pointsPrice: itemPricesData.prices[0],
+        candyPrices: {
+          310: itemPricesData.prices[310],
+          36: itemPricesData.prices[36],
+          528: itemPricesData.prices[528],
+          529: itemPricesData.prices[529],
+          151: itemPricesData.prices[151],
+        },
+        energyPrices: {
+          985: itemPricesData.prices[985],
+          986: itemPricesData.prices[986],
+          987: itemPricesData.prices[987],
+          530: itemPricesData.prices[530],
+          532: itemPricesData.prices[532],
+          533: itemPricesData.prices[533],
+          367: itemPricesData.prices[367],
+        },
+      } : undefined,
+    };
+    
+    return simulateGymProgression(GYMS, inputs);
+  };
+  
+  /**
+   * Run simulation with segments, chaining them sequentially
+   */
+  const simulateWithSegments = (state: ComparisonState): SimulationResult => {
+    if (!state.segmentConfig?.segments.length) {
+      return simulateState(state, initialStats, months);
+    }
+    
+    const totalDays = months * 30;
+    const segments = [...state.segmentConfig.segments].sort((a, b) => a.startDay - b.startDay);
+    
+    // Add a final "segment" for the end of simulation if needed
+    const segmentRanges: Array<{ start: number; end: number; segment: TimeSegment | null }> = [];
+    
+    for (let i = 0; i < segments.length; i++) {
+      const currentSegment = segments[i];
+      const nextSegment = segments[i + 1];
+      const endDay = nextSegment ? nextSegment.startDay : totalDays;
+      
+      segmentRanges.push({
+        start: currentSegment.startDay,
+        end: endDay,
+        segment: currentSegment,
+      });
+    }
+    
+    // If first segment doesn't start at day 0, add a base config segment
+    if (segments[0].startDay > 0) {
+      segmentRanges.unshift({
+        start: 0,
+        end: segments[0].startDay,
+        segment: null,
+      });
+    }
+    
+    // Run simulations for each segment
+    let currentStats = { ...initialStats };
+    const allSnapshots: Array<{ day: number; strength: number; speed: number; defense: number; dexterity: number }> = [];
+    const totalCosts = {
+      edvdJumpCosts: { totalJumps: 0, costPerJump: 0, totalCost: 0 },
+      xanaxCosts: { totalCost: 0 },
+      pointsRefillCosts: { totalCost: 0 },
+      candyJumpCosts: { totalDays: 0, costPerDay: 0, totalCost: 0 },
+      energyJumpCosts: { totalDays: 0, costPerDay: 0, totalCost: 0 },
+      lossReviveIncome: { totalDays: 0, incomePerDay: 0, totalIncome: 0 },
+    };
+    
+    for (const range of segmentRanges) {
+      const configToUse = range.segment ? mergeStateWithSegment(state, range.segment) : state;
+      const daysToSimulate = range.end - range.start;
+      const monthsToSimulate = daysToSimulate / 30;
+      
+      const segmentResult = simulateState(configToUse, currentStats, monthsToSimulate);
+      
+      // Adjust day numbers in snapshots
+      const adjustedSnapshots = segmentResult.dailySnapshots.map(snapshot => ({
+        ...snapshot,
+        day: snapshot.day + range.start,
+      }));
+      
+      allSnapshots.push(...adjustedSnapshots);
+      
+      // Update current stats for next segment
+      currentStats = segmentResult.finalStats;
+      
+      // Accumulate costs
+      if (segmentResult.edvdJumpCosts) {
+        totalCosts.edvdJumpCosts.totalJumps += segmentResult.edvdJumpCosts.totalJumps;
+        totalCosts.edvdJumpCosts.totalCost += segmentResult.edvdJumpCosts.totalCost;
+      }
+      if (segmentResult.xanaxCosts) {
+        totalCosts.xanaxCosts.totalCost += segmentResult.xanaxCosts.totalCost;
+      }
+      if (segmentResult.pointsRefillCosts) {
+        totalCosts.pointsRefillCosts.totalCost += segmentResult.pointsRefillCosts.totalCost;
+      }
+      if (segmentResult.candyJumpCosts) {
+        totalCosts.candyJumpCosts.totalDays += segmentResult.candyJumpCosts.totalDays;
+        totalCosts.candyJumpCosts.totalCost += segmentResult.candyJumpCosts.totalCost;
+      }
+      if (segmentResult.energyJumpCosts) {
+        totalCosts.energyJumpCosts.totalDays += segmentResult.energyJumpCosts.totalDays;
+        totalCosts.energyJumpCosts.totalCost += segmentResult.energyJumpCosts.totalCost;
+      }
+      if (segmentResult.lossReviveIncome) {
+        totalCosts.lossReviveIncome.totalDays += segmentResult.lossReviveIncome.totalDays;
+        totalCosts.lossReviveIncome.totalIncome += segmentResult.lossReviveIncome.totalIncome;
+      }
+    }
+    
+    // Calculate per-day averages for costs that need them
+    if (totalCosts.candyJumpCosts.totalDays > 0) {
+      totalCosts.candyJumpCosts.costPerDay = totalCosts.candyJumpCosts.totalCost / totalCosts.candyJumpCosts.totalDays;
+    }
+    if (totalCosts.energyJumpCosts.totalDays > 0) {
+      totalCosts.energyJumpCosts.costPerDay = totalCosts.energyJumpCosts.totalCost / totalCosts.energyJumpCosts.totalDays;
+    }
+    if (totalCosts.lossReviveIncome.totalDays > 0) {
+      totalCosts.lossReviveIncome.incomePerDay = totalCosts.lossReviveIncome.totalIncome / totalCosts.lossReviveIncome.totalDays;
+    }
+    
+    return {
+      dailySnapshots: allSnapshots,
+      finalStats: currentStats,
+      edvdJumpCosts: totalCosts.edvdJumpCosts.totalJumps > 0 ? totalCosts.edvdJumpCosts : undefined,
+      xanaxCosts: totalCosts.xanaxCosts.totalCost > 0 ? totalCosts.xanaxCosts : undefined,
+      pointsRefillCosts: totalCosts.pointsRefillCosts.totalCost > 0 ? totalCosts.pointsRefillCosts : undefined,
+      candyJumpCosts: totalCosts.candyJumpCosts.totalDays > 0 ? totalCosts.candyJumpCosts : undefined,
+      energyJumpCosts: totalCosts.energyJumpCosts.totalDays > 0 ? totalCosts.energyJumpCosts : undefined,
+      lossReviveIncome: totalCosts.lossReviveIncome.totalDays > 0 ? totalCosts.lossReviveIncome : undefined,
+    };
   };
   
   // Custom chart data preparation
@@ -820,14 +1124,27 @@ export default function GymComparison() {
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
           {activeState && (
-            <ComparisonConfigSection
-              activeState={activeState}
-              updateState={updateState}
-              handleRemoveState={handleRemoveState}
-              canRemoveState={comparisonStates.length > 1}
-              showCosts={showCosts}
-              itemPricesData={itemPricesData}
-            />
+            <>
+              <SegmentConfigSection
+                stateId={activeState.id}
+                stateName={activeState.name}
+                segmentConfig={activeState.segmentConfig}
+                onToggleSegments={toggleSegments}
+                onSegmentSelect={setActiveSegment}
+                onSegmentDelete={deleteSegment}
+              />
+              
+              <ComparisonConfigSection
+                activeState={activeState}
+                updateState={updateState}
+                handleRemoveState={handleRemoveState}
+                canRemoveState={comparisonStates.length > 1}
+                showCosts={showCosts}
+                itemPricesData={itemPricesData}
+                segmentConfig={activeState.segmentConfig}
+                updateSegment={updateSegment}
+              />
+            </>
           )}
 
           {/* Results Section */}
@@ -840,6 +1157,8 @@ export default function GymComparison() {
               months={months}
               showCosts={showCosts}
               itemPricesData={itemPricesData}
+              activeStateId={activeState?.id}
+              onSegmentCreate={createSegment}
             />
           )}
 

@@ -30,6 +30,8 @@ interface ResultsSectionProps {
   months: number;
   showCosts: boolean;
   itemPricesData?: ItemPrices;
+  activeStateId?: string;
+  onSegmentCreate?: (stateId: string, day: number) => void;
 }
 
 export default function ResultsSection({
@@ -39,7 +41,9 @@ export default function ResultsSection({
   initialStats,
   months,
   showCosts,
-  itemPricesData
+  itemPricesData,
+  activeStateId,
+  onSegmentCreate,
 }: ResultsSectionProps) {
   const hasCostEstimate = showCosts && itemPricesData;
   const hasDDEstimate = comparisonStates.some(state => state.diabetesDayEnabled);
@@ -55,6 +59,8 @@ export default function ResultsSection({
           results={results}
           showCosts={showCosts}
           itemPricesData={itemPricesData}
+          activeStateId={activeStateId}
+          onSegmentCreate={onSegmentCreate}
         />
 
         <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -105,6 +111,8 @@ export default function ResultsSection({
               results={results}
               showCosts={showCosts}
               itemPricesData={itemPricesData}
+              activeStateId={activeStateId}
+              onSegmentCreate={onSegmentCreate}
             />
           </Grid>
 
