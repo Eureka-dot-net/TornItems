@@ -1,277 +1,352 @@
-// injector-travel.js — fully restored (Modes A–D intact) + stronger observer patch
-(async () => {
-  const url = new URL(window.location.href);
-  const params = {
-    item1: url.searchParams.get("item1"),
-    item2: url.searchParams.get("item2"),
-    item3: url.searchParams.get("item3"),
-    amount: url.searchParams.get("amount"),
-    arrival: url.searchParams.get("arrival"),
-    destination: url.searchParams.get("destination"),
-    boardingtime: url.searchParams.get("boardingtime"),
-  };
+// injector-travel.js — MODE C only (countdown + semi-auto pre-flight checklist + toggle button)
+// Safe: no notifications, no reloads, no input simulation, no arming/localStorage (except sessionStorage for manual toggles)
+(() => {
+  // ────────────────────────────────────────────────────────────────────────────
+  // DOM helpers
+  // ────────────────────────────────────────────────────────────────────────────
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-  const nowSec = () => Math.floor(Date.now() / 1000);
+  const qsContainsClass = (frag) => `[class*="${frag}"]`;
+  const textOf = (el) => (el ? (el.textContent || "").trim() : "");
 
-  // ───────────────────────────────
-  // Notifications (desktop + Kiwi fallback)
-  // ───────────────────────────────
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const isKiwi = navigator.userAgent.includes("Kiwi");
-  const notify = async (title, body) => {
-    try {
-      if (isMobile && isKiwi) {
-        alert(`${title}\n\n${body}`);
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        return;
-      }
-      if (Notification.permission === "granted") {
-        new Notification(title, { body, icon: "https://www.torn.com/favicon.ico" });
-      } else if (Notification.permission !== "denied") {
-        const perm = await Notification.requestPermission();
-        if (perm === "granted") new Notification(title, { body, icon: "https://www.torn.com/favicon.ico" });
-      }
-    } catch { }
-  };
-
-  console.log("[TornTravel] injector-travel loaded.");
-
-  // ───────────────────────────────
-  // MODE A — incoming flight (with item params)
-  // ───────────────────────────────
-  if (params.item1 && params.arrival) {
-    console.log("[TornTravel] MODE A (incoming flight with shop params).");
-    localStorage.setItem("torn_flyshop_args", JSON.stringify(params));
-    const arrival = parseInt(params.arrival, 10);
-    const waitMs = Math.max(0, (arrival - 5 - nowSec()) * 1000);
-    const secs = Math.round(waitMs / 1000);
-    console.log(`[TornAutoFlyBuy] Landing in ${secs}s — waiting...`);
-    await notify("✈️ Torn Flight", `Landing in ${secs}s — auto-buy armed.`);
-    await new Promise(r => setTimeout(r, waitMs));
-    await notify("✈️ Torn Flight", "Arriving soon — shop automation will start on landing.");
-    return;
+  function findBarValueByLabel(label) {
+    const nameNodes = $$(`${qsContainsClass("bar-name")}`);
+    const node = nameNodes.find((n) => textOf(n).toLowerCase().startsWith(label.toLowerCase()));
+    if (!node) return null;
+    const container = node.closest(qsContainsClass("bar___")) || node.parentElement;
+    const valueNode = container ? $(qsContainsClass("bar-value"), container) : null;
+    return valueNode ? textOf(valueNode) : null;
   }
 
-  // ───────────────────────────────
-  // Countdown UI helper  (patched for background-tab accuracy)
-  // ───────────────────────────────
-  const runCountdown = (boardingEpoch, labelText) => {
-    document.querySelectorAll("#tornCountdownBox").forEach(el => el.remove());
-    const box = document.createElement("div");
-    box.id = "tornCountdownBox";
-    Object.assign(box.style, {
-      position: "fixed",
-      top: "10px",
-      right: "10px",
-      padding: "8px 12px",
-      background: "rgba(0,0,0,0.7)",
-      color: "#ffd700",
-      borderRadius: "8px",
-      fontFamily: "monospace",
-      zIndex: "9999",
-      transition: "background 0.3s",
-    });
-    document.body.appendChild(box);
-
-    let notified60 = false;
-    let notified20 = false;
-
-    const fmt = (s) => (s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`);
-
-    const loop = () => {
-      const remain = Math.max(0, boardingEpoch - nowSec());
-      if (remain <= 0) {
-        box.textContent = `🛫 Ready to board${labelText ? ` (${labelText})` : ""}!`;
-        box.style.background = "rgba(0,150,0,0.8)";
-        return; // stop
-      }
-
-      box.textContent = `🕒 Boarding in ${fmt(remain)}${labelText ? ` (${labelText})` : ""}`;
-
-      if (remain <= 60 && !notified60) {
-        notified60 = true;
-        box.style.background = "rgba(255,0,0,0.8)";
-        notify("⏰ Boarding in one minute", `Boarding for ${labelText || "flight"} in 60 seconds!`);
-      }
-      if (remain <= 20 && !notified20) {
-        notified20 = true;
-        box.style.background = "rgba(255,0,0,0.8)";
-        notify("⏰ Boarding soon", `Boarding for ${labelText || "flight"} in 20 seconds!`);
-      }
-
-      // next loop aligned to wall clock
-      const nextDelay = 1000 - (Date.now() % 1000);
-      setTimeout(loop, nextDelay);
-    };
-
-    loop();
-  };
-
-  // ───────────────────────────────
-  // MODE B — waiting / pre-flight (explicit params)
-  // ───────────────────────────────
-  if (params.destination && params.boardingtime) {
-    console.log("[TornTravel] MODE B (explicit destination + boardingtime).");
-    const boarding = parseInt(params.boardingtime, 10);
-    runCountdown(boarding, params.destination);
-    return;
+  function parseCurMax(str) {
+    if (!str || !str.includes("/")) return null;
+    const [a, b] = str.split("/").map((x) => parseInt(x.replace(/\D+/g, ""), 10));
+    if (!Number.isFinite(a) || !Number.isFinite(b) || b <= 0) return null;
+    return { cur: a, max: b, ratio: a / b };
   }
 
-  // ───────────────────────────────
+  // ────────────────────────────────────────────────────────────────────────────
   // MODE C — dynamic pre-flight (map pick)
-  // Landing = first 15-min mark ≥ (now + flight time)
-  // ───────────────────────────────
-  console.log("[TornTravel] MODE C (dynamic map detection) — waiting for travel map/root...");
-
-  const waitForTravelRoot = () =>
-    new Promise((resolve) => {
+  // ────────────────────────────────────────────────────────────────────────────
+  function waitForTravelRoot() {
+    return new Promise((resolve) => {
       const check = () => {
-        const root = document.querySelector("#travel-root");
+        const root = $("#travel-root");
         if (root) return resolve(root);
         requestAnimationFrame(check);
       };
       check();
     });
+  }
 
-  const travelRoot = await waitForTravelRoot();
-  console.log("[TornTravel] Travel map root detected.");
-
-  const computeBoardingForPanel = () => {
-    const panel = document.querySelector(".destinationPanel___LsJ4v");
-    const openPin = document.querySelector('.pin___FilUD[data-is-tooltip-opened="true"]');
+  function computeBoardingFromMap() {
+    const panel = $(qsContainsClass("destinationPanel"));
+    const openPin = $(`${qsContainsClass("pin")}[data-is-tooltip-opened="true"]`);
     if (!panel || !openPin) return null;
 
-    const country = panel.querySelector(".country___wBPip")?.textContent?.trim();
-    const timeText = panel.querySelector(".flightDetailsGrid___uAttX span[aria-hidden='true']")?.textContent?.trim();
+    const country = textOf($(qsContainsClass("country"), panel));
+    const timeNode =
+      $(`.flightDetailsGrid___uAttX span[aria-hidden='true'], ${qsContainsClass("flightDetailsGrid")} span[aria-hidden='true']`, panel) ||
+      $(`${qsContainsClass("flightDetails")} span[aria-hidden='true']`, panel);
+    const timeText = textOf(timeNode);
     if (!country || !timeText || !timeText.includes(":")) return null;
 
     const parts = timeText.split(":").map(Number);
     let flightMinutes = 0;
-
-    // Torn normally uses mm:ss or hh:mm
     if (parts.length === 2) {
-      const [a, b] = parts;
-      flightMinutes = a * 60 + b;
+      const [m, s] = parts;
+      flightMinutes = m + (s > 0 ? 1 : 0);
     } else if (parts.length === 3) {
-      const [h, m, s] = parts;
+      const [h, m] = parts;
       flightMinutes = h * 60 + m;
     } else return null;
 
-    // ✅ Compute so that we LAND on the next 15-minute mark
-    const nowDate = new Date();
-    const estLanding = new Date(nowDate.getTime() + flightMinutes * 60000);
-    let roundedLanding = new Date(estLanding);
-    let mins = roundedLanding.getMinutes();
-    let roundedMins = Math.ceil(mins / 15) * 15;
-    roundedLanding.setMinutes(roundedMins, 0, 0);
+    const now = new Date();
+    const estLanding = new Date(now.getTime() + flightMinutes * 60_000);
+    const aligned = new Date(estLanding);
+    const mins = aligned.getMinutes();
+    const roundedMins = Math.ceil(mins / 15) * 15;
+    aligned.setMinutes(roundedMins % 60, 0, 0);
+    if (roundedMins >= 60) aligned.setHours(aligned.getHours() + 1);
 
-    // Boarding = roundedLanding − flight duration
-    let boarding = new Date(roundedLanding.getTime() - flightMinutes * 60000);
-
-    // ⚠️ If boarding time is in the past, push landing to the *next* 15-min mark
-    if (boarding <= nowDate) {
-      roundedLanding = new Date(roundedLanding.getTime() + 15 * 60000);
-      boarding = new Date(roundedLanding.getTime() - flightMinutes * 60000);
+    let boarding = new Date(aligned.getTime() - flightMinutes * 60_000);
+    if (boarding <= now) {
+      const nextAligned = new Date(aligned.getTime() + 15 * 60_000);
+      boarding = new Date(nextAligned.getTime() - flightMinutes * 60_000);
     }
 
-    const boardingEpoch = Math.floor(boarding.getTime() / 1000);
-
-    console.log(`[TornTravel] Flight → ${country}, ~${flightMinutes} min`);
-    console.log(`[TornTravel] ✅ Landing aligned to ${roundedLanding.toLocaleTimeString()} (15-minute mark)`);
-    console.log(`[TornTravel] Boarding at ${boarding.toLocaleTimeString()}`);
-
-    return { country, boardingEpoch };
-  };
-
-  const applyCountdownIfAvailable = () => {
-    const result = computeBoardingForPanel();
-    if (!result) return false;
-    runCountdown(result.boardingEpoch, result.country);
-    return true;
-  };
-
-  const initialApplied = applyCountdownIfAvailable();
-  const observerC = new MutationObserver(() => applyCountdownIfAvailable());
-  observerC.observe(travelRoot, { childList: true, subtree: true });
-
-  if (!initialApplied) {
-    console.log("[TornTravel] Waiting for a destination pick to show flight details…");
+    return { country, boardingEpoch: Math.floor(boarding.getTime() / 1000), flightMinutes };
   }
 
-  // ───────────────────────────────
-  // MODE D — in-flight auto-arming for Mexico (no params)
-  // ───────────────────────────────
-  const ARMED_KEY = "torn_flyshop_autoarmed";
-  const DESTINATIONS = {
-    "mexico": { item1: "1429", item2: "258", item3: "259", amount: "19" },
-    "ciudad juarez": { item1: "1429", item2: "258", item3: "259", amount: "19" },
-    "uk": { item1: "268", item2: "266", item3: "267", amount: "18" },
-    "london": { item1: "268", item2: "266", item3: "267", amount: "19" },
-    "toronto": { item1: "1361", item2: "261", item3: "263", amount: "19" },
-  };
+  // ────────────────────────────────────────────────────────────────────────────
+  // Overlay UI
+  // ────────────────────────────────────────────────────────────────────────────
+  function makeOverlay() {
+    const box = document.createElement("div");
+    box.id = "torn-travel-overlay";
+    box.style.cssText = `
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      width: 320px;
+      max-height: 70vh;
+      overflow: auto;
+      padding: 10px 12px;
+      background: rgba(0,0,0,0.85);
+      color: #eee;
+      border-radius: 10px;
+      font-family: monospace;
+      font-size: 13px;
+      line-height: 1.35;
+      z-index: 999999;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+      backdrop-filter: blur(2px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    `;
 
-  const parseRemaining = (container) => {
-    const t = container.querySelector("time")?.textContent?.trim();
-    let secs = 0;
-    if (t && t.includes(":")) {
-      const parts = t.split(":").map(Number);
-      if (parts.length === 3) secs = parts[0] * 3600 + parts[1] * 60 + parts[2];
-      else if (parts.length === 2) secs = parts[0] * 60 + parts[1];
-    }
-    if (!secs) {
-      const attr = container.querySelector("time")?.getAttribute("datetime") || "";
-      const h = /(\d+)\s*h/.exec(attr)?.[1];
-      const m = /(\d+)\s*m/.exec(attr)?.[1];
-      const s = /(\d+)\s*s/.exec(attr)?.[1];
-      secs = (h ? +h * 3600 : 0) + (m ? +m * 60 : 0) + (s ? +s : 0);
-    }
-    return secs || 0;
-  };
+    const header = document.createElement("div");
+    header.id = "torn-travel-countdown";
+    header.style.cssText = `
+      font-weight: 700;
+      font-size: 14px;
+      padding: 8px;
+      margin: -4px -4px 8px -4px;
+      border-radius: 8px;
+      text-align: right;
+      background: rgba(0,0,0,0.3);
+      color: #ffd700;
+    `;
 
-  const armMexicoIfNeeded = () => {
-    if (localStorage.getItem(ARMED_KEY)) return;
-    const section = document.querySelector(".flightProgressSection___fhrD5");
-    if (!section) return;
-    const txt = (section.textContent || "").toLowerCase();
+    const list = document.createElement("div");
+    list.id = "torn-travel-checklist";
+    list.style.cssText = `display: grid; gap: 6px;`;
 
-    // ✅ Only match if destination comes AFTER "to" (not flying back to Torn)
-    const toMatch = txt.match(/to\s+([^.]+)/);
-    if (!toMatch) return;
-    const destination = toMatch[1].trim();
+    const hr = document.createElement("div");
+    hr.style.cssText = `height:1px;background:rgba(255,255,255,0.12);margin:6px 0;`;
 
-    const matchedKey = Object.keys(DESTINATIONS).find(k => destination.includes(k));
-    if (!matchedKey) return;
+    box.appendChild(header);
+    box.appendChild(hr);
+    box.appendChild(list);
+    document.body.appendChild(box);
+    return { box, header, list };
+  }
 
-    const ITEM_SET = DESTINATIONS[matchedKey];
-
-    const remaining = parseRemaining(section);
-    if (!remaining) return;
-
-    const arrival = nowSec() + remaining - 1;
-    const args = { ...ITEM_SET, arrival: String(arrival) };
-    localStorage.setItem("torn_flyshop_args", JSON.stringify(args));
-    localStorage.setItem(ARMED_KEY, String(arrival));
-
-    console.log(`[TornTravel] ${matchedKey} flight detected. Remaining ${remaining}s → arrival ${arrival}`);
-    notify("✈️ Torn Flight", `Auto-buy armed for ${matchedKey}. Shop will open on landing.`);
-  };
-
-  // 🩵 Strengthened observer patch (robust detection)
-  armMexicoIfNeeded();
-  const watchTargets = [document.body, document.querySelector("#travel-root")].filter(Boolean);
-  for (const target of watchTargets) {
-    const observer = new MutationObserver(() => {
-      try { armMexicoIfNeeded(); } catch { }
+  // ⚙️ Toggle Button
+  function makeToggleButton(overlayBox) {
+    const btn = document.createElement("button");
+    btn.textContent = "⚙️";
+    btn.title = "Show/Hide Pre-flight Checklist";
+    btn.style.cssText = `
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.6);
+      color: #ffd700;
+      font-size: 18px;
+      cursor: pointer;
+      z-index: 1000000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      transition: background 0.2s;
+    `;
+    btn.addEventListener("mouseenter", () => (btn.style.background = "rgba(255,215,0,0.3)"));
+    btn.addEventListener("mouseleave", () => (btn.style.background = "rgba(0,0,0,0.6)"));
+    btn.addEventListener("click", () => {
+      const hidden = overlayBox.style.opacity === "0";
+      if (hidden) {
+        overlayBox.style.opacity = "1";
+        overlayBox.style.transform = "translateY(0)";
+        overlayBox.style.pointerEvents = "auto";
+      } else {
+        overlayBox.style.opacity = "0";
+        overlayBox.style.transform = "translateY(-10px)";
+        overlayBox.style.pointerEvents = "none";
+      }
     });
-    observer.observe(target, { childList: true, subtree: true });
+    document.body.appendChild(btn);
   }
-  setInterval(() => {
-    try { armMexicoIfNeeded(); } catch { }
-  }, 2000);
 
-  const armedArrival = parseInt(localStorage.getItem(ARMED_KEY) || "0", 10);
-  if (armedArrival) {
-    const ms = Math.max(0, (armedArrival + 180 - nowSec()) * 1000);
-    setTimeout(() => localStorage.removeItem(ARMED_KEY), ms);
+  function setHeaderUrgency(el, secs) {
+    if (secs <= 0) {
+      el.style.background = "rgba(22, 163, 74, 0.85)";
+      el.style.color = "#fff";
+    } else if (secs <= 30) {
+      el.style.background = "rgba(249, 115, 22, 0.85)";
+      el.style.color = "#fff";
+    } else {
+      el.style.background = "rgba(0,0,0,0.3)";
+      el.style.color = "#ffd700";
+    }
   }
+
+  function formatSecs(s) {
+    s = Math.max(0, Math.floor(s));
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  }
+
+  function addRow(listEl, label, status = "neutral", detail = "") {
+    const row = document.createElement("div");
+    row.style.cssText = `display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:8px;`;
+    const left = document.createElement("div");
+    left.textContent = label;
+    const right = document.createElement("div");
+    right.textContent = detail;
+    const colors = {
+      good: { bg: "rgba(22,163,74,0.20)", fg: "#c6f6d5" },
+      warn: { bg: "rgba(249,115,22,0.20)", fg: "#ffd7b5" },
+      bad: { bg: "rgba(239,68,68,0.20)", fg: "#fecaca" },
+      neutral: { bg: "rgba(255,255,255,0.05)", fg: "#ddd" },
+    };
+    const c = colors[status] || colors.neutral;
+    row.style.background = c.bg;
+    row.style.color = c.fg;
+    row.appendChild(left);
+    if (detail) {
+      right.style.opacity = "0.9";
+      row.appendChild(right);
+    }
+    listEl.appendChild(row);
+    return row;
+  }
+
+  function addManualToggle(listEl, key, label) {
+    const storageKey = `torn_travel_toggle_${key}`;
+    const initial = sessionStorage.getItem(storageKey) === "1";
+    const row = document.createElement("div");
+    row.style.cssText = `
+      display:flex;justify-content:space-between;align-items:center;
+      padding:6px 8px;border-radius:8px;
+      background: rgba(255,255,255,0.05); color:#ddd; cursor:pointer;
+    `;
+    const left = document.createElement("div");
+    const box = document.createElement("span");
+    box.textContent = initial ? "☑" : "☐";
+    box.style.marginRight = "8px";
+    const text = document.createElement("span");
+    text.textContent = label;
+    left.appendChild(box);
+    left.appendChild(text);
+    const right = document.createElement("div");
+    right.style.opacity = "0.8";
+    right.textContent = initial ? "✅ Done" : "—";
+    row.addEventListener("click", () => {
+      const newVal = !(sessionStorage.getItem(storageKey) === "1");
+      sessionStorage.setItem(storageKey, newVal ? "1" : "0");
+      box.textContent = newVal ? "☑" : "☐";
+      right.textContent = newVal ? "✅ Done" : "—";
+    });
+    row.appendChild(left);
+    row.appendChild(right);
+    listEl.appendChild(row);
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Auto-detection
+  // ────────────────────────────────────────────────────────────────────────────
+  function detectFlags() {
+    const getIcon = (needle) => $(`ul${qsContainsClass("status-icons")} li a[aria-label*="${needle}"]`);
+    const bazaarEl = getIcon("Bazaar");
+    const educationEl = getIcon("Education");
+    const boosterEl = getIcon("Booster Cooldown");
+    const drugEl = getIcon("Drug Cooldown");
+    const ocCountdown = textOf($("#oc2Timer .countdown"));
+    const energyStr = findBarValueByLabel("Energy:");
+    const nerveStr = findBarValueByLabel("Nerve:");
+    const lifeStr = findBarValueByLabel("Life:");
+    const energy = parseCurMax(energyStr);
+    const nerve = parseCurMax(nerveStr);
+    const life = parseCurMax(lifeStr);
+    return {
+      bazaarOpen: !!bazaarEl,
+      educationActive: !!educationEl,
+      boosterCooldown: !!boosterEl,
+      drugCooldown: !!drugEl,
+      ocJoined: ocCountdown && !/No crime joined/i.test(ocCountdown),
+      ocText: ocCountdown || "",
+      energy,
+      nerve,
+      life,
+    };
+  }
+
+  function renderChecklist(listEl, flags) {
+    addRow(listEl, "Bazaar open", flags.bazaarOpen ? "good" : "warn", flags.bazaarOpen ? "Yes" : "Check");
+    addRow(listEl, "Education active", flags.educationActive ? "good" : "warn", flags.educationActive ? "Yes" : "No");
+
+    // ✅ modified: when cooldowns are active it's GOOD
+    addRow(listEl, "Booster cooldown", flags.boosterCooldown ? "good" : "warn", flags.boosterCooldown ? "Active" : "None");
+    addRow(listEl, "Drug cooldown", flags.drugCooldown ? "good" : "warn", flags.drugCooldown ? "Active" : "None");
+
+    addRow(listEl, "OC joined", flags.ocJoined ? "good" : "warn", flags.ocJoined ? flags.ocText : "No crime");
+
+    if (flags.life) {
+      const pct = Math.round(flags.life.ratio * 100);
+      addRow(listEl, "Life low enough (<33%)", flags.life.ratio < 1 / 3 ? "good" : "bad", `${flags.life.cur}/${flags.life.max} (${pct}%)`);
+    } else addRow(listEl, "Life low enough (<33%)", "warn", "Unknown");
+
+    if (flags.energy) {
+      const pct = Math.round(flags.energy.ratio * 100);
+      addRow(listEl, "Energy low enough (≤50%)", flags.energy.ratio <= 0.5 ? "good" : "warn", `${flags.energy.cur}/${flags.energy.max} (${pct}%)`);
+    } else addRow(listEl, "Energy low enough (≤50%)", "warn", "Unknown");
+
+    if (flags.nerve) {
+      const pct = Math.round(flags.nerve.ratio * 100);
+      addRow(listEl, "Nerve low enough (≤50%)", flags.nerve.ratio <= 0.5 ? "good" : "warn", `${flags.nerve.cur}/${flags.nerve.max} (${pct}%)`);
+    } else addRow(listEl, "Nerve low enough (≤50%)", "warn", "Unknown");
+
+    addManualToggle(listEl, "bank_edu", "Checked bank / education end times");
+    addManualToggle(listEl, "oc_overlap", "Checked OC timing overlap");
+  }
+
+  function runCountdown(headerEl, boardingEpoch, label) {
+    const tick = () => {
+      const now = Math.floor(Date.now() / 1000);
+      const remain = Math.max(0, boardingEpoch - now);
+      setHeaderUrgency(headerEl, remain);
+      headerEl.textContent =
+        remain <= 0 ? `🛫 Ready to board${label ? ` — ${label}` : ""}!` : `🕒 Boarding in ${formatSecs(remain)}${label ? ` — ${label}` : ""}`;
+    };
+    tick();
+    const align = 1000 - (Date.now() % 1000);
+    setTimeout(() => {
+      tick();
+      setInterval(tick, 1000);
+    }, align);
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Boot
+  // ────────────────────────────────────────────────────────────────────────────
+  (async () => {
+    // ✅ modified: skip overlay when actually flying
+    const travelingTitle = $$("h4").find((h) => textOf(h) === "Traveling");
+    if (travelingTitle) {
+      console.log("[TornTravel] Detected in-flight screen — skipping overlay.");
+     // return;
+    }
+
+    const travelRoot = await waitForTravelRoot();
+    const overlay = makeOverlay();
+    makeToggleButton(overlay.box);
+    const result = computeBoardingFromMap();
+    if (result) runCountdown(overlay.header, result.boardingEpoch, result.country);
+    else {
+      overlay.header.textContent = "Select a destination on the map…";
+      setHeaderUrgency(overlay.header, 999);
+    }
+    const flags = detectFlags();
+    renderChecklist(overlay.list, flags);
+    const observer = new MutationObserver(() => {
+      const r = computeBoardingFromMap();
+      if (!r) return;
+      runCountdown(overlay.header, r.boardingEpoch, r.country);
+    });
+    observer.observe(travelRoot, { childList: true, subtree: true });
+  })();
 })();

@@ -26,15 +26,6 @@
     },
     {
       "matches": [
-        "https://www.torn.com/shops.php*"
-      ],
-      "js": [
-        "injector-shops.js"
-      ],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": [
         "https://www.torn.com/page.php?sid=travel*"
       ],
       "js": [
