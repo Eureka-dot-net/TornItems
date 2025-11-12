@@ -512,7 +512,7 @@ export default function GymComparison() {
     if (!cost1) return cost2;
     if (!cost2) return cost1;
     
-    const combined: any = { ...cost1 };
+    const combined = { ...cost1 } as T;
     if (cost2.totalCost !== undefined) {
       combined.totalCost = (cost1.totalCost || 0) + cost2.totalCost;
     }

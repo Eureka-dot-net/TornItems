@@ -47,7 +47,7 @@ export default function StatsChart({
   itemPricesData,
   onLineClick
 }: StatsChartProps) {
-  const handleDotClick = (data: any, series: ChartSeries) => {
+  const handleDotClick = (data: { day?: number }, series: ChartSeries) => {
     if (!onLineClick || !data || data.day === undefined) return;
     onLineClick(series.stateId, data.day);
   };
@@ -59,9 +59,9 @@ export default function StatsChart({
   });
 
   // Custom dot component for clickable points
-  const CustomDot = (props: any) => {
-    const { cx, cy, series } = props;
-    if (!onLineClick) return null;
+  const CustomDot = (props: { cx?: number; cy?: number; payload?: { day?: number }; series?: ChartSeries }) => {
+    const { cx, cy, series, payload } = props;
+    if (!onLineClick || !cx || !cy || !series || !payload) return null;
     
     return (
       <circle
@@ -72,7 +72,7 @@ export default function StatsChart({
         stroke="transparent"
         strokeWidth={8}
         style={{ cursor: 'pointer' }}
-        onClick={() => handleDotClick(props.payload, series)}
+        onClick={() => handleDotClick(payload, series)}
       />
     );
   };
@@ -100,7 +100,9 @@ export default function StatsChart({
                 stroke={color}
                 strokeWidth={2} 
                 strokeDasharray={series.isSegment ? "5 5" : undefined}
-                dot={(props: any) => <CustomDot {...props} series={series} />}
+                dot={(dotProps: { cx?: number; cy?: number; payload?: { day?: number } }) => 
+                  <CustomDot {...dotProps} series={series} />
+                }
                 activeDot={onLineClick ? { r: 6, style: { cursor: 'pointer' } } : undefined}
                 connectNulls={false}
               />
