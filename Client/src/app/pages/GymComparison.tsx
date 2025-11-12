@@ -186,6 +186,7 @@ export default function GymComparison() {
   );
   
   const [activeTabIndex, setActiveTabIndex] = useState<number>(0);
+  const [activeSegmentId, setActiveSegmentId] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, SimulationResult>>({});
   const [error, setError] = useState<string | null>(null);
   const [showCosts, setShowCosts] = useState<boolean>(() => loadSavedValue('showCosts', false));
@@ -347,9 +348,22 @@ export default function GymComparison() {
   };
   
   const updateState = (stateId: string, updates: Partial<ComparisonState>) => {
-    setComparisonStates((prev) => prev.map((state) => 
-      state.id === stateId ? { ...state, ...updates } : state
-    ));
+    // If we're editing a segment, update the segment instead of the base state
+    if (activeSegmentId) {
+      setComparisonStates((prev) => prev.map((state) => {
+        if (state.id !== stateId) return state;
+        return {
+          ...state,
+          segments: (state.segments || []).map(seg => 
+            seg.id === activeSegmentId ? { ...seg, ...updates } : seg
+          ),
+        };
+      }));
+    } else {
+      setComparisonStates((prev) => prev.map((state) => 
+        state.id === stateId ? { ...state, ...updates } : state
+      ));
+    }
   };
   
   const handleAddSegment = (stateId: string, startDay: number) => {
@@ -385,13 +399,19 @@ export default function GymComparison() {
         segments: (state.segments || []).filter(seg => seg.id !== segmentId),
       };
     }));
+    // Clear active segment if it was deleted
+    if (activeSegmentId === segmentId) {
+      setActiveSegmentId(null);
+    }
   };
   
   const handleEditSegment = (segmentId: string) => {
-    // For now, just show an alert. Will implement full editing later
-    alert(`Editing segment ${segmentId} - Full UI coming soon! For now, you can remove the segment and create a new one.`);
+    setActiveSegmentId(segmentId);
   };
   
+  const handleClearSegmentSelection = () => {
+    setActiveSegmentId(null);
+  };
   
   // Helper to apply segment overrides to a base state configuration
   const applySegmentOverrides = (baseState: ComparisonState, segment: ComparisonSegment | null): Partial<ComparisonState> => {
@@ -1093,8 +1113,10 @@ export default function GymComparison() {
               canRemoveState={comparisonStates.length > 1}
               showCosts={showCosts}
               itemPricesData={itemPricesData}
+              activeSegmentId={activeSegmentId}
               onRemoveSegment={handleRemoveSegment}
               onEditSegment={handleEditSegment}
+              onClearSegmentSelection={handleClearSegmentSelection}
             />
           )}
 

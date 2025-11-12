@@ -49,6 +49,8 @@ export default function StatsChart({
 }: StatsChartProps) {
   const handleDotClick = (data: { day?: number }, series: ChartSeries) => {
     if (!onLineClick || !data || data.day === undefined) return;
+    // Only allow clicks on 7-day intervals (excluding day 0)
+    if (data.day === 0 || data.day % 7 !== 0) return;
     onLineClick(series.stateId, data.day);
   };
 
@@ -63,14 +65,21 @@ export default function StatsChart({
     const { cx, cy, series, payload } = props;
     if (!onLineClick || !cx || !cy || !series || !payload) return null;
     
+    // Only show clickable dots on 7-day intervals (excluding day 0)
+    const day = payload.day ?? 0;
+    const isClickable = day > 0 && day % 7 === 0;
+    
+    if (!isClickable) return null;
+    
     return (
       <circle
         cx={cx}
         cy={cy}
-        r={4}
-        fill="transparent"
-        stroke="transparent"
-        strokeWidth={8}
+        r={5}
+        fill={stateColorMap.get(series.stateId) || CHART_COLORS[0]}
+        fillOpacity={0.3}
+        stroke={stateColorMap.get(series.stateId) || CHART_COLORS[0]}
+        strokeWidth={2}
         style={{ cursor: 'pointer' }}
         onClick={() => handleDotClick(payload, series)}
       />
@@ -81,7 +90,7 @@ export default function StatsChart({
     <Paper sx={{ p: 2, mb: 3 }}>
       <Typography variant="h6" gutterBottom>Total Battle Stats Over Time</Typography>
       <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-        Click on any point on a line to add a time segment starting from that day
+        Click on any marked point (every 7 days) on a line to add a time segment starting from that day
       </Typography>
       <ResponsiveContainer width="100%" height={400}>
         <LineChart data={chartData}>

@@ -61,8 +61,10 @@ interface ComparisonConfigSectionProps {
   canRemoveState: boolean;
   showCosts: boolean;
   itemPricesData?: ItemPrices;
+  activeSegmentId: string | null;
   onRemoveSegment: (stateId: string, segmentId: string) => void;
   onEditSegment: (segmentId: string) => void;
+  onClearSegmentSelection: () => void;
 }
 
 export default function ComparisonConfigSection({
@@ -72,8 +74,10 @@ export default function ComparisonConfigSection({
   canRemoveState,
   showCosts,
   itemPricesData,
+  activeSegmentId,
   onRemoveSegment,
-  onEditSegment
+  onEditSegment,
+  onClearSegmentSelection
 }: ComparisonConfigSectionProps) {
   return (
     <Paper sx={{ p: 2, mb: 3 }}>
@@ -97,8 +101,10 @@ export default function ComparisonConfigSection({
         stateId={activeState.id}
         stateName={activeState.name}
         segments={activeState.segments || []}
+        activeSegmentId={activeSegmentId}
         onRemoveSegment={onRemoveSegment}
         onEditSegment={onEditSegment}
+        onClearSelection={onClearSegmentSelection}
       />
 
       <Grid container spacing={2}>
