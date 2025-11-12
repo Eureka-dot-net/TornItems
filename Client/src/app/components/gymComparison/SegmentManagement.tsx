@@ -28,8 +28,8 @@ export default function SegmentManagement({
         <Typography variant="subtitle2" gutterBottom>
           Time Segments
         </Typography>
-        <Alert severity="info" sx={{ mb: 0 }}>
-          Click on marked points (every 7 days) on the chart line to add a time segment with different settings starting from that day.
+      <Alert severity="info" sx={{ mb: 0 }}>
+          Click on marked points on the chart line to add a time segment with different settings starting from that day.
           Segments bypass the 4-comparison limit.
         </Alert>
       </Paper>

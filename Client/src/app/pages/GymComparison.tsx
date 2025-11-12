@@ -369,14 +369,12 @@ export default function GymComparison() {
   };
   
   const handleAddSegment = (stateId: string, startDay: number) => {
-    console.log('[GymComparison] ✅ handleAddSegment called!', { stateId, startDay });
     setComparisonStates((prev) => prev.map((state) => {
       if (state.id !== stateId) return state;
       
       const segments = state.segments || [];
       // Check if a segment already exists at this day
       if (segments.some(seg => seg.startDay === startDay)) {
-        console.log('[GymComparison] Segment already exists at day', startDay);
         setError(`A segment already exists at day ${startDay}`);
         return state;
       }
@@ -387,8 +385,6 @@ export default function GymComparison() {
         name: `day ${startDay}`,
         // Start with current configuration as overrides (user will edit these)
       };
-      
-      console.log('[GymComparison] Creating new segment:', newSegment);
       
       return {
         ...state,

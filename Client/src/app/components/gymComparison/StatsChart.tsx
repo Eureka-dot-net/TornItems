@@ -53,9 +53,6 @@ export default function StatsChart({
     stateColorMap.set(state.id, CHART_COLORS[index % CHART_COLORS.length]);
   });
 
-  // Log onLineClick prop at render time
-  console.log('[StatsChart] Rendering with onLineClick:', onLineClick ? 'PRESENT' : 'MISSING');
-
   // Calculate total days from chart data
   const totalDays = chartData.length > 0 ? Math.max(...chartData.map(d => d.day || 0)) : 360;
   
@@ -70,7 +67,6 @@ export default function StatsChart({
   };
   
   const dotInterval = getDotInterval();
-  console.log('[StatsChart] Total days:', totalDays, '| Dot interval:', dotInterval);
 
   // Factory function to create a custom dot component for a specific series
   // This is necessary because Recharts doesn't pass custom props to the dot component
@@ -79,39 +75,52 @@ export default function StatsChart({
       const { cx, cy, payload } = props;
       
       // Only show clickable dots at calculated intervals (excluding day 0)
+      // Skip dots for segment lines - only show on base lines
       const day = payload?.day ?? 0;
-      const isClickable = day > 0 && day % dotInterval === 0;
+      const isClickable = day > 0 && day % dotInterval === 0 && !series.isSegment;
       
       if (!onLineClick || !cx || !cy || !payload || !isClickable) {
         return <></>;
       }
       
-      const handleClick = (e: React.MouseEvent) => {
+      const handleClick = (e: React.MouseEvent | React.TouchEvent) => {
         e.stopPropagation();
         e.preventDefault();
-        console.log('[StatsChart] ✅ DOT CLICKED! Day:', day, 'State:', series.stateId, 'Interval:', dotInterval);
         onLineClick(series.stateId, day);
       };
       
+      const color = stateColorMap.get(series.stateId) || CHART_COLORS[0];
+      
       return (
-        <circle
-          cx={cx}
-          cy={cy}
-          r={10}
-          fill={stateColorMap.get(series.stateId) || CHART_COLORS[0]}
-          fillOpacity={0.6}
-          stroke={stateColorMap.get(series.stateId) || CHART_COLORS[0]}
-          strokeWidth={3}
-          style={{ 
-            cursor: 'pointer', 
-            pointerEvents: 'all',
-            zIndex: 1000
-          }}
-          onClick={handleClick}
-          onMouseDown={handleClick}
-          onPointerDown={handleClick}
-          onTouchStart={handleClick as unknown as React.TouchEventHandler}
-        />
+        <g>
+          {/* Large transparent hit area for easier clicking */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={20}
+            fill="transparent"
+            style={{ 
+              cursor: 'pointer',
+              pointerEvents: 'all',
+            }}
+            onClick={handleClick as React.MouseEventHandler}
+            onTouchStart={handleClick as React.TouchEventHandler}
+          />
+          {/* Visible dot */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={6}
+            fill={color}
+            fillOpacity={0.8}
+            stroke={color}
+            strokeWidth={2}
+            style={{ 
+              cursor: 'pointer',
+              pointerEvents: 'none', // Let the outer circle handle events
+            }}
+          />
+        </g>
       );
     };
   };
