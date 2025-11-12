@@ -67,7 +67,7 @@ export default function StatsChart({
       const isClickable = day > 0 && day % 7 === 0;
       
       if (!onLineClick || !cx || !cy || !payload || !isClickable) {
-        return null;
+        return <></>;
       }
       
       const handleClick = (e: React.MouseEvent) => {
