@@ -47,7 +47,7 @@ export default function StatsChart({
   itemPricesData,
   onLineClick
 }: StatsChartProps) {
-  const handleLineClick = (data: any, series: ChartSeries) => {
+  const handleDotClick = (data: any, series: ChartSeries) => {
     if (!onLineClick || !data || data.day === undefined) return;
     onLineClick(series.stateId, data.day);
   };
@@ -58,9 +58,31 @@ export default function StatsChart({
     stateColorMap.set(state.id, CHART_COLORS[index % CHART_COLORS.length]);
   });
 
+  // Custom dot component for clickable points
+  const CustomDot = (props: any) => {
+    const { cx, cy, series } = props;
+    if (!onLineClick) return null;
+    
+    return (
+      <circle
+        cx={cx}
+        cy={cy}
+        r={4}
+        fill="transparent"
+        stroke="transparent"
+        strokeWidth={8}
+        style={{ cursor: 'pointer' }}
+        onClick={() => handleDotClick(props.payload, series)}
+      />
+    );
+  };
+
   return (
     <Paper sx={{ p: 2, mb: 3 }}>
       <Typography variant="h6" gutterBottom>Total Battle Stats Over Time</Typography>
+      <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+        Click on any point on a line to add a time segment starting from that day
+      </Typography>
       <ResponsiveContainer width="100%" height={400}>
         <LineChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -78,9 +100,8 @@ export default function StatsChart({
                 stroke={color}
                 strokeWidth={2} 
                 strokeDasharray={series.isSegment ? "5 5" : undefined}
-                dot={false}
-                onClick={(data) => handleLineClick(data, series)}
-                style={{ cursor: onLineClick ? 'pointer' : 'default' }}
+                dot={(props: any) => <CustomDot {...props} series={series} />}
+                activeDot={onLineClick ? { r: 6, style: { cursor: 'pointer' } } : undefined}
                 connectNulls={false}
               />
             );
