@@ -14,6 +14,7 @@ import {
   simulateGymProgression,
   type SimulationInputs,
   type SimulationResult,
+  type DailySnapshot,
 } from '../../lib/utils/gymProgressionCalculator';
 import { type GymStatsResponse } from '../../lib/hooks/useGymStats';
 import { useItemPrices } from '../../lib/hooks/useItemPrices';
@@ -693,7 +694,7 @@ export default function GymComparison() {
     
     // Run simulations for each segment
     let currentStats = { ...initialStats };
-    const allSnapshots: Array<{ day: number; strength: number; speed: number; defense: number; dexterity: number }> = [];
+    const allSnapshots: DailySnapshot[] = [];
     const totalCosts = {
       edvdJumpCosts: { totalJumps: 0, costPerJump: 0, totalCost: 0 },
       xanaxCosts: { totalCost: 0 },
