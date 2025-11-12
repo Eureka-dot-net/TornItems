@@ -26,6 +26,7 @@ interface StatsChartProps {
   results: Record<string, SimulationResult>;
   showCosts: boolean;
   itemPricesData?: ItemPrices;
+  onLineClick?: (stateId: string, day: number) => void;
 }
 
 export default function StatsChart({
@@ -33,8 +34,19 @@ export default function StatsChart({
   comparisonStates,
   results,
   showCosts,
-  itemPricesData
+  itemPricesData,
+  onLineClick
 }: StatsChartProps) {
+  const handleLineClick = (data: any, stateName: string) => {
+    if (!onLineClick) return;
+    
+    // Find the state by name
+    const state = comparisonStates.find(s => s.name === stateName);
+    if (!state || !data || data.day === undefined) return;
+    
+    onLineClick(state.id, data.day);
+  };
+
   return (
     <Paper sx={{ p: 2, mb: 3 }}>
       <Typography variant="h6" gutterBottom>Total Battle Stats Over Time</Typography>
@@ -46,7 +58,16 @@ export default function StatsChart({
           <Tooltip content={<ChartTooltip comparisonStates={comparisonStates} results={results} showCosts={showCosts} itemPricesData={itemPricesData} />} />
           <Legend />
           {comparisonStates.map((state, index) => (
-            <Line key={state.id} type="monotone" dataKey={state.name} stroke={CHART_COLORS[index % CHART_COLORS.length]} strokeWidth={2} dot={false} />
+            <Line 
+              key={state.id} 
+              type="monotone" 
+              dataKey={state.name} 
+              stroke={CHART_COLORS[index % CHART_COLORS.length]} 
+              strokeWidth={2} 
+              dot={false}
+              onClick={(data) => handleLineClick(data, state.name)}
+              style={{ cursor: onLineClick ? 'pointer' : 'default' }}
+            />
           ))}
         </LineChart>
       </ResponsiveContainer>
