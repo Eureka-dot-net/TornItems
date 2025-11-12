@@ -56,15 +56,31 @@ export default function StatsChart({
   // Log onLineClick prop at render time
   console.log('[StatsChart] Rendering with onLineClick:', onLineClick ? 'PRESENT' : 'MISSING');
 
+  // Calculate total days from chart data
+  const totalDays = chartData.length > 0 ? Math.max(...chartData.map(d => d.day || 0)) : 360;
+  
+  // Determine dot interval based on duration
+  // <= 12 months (360 days): every 7 days
+  // > 12 months and <= 24 months (720 days): every 14 days
+  // > 24 months: every 21 days
+  const getDotInterval = () => {
+    if (totalDays <= 360) return 7;
+    if (totalDays <= 720) return 14;
+    return 21;
+  };
+  
+  const dotInterval = getDotInterval();
+  console.log('[StatsChart] Total days:', totalDays, '| Dot interval:', dotInterval);
+
   // Factory function to create a custom dot component for a specific series
   // This is necessary because Recharts doesn't pass custom props to the dot component
   const createCustomDot = (series: ChartSeries) => {
     return (props: { cx?: number; cy?: number; payload?: { day?: number } }) => {
       const { cx, cy, payload } = props;
       
-      // Only show clickable dots on 7-day intervals (excluding day 0)
+      // Only show clickable dots at calculated intervals (excluding day 0)
       const day = payload?.day ?? 0;
-      const isClickable = day > 0 && day % 7 === 0;
+      const isClickable = day > 0 && day % dotInterval === 0;
       
       if (!onLineClick || !cx || !cy || !payload || !isClickable) {
         return <></>;
@@ -72,7 +88,8 @@ export default function StatsChart({
       
       const handleClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        console.log('[StatsChart] ✅ DOT CLICKED! Day:', day, 'State:', series.stateId);
+        e.preventDefault();
+        console.log('[StatsChart] ✅ DOT CLICKED! Day:', day, 'State:', series.stateId, 'Interval:', dotInterval);
         onLineClick(series.stateId, day);
       };
       
@@ -80,15 +97,20 @@ export default function StatsChart({
         <circle
           cx={cx}
           cy={cy}
-          r={8}
+          r={10}
           fill={stateColorMap.get(series.stateId) || CHART_COLORS[0]}
-          fillOpacity={0.5}
+          fillOpacity={0.6}
           stroke={stateColorMap.get(series.stateId) || CHART_COLORS[0]}
-          strokeWidth={2}
-          style={{ cursor: 'pointer', pointerEvents: 'all' }}
+          strokeWidth={3}
+          style={{ 
+            cursor: 'pointer', 
+            pointerEvents: 'all',
+            zIndex: 1000
+          }}
           onClick={handleClick}
           onMouseDown={handleClick}
           onPointerDown={handleClick}
+          onTouchStart={handleClick as unknown as React.TouchEventHandler}
         />
       );
     };
@@ -99,7 +121,7 @@ export default function StatsChart({
       <Typography variant="h6" gutterBottom>Total Battle Stats Over Time</Typography>
       {onLineClick && (
         <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-          Click on any marked point (every 7 days) on a line to add a time segment starting from that day
+          Click on any marked point (every {dotInterval} days) on a line to add a time segment starting from that day
         </Typography>
       )}
       <ResponsiveContainer width="100%" height={400}>
