@@ -14,6 +14,7 @@ import {
   simulateGymProgression,
   type SimulationInputs,
   type SimulationResult,
+  type CompanyBenefit,
 } from '../../lib/utils/gymProgressionCalculator';
 import { type GymStatsResponse } from '../../lib/hooks/useGymStats';
 import { useItemPrices } from '../../lib/hooks/useItemPrices';
@@ -55,6 +56,7 @@ import ComparisonConfigSection from '../components/gymComparison/ComparisonConfi
 import ManualTestingSection from '../components/gymComparison/ManualTestingSection';
 import ResultsSection from '../components/gymComparison/ResultsSection';
 import { exportGymComparisonData, type ExportData } from '../../lib/utils/exportHelpers';
+import { type ComparisonSegment } from '../../lib/types/gymComparison';
 
 // Comparison state interface
 interface ComparisonState {
@@ -97,6 +99,7 @@ interface ComparisonState {
   candleShopStars: number;
   happy: number;
   daysSkippedPerMonth: number;
+  segments?: ComparisonSegment[]; // Time-based segments that override base config
   [key: string]: unknown;
 }
 
@@ -177,14 +180,17 @@ export default function GymComparison() {
         candleShopStars: DEFAULT_CANDLE_SHOP_STARS,
         happy: DEFAULT_HAPPY,
         daysSkippedPerMonth: 0,
+        segments: [],
       },
     ])
   );
   
   const [activeTabIndex, setActiveTabIndex] = useState<number>(0);
+  const [activeSegmentId, setActiveSegmentId] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, SimulationResult>>({});
   const [error, setError] = useState<string | null>(null);
   const [showCosts, setShowCosts] = useState<boolean>(() => loadSavedValue('showCosts', false));
+  const [enableTimeSegments, setEnableTimeSegments] = useState<boolean>(() => loadSavedValue('enableTimeSegments', false));
   const [isLoadingGymStats, setIsLoadingGymStats] = useState<boolean>(false);
   
   // Don't use the hook for auto-fetching, we'll fetch manually with the button
@@ -213,6 +219,7 @@ export default function GymComparison() {
   // Save to localStorage
   useEffect(() => { localStorage.setItem('gymComparison_mode', JSON.stringify(mode)); setResults({}); }, [mode]);
   useEffect(() => { localStorage.setItem('gymComparison_showCosts', JSON.stringify(showCosts)); }, [showCosts]);
+  useEffect(() => { localStorage.setItem('gymComparison_enableTimeSegments', JSON.stringify(enableTimeSegments)); }, [enableTimeSegments]);
   useEffect(() => { localStorage.setItem('gymComparison_manualEnergy', JSON.stringify(manualEnergy)); }, [manualEnergy]);
   useEffect(() => { localStorage.setItem('gymComparison_autoUpgradeGyms', JSON.stringify(autoUpgradeGyms)); }, [autoUpgradeGyms]);
   useEffect(() => { localStorage.setItem('gymComparison_manualHappy', JSON.stringify(manualHappy)); }, [manualHappy]);
@@ -323,6 +330,7 @@ export default function GymComparison() {
       candleShopStars: sourceState.candleShopStars,
       happy: sourceState.happy,
       daysSkippedPerMonth: sourceState.daysSkippedPerMonth,
+      segments: [], // New state starts with no segments
     };
     
     setComparisonStates([...comparisonStates, newState]);
@@ -342,9 +350,290 @@ export default function GymComparison() {
   };
   
   const updateState = (stateId: string, updates: Partial<ComparisonState>) => {
-    setComparisonStates((prev) => prev.map((state) => 
-      state.id === stateId ? { ...state, ...updates } : state
-    ));
+    // If we're editing a segment, update the segment instead of the base state
+    if (activeSegmentId) {
+      setComparisonStates((prev) => prev.map((state) => {
+        if (state.id !== stateId) return state;
+        return {
+          ...state,
+          segments: (state.segments || []).map(seg => 
+            seg.id === activeSegmentId ? { ...seg, ...updates } : seg
+          ),
+        };
+      }));
+    } else {
+      setComparisonStates((prev) => prev.map((state) => 
+        state.id === stateId ? { ...state, ...updates } : state
+      ));
+    }
+  };
+  
+  const handleAddSegment = (stateId: string, startDay: number) => {
+    setComparisonStates((prev) => prev.map((state) => {
+      if (state.id !== stateId) return state;
+      
+      const segments = state.segments || [];
+      // Check if a segment already exists at this day
+      if (segments.some(seg => seg.startDay === startDay)) {
+        setError(`A segment already exists at day ${startDay}`);
+        return state;
+      }
+      
+      const newSegment: ComparisonSegment = {
+        id: `${stateId}-seg-${Date.now()}`,
+        startDay,
+        name: `day ${startDay}`,
+        // Start with current configuration as overrides (user will edit these)
+      };
+      
+      return {
+        ...state,
+        segments: [...segments, newSegment].sort((a, b) => a.startDay - b.startDay),
+      };
+    }));
+  };
+  
+  const handleRemoveSegment = (stateId: string, segmentId: string) => {
+    setComparisonStates((prev) => prev.map((state) => {
+      if (state.id !== stateId) return state;
+      return {
+        ...state,
+        segments: (state.segments || []).filter(seg => seg.id !== segmentId),
+      };
+    }));
+    // Clear active segment if it was deleted
+    if (activeSegmentId === segmentId) {
+      setActiveSegmentId(null);
+    }
+  };
+  
+  const handleEditSegment = (segmentId: string) => {
+    setActiveSegmentId(segmentId);
+  };
+  
+  const handleClearSegmentSelection = () => {
+    setActiveSegmentId(null);
+  };
+  
+  // Helper to apply segment overrides to a base state configuration
+  const applySegmentOverrides = (baseState: ComparisonState, segment: ComparisonSegment | null): Partial<ComparisonState> => {
+    if (!segment) return baseState;
+    
+    return {
+      ...baseState,
+      ...Object.fromEntries(
+        Object.entries(segment).filter(([key]) => key !== 'id' && key !== 'startDay' && key !== 'name')
+      ),
+    };
+  };
+  
+  // Helper to simulate a state with segments
+  const simulateStateWithSegments = (state: ComparisonState, totalMonths: number): SimulationResult => {
+    const segments = (state.segments || []).sort((a, b) => a.startDay - b.startDay);
+    const totalDays = totalMonths * 30;
+    
+    // If no segments, just run a normal simulation
+    if (segments.length === 0) {
+      const benefit = getCompanyBenefit(state.companyBenefitKey, state.candleShopStars);
+      const inputs: SimulationInputs = createSimulationInputs(state, benefit, totalMonths, initialStats, currentGymIndex);
+      return simulateGymProgression(GYMS, inputs);
+    }
+    
+    // Run simulation in segments
+    let combinedResult: SimulationResult | null = null;
+    let currentStats = { ...initialStats };
+    let currentGymIdx = currentGymIndex;
+    
+    // Add segment for day 0 if first segment doesn't start at 0
+    const allSegments = segments[0]?.startDay === 0 ? segments : [
+      { id: 'base', startDay: 0, name: state.name } as ComparisonSegment,
+      ...segments
+    ];
+    
+    for (let i = 0; i < allSegments.length; i++) {
+      const segment = allSegments[i];
+      const nextSegment = allSegments[i + 1];
+      const startDay = segment.startDay;
+      const endDay = nextSegment ? nextSegment.startDay : totalDays;
+      const segmentDays = endDay - startDay;
+      const segmentMonths = segmentDays / 30;
+      
+      if (segmentMonths <= 0) continue;
+      
+      // Apply segment overrides to state
+      const configWithOverrides = segment.id === 'base' ? state : {
+        ...state,
+        ...applySegmentOverrides(state, segment)
+      } as ComparisonState;
+      
+      const benefit = getCompanyBenefit(configWithOverrides.companyBenefitKey, configWithOverrides.candleShopStars);
+      const inputs: SimulationInputs = createSimulationInputs(
+        configWithOverrides, 
+        benefit, 
+        segmentMonths, 
+        currentStats, 
+        currentGymIdx
+      );
+      
+      const segmentResult = simulateGymProgression(GYMS, inputs);
+      
+      // Update stats and gym for next segment
+      currentStats = segmentResult.finalStats;
+      // Find the gym index from the last snapshot
+      if (segmentResult.dailySnapshots.length > 0) {
+        const lastSnapshot = segmentResult.dailySnapshots[segmentResult.dailySnapshots.length - 1];
+        currentGymIdx = GYMS.findIndex(g => g.name === lastSnapshot.currentGym);
+        if (currentGymIdx === -1) currentGymIdx = 0;
+      }
+      
+      // Adjust day numbers in snapshots to account for previous segments
+      const adjustedSnapshots = segmentResult.dailySnapshots.map(snap => ({
+        ...snap,
+        day: snap.day + startDay
+      }));
+      
+      // Combine results
+      if (!combinedResult) {
+        combinedResult = {
+          ...segmentResult,
+          dailySnapshots: adjustedSnapshots,
+        };
+      } else {
+        // Merge with previous results
+        combinedResult = {
+          dailySnapshots: [...combinedResult.dailySnapshots, ...adjustedSnapshots],
+          finalStats: segmentResult.finalStats,
+          // Aggregate costs
+          edvdJumpCosts: combineCosts(combinedResult.edvdJumpCosts, segmentResult.edvdJumpCosts),
+          xanaxCosts: combineCosts(combinedResult.xanaxCosts, segmentResult.xanaxCosts),
+          pointsRefillCosts: combineCosts(combinedResult.pointsRefillCosts, segmentResult.pointsRefillCosts),
+          candyJumpCosts: combineCosts(combinedResult.candyJumpCosts, segmentResult.candyJumpCosts),
+          energyJumpCosts: combineCosts(combinedResult.energyJumpCosts, segmentResult.energyJumpCosts),
+          lossReviveIncome: combineCosts(combinedResult.lossReviveIncome, segmentResult.lossReviveIncome),
+          // Keep gains from last segment (or could aggregate)
+          edvdJumpGains: segmentResult.edvdJumpGains,
+          diabetesDayTotalGains: segmentResult.diabetesDayTotalGains,
+          diabetesDayJump1Gains: segmentResult.diabetesDayJump1Gains,
+          diabetesDayJump2Gains: segmentResult.diabetesDayJump2Gains,
+        };
+      }
+    }
+    
+    return combinedResult || {
+      dailySnapshots: [],
+      finalStats: initialStats,
+    };
+  };
+  
+  // Helper to combine cost objects
+  const combineCosts = <T extends { totalCost?: number; totalIncome?: number; totalJumps?: number; totalDays?: number }>(
+    cost1: T | undefined, 
+    cost2: T | undefined
+  ): T | undefined => {
+    if (!cost1 && !cost2) return undefined;
+    if (!cost1) return cost2;
+    if (!cost2) return cost1;
+    
+    const combined = { ...cost1 } as T;
+    if (cost2.totalCost !== undefined) {
+      combined.totalCost = (cost1.totalCost || 0) + cost2.totalCost;
+    }
+    if (cost2.totalIncome !== undefined) {
+      combined.totalIncome = (cost1.totalIncome || 0) + cost2.totalIncome;
+    }
+    if (cost2.totalJumps !== undefined) {
+      combined.totalJumps = (cost1.totalJumps || 0) + cost2.totalJumps;
+    }
+    if (cost2.totalDays !== undefined) {
+      combined.totalDays = (cost1.totalDays || 0) + cost2.totalDays;
+    }
+    return combined;
+  };
+  
+  // Helper to create simulation inputs from a comparison state
+  const createSimulationInputs = (
+    state: ComparisonState, 
+    benefit: CompanyBenefit, 
+    monthsDuration: number,
+    stats: typeof initialStats,
+    gymIndex: number
+  ): SimulationInputs => {
+    return {
+      statWeights: state.statWeights,
+      months: monthsDuration,
+      xanaxPerDay: state.xanaxPerDay,
+      hasPointsRefill: state.hasPointsRefill,
+      hoursPlayedPerDay: state.hoursPlayedPerDay,
+      maxEnergy: state.maxEnergy,
+      companyBenefit: benefit,
+      apiKey,
+      initialStats: stats,
+      happy: state.happy, 
+      perkPercs: state.perkPercs,
+      currentGymIndex: gymIndex,
+      lockGym: false,
+      edvdJump: state.edvdJumpEnabled ? {
+        enabled: true,
+        frequencyDays: state.edvdJumpFrequency,
+        dvdsUsed: state.edvdJumpDvds,
+        limit: state.edvdJumpLimit,
+        count: state.edvdJumpCount,
+        statTarget: state.edvdJumpStatTarget,
+        adultNovelties: state.edvdJumpAdultNovelties,
+      } : undefined,
+      diabetesDay: state.diabetesDayEnabled ? {
+        enabled: true,
+        numberOfJumps: state.diabetesDayNumberOfJumps,
+        featheryHotelCoupon: state.diabetesDayFHC,
+        greenEgg: state.diabetesDayGreenEgg,
+        seasonalMail: state.diabetesDaySeasonalMail,
+        logoEnergyClick: state.diabetesDayLogoClick,
+      } : undefined,
+      candyJump: state.candyJumpEnabled ? {
+        enabled: true,
+        itemId: state.candyJumpItemId,
+        useEcstasy: state.candyJumpUseEcstasy,
+        quantity: state.candyJumpQuantity,
+        factionBenefitPercent: state.candyJumpFactionBenefit,
+      } : undefined,
+      energyJump: state.energyJumpEnabled ? {
+        enabled: true,
+        itemId: state.energyJumpItemId,
+        quantity: state.energyJumpQuantity,
+        factionBenefitPercent: state.energyJumpFactionBenefit,
+      } : undefined,
+      lossRevive: state.lossReviveEnabled ? {
+        enabled: true,
+        numberPerDay: state.lossReviveNumberPerDay,
+        energyCost: state.lossReviveEnergyCost,
+        daysBetween: state.lossReviveDaysBetween,
+        pricePerLoss: state.lossRevivePricePerLoss,
+      } : undefined,
+      daysSkippedPerMonth: state.daysSkippedPerMonth,
+      itemPrices: (showCosts && itemPricesData) ? {
+        dvdPrice: itemPricesData.prices[366],
+        xanaxPrice: itemPricesData.prices[206],
+        ecstasyPrice: itemPricesData.prices[196],
+        candyEcstasyPrice: itemPricesData.prices[197],
+        pointsPrice: itemPricesData.prices[0],
+        candyPrices: {
+          310: itemPricesData.prices[310],
+          36: itemPricesData.prices[36],
+          528: itemPricesData.prices[528],
+          529: itemPricesData.prices[529],
+          151: itemPricesData.prices[151],
+        },
+        energyPrices: {
+          985: itemPricesData.prices[985],
+          986: itemPricesData.prices[986],
+          987: itemPricesData.prices[987],
+          530: itemPricesData.prices[530],
+          532: itemPricesData.prices[532],
+          533: itemPricesData.prices[533],
+          367: itemPricesData.prices[367],
+        },
+      } : undefined,
+    };
   };
   
   const handleSimulate = () => {
@@ -375,86 +664,8 @@ export default function GymComparison() {
         const newResults: Record<string, SimulationResult> = {};
         
         for (const state of comparisonStates) {
-          const benefit = getCompanyBenefit(state.companyBenefitKey, state.candleShopStars);
-          
-          const inputs: SimulationInputs = {
-            statWeights: state.statWeights,
-            months,
-            xanaxPerDay: state.xanaxPerDay,
-            hasPointsRefill: state.hasPointsRefill,
-            hoursPlayedPerDay: state.hoursPlayedPerDay,
-            maxEnergy: state.maxEnergy,
-            companyBenefit: benefit,
-            apiKey,
-            initialStats,
-            happy: state.happy, 
-            perkPercs: state.perkPercs,
-            currentGymIndex: currentGymIndex, // Start from current/selected gym and auto-upgrade
-            lockGym: false, // Always use auto-upgrade in future mode to allow unlock speed multiplier to work
-            edvdJump: state.edvdJumpEnabled ? {
-              enabled: true,
-              frequencyDays: state.edvdJumpFrequency,
-              dvdsUsed: state.edvdJumpDvds,
-              limit: state.edvdJumpLimit,
-              count: state.edvdJumpCount,
-              statTarget: state.edvdJumpStatTarget,
-              adultNovelties: state.edvdJumpAdultNovelties,
-            } : undefined,
-            diabetesDay: state.diabetesDayEnabled ? {
-              enabled: true,
-              numberOfJumps: state.diabetesDayNumberOfJumps,
-              featheryHotelCoupon: state.diabetesDayFHC,
-              greenEgg: state.diabetesDayGreenEgg,
-              seasonalMail: state.diabetesDaySeasonalMail,
-              logoEnergyClick: state.diabetesDayLogoClick,
-            } : undefined,
-            candyJump: state.candyJumpEnabled ? {
-              enabled: true,
-              itemId: state.candyJumpItemId,
-              useEcstasy: state.candyJumpUseEcstasy,
-              quantity: state.candyJumpQuantity,
-              factionBenefitPercent: state.candyJumpFactionBenefit,
-            } : undefined,
-            energyJump: state.energyJumpEnabled ? {
-              enabled: true,
-              itemId: state.energyJumpItemId,
-              quantity: state.energyJumpQuantity,
-              factionBenefitPercent: state.energyJumpFactionBenefit,
-            } : undefined,
-            lossRevive: state.lossReviveEnabled ? {
-              enabled: true,
-              numberPerDay: state.lossReviveNumberPerDay,
-              energyCost: state.lossReviveEnergyCost,
-              daysBetween: state.lossReviveDaysBetween,
-              pricePerLoss: state.lossRevivePricePerLoss,
-            } : undefined,
-            daysSkippedPerMonth: state.daysSkippedPerMonth,
-            itemPrices: (showCosts && itemPricesData) ? {
-              dvdPrice: itemPricesData.prices[366],
-              xanaxPrice: itemPricesData.prices[206],
-              ecstasyPrice: itemPricesData.prices[196],
-              candyEcstasyPrice: itemPricesData.prices[197],
-              pointsPrice: itemPricesData.prices[0], // Points market price
-              candyPrices: {
-                310: itemPricesData.prices[310],
-                36: itemPricesData.prices[36],
-                528: itemPricesData.prices[528],
-                529: itemPricesData.prices[529],
-                151: itemPricesData.prices[151],
-              },
-              energyPrices: {
-                985: itemPricesData.prices[985],
-                986: itemPricesData.prices[986],
-                987: itemPricesData.prices[987],
-                530: itemPricesData.prices[530],
-                532: itemPricesData.prices[532],
-                533: itemPricesData.prices[533],
-                367: itemPricesData.prices[367],
-              },
-            } : undefined,
-          };
-          
-          const result = simulateGymProgression(GYMS, inputs);
+          // Use the new segment-aware simulation
+          const result = simulateStateWithSegments(state, months);
           newResults[state.id] = result;
         }
         
@@ -465,12 +676,14 @@ export default function GymComparison() {
     }
   };
   
-  // Custom chart data preparation
+  // Custom chart data preparation with segment support
   const chartData = mode === 'future' && Object.keys(results).length > 0 ? 
     (() => {
       // Add day 0 with initial stats
       const initialTotal = initialStats.strength + initialStats.speed + initialStats.defense + initialStats.dexterity;
       const day0: Record<string, number> = { day: 0 };
+      
+      // Each state gets a single series name, regardless of segments
       for (const state of comparisonStates) {
         day0[state.name] = initialTotal;
       }
@@ -482,13 +695,15 @@ export default function GymComparison() {
         };
         
         for (const state of comparisonStates) {
-          if (results[state.id] && results[state.id].dailySnapshots[index]) {
-            const snapshot = results[state.id].dailySnapshots[index];
-            if (snapshot && snapshot.strength !== undefined) {
-              const totalStats = snapshot.strength + snapshot.speed + snapshot.defense + snapshot.dexterity;
-              dataPoint[state.name] = totalStats;
-            }
-          }
+          if (!results[state.id] || !results[state.id].dailySnapshots[index]) continue;
+          
+          const snapshot = results[state.id].dailySnapshots[index];
+          if (!snapshot || snapshot.strength === undefined) continue;
+          
+          const totalStats = snapshot.strength + snapshot.speed + snapshot.defense + snapshot.dexterity;
+          
+          // Always use the base state name - segments don't create separate lines
+          dataPoint[state.name] = totalStats;
         }
         
         return dataPoint;
@@ -496,6 +711,13 @@ export default function GymComparison() {
       
       return [day0, ...restOfDays];
     })() : [];
+  
+  // Prepare series for chart rendering - one series per state (segments don't create separate visual lines)
+  const chartSeries = mode === 'future' ? comparisonStates.map((state) => ({
+    id: state.id,
+    name: state.name,
+    stateId: state.id,
+  })) : [];
   
   const activeState = comparisonStates[activeTabIndex];
   
@@ -785,10 +1007,14 @@ export default function GymComparison() {
               Export Data
             </Button>
           )}
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <FormControlLabel 
               control={<Switch checked={showCosts} onChange={(e) => setShowCosts(e.target.checked)} />} 
               label="Include Cost Estimates" 
+            />
+            <FormControlLabel 
+              control={<Switch checked={enableTimeSegments} onChange={(e) => setEnableTimeSegments(e.target.checked)} />} 
+              label="Enable Time Segments (Advanced)" 
             />
           </Box>
         </Box>
@@ -827,6 +1053,11 @@ export default function GymComparison() {
               canRemoveState={comparisonStates.length > 1}
               showCosts={showCosts}
               itemPricesData={itemPricesData}
+              enableTimeSegments={enableTimeSegments}
+              activeSegmentId={activeSegmentId}
+              onRemoveSegment={handleRemoveSegment}
+              onEditSegment={handleEditSegment}
+              onClearSegmentSelection={handleClearSegmentSelection}
             />
           )}
 
@@ -834,12 +1065,14 @@ export default function GymComparison() {
           {Object.keys(results).length > 0 && (
             <ResultsSection
               chartData={chartData}
+              chartSeries={chartSeries}
               comparisonStates={comparisonStates}
               results={results}
               initialStats={initialStats}
               months={months}
               showCosts={showCosts}
               itemPricesData={itemPricesData}
+              onLineClick={enableTimeSegments ? handleAddSegment : undefined}
             />
           )}
 

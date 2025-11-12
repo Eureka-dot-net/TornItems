@@ -15,6 +15,14 @@ interface ComparisonState {
   [key: string]: unknown;
 }
 
+interface ChartSeries {
+  id: string;
+  name: string;
+  stateId: string;
+  segmentId?: string;
+  isSegment?: boolean;
+}
+
 interface Stats {
   strength: number;
   speed: number;
@@ -24,22 +32,26 @@ interface Stats {
 
 interface ResultsSectionProps {
   chartData: Array<Record<string, number>>;
+  chartSeries: ChartSeries[];
   comparisonStates: ComparisonState[];
   results: Record<string, SimulationResult>;
   initialStats: Stats;
   months: number;
   showCosts: boolean;
   itemPricesData?: ItemPrices;
+  onLineClick?: (stateId: string, day: number) => void;
 }
 
 export default function ResultsSection({
   chartData,
+  chartSeries,
   comparisonStates,
   results,
   initialStats,
   months,
   showCosts,
-  itemPricesData
+  itemPricesData,
+  onLineClick
 }: ResultsSectionProps) {
   const hasCostEstimate = showCosts && itemPricesData;
   const hasDDEstimate = comparisonStates.some(state => state.diabetesDayEnabled);
@@ -51,10 +63,12 @@ export default function ResultsSection({
       <>
         <StatsChart
           chartData={chartData}
+          chartSeries={chartSeries}
           comparisonStates={comparisonStates}
           results={results}
           showCosts={showCosts}
           itemPricesData={itemPricesData}
+          onLineClick={onLineClick}
         />
 
         <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -101,10 +115,12 @@ export default function ResultsSection({
           <Grid size={{ xs: 12, lg: 8 }}>
             <StatsChart
               chartData={chartData}
+              chartSeries={chartSeries}
               comparisonStates={comparisonStates}
               results={results}
               showCosts={showCosts}
               itemPricesData={itemPricesData}
+              onLineClick={onLineClick}
             />
           </Grid>
 
