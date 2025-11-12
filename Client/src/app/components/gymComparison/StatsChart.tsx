@@ -47,51 +47,61 @@ export default function StatsChart({
   itemPricesData,
   onLineClick
 }: StatsChartProps) {
-  const handleDotClick = (data: { day?: number }, series: ChartSeries) => {
-    if (!onLineClick || !data || data.day === undefined) return;
-    // Only allow clicks on 7-day intervals (excluding day 0)
-    if (data.day === 0 || data.day % 7 !== 0) return;
-    onLineClick(series.stateId, data.day);
-  };
-
   // Create a color map based on state index
   const stateColorMap = new Map<string, string>();
   comparisonStates.forEach((state, index) => {
     stateColorMap.set(state.id, CHART_COLORS[index % CHART_COLORS.length]);
   });
 
-  // Custom dot component for clickable points
-  const CustomDot = (props: { cx?: number; cy?: number; payload?: { day?: number }; series?: ChartSeries }) => {
-    const { cx, cy, series, payload } = props;
-    if (!onLineClick || !cx || !cy || !series || !payload) return null;
-    
-    // Only show clickable dots on 7-day intervals (excluding day 0)
-    const day = payload.day ?? 0;
-    const isClickable = day > 0 && day % 7 === 0;
-    
-    if (!isClickable) return null;
-    
-    return (
-      <circle
-        cx={cx}
-        cy={cy}
-        r={5}
-        fill={stateColorMap.get(series.stateId) || CHART_COLORS[0]}
-        fillOpacity={0.3}
-        stroke={stateColorMap.get(series.stateId) || CHART_COLORS[0]}
-        strokeWidth={2}
-        style={{ cursor: 'pointer' }}
-        onClick={() => handleDotClick(payload, series)}
-      />
-    );
+  // Log onLineClick prop at render time
+  console.log('[StatsChart] Rendering with onLineClick:', onLineClick ? 'PRESENT' : 'MISSING');
+
+  // Factory function to create a custom dot component for a specific series
+  // This is necessary because Recharts doesn't pass custom props to the dot component
+  const createCustomDot = (series: ChartSeries) => {
+    return (props: { cx?: number; cy?: number; payload?: { day?: number } }) => {
+      const { cx, cy, payload } = props;
+      
+      // Only show clickable dots on 7-day intervals (excluding day 0)
+      const day = payload?.day ?? 0;
+      const isClickable = day > 0 && day % 7 === 0;
+      
+      if (!onLineClick || !cx || !cy || !payload || !isClickable) {
+        return null;
+      }
+      
+      const handleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        console.log('[StatsChart] ✅ DOT CLICKED! Day:', day, 'State:', series.stateId);
+        onLineClick(series.stateId, day);
+      };
+      
+      return (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={8}
+          fill={stateColorMap.get(series.stateId) || CHART_COLORS[0]}
+          fillOpacity={0.5}
+          stroke={stateColorMap.get(series.stateId) || CHART_COLORS[0]}
+          strokeWidth={2}
+          style={{ cursor: 'pointer', pointerEvents: 'all' }}
+          onClick={handleClick}
+          onMouseDown={handleClick}
+          onPointerDown={handleClick}
+        />
+      );
+    };
   };
 
   return (
     <Paper sx={{ p: 2, mb: 3 }}>
       <Typography variant="h6" gutterBottom>Total Battle Stats Over Time</Typography>
-      <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-        Click on any marked point (every 7 days) on a line to add a time segment starting from that day
-      </Typography>
+      {onLineClick && (
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+          Click on any marked point (every 7 days) on a line to add a time segment starting from that day
+        </Typography>
+      )}
       <ResponsiveContainer width="100%" height={400}>
         <LineChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -101,6 +111,7 @@ export default function StatsChart({
           <Legend />
           {chartSeries.map((series) => {
             const color = stateColorMap.get(series.stateId) || CHART_COLORS[0];
+            const CustomDot = createCustomDot(series);
             return (
               <Line 
                 key={series.id} 
@@ -109,9 +120,7 @@ export default function StatsChart({
                 stroke={color}
                 strokeWidth={2} 
                 strokeDasharray={series.isSegment ? "5 5" : undefined}
-                dot={(dotProps: { cx?: number; cy?: number; payload?: { day?: number } }) => 
-                  <CustomDot {...dotProps} series={series} />
-                }
+                dot={CustomDot}
                 activeDot={onLineClick ? { r: 6, style: { cursor: 'pointer' } } : undefined}
                 connectNulls={false}
               />

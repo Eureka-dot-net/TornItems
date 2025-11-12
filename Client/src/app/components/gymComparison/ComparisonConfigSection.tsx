@@ -61,6 +61,7 @@ interface ComparisonConfigSectionProps {
   canRemoveState: boolean;
   showCosts: boolean;
   itemPricesData?: ItemPrices;
+  enableTimeSegments: boolean;
   activeSegmentId: string | null;
   onRemoveSegment: (stateId: string, segmentId: string) => void;
   onEditSegment: (segmentId: string) => void;
@@ -74,6 +75,7 @@ export default function ComparisonConfigSection({
   canRemoveState,
   showCosts,
   itemPricesData,
+  enableTimeSegments,
   activeSegmentId,
   onRemoveSegment,
   onEditSegment,
@@ -96,16 +98,18 @@ export default function ComparisonConfigSection({
         )}
       </Box>
 
-      {/* Segment Management */}
-      <SegmentManagement
-        stateId={activeState.id}
-        stateName={activeState.name}
-        segments={activeState.segments || []}
-        activeSegmentId={activeSegmentId}
-        onRemoveSegment={onRemoveSegment}
-        onEditSegment={onEditSegment}
-        onClearSelection={onClearSegmentSelection}
-      />
+      {/* Segment Management - Only show when time segments are enabled */}
+      {enableTimeSegments && (
+        <SegmentManagement
+          stateId={activeState.id}
+          stateName={activeState.name}
+          segments={activeState.segments || []}
+          activeSegmentId={activeSegmentId}
+          onRemoveSegment={onRemoveSegment}
+          onEditSegment={onEditSegment}
+          onClearSelection={onClearSegmentSelection}
+        />
+      )}
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 3 }}>

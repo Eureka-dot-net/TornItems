@@ -190,6 +190,7 @@ export default function GymComparison() {
   const [results, setResults] = useState<Record<string, SimulationResult>>({});
   const [error, setError] = useState<string | null>(null);
   const [showCosts, setShowCosts] = useState<boolean>(() => loadSavedValue('showCosts', false));
+  const [enableTimeSegments, setEnableTimeSegments] = useState<boolean>(() => loadSavedValue('enableTimeSegments', false));
   const [isLoadingGymStats, setIsLoadingGymStats] = useState<boolean>(false);
   
   // Don't use the hook for auto-fetching, we'll fetch manually with the button
@@ -218,6 +219,7 @@ export default function GymComparison() {
   // Save to localStorage
   useEffect(() => { localStorage.setItem('gymComparison_mode', JSON.stringify(mode)); setResults({}); }, [mode]);
   useEffect(() => { localStorage.setItem('gymComparison_showCosts', JSON.stringify(showCosts)); }, [showCosts]);
+  useEffect(() => { localStorage.setItem('gymComparison_enableTimeSegments', JSON.stringify(enableTimeSegments)); }, [enableTimeSegments]);
   useEffect(() => { localStorage.setItem('gymComparison_manualEnergy', JSON.stringify(manualEnergy)); }, [manualEnergy]);
   useEffect(() => { localStorage.setItem('gymComparison_autoUpgradeGyms', JSON.stringify(autoUpgradeGyms)); }, [autoUpgradeGyms]);
   useEffect(() => { localStorage.setItem('gymComparison_manualHappy', JSON.stringify(manualHappy)); }, [manualHappy]);
@@ -367,12 +369,14 @@ export default function GymComparison() {
   };
   
   const handleAddSegment = (stateId: string, startDay: number) => {
+    console.log('[GymComparison] ✅ handleAddSegment called!', { stateId, startDay });
     setComparisonStates((prev) => prev.map((state) => {
       if (state.id !== stateId) return state;
       
       const segments = state.segments || [];
       // Check if a segment already exists at this day
       if (segments.some(seg => seg.startDay === startDay)) {
+        console.log('[GymComparison] Segment already exists at day', startDay);
         setError(`A segment already exists at day ${startDay}`);
         return state;
       }
@@ -383,6 +387,8 @@ export default function GymComparison() {
         name: `day ${startDay}`,
         // Start with current configuration as overrides (user will edit these)
       };
+      
+      console.log('[GymComparison] Creating new segment:', newSegment);
       
       return {
         ...state,
@@ -1071,10 +1077,14 @@ export default function GymComparison() {
               Export Data
             </Button>
           )}
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <FormControlLabel 
               control={<Switch checked={showCosts} onChange={(e) => setShowCosts(e.target.checked)} />} 
               label="Include Cost Estimates" 
+            />
+            <FormControlLabel 
+              control={<Switch checked={enableTimeSegments} onChange={(e) => setEnableTimeSegments(e.target.checked)} />} 
+              label="Enable Time Segments (Advanced)" 
             />
           </Box>
         </Box>
@@ -1113,6 +1123,7 @@ export default function GymComparison() {
               canRemoveState={comparisonStates.length > 1}
               showCosts={showCosts}
               itemPricesData={itemPricesData}
+              enableTimeSegments={enableTimeSegments}
               activeSegmentId={activeSegmentId}
               onRemoveSegment={handleRemoveSegment}
               onEditSegment={handleEditSegment}
@@ -1131,7 +1142,7 @@ export default function GymComparison() {
               months={months}
               showCosts={showCosts}
               itemPricesData={itemPricesData}
-              onLineClick={handleAddSegment}
+              onLineClick={enableTimeSegments ? handleAddSegment : undefined}
             />
           )}
 
