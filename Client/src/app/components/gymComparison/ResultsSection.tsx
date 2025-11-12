@@ -15,6 +15,14 @@ interface ComparisonState {
   [key: string]: unknown;
 }
 
+interface ChartSeries {
+  id: string;
+  name: string;
+  stateId: string;
+  segmentId?: string;
+  isSegment?: boolean;
+}
+
 interface Stats {
   strength: number;
   speed: number;
@@ -24,6 +32,7 @@ interface Stats {
 
 interface ResultsSectionProps {
   chartData: Array<Record<string, number>>;
+  chartSeries: ChartSeries[];
   comparisonStates: ComparisonState[];
   results: Record<string, SimulationResult>;
   initialStats: Stats;
@@ -35,6 +44,7 @@ interface ResultsSectionProps {
 
 export default function ResultsSection({
   chartData,
+  chartSeries,
   comparisonStates,
   results,
   initialStats,
@@ -53,6 +63,7 @@ export default function ResultsSection({
       <>
         <StatsChart
           chartData={chartData}
+          chartSeries={chartSeries}
           comparisonStates={comparisonStates}
           results={results}
           showCosts={showCosts}
@@ -104,6 +115,7 @@ export default function ResultsSection({
           <Grid size={{ xs: 12, lg: 8 }}>
             <StatsChart
               chartData={chartData}
+              chartSeries={chartSeries}
               comparisonStates={comparisonStates}
               results={results}
               showCosts={showCosts}

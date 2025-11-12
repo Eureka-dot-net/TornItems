@@ -20,8 +20,17 @@ interface ComparisonState {
   [key: string]: unknown;
 }
 
+interface ChartSeries {
+  id: string;
+  name: string;
+  stateId: string;
+  segmentId?: string;
+  isSegment?: boolean;
+}
+
 interface StatsChartProps {
   chartData: Array<Record<string, number>>;
+  chartSeries: ChartSeries[];
   comparisonStates: ComparisonState[];
   results: Record<string, SimulationResult>;
   showCosts: boolean;
@@ -31,21 +40,23 @@ interface StatsChartProps {
 
 export default function StatsChart({
   chartData,
+  chartSeries,
   comparisonStates,
   results,
   showCosts,
   itemPricesData,
   onLineClick
 }: StatsChartProps) {
-  const handleLineClick = (data: any, stateName: string) => {
-    if (!onLineClick) return;
-    
-    // Find the state by name
-    const state = comparisonStates.find(s => s.name === stateName);
-    if (!state || !data || data.day === undefined) return;
-    
-    onLineClick(state.id, data.day);
+  const handleLineClick = (data: any, series: ChartSeries) => {
+    if (!onLineClick || !data || data.day === undefined) return;
+    onLineClick(series.stateId, data.day);
   };
+
+  // Create a color map based on state index
+  const stateColorMap = new Map<string, string>();
+  comparisonStates.forEach((state, index) => {
+    stateColorMap.set(state.id, CHART_COLORS[index % CHART_COLORS.length]);
+  });
 
   return (
     <Paper sx={{ p: 2, mb: 3 }}>
@@ -57,18 +68,23 @@ export default function StatsChart({
           <YAxis label={{ value: 'Total Stats', angle: -90, position: 'insideLeft' }} />
           <Tooltip content={<ChartTooltip comparisonStates={comparisonStates} results={results} showCosts={showCosts} itemPricesData={itemPricesData} />} />
           <Legend />
-          {comparisonStates.map((state, index) => (
-            <Line 
-              key={state.id} 
-              type="monotone" 
-              dataKey={state.name} 
-              stroke={CHART_COLORS[index % CHART_COLORS.length]} 
-              strokeWidth={2} 
-              dot={false}
-              onClick={(data) => handleLineClick(data, state.name)}
-              style={{ cursor: onLineClick ? 'pointer' : 'default' }}
-            />
-          ))}
+          {chartSeries.map((series) => {
+            const color = stateColorMap.get(series.stateId) || CHART_COLORS[0];
+            return (
+              <Line 
+                key={series.id} 
+                type="monotone" 
+                dataKey={series.name} 
+                stroke={color}
+                strokeWidth={2} 
+                strokeDasharray={series.isSegment ? "5 5" : undefined}
+                dot={false}
+                onClick={(data) => handleLineClick(data, series)}
+                style={{ cursor: onLineClick ? 'pointer' : 'default' }}
+                connectNulls={false}
+              />
+            );
+          })}
         </LineChart>
       </ResponsiveContainer>
     </Paper>
