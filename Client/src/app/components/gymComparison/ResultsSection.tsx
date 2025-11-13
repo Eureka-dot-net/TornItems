@@ -94,8 +94,7 @@ export default function ResultsSection({
             >
               <Box>
                 <strong>Note:</strong> Training with stat drift can cause short-term stat imbalance.
-                This makes early-game curves look much stronger than they really are.
-                Over the long run the benefit is modest — try viewing the 24-month comparison for a realistic picture.
+                This makes early-game curves look much stronger than they really are — try viewing the 24-month comparison for a realistic picture.
               </Box>
             </Alert>
           </Collapse>
@@ -168,8 +167,7 @@ export default function ResultsSection({
             >
               <Box>
                 <strong>Note:</strong> Training with stat drift can cause short-term stat imbalance.
-                This makes early-game curves look much stronger than they really are.
-                Over the long run the benefit is modest — try viewing the 24-month comparison for a realistic picture.
+                This makes early-game curves look much stronger than they really are — try viewing the 24-month comparison for a realistic picture.
               </Box>
             </Alert>
           </Collapse>

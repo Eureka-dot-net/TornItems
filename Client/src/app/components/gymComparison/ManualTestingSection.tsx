@@ -154,8 +154,8 @@ export default function ManualTestingSection({
           
           {/* Stat Drift Configuration */}
           <Box sx={{ mb: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-              <Typography variant="caption" color="text.secondary">
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
                 Stat Drift
               </Typography>
               <Tooltip 
@@ -175,45 +175,47 @@ export default function ManualTestingSection({
                 placement="top"
                 arrow
               >
-                <IconButton size="small" sx={{ p: 0, ml: 0.5 }}>
+                <IconButton size="small" sx={{ p: 0 }}>
                   <HelpOutlineIcon sx={{ fontSize: '1rem' }} />
                 </IconButton>
               </Tooltip>
+              <FormControl size="small" sx={{ flexGrow: 1 }}>
+                <Select
+                  value={
+                    manualStatDriftPercent === 0 ? '0' :
+                    manualStatDriftPercent === 25 ? '25' :
+                    manualStatDriftPercent === 50 ? '50' :
+                    manualStatDriftPercent === 75 ? '75' :
+                    manualStatDriftPercent === 100 ? '100' : '0'
+                  }
+                  onChange={(e) => setManualStatDriftPercent(Number(e.target.value))}
+                  sx={{ fontSize: '0.875rem' }}
+                >
+                  <MenuItem value="0">No stat drift</MenuItem>
+                  <MenuItem value="25">25%</MenuItem>
+                  <MenuItem value="50">50%</MenuItem>
+                  <MenuItem value="75">75%</MenuItem>
+                  <MenuItem value="100">No limits</MenuItem>
+                </Select>
+              </FormControl>
             </Box>
-            <FormControl fullWidth size="small">
-              <Select
-                value={
-                  manualStatDriftPercent === 0 ? '0' :
-                  manualStatDriftPercent === 25 ? '25' :
-                  manualStatDriftPercent === 50 ? '50' :
-                  manualStatDriftPercent === 75 ? '75' :
-                  manualStatDriftPercent === 100 ? '100' : '0'
+            {manualStatDriftPercent > 0 && (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={manualBalanceAfterGeorges}
+                    onChange={(e) => setManualBalanceAfterGeorges(e.target.checked)}
+                    size="small"
+                  />
                 }
-                onChange={(e) => setManualStatDriftPercent(Number(e.target.value))}
-                sx={{ fontSize: '0.875rem' }}
-              >
-                <MenuItem value="0">No stat drift</MenuItem>
-                <MenuItem value="25">25%</MenuItem>
-                <MenuItem value="50">50%</MenuItem>
-                <MenuItem value="75">75%</MenuItem>
-                <MenuItem value="100">No limits</MenuItem>
-              </Select>
-            </FormControl>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={manualBalanceAfterGeorges}
-                  onChange={(e) => setManualBalanceAfterGeorges(e.target.checked)}
-                  size="small"
-                />
-              }
-              label={
-                <Typography variant="caption">
-                  Revert to balanced after George's gym
+                label={
+                  <Typography variant="caption">
+                    Revert to balanced after George's gym
                 </Typography>
               }
               sx={{ mt: 0.5 }}
             />
+            )}
           </Box>
           
           <TextField label="Str" type="number" value={manualStatWeights.strength ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />

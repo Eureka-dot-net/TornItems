@@ -64,8 +64,8 @@ export default function StatWeightsSection({
       {/* Stat Drift Configuration */}
       {onDriftUpdate && (
         <Box sx={{ mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-            <Typography variant="caption" color="text.secondary">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
               Stat Drift
             </Typography>
             <Tooltip 
@@ -85,25 +85,25 @@ export default function StatWeightsSection({
               placement="top"
               arrow
             >
-              <IconButton size="small" sx={{ p: 0, ml: 0.5 }}>
+              <IconButton size="small" sx={{ p: 0 }}>
                 <HelpOutlineIcon sx={{ fontSize: '1rem' }} />
               </IconButton>
             </Tooltip>
+            <FormControl size="small" sx={{ flexGrow: 1 }}>
+              <Select
+                value={getDriftDisplayValue()}
+                onChange={(e) => onDriftUpdate(Number(e.target.value))}
+                sx={{ fontSize: '0.875rem' }}
+              >
+                <MenuItem value="0">No stat drift</MenuItem>
+                <MenuItem value="25">25%</MenuItem>
+                <MenuItem value="50">50%</MenuItem>
+                <MenuItem value="75">75%</MenuItem>
+                <MenuItem value="100">No limits</MenuItem>
+              </Select>
+            </FormControl>
           </Box>
-          <FormControl fullWidth size="small">
-            <Select
-              value={getDriftDisplayValue()}
-              onChange={(e) => onDriftUpdate(Number(e.target.value))}
-              sx={{ fontSize: '0.875rem' }}
-            >
-              <MenuItem value="0">No stat drift</MenuItem>
-              <MenuItem value="25">25%</MenuItem>
-              <MenuItem value="50">50%</MenuItem>
-              <MenuItem value="75">75%</MenuItem>
-              <MenuItem value="100">No limits</MenuItem>
-            </Select>
-          </FormControl>
-          {onBalanceAfterGeorgesUpdate && (
+          {onBalanceAfterGeorgesUpdate && (statDriftPercent ?? 0) > 0 && (
             <FormControlLabel
               control={
                 <Checkbox
