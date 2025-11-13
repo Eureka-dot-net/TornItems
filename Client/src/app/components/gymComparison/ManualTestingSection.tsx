@@ -156,19 +156,19 @@ export default function ManualTestingSection({
           <Box sx={{ mb: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
               <Typography variant="caption" color="text.secondary">
-                Stat Drift %
+                Stat Drift
               </Typography>
               <Tooltip 
                 title={
                   <Box>
                     <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>0% drift:</strong> Always maintain exact ratio balance (e.g., 1:1:1:1).
+                      <strong>No stat drift:</strong> Always maintain exact ratio balance (e.g., 1:1:1:1).
                     </Typography>
                     <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>5-50% drift:</strong> Allow small flexibility to train stats with better gains while staying relatively balanced.
+                      <strong>25%-75%:</strong> Allow flexibility to train stats with better gains while staying relatively balanced.
                     </Typography>
                     <Typography variant="body2">
-                      <strong>100% drift:</strong> Pure "train best stat" behavior. Train the stat with the highest actual gain (considering perks) until George's gym unlocks.
+                      <strong>No limits:</strong> Pure "train best stat" behavior. Train the stat with the highest actual gain (considering perks) until George's gym unlocks.
                     </Typography>
                   </Box>
                 }
@@ -180,18 +180,25 @@ export default function ManualTestingSection({
                 </IconButton>
               </Tooltip>
             </Box>
-            <TextField
-              type="number"
-              value={manualStatDriftPercent}
-              onChange={(e) => {
-                const value = e.target.value === '' ? 0 : Number(e.target.value);
-                setManualStatDriftPercent(Math.max(0, Math.min(100, value)));
-              }}
-              size="small"
-              fullWidth
-              inputProps={{ step: 1, min: 0, max: 100 }}
-              helperText={`${manualStatDriftPercent}% drift allowed from target ratios`}
-            />
+            <FormControl fullWidth size="small">
+              <Select
+                value={
+                  manualStatDriftPercent === 0 ? '0' :
+                  manualStatDriftPercent === 25 ? '25' :
+                  manualStatDriftPercent === 50 ? '50' :
+                  manualStatDriftPercent === 75 ? '75' :
+                  manualStatDriftPercent === 100 ? '100' : '0'
+                }
+                onChange={(e) => setManualStatDriftPercent(Number(e.target.value))}
+                sx={{ fontSize: '0.875rem' }}
+              >
+                <MenuItem value="0">No stat drift</MenuItem>
+                <MenuItem value="25">25%</MenuItem>
+                <MenuItem value="50">50%</MenuItem>
+                <MenuItem value="75">75%</MenuItem>
+                <MenuItem value="100">No limits</MenuItem>
+              </Select>
+            </FormControl>
             <FormControlLabel
               control={
                 <Switch

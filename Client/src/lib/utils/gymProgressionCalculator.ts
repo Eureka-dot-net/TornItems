@@ -866,13 +866,18 @@ export function simulateGymProgression(
           // If best gain stat is also most out of sync, train it
           if (bestGainStat.stat === mostOutOfSyncStat.stat) {
             selectedStat = bestGainStat.stat;
+          } else if (statDriftPercent === 100) {
+            // At 100% drift, always train the stat with best gains regardless of imbalance
+            selectedStat = bestGainStat.stat;
           } else {
             // Check if best gain stat is within allowed drift
             // Calculate how much best gain stat has drifted ahead
             const driftRatio = bestGainStat.ratio / mostOutOfSyncStat.ratio;
             
-            // Allow drift based on percentage: at 0% drift, ratio must be 1.0; at 100% drift, any ratio is allowed
-            const maxAllowedDrift = 1.0 + (statDriftPercent / 100.0) * 1.0; // Allow up to 2x drift at 100%
+            // Allow drift based on percentage: at 0% drift, ratio must be 1.0; at 100% drift, infinite
+            // Using exponential scale: maxDrift grows rapidly as percentage increases
+            // At 50%, allow 3x drift; at 75%, allow 10x drift; approaching 100%, allow much more
+            const maxAllowedDrift = 1.0 + Math.pow(statDriftPercent / 100.0, 2) * 20.0;
             
             if (driftRatio <= maxAllowedDrift) {
               // Best gain stat is within allowed drift, train it

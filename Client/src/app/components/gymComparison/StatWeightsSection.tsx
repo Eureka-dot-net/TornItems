@@ -1,4 +1,4 @@
-import { Box, Typography, TextField, Button, FormControlLabel, Checkbox, Tooltip, IconButton } from '@mui/material';
+import { Box, Typography, TextField, Button, FormControlLabel, Checkbox, Tooltip, IconButton, Select, MenuItem, FormControl } from '@mui/material';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 interface StatWeights {
@@ -33,6 +33,17 @@ export default function StatWeightsSection({
   balanceAfterGeorges,
   onBalanceAfterGeorgesUpdate,
 }: StatWeightsSectionProps) {
+  // Helper to get display value for dropdown
+  const getDriftDisplayValue = () => {
+    if (statDriftPercent === 0) return '0';
+    if (statDriftPercent === 25) return '25';
+    if (statDriftPercent === 50) return '50';
+    if (statDriftPercent === 75) return '75';
+    if (statDriftPercent === 100) return '100';
+    // Default to closest value if not exact
+    return '0';
+  };
+
   return (
     <>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
@@ -55,19 +66,19 @@ export default function StatWeightsSection({
         <Box sx={{ mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
             <Typography variant="caption" color="text.secondary">
-              Stat Drift %
+              Stat Drift
             </Typography>
             <Tooltip 
               title={
                 <Box>
                   <Typography variant="body2" sx={{ mb: 1 }}>
-                    <strong>0% drift:</strong> Always maintain exact ratio balance (e.g., 1:1:1:1).
+                    <strong>No stat drift:</strong> Always maintain exact ratio balance (e.g., 1:1:1:1).
                   </Typography>
                   <Typography variant="body2" sx={{ mb: 1 }}>
-                    <strong>5-50% drift:</strong> Allow small flexibility to train stats with better gains while staying relatively balanced.
+                    <strong>25%-75%:</strong> Allow flexibility to train stats with better gains while staying relatively balanced.
                   </Typography>
                   <Typography variant="body2">
-                    <strong>100% drift:</strong> Pure "train best stat" behavior. Train the stat with the highest actual gain (considering perks) until George's gym unlocks.
+                    <strong>No limits:</strong> Pure "train best stat" behavior. Train the stat with the highest actual gain (considering perks) until George's gym unlocks.
                   </Typography>
                 </Box>
               }
@@ -79,18 +90,19 @@ export default function StatWeightsSection({
               </IconButton>
             </Tooltip>
           </Box>
-          <TextField
-            type="number"
-            value={statDriftPercent ?? 0}
-            onChange={(e) => {
-              const value = e.target.value === '' ? 0 : Number(e.target.value);
-              onDriftUpdate(Math.max(0, Math.min(100, value)));
-            }}
-            size="small"
-            fullWidth
-            inputProps={{ step: 1, min: 0, max: 100 }}
-            helperText={`${statDriftPercent ?? 0}% drift allowed from target ratios`}
-          />
+          <FormControl fullWidth size="small">
+            <Select
+              value={getDriftDisplayValue()}
+              onChange={(e) => onDriftUpdate(Number(e.target.value))}
+              sx={{ fontSize: '0.875rem' }}
+            >
+              <MenuItem value="0">No stat drift</MenuItem>
+              <MenuItem value="25">25%</MenuItem>
+              <MenuItem value="50">50%</MenuItem>
+              <MenuItem value="75">75%</MenuItem>
+              <MenuItem value="100">No limits</MenuItem>
+            </Select>
+          </FormControl>
           {onBalanceAfterGeorgesUpdate && (
             <FormControlLabel
               control={
