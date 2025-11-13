@@ -13,6 +13,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import IndividualStatsTooltip from './IndividualStatsTooltip';
 import type { SimulationResult } from '../../../lib/utils/gymProgressionCalculator';
 import { exportIndividualComparisonData, type IndividualComparisonExportData } from '../../../lib/utils/exportHelpers';
 import type { ItemPrices } from '../../../lib/hooks/useItemPrices';
@@ -256,7 +257,7 @@ export default function IndividualStatsSection({
                       label={{ value: 'Days', position: 'insideBottom', offset: -5 }}
                     />
                     <YAxis label={{ value: 'Stat Value', angle: -90, position: 'insideLeft' }} />
-                    <Tooltip />
+                    <Tooltip content={<IndividualStatsTooltip result={results[id]} />} />
                     <Legend />
                     <Line
                       type="monotone"

@@ -188,8 +188,14 @@ export default function TrainingBreakdown() {
     return (
       <Box sx={{ width: '100%', p: { xs: 2, md: 3 } }}>
         <Typography variant="h4" gutterBottom>
-          Training Breakdown
+          Training Breakdown (Beta)
         </Typography>
+
+        <Alert severity="info" sx={{ mt: 2, mb: 2 }}>
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+            This feature is currently in beta/testing. Please report any issues you encounter.
+          </Typography>
+        </Alert>
 
         <Alert severity="info" sx={{ mt: 2 }}>
           <Typography variant="body1" gutterBottom>
@@ -215,8 +221,14 @@ export default function TrainingBreakdown() {
   return (
     <Box sx={{ width: '100%', p: { xs: 2, md: 3 } }}>
       <Typography variant="h4" gutterBottom>
-        Training Breakdown
+        Training Breakdown (Beta)
       </Typography>
+
+      <Alert severity="info" sx={{ mb: 2 }}>
+        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+          This feature is currently in beta/testing. Please report any issues you encounter.
+        </Typography>
+      </Alert>
 
       <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
         Tracking training regime: <strong>{trainingData.name}</strong>
