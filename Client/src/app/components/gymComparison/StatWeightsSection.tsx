@@ -1,4 +1,5 @@
-import { Box, Typography, TextField, Button } from '@mui/material';
+import { Box, Typography, TextField, Button, FormControlLabel, Checkbox, Tooltip, IconButton, Select, MenuItem, FormControl } from '@mui/material';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 interface StatWeights {
   strength: number;
@@ -15,6 +16,10 @@ interface StatWeightsSectionProps {
   getHanksRatio: (primaryStat: StatType) => StatWeights;
   getBaldrsRatio: (primaryStat: StatType) => StatWeights;
   getDefensiveBuildRatio: (primaryStat: 'defense' | 'dexterity') => StatWeights;
+  statDriftPercent?: number;
+  onDriftUpdate?: (percent: number) => void;
+  balanceAfterGeorges?: boolean;
+  onBalanceAfterGeorgesUpdate?: (balance: boolean) => void;
 }
 
 export default function StatWeightsSection({
@@ -23,7 +28,22 @@ export default function StatWeightsSection({
   getHanksRatio,
   getBaldrsRatio,
   getDefensiveBuildRatio,
+  statDriftPercent,
+  onDriftUpdate,
+  balanceAfterGeorges,
+  onBalanceAfterGeorgesUpdate,
 }: StatWeightsSectionProps) {
+  // Helper to get display value for dropdown
+  const getDriftDisplayValue = () => {
+    if (statDriftPercent === 0) return '0';
+    if (statDriftPercent === 25) return '25';
+    if (statDriftPercent === 50) return '50';
+    if (statDriftPercent === 75) return '75';
+    if (statDriftPercent === 100) return '100';
+    // Default to closest value if not exact
+    return '0';
+  };
+
   return (
     <>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
@@ -40,6 +60,68 @@ export default function StatWeightsSection({
           Balanced
         </Button>
       </Box>
+
+      {/* Stat Drift Configuration */}
+      {onDriftUpdate && (
+        <Box sx={{ mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+              Stat Drift
+            </Typography>
+            <Tooltip 
+              title={
+                <Box>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    <strong>No stat drift:</strong> Always maintain exact ratio balance (e.g., 1:1:1:1).
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    <strong>25%-75%:</strong> Allow flexibility to train stats with better gains while staying relatively balanced.
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>No limits:</strong> Pure "train best stat" behavior. Train the stat with the highest actual gain (considering perks) until George's gym unlocks.
+                  </Typography>
+                </Box>
+              }
+              placement="top"
+              arrow
+            >
+              <IconButton size="small" sx={{ p: 0 }}>
+                <HelpOutlineIcon sx={{ fontSize: '1rem' }} />
+              </IconButton>
+            </Tooltip>
+            <FormControl size="small" sx={{ flexGrow: 1 }}>
+              <Select
+                value={getDriftDisplayValue()}
+                onChange={(e) => onDriftUpdate(Number(e.target.value))}
+                sx={{ fontSize: '0.875rem' }}
+              >
+                <MenuItem value="0">No stat drift</MenuItem>
+                <MenuItem value="25">25%</MenuItem>
+                <MenuItem value="50">50%</MenuItem>
+                <MenuItem value="75">75%</MenuItem>
+                <MenuItem value="100">No limits</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+          {onBalanceAfterGeorgesUpdate && (statDriftPercent ?? 0) > 0 && (
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={balanceAfterGeorges ?? true}
+                  onChange={(e) => onBalanceAfterGeorgesUpdate(e.target.checked)}
+                  size="small"
+                />
+              }
+              label={
+                <Typography variant="caption">
+                  Revert to balanced training after George's gym
+                </Typography>
+              }
+              sx={{ mt: 0.5 }}
+            />
+          )}
+        </Box>
+      )}
 
       {/* Strength */}
       <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 1 }}>

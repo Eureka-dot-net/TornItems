@@ -49,6 +49,8 @@ interface ComparisonState {
   candleShopStars: number;
   happy: number;
   daysSkippedPerMonth: number;
+  statDriftPercent: number;
+  balanceAfterGeorges: boolean;
 }
 
 interface ComparisonConfigSectionProps {
@@ -97,6 +99,10 @@ export default function ComparisonConfigSection({
             getHanksRatio={getHanksRatio}
             getBaldrsRatio={getBaldrsRatio}
             getDefensiveBuildRatio={getDefensiveBuildRatio}
+            statDriftPercent={activeState.statDriftPercent}
+            onDriftUpdate={(percent) => updateState(activeState.id, { statDriftPercent: percent })}
+            balanceAfterGeorges={activeState.balanceAfterGeorges}
+            onBalanceAfterGeorgesUpdate={(balance) => updateState(activeState.id, { balanceAfterGeorges: balance })}
           />
         </Grid>
 
