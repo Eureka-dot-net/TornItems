@@ -93,7 +93,8 @@ export interface SimulationInputs {
     pricePerLoss: number; // Price paid per loss/revive (income, reduces total cost)
   };
   daysSkippedPerMonth?: number; // Days per month with no energy (wars, vacations)
-  trainingStrategy?: 'balanced' | 'bestGains'; // Strategy for selecting which stat to train. 'balanced' trains the lowest stat according to weighings, 'bestGains' trains the stat with best gym dots until George's gym
+  statDriftPercent?: number; // 0-100: How far stats can drift from target weighings. 0 = strict balance, 100 = pure best gains
+  balanceAfterGeorges?: boolean; // Whether to revert to balanced training after George's gym (default: true)
   itemPrices?: {
     dvdPrice: number | null;
     xanaxPrice: number | null;
@@ -782,7 +783,7 @@ export function simulateGymProgression(
     }
     
     while (remainingEnergy > 0) {
-      // Determine which stat to train next based on the selected training strategy
+      // Determine which stat to train next based on drift tolerance and actual gains
       
       const statOrder: Array<keyof typeof stats> = ['strength', 'speed', 'defense', 'dexterity'];
       
@@ -800,20 +801,21 @@ export function simulateGymProgression(
         break;
       }
       
-      // Determine selected stat based on training strategy
+      // Determine selected stat based on drift tolerance and actual gains
       let selectedStat: keyof typeof stats | null = null;
-      const trainingStrategy = inputs.trainingStrategy || 'balanced';
+      const statDriftPercent = inputs.statDriftPercent ?? 0;
+      const balanceAfterGeorges = inputs.balanceAfterGeorges ?? true;
       
       // George's gym is at index 23 (0-indexed)
       const GEORGES_GYM_INDEX = 23;
       const isBeforeGeorges = !shouldLockGym && totalEnergySpent < gyms[GEORGES_GYM_INDEX].energyToUnlock;
       
-      if (trainingStrategy === 'bestGains' && isBeforeGeorges) {
-        // Best Gains Strategy: Train the stat with the highest gym dots available
-        // Check all unlocked gyms to find the highest dots for any trainable stat
-        
-        let bestDots = -1;
-        let statsWithBestDots: Array<keyof typeof stats> = [];
+      // Only allow drift before George's gym (or always if balanceAfterGeorges is false)
+      const shouldAllowDrift = isBeforeGeorges || !balanceAfterGeorges;
+      
+      if (statDriftPercent > 0 && shouldAllowDrift) {
+        // Calculate actual gain for each trainable stat (considering perks, gym dots, happy, etc.)
+        const statGains: Array<{ stat: keyof typeof stats; gain: number; ratio: number }> = [];
         
         for (const stat of trainableStats) {
           try {
@@ -827,35 +829,63 @@ export function simulateGymProgression(
             const statDots = gym[stat as keyof Pick<Gym, 'strength' | 'speed' | 'defense' | 'dexterity'>];
             
             if (statDots !== null && statDots !== undefined) {
-              if (statDots > bestDots) {
-                bestDots = statDots;
-                statsWithBestDots = [stat];
-              } else if (statDots === bestDots) {
-                statsWithBestDots.push(stat);
-              }
+              // Calculate actual gain using the same formula as training
+              const gain = computeStatGain(
+                stat,
+                stats[stat],
+                currentHappy,
+                inputs.perkPercs[stat],
+                statDots,
+                gym.energyPerTrain
+              ) * inputs.companyBenefit.gymGainMultiplier;
+              
+              // Calculate current ratio (how far from target)
+              const ratio = stats[stat] / inputs.statWeights[stat];
+              
+              statGains.push({ stat, gain, ratio });
             }
           } catch {
             // Gym not available for this stat
           }
         }
         
-        if (statsWithBestDots.length === 1) {
-          // Only one stat has the best dots, train it
-          selectedStat = statsWithBestDots[0];
-        } else if (statsWithBestDots.length > 1) {
-          // Multiple stats have the same best dots, train the one most out of sync with weighings
-          let lowestRatio = Infinity;
-          for (const stat of statsWithBestDots) {
-            const ratio = stats[stat] / inputs.statWeights[stat];
-            if (ratio < lowestRatio) {
-              lowestRatio = ratio;
-              selectedStat = stat;
+        if (statGains.length > 0) {
+          // Find the stat with the best gain
+          statGains.sort((a, b) => b.gain - a.gain);
+          const bestGainStat = statGains[0];
+          
+          // Find the stat most out of sync (for balanced approach)
+          statGains.sort((a, b) => a.ratio - b.ratio);
+          const mostOutOfSyncStat = statGains[0];
+          
+          // Calculate how far we can drift based on drift percentage
+          // 0% = always train most out of sync
+          // 100% = always train best gain
+          // Middle values = blend between the two
+          
+          // If best gain stat is also most out of sync, train it
+          if (bestGainStat.stat === mostOutOfSyncStat.stat) {
+            selectedStat = bestGainStat.stat;
+          } else {
+            // Check if best gain stat is within allowed drift
+            // Calculate how much best gain stat has drifted ahead
+            const driftRatio = bestGainStat.ratio / mostOutOfSyncStat.ratio;
+            
+            // Allow drift based on percentage: at 0% drift, ratio must be 1.0; at 100% drift, any ratio is allowed
+            const maxAllowedDrift = 1.0 + (statDriftPercent / 100.0) * 1.0; // Allow up to 2x drift at 100%
+            
+            if (driftRatio <= maxAllowedDrift) {
+              // Best gain stat is within allowed drift, train it
+              selectedStat = bestGainStat.stat;
+            } else {
+              // Best gain stat has drifted too far, train most out of sync
+              selectedStat = mostOutOfSyncStat.stat;
             }
           }
         }
       }
       
-      // If no stat selected by bestGains strategy (or using balanced strategy), use balanced approach
+      // If no stat selected by drift logic (or drift is 0%), use balanced approach
       if (!selectedStat) {
         // Balanced Strategy: Train the stat most out of sync with target weighings
         let lowestRatio = Infinity;

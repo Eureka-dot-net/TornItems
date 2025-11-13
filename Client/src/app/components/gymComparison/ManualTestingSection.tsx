@@ -53,8 +53,10 @@ interface ManualTestingSectionProps {
   setManualCompanyBenefitKey: (key: string) => void;
   manualCandleShopStars: number;
   setManualCandleShopStars: (stars: number) => void;
-  manualTrainingStrategy: 'balanced' | 'bestGains';
-  setManualTrainingStrategy: (strategy: 'balanced' | 'bestGains') => void;
+  manualStatDriftPercent: number;
+  setManualStatDriftPercent: (percent: number) => void;
+  manualBalanceAfterGeorges: boolean;
+  setManualBalanceAfterGeorges: (balance: boolean) => void;
   results?: SimulationResult;
 }
 
@@ -77,8 +79,10 @@ export default function ManualTestingSection({
   setManualCompanyBenefitKey,
   manualCandleShopStars,
   setManualCandleShopStars,
-  manualTrainingStrategy,
-  setManualTrainingStrategy,
+  manualStatDriftPercent,
+  setManualStatDriftPercent,
+  manualBalanceAfterGeorges,
+  setManualBalanceAfterGeorges,
   results
 }: ManualTestingSectionProps) {
   return (
@@ -148,20 +152,23 @@ export default function ManualTestingSection({
           
           <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Stat Targets</Typography>
           
-          {/* Training Strategy Selection */}
+          {/* Stat Drift Configuration */}
           <Box sx={{ mb: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
               <Typography variant="caption" color="text.secondary">
-                Training Strategy
+                Stat Drift %
               </Typography>
               <Tooltip 
                 title={
                   <Box>
                     <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>Balanced Training:</strong> Train the lowest stat according to your weighings to keep stats balanced based on target ratios.
+                      <strong>0% drift:</strong> Always maintain exact ratio balance (e.g., 1:1:1:1).
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>5-50% drift:</strong> Allow small flexibility to train stats with better gains while staying relatively balanced.
                     </Typography>
                     <Typography variant="body2">
-                      <strong>Best Gains Training:</strong> Train the stat with the highest gym dots (best gains) until George's gym is unlocked. If multiple stats have the same best dots, the most out-of-sync stat is trained. After George's gym, reverts to balanced training.
+                      <strong>100% drift:</strong> Pure "train best stat" behavior. Train the stat with the highest actual gain (considering perks) until George's gym unlocks.
                     </Typography>
                   </Box>
                 }
@@ -173,16 +180,33 @@ export default function ManualTestingSection({
                 </IconButton>
               </Tooltip>
             </Box>
-            <FormControl fullWidth size="small">
-              <Select
-                value={manualTrainingStrategy}
-                onChange={(e) => setManualTrainingStrategy(e.target.value as 'balanced' | 'bestGains')}
-                sx={{ fontSize: '0.875rem' }}
-              >
-                <MenuItem value="balanced">Balanced Training</MenuItem>
-                <MenuItem value="bestGains">Best Gains Training</MenuItem>
-              </Select>
-            </FormControl>
+            <TextField
+              type="number"
+              value={manualStatDriftPercent}
+              onChange={(e) => {
+                const value = e.target.value === '' ? 0 : Number(e.target.value);
+                setManualStatDriftPercent(Math.max(0, Math.min(100, value)));
+              }}
+              size="small"
+              fullWidth
+              inputProps={{ step: 1, min: 0, max: 100 }}
+              helperText={`${manualStatDriftPercent}% drift allowed from target ratios`}
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={manualBalanceAfterGeorges}
+                  onChange={(e) => setManualBalanceAfterGeorges(e.target.checked)}
+                  size="small"
+                />
+              }
+              label={
+                <Typography variant="caption">
+                  Revert to balanced after George's gym
+                </Typography>
+              }
+              sx={{ mt: 0.5 }}
+            />
           </Box>
           
           <TextField label="Str" type="number" value={manualStatWeights.strength ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />

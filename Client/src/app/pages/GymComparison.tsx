@@ -97,7 +97,8 @@ interface ComparisonState {
   candleShopStars: number;
   happy: number;
   daysSkippedPerMonth: number;
-  trainingStrategy: 'balanced' | 'bestGains';
+  statDriftPercent: number; // 0-100: How far stats can drift from target weighings
+  balanceAfterGeorges: boolean; // Whether to revert to balanced training after George's gym
   [key: string]: unknown;
 }
 
@@ -126,7 +127,8 @@ export default function GymComparison() {
   const [manualPerkPercs, setManualPerkPercs] = useState(() => 
     loadSavedValue('manualPerkPercs', { strength: 0, speed: 0, defense: 0, dexterity: 0 })
   );
-  const [manualTrainingStrategy, setManualTrainingStrategy] = useState<'balanced' | 'bestGains'>(() => loadSavedValue('manualTrainingStrategy', 'balanced'));
+  const [manualStatDriftPercent, setManualStatDriftPercent] = useState<number>(() => loadSavedValue('manualStatDriftPercent', 0));
+  const [manualBalanceAfterGeorges, setManualBalanceAfterGeorges] = useState<boolean>(() => loadSavedValue('manualBalanceAfterGeorges', true));
   
   // Shared player stats
   const [apiKey, setApiKey] = useState<string>(() => loadSavedValue('apiKey', ''));
@@ -179,7 +181,8 @@ export default function GymComparison() {
         candleShopStars: DEFAULT_CANDLE_SHOP_STARS,
         happy: DEFAULT_HAPPY,
         daysSkippedPerMonth: 0,
-        trainingStrategy: 'balanced' as const,
+        statDriftPercent: 0,
+        balanceAfterGeorges: true,
       },
     ])
   );
@@ -223,7 +226,8 @@ export default function GymComparison() {
   useEffect(() => { localStorage.setItem('gymComparison_manualCompanyBenefitKey', JSON.stringify(manualCompanyBenefitKey)); }, [manualCompanyBenefitKey]);
   useEffect(() => { localStorage.setItem('gymComparison_manualCandleShopStars', JSON.stringify(manualCandleShopStars)); }, [manualCandleShopStars]);
   useEffect(() => { localStorage.setItem('gymComparison_manualPerkPercs', JSON.stringify(manualPerkPercs)); }, [manualPerkPercs]);
-  useEffect(() => { localStorage.setItem('gymComparison_manualTrainingStrategy', JSON.stringify(manualTrainingStrategy)); }, [manualTrainingStrategy]);
+  useEffect(() => { localStorage.setItem('gymComparison_manualStatDriftPercent', JSON.stringify(manualStatDriftPercent)); }, [manualStatDriftPercent]);
+  useEffect(() => { localStorage.setItem('gymComparison_manualBalanceAfterGeorges', JSON.stringify(manualBalanceAfterGeorges)); }, [manualBalanceAfterGeorges]);
   useEffect(() => { localStorage.setItem('gymComparison_apiKey', JSON.stringify(apiKey)); }, [apiKey]);
   useEffect(() => { localStorage.setItem('gymComparison_initialStats', JSON.stringify(initialStats)); }, [initialStats]);
   useEffect(() => { localStorage.setItem('gymComparison_currentGymIndex', JSON.stringify(currentGymIndex)); }, [currentGymIndex]);
@@ -241,7 +245,7 @@ export default function GymComparison() {
     if (mode === 'manual') {
       handleSimulate();
     }
-  }, [manualEnergy, autoUpgradeGyms, manualHappy, initialStats, currentGymIndex, manualStatWeights, manualCompanyBenefitKey, manualCandleShopStars, manualPerkPercs, manualTrainingStrategy, showCosts, itemPricesData]);
+  }, [manualEnergy, autoUpgradeGyms, manualHappy, initialStats, currentGymIndex, manualStatWeights, manualCompanyBenefitKey, manualCandleShopStars, manualPerkPercs, manualStatDriftPercent, manualBalanceAfterGeorges, showCosts, itemPricesData]);
   
   const handleFetchStats = async () => {
     if (!apiKey.trim()) {
@@ -327,7 +331,8 @@ export default function GymComparison() {
       candleShopStars: sourceState.candleShopStars,
       happy: sourceState.happy,
       daysSkippedPerMonth: sourceState.daysSkippedPerMonth,
-      trainingStrategy: sourceState.trainingStrategy,
+      statDriftPercent: sourceState.statDriftPercent,
+      balanceAfterGeorges: sourceState.balanceAfterGeorges,
     };
     
     setComparisonStates([...comparisonStates, newState]);
@@ -372,7 +377,8 @@ export default function GymComparison() {
           currentGymIndex: currentGymIndex,
           lockGym: !autoUpgradeGyms,
           manualEnergy,
-          trainingStrategy: manualTrainingStrategy,
+          statDriftPercent: manualStatDriftPercent,
+          balanceAfterGeorges: manualBalanceAfterGeorges,
         };
         
         const result = simulateGymProgression(GYMS, inputs);
@@ -397,7 +403,8 @@ export default function GymComparison() {
             perkPercs: state.perkPercs,
             currentGymIndex: currentGymIndex, // Start from current/selected gym and auto-upgrade
             lockGym: false, // Always use auto-upgrade in future mode to allow unlock speed multiplier to work
-            trainingStrategy: state.trainingStrategy,
+            statDriftPercent: state.statDriftPercent,
+            balanceAfterGeorges: state.balanceAfterGeorges,
             edvdJump: state.edvdJumpEnabled ? {
               enabled: true,
               frequencyDays: state.edvdJumpFrequency,
@@ -616,7 +623,8 @@ export default function GymComparison() {
               candleShopStars: typeof s.candleShopStars === 'number' ? s.candleShopStars : DEFAULT_CANDLE_SHOP_STARS,
               happy: typeof s.happy === 'number' ? s.happy : DEFAULT_HAPPY,
               daysSkippedPerMonth: typeof s.daysSkippedPerMonth === 'number' ? s.daysSkippedPerMonth : 0,
-              trainingStrategy: (s.trainingStrategy === 'balanced' || s.trainingStrategy === 'bestGains') ? s.trainingStrategy as 'balanced' | 'bestGains' : 'balanced',
+              statDriftPercent: typeof s.statDriftPercent === 'number' ? Math.max(0, Math.min(100, s.statDriftPercent)) : 0,
+              balanceAfterGeorges: typeof s.balanceAfterGeorges === 'boolean' ? s.balanceAfterGeorges : true,
             };
           }
           return {
@@ -659,7 +667,8 @@ export default function GymComparison() {
             candleShopStars: DEFAULT_CANDLE_SHOP_STARS,
             happy: DEFAULT_HAPPY,
             daysSkippedPerMonth: 0,
-            trainingStrategy: 'balanced' as const,
+            statDriftPercent: 0,
+            balanceAfterGeorges: true,
           };
         });
         setComparisonStates(loadedStates);
@@ -883,8 +892,10 @@ export default function GymComparison() {
           setManualCompanyBenefitKey={setManualCompanyBenefitKey}
           manualCandleShopStars={manualCandleShopStars}
           setManualCandleShopStars={setManualCandleShopStars}
-          manualTrainingStrategy={manualTrainingStrategy}
-          setManualTrainingStrategy={setManualTrainingStrategy}
+          manualStatDriftPercent={manualStatDriftPercent}
+          setManualStatDriftPercent={setManualStatDriftPercent}
+          manualBalanceAfterGeorges={manualBalanceAfterGeorges}
+          setManualBalanceAfterGeorges={setManualBalanceAfterGeorges}
           results={results.manual}
         />
       )}
