@@ -23,8 +23,14 @@ export default function IndividualStatsTooltip({
     const day = payload[0].payload.day;
     const timeStr = formatDaysToHumanReadable(day);
     
-    // Get snapshot for this day to find gym
-    const snapshot = result.dailySnapshots.find(s => s.day === day);
+    // Get snapshot for this day to find gym - use the closest day if exact match not found
+    let snapshot = result.dailySnapshots.find(s => s.day === day);
+    
+    // If exact match not found, find the snapshot for the closest previous day
+    if (!snapshot && result.dailySnapshots.length > 0) {
+      const sortedSnapshots = [...result.dailySnapshots].sort((a, b) => a.day - b.day);
+      snapshot = sortedSnapshots.reverse().find(s => s.day <= day);
+    }
     
     // Calculate total stats from payload
     const totalStats = payload[0].payload.strength + 

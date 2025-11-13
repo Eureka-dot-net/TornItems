@@ -193,7 +193,7 @@ export default function TrainingBreakdown() {
 
         <Alert severity="info" sx={{ mt: 2, mb: 2 }}>
           <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-            This feature is currently in beta/testing. Please report any issues you encounter.
+            This feature is in beta/testing.
           </Typography>
         </Alert>
 
@@ -226,7 +226,7 @@ export default function TrainingBreakdown() {
 
       <Alert severity="info" sx={{ mb: 2 }}>
         <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-          This feature is currently in beta/testing. Please report any issues you encounter.
+          This feature is in beta/testing.
         </Typography>
       </Alert>
 
