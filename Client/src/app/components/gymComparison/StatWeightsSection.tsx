@@ -18,8 +18,8 @@ interface StatWeightsSectionProps {
   getDefensiveBuildRatio: (primaryStat: 'defense' | 'dexterity') => StatWeights;
   statDriftPercent?: number;
   onDriftUpdate?: (percent: number) => void;
-  balanceAfterGeorges?: boolean;
-  onBalanceAfterGeorgesUpdate?: (balance: boolean) => void;
+  balanceAfterGymIndex?: number;
+  onBalanceAfterGymIndexUpdate?: (gymIndex: number) => void;
   ignorePerksForGymSelection?: boolean;
   onIgnorePerksForGymSelectionUpdate?: (ignore: boolean) => void;
 }
@@ -32,8 +32,8 @@ export default function StatWeightsSection({
   getDefensiveBuildRatio,
   statDriftPercent,
   onDriftUpdate,
-  balanceAfterGeorges,
-  onBalanceAfterGeorgesUpdate,
+  balanceAfterGymIndex,
+  onBalanceAfterGymIndexUpdate,
   ignorePerksForGymSelection,
   onIgnorePerksForGymSelectionUpdate,
 }: StatWeightsSectionProps) {
@@ -107,23 +107,24 @@ export default function StatWeightsSection({
               </Select>
             </FormControl>
           </Box>
-          {onBalanceAfterGeorgesUpdate && (statDriftPercent ?? 0) > 0 && (
+          {onBalanceAfterGymIndexUpdate && (statDriftPercent ?? 0) > 0 && (
             <>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={balanceAfterGeorges ?? true}
-                    onChange={(e) => onBalanceAfterGeorgesUpdate(e.target.checked)}
-                    size="small"
-                  />
-                }
-                label={
-                  <Typography variant="caption">
-                    Revert to balanced training after George's gym
-                  </Typography>
-                }
-                sx={{ mt: 0.5 }}
-              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, mt: 0.5 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                  Revert to balanced after
+                </Typography>
+                <FormControl size="small" sx={{ flexGrow: 1 }}>
+                  <Select
+                    value={balanceAfterGymIndex ?? 19}
+                    onChange={(e) => onBalanceAfterGymIndexUpdate(Number(e.target.value))}
+                    sx={{ fontSize: '0.875rem' }}
+                  >
+                    <MenuItem value={-1}>Never</MenuItem>
+                    <MenuItem value={19}>Cha Cha's</MenuItem>
+                    <MenuItem value={23}>George's</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
               {onIgnorePerksForGymSelectionUpdate && (
                 <FormControlLabel
                   control={

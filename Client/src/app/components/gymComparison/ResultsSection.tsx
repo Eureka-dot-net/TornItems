@@ -16,7 +16,7 @@ interface ComparisonState {
   diabetesDayEnabled: boolean;
   edvdJumpEnabled: boolean;
   statDriftPercent?: number;
-  balanceAfterGeorges?: boolean;
+  balanceAfterGymIndex?: number;
   [key: string]: unknown;
 }
 

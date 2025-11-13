@@ -94,7 +94,7 @@ export interface SimulationInputs {
   };
   daysSkippedPerMonth?: number; // Days per month with no energy (wars, vacations)
   statDriftPercent?: number; // 0-100: How far stats can drift from target weighings. 0 = strict balance, 100 = pure best gains
-  balanceAfterGeorges?: boolean; // Whether to revert to balanced training after George's gym (default: true)
+  balanceAfterGymIndex?: number; // Gym index after which to revert to balanced training (-1 = never, default: 19 = Cha Cha's)
   ignorePerksForGymSelection?: boolean; // If true, ignore perks when deciding which gym/stat to train (but still use perks for actual gains)
   itemPrices?: {
     dvdPrice: number | null;
@@ -918,14 +918,18 @@ export function simulateGymProgression(
       // Determine selected stat based on drift tolerance and actual gains
       let selectedStat: keyof typeof stats | null = null;
       const statDriftPercent = inputs.statDriftPercent ?? 0;
-      const balanceAfterGeorges = inputs.balanceAfterGeorges ?? true;
+      const balanceAfterGymIndex = inputs.balanceAfterGymIndex ?? 19; // Default to Cha Cha's (index 19)
       
-      // George's gym is at index 23 (0-indexed)
-      const GEORGES_GYM_INDEX = 23;
-      const isBeforeGeorges = !shouldLockGym && totalEnergySpent < gyms[GEORGES_GYM_INDEX].energyToUnlock;
-      
-      // Only allow drift before George's gym (or always if balanceAfterGeorges is false)
-      const shouldAllowDrift = isBeforeGeorges || !balanceAfterGeorges;
+      // Determine if we should allow stat drift based on the balance gym index
+      let shouldAllowDrift = false;
+      if (balanceAfterGymIndex === -1) {
+        // Never revert to balanced - always allow drift
+        shouldAllowDrift = true;
+      } else if (balanceAfterGymIndex >= 0 && balanceAfterGymIndex < gyms.length) {
+        // Check if we're before the specified gym
+        const isBeforeBalanceGym = !shouldLockGym && totalEnergySpent < gyms[balanceAfterGymIndex].energyToUnlock;
+        shouldAllowDrift = isBeforeBalanceGym;
+      }
       
       if (statDriftPercent > 0 && shouldAllowDrift) {
         // Calculate actual gain for each trainable stat (considering perks, gym dots, happy, etc.)

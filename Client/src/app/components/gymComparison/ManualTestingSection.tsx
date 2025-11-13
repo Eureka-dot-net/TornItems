@@ -55,8 +55,8 @@ interface ManualTestingSectionProps {
   setManualCandleShopStars: (stars: number) => void;
   manualStatDriftPercent: number;
   setManualStatDriftPercent: (percent: number) => void;
-  manualBalanceAfterGeorges: boolean;
-  setManualBalanceAfterGeorges: (balance: boolean) => void;
+  manualBalanceAfterGymIndex: number;
+  setManualBalanceAfterGymIndex: (gymIndex: number) => void;
   manualIgnorePerksForGymSelection: boolean;
   setManualIgnorePerksForGymSelection: (ignore: boolean) => void;
   results?: SimulationResult;
@@ -83,8 +83,8 @@ export default function ManualTestingSection({
   setManualCandleShopStars,
   manualStatDriftPercent,
   setManualStatDriftPercent,
-  manualBalanceAfterGeorges,
-  setManualBalanceAfterGeorges,
+  manualBalanceAfterGymIndex,
+  setManualBalanceAfterGymIndex,
   manualIgnorePerksForGymSelection,
   setManualIgnorePerksForGymSelection,
   results
@@ -205,21 +205,22 @@ export default function ManualTestingSection({
             </Box>
             {manualStatDriftPercent > 0 && (
               <>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={manualBalanceAfterGeorges}
-                      onChange={(e) => setManualBalanceAfterGeorges(e.target.checked)}
-                      size="small"
-                    />
-                  }
-                  label={
-                    <Typography variant="caption">
-                      Revert to balanced after George's gym
-                    </Typography>
-                  }
-                  sx={{ mt: 0.5 }}
-                />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, mt: 0.5 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                    Revert to balanced after
+                  </Typography>
+                  <FormControl size="small" sx={{ flexGrow: 1 }}>
+                    <Select
+                      value={manualBalanceAfterGymIndex}
+                      onChange={(e) => setManualBalanceAfterGymIndex(Number(e.target.value))}
+                      sx={{ fontSize: '0.875rem' }}
+                    >
+                      <MenuItem value={-1}>Never</MenuItem>
+                      <MenuItem value={19}>Cha Cha's</MenuItem>
+                      <MenuItem value={23}>George's</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
                 <FormControlLabel
                   control={
                     <Switch
