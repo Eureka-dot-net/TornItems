@@ -1,5 +1,6 @@
-import { Grid, IconButton, Paper, TextField, Box } from '@mui/material';
+import { Grid, IconButton, Paper, TextField, Box, Button } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import DownloadIcon from '@mui/icons-material/Download';
 import StatWeightsSection from './StatWeightsSection';
 import EnergySourcesSection from './EnergySourcesSection';
 import HappyPerksSection from './HappyPerksSection';
@@ -8,6 +9,8 @@ import StatJumpsSection from './StatJumpsSection';
 import { Typography } from '@mui/material';
 import { getCompanyBenefit, getHanksRatio, getBaldrsRatio, getDefensiveBuildRatio } from '../../../lib/utils/gymHelpers';
 import type { ItemPrices } from '../../../lib/hooks/useItemPrices';
+import type { SimulationResult } from '../../../lib/utils/gymProgressionCalculator';
+import { exportIndividualComparisonData, type IndividualComparisonExportData } from '../../../lib/utils/exportHelpers';
 
 interface ComparisonState {
   id: string;
@@ -60,6 +63,14 @@ interface ComparisonConfigSectionProps {
   canRemoveState: boolean;
   showCosts: boolean;
   itemPricesData?: ItemPrices;
+  result?: SimulationResult;
+  initialStats: {
+    strength: number;
+    speed: number;
+    defense: number;
+    dexterity: number;
+  };
+  months: number;
 }
 
 export default function ComparisonConfigSection({
@@ -68,11 +79,52 @@ export default function ComparisonConfigSection({
   handleRemoveState,
   canRemoveState,
   showCosts,
-  itemPricesData
+  itemPricesData,
+  result,
+  initialStats,
+  months
 }: ComparisonConfigSectionProps) {
+  const handleDownload = () => {
+    if (!result) return;
+    
+    const statGains = {
+      strength: result.finalStats.strength - initialStats.strength,
+      speed: result.finalStats.speed - initialStats.speed,
+      defense: result.finalStats.defense - initialStats.defense,
+      dexterity: result.finalStats.dexterity - initialStats.dexterity,
+    };
+    
+    const costs = (showCosts && itemPricesData) ? {
+      edvd: result.edvdJumpCosts?.totalCost || 0,
+      xanax: result.xanaxCosts?.totalCost || 0,
+      points: result.pointsRefillCosts?.totalCost || 0,
+      candy: result.candyJumpCosts?.totalCost || 0,
+      energy: result.energyJumpCosts?.totalCost || 0,
+      lossReviveIncome: result.lossReviveIncome?.totalIncome || 0,
+      total: (result.edvdJumpCosts?.totalCost || 0) + 
+             (result.xanaxCosts?.totalCost || 0) + 
+             (result.pointsRefillCosts?.totalCost || 0) + 
+             (result.candyJumpCosts?.totalCost || 0) + 
+             (result.energyJumpCosts?.totalCost || 0) - 
+             (result.lossReviveIncome?.totalIncome || 0),
+    } : undefined;
+    
+    const exportData: IndividualComparisonExportData = {
+      name: activeState.name,
+      finalStats: result.finalStats,
+      statGains,
+      initialStats,
+      months,
+      dailySnapshots: result.dailySnapshots,
+      costs,
+    };
+    
+    exportIndividualComparisonData(exportData);
+  };
+  
   return (
     <Paper sx={{ p: 2, mb: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 1, flexWrap: 'wrap' }}>
         <TextField 
           label="Comparison Name" 
           value={activeState.name} 
@@ -80,11 +132,22 @@ export default function ComparisonConfigSection({
           size="small"
           sx={{ width: 250 }}
         />
-        {canRemoveState && (
-          <IconButton color="error" onClick={() => handleRemoveState(activeState.id)} size="small">
-            <DeleteIcon />
-          </IconButton>
-        )}
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<DownloadIcon />}
+            onClick={handleDownload}
+            disabled={!result}
+          >
+            Download
+          </Button>
+          {canRemoveState && (
+            <IconButton color="error" onClick={() => handleRemoveState(activeState.id)} size="small">
+              <DeleteIcon />
+            </IconButton>
+          )}
+        </Box>
       </Box>
 
       <Grid container spacing={2}>

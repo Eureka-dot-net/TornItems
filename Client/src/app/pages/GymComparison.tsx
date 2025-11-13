@@ -850,6 +850,9 @@ export default function GymComparison() {
               canRemoveState={comparisonStates.length > 1}
               showCosts={showCosts}
               itemPricesData={itemPricesData}
+              result={results[activeState.id]}
+              initialStats={initialStats}
+              months={months}
             />
           )}
 

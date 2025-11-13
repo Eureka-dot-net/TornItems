@@ -143,6 +143,9 @@ export default function ResultsSection({
           comparisonStates={comparisonStates}
           results={results}
           initialStats={initialStats}
+          months={months}
+          showCosts={showCosts}
+          itemPricesData={itemPricesData}
         />
         
         <EdvdJumpGainsTable
@@ -204,6 +207,9 @@ export default function ResultsSection({
           comparisonStates={comparisonStates}
           results={results}
           initialStats={initialStats}
+          months={months}
+          showCosts={showCosts}
+          itemPricesData={itemPricesData}
         />
         
         <EdvdJumpGainsTable
