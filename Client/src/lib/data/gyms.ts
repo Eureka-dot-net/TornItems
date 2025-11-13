@@ -28,7 +28,7 @@ export const GYMS: Gym[] = [
   { name: "lastround", displayName: "Last Round", strength: 6.8, speed: 6.5, defense: 7, dexterity: 6.5, energyPerTrain: 10, costToUnlock: 50000000, energyToUnlock: 360415 },
   { name: "theedge", displayName: "The Edge", strength: 6.8, speed: 7, defense: 7, dexterity: 6.8, energyPerTrain: 10, costToUnlock: 75000000, energyToUnlock: 444950 },
   { name: "georges", displayName: "George's", strength: 7.3, speed: 7.3, defense: 7.3, dexterity: 7.3, energyPerTrain: 10, costToUnlock: 100000000, energyToUnlock: 551255 },
-  // Specialty gyms - unlocked when Cha Cha's is unlocked
+  // Specialty gyms - ALL require George's gym to be unlocked (551255 energy)
   { 
     name: "balboasgym", 
     displayName: "Balboa's Gym", 
@@ -38,7 +38,7 @@ export const GYMS: Gym[] = [
     dexterity: 7.5, 
     energyPerTrain: 25, 
     costToUnlock: 50000000, 
-    energyToUnlock: 236120, // Same as Cha Cha's
+    energyToUnlock: 551255, // Same as George's - ALL specialty gyms require George's unlocked
     specialtyRequirement: (stats) => {
       // Defense + Dexterity must be 25% higher than Strength + Speed
       const defDex = stats.defense + stats.dexterity;
@@ -55,7 +55,7 @@ export const GYMS: Gym[] = [
     dexterity: null, 
     energyPerTrain: 25, 
     costToUnlock: 50000000, 
-    energyToUnlock: 236120, // Same as Cha Cha's
+    energyToUnlock: 551255, // Same as George's - ALL specialty gyms require George's unlocked
     specialtyRequirement: (stats) => {
       // Strength + Speed must be 25% higher than Dexterity + Defense
       const strSpd = stats.strength + stats.speed;
