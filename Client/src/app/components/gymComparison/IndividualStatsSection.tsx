@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { Paper, Typography, Box, Checkbox, FormControlLabel, Grid } from '@mui/material';
+import { Paper, Typography, Box, Checkbox, FormControlLabel, Grid, Button } from '@mui/material';
+import DownloadIcon from '@mui/icons-material/Download';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import { useNavigate } from 'react-router-dom';
 import {
   LineChart,
   Line,
@@ -10,7 +13,10 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import IndividualStatsTooltip from './IndividualStatsTooltip';
 import type { SimulationResult } from '../../../lib/utils/gymProgressionCalculator';
+import { exportIndividualComparisonData, type IndividualComparisonExportData } from '../../../lib/utils/exportHelpers';
+import type { ItemPrices } from '../../../lib/hooks/useItemPrices';
 
 interface ComparisonState {
   id: string;
@@ -29,15 +35,22 @@ interface IndividualStatsSectionProps {
   comparisonStates: ComparisonState[];
   results: Record<string, SimulationResult>;
   initialStats: Stats;
+  months: number;
+  showCosts: boolean;
+  itemPricesData?: ItemPrices;
 }
 
 export default function IndividualStatsSection({
   comparisonStates,
   results,
-  initialStats
+  initialStats,
+  months,
+  showCosts,
+  itemPricesData
 }: IndividualStatsSectionProps) {
   // Track which states should show individual stats
   const [selectedStates, setSelectedStates] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
 
   const toggleStateSelection = (stateId: string) => {
     setSelectedStates((prev) => {
@@ -49,6 +62,98 @@ export default function IndividualStatsSection({
       }
       return newSet;
     });
+  };
+
+  const handleDownload = (stateId: string) => {
+    const state = comparisonStates.find(s => s.id === stateId);
+    const result = results[stateId];
+    
+    if (!state || !result) return;
+    
+    const statGains = {
+      strength: result.finalStats.strength - initialStats.strength,
+      speed: result.finalStats.speed - initialStats.speed,
+      defense: result.finalStats.defense - initialStats.defense,
+      dexterity: result.finalStats.dexterity - initialStats.dexterity,
+    };
+    
+    const costs = (showCosts && itemPricesData) ? {
+      edvd: result.edvdJumpCosts?.totalCost || 0,
+      xanax: result.xanaxCosts?.totalCost || 0,
+      points: result.pointsRefillCosts?.totalCost || 0,
+      candy: result.candyJumpCosts?.totalCost || 0,
+      energy: result.energyJumpCosts?.totalCost || 0,
+      lossReviveIncome: result.lossReviveIncome?.totalIncome || 0,
+      total: (result.edvdJumpCosts?.totalCost || 0) + 
+             (result.xanaxCosts?.totalCost || 0) + 
+             (result.pointsRefillCosts?.totalCost || 0) + 
+             (result.candyJumpCosts?.totalCost || 0) + 
+             (result.energyJumpCosts?.totalCost || 0) - 
+             (result.lossReviveIncome?.totalIncome || 0),
+    } : undefined;
+    
+    const exportData: IndividualComparisonExportData = {
+      name: state.name,
+      finalStats: result.finalStats,
+      statGains,
+      initialStats,
+      months,
+      dailySnapshots: result.dailySnapshots,
+      costs,
+    };
+    
+    exportIndividualComparisonData(exportData);
+  };
+
+  const handleViewTrainingRegime = (stateId: string) => {
+    const state = comparisonStates.find(s => s.id === stateId);
+    const result = results[stateId];
+    
+    if (!state || !result) return;
+    
+    const statGains = {
+      strength: result.finalStats.strength - initialStats.strength,
+      speed: result.finalStats.speed - initialStats.speed,
+      defense: result.finalStats.defense - initialStats.defense,
+      dexterity: result.finalStats.dexterity - initialStats.dexterity,
+    };
+    
+    const costs = (showCosts && itemPricesData) ? {
+      edvd: result.edvdJumpCosts?.totalCost || 0,
+      xanax: result.xanaxCosts?.totalCost || 0,
+      points: result.pointsRefillCosts?.totalCost || 0,
+      candy: result.candyJumpCosts?.totalCost || 0,
+      energy: result.energyJumpCosts?.totalCost || 0,
+      lossReviveIncome: result.lossReviveIncome?.totalIncome || 0,
+      total: (result.edvdJumpCosts?.totalCost || 0) + 
+             (result.xanaxCosts?.totalCost || 0) + 
+             (result.pointsRefillCosts?.totalCost || 0) + 
+             (result.candyJumpCosts?.totalCost || 0) + 
+             (result.energyJumpCosts?.totalCost || 0) - 
+             (result.lossReviveIncome?.totalIncome || 0),
+    } : undefined;
+    
+    const exportData: IndividualComparisonExportData = {
+      name: state.name,
+      finalStats: result.finalStats,
+      statGains,
+      initialStats,
+      months,
+      dailySnapshots: result.dailySnapshots,
+      costs,
+    };
+    
+    // Save to localStorage
+    localStorage.setItem('trainingBreakdown_data', JSON.stringify(exportData));
+    
+    // Set start date to today if not already set
+    const existingStartDate = localStorage.getItem('trainingBreakdown_startDate');
+    if (!existingStartDate) {
+      localStorage.setItem('trainingBreakdown_startDate', new Date().toISOString().split('T')[0]);
+    }
+    
+    // Navigate to Training Breakdown page
+    navigate('/trainingBreakdown');
   };
 
   // Prepare chart data for a specific state
@@ -121,9 +226,29 @@ export default function IndividualStatsSection({
               size={{ xs: 12, md: statesToDisplay.length === 1 ? 12 : 6 }}
             >
               <Paper variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  {state.name}
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="subtitle1">
+                    {state.name}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<VisibilityIcon />}
+                      onClick={() => handleViewTrainingRegime(id)}
+                    >
+                      View
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<DownloadIcon />}
+                      onClick={() => handleDownload(id)}
+                    >
+                      Download
+                    </Button>
+                  </Box>
+                </Box>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={data}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -132,7 +257,7 @@ export default function IndividualStatsSection({
                       label={{ value: 'Days', position: 'insideBottom', offset: -5 }}
                     />
                     <YAxis label={{ value: 'Stat Value', angle: -90, position: 'insideLeft' }} />
-                    <Tooltip />
+                    <Tooltip content={<IndividualStatsTooltip result={results[id]} />} />
                     <Legend />
                     <Line
                       type="monotone"

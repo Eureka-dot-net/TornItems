@@ -135,6 +135,15 @@ export interface DailySnapshot {
     defense: number;
     dexterity: number;
   };
+  // Training details for each stat
+  trainingDetails?: {
+    strength?: { gym: string; energy: number; };
+    speed?: { gym: string; energy: number; };
+    defense?: { gym: string; energy: number; };
+    dexterity?: { gym: string; energy: number; };
+  };
+  // General notes for the day
+  notes?: string[];
 }
 
 export interface SimulationResult {
@@ -448,6 +457,19 @@ export function simulateGymProgression(
       diabetesDayJumpDays.push(5); // First jump on day 5
       diabetesDayJumpDays.push(7); // Second jump on day 7
     }
+    
+    // If both DD and eDVD jumps are enabled, adjust eDVD jump start
+    // First eDVD jump must be at least 2 days after the last DD jump
+    if (inputs.edvdJump?.enabled && inputs.edvdJump.frequencyDays > 0) {
+      const lastDdDay = diabetesDayJumpDays[diabetesDayJumpDays.length - 1];
+      const proposedEdvdDay = inputs.edvdJump.frequencyDays;
+      
+      // If the first eDVD jump would conflict with or be too close to DD jumps
+      if (proposedEdvdDay <= lastDdDay + 2) {
+        // Move it to 2 days after the last DD jump
+        nextEdvdJumpDay = lastDdDay + 2;
+      }
+    }
   }
   
   // Calculate which days to skip
@@ -474,12 +496,28 @@ export function simulateGymProgression(
   for (let day = 1; day <= totalDays; day++) {
     const energySpentOnGymUnlock = 0;
     
+    // Track training details for each stat on this day
+    const dailyTrainingDetails: {
+      strength?: { gym: string; energy: number; };
+      speed?: { gym: string; energy: number; };
+      defense?: { gym: string; energy: number; };
+      dexterity?: { gym: string; energy: number; };
+    } = {};
+    const dailyNotes: string[] = [];
+    
     // Check if this is a skipped day (war, vacation, etc.)
     const isSkipped = isSkippedDay(day);
+    
+    if (isSkipped) {
+      dailyNotes.push('Day skipped (war/vacation)');
+    }
     
     // Check if EDVD jump should be performed
     // Skip if limit is reached based on configuration
     let shouldPerformEdvdJump = inputs.edvdJump?.enabled && day === nextEdvdJumpDay && !isSkipped;
+    
+    // Check if this is the day before an eDVD jump (for stacking)
+    const isDayBeforeEdvdJump = inputs.edvdJump?.enabled && day === nextEdvdJumpDay - 1 && !isSkipped;
     
     // Track which stats should be trained during this eDVD jump (for 'stat' limit mode)
     let edvdStatsToTrain: Set<keyof typeof stats> | null = null;
@@ -511,6 +549,13 @@ export function simulateGymProgression(
     }
     
     let energyAvailableToday = isSkipped ? 0 : dailyEnergy;
+    
+    // If it's the day before an eDVD jump, no energy should be used (stacking)
+    if (isDayBeforeEdvdJump) {
+      energyAvailableToday = 0;
+      dailyNotes.push('Stacking for eDVD jump (no energy used)');
+    }
+    
     let currentHappy = inputs.happy;
     
     const maxEnergyValue = inputs.maxEnergy || 150;
@@ -538,9 +583,20 @@ export function simulateGymProgression(
       const dvdHappinessPerDvd = inputs.edvdJump.adultNovelties ? 5000 : 2500;
       currentHappy = (inputs.happy + dvdHappinessPerDvd * inputs.edvdJump.dvdsUsed) * 2;
       
+      // Add note about eDVD jump
+      dailyNotes.push(`eDVD jump: Used ${inputs.edvdJump.dvdsUsed} DVD${inputs.edvdJump.dvdsUsed > 1 ? 's' : ''}, 1 Ecstasy, 4 Xanax${inputs.edvdJump.adultNovelties ? ' (with 10★ Adult Novelties)' : ''}`);
+      
       // Increment jump counter and schedule next jump
       edvdJumpsPerformed++;
-      nextEdvdJumpDay = day + inputs.edvdJump.frequencyDays;
+      let proposedNextEdvdDay = day + inputs.edvdJump.frequencyDays;
+      
+      // Make sure next eDVD jump doesn't conflict with any DD jumps
+      // Must be at least 2 days after any DD jump
+      while (diabetesDayJumpDays.some(ddDay => Math.abs(proposedNextEdvdDay - ddDay) < 2)) {
+        proposedNextEdvdDay++;
+      }
+      
+      nextEdvdJumpDay = proposedNextEdvdDay;
     }
     
     // Check if this is a Diabetes Day jump
@@ -606,6 +662,30 @@ export function simulateGymProgression(
       
       energyAvailableToday = ddEnergy;
       currentHappy = 99999; // DD happy is always 99999
+      
+      // Build Diabetes Day note
+      const ddNoteItems: string[] = ['Diabetes Day jump'];
+      
+      // Add items used
+      if (inputs.diabetesDay.numberOfJumps === 1) {
+        if (inputs.diabetesDay.greenEgg > 0) ddNoteItems.push('Green Egg');
+        else if (inputs.diabetesDay.featheryHotelCoupon > 0) ddNoteItems.push('FHC');
+      } else {
+        if (jumpIndex === 0) {
+          if (inputs.diabetesDay.greenEgg > 0) ddNoteItems.push('Green Egg');
+          else if (inputs.diabetesDay.featheryHotelCoupon > 0) ddNoteItems.push('FHC');
+        } else if (jumpIndex === 1) {
+          if (inputs.diabetesDay.greenEgg >= 2) ddNoteItems.push('Green Egg');
+          else if (inputs.diabetesDay.featheryHotelCoupon >= 2) ddNoteItems.push('FHC');
+          else if (inputs.diabetesDay.greenEgg === 1 && inputs.diabetesDay.featheryHotelCoupon >= 1) ddNoteItems.push('FHC');
+          else if (inputs.diabetesDay.featheryHotelCoupon === 1 && inputs.diabetesDay.greenEgg >= 1) ddNoteItems.push('Green Egg');
+        }
+      }
+      
+      if (isFirstJump && inputs.diabetesDay.seasonalMail) ddNoteItems.push('Seasonal Mail');
+      if (!isFirstJump && inputs.diabetesDay.logoEnergyClick) ddNoteItems.push('Logo Energy Click');
+      
+      dailyNotes.push(ddNoteItems.join(', '));
     }
     
     // Check if this is a loss/revive day and reduce energy
@@ -613,6 +693,7 @@ export function simulateGymProgression(
       const energyReduction = inputs.lossRevive.numberPerDay * inputs.lossRevive.energyCost;
       energyAvailableToday = Math.max(0, energyAvailableToday - energyReduction);
       
+      dailyNotes.push(`Loss/Revive: ${inputs.lossRevive.numberPerDay} loss${inputs.lossRevive.numberPerDay > 1 ? 'es' : ''} (${inputs.lossRevive.energyCost} energy each)`);
       lossReviveDaysPerformed++;
       nextLossReviveDay = day + inputs.lossRevive.daysBetween;
     }
@@ -676,6 +757,17 @@ export function simulateGymProgression(
         candyTrainHappy = candyTrainHappy * 2;
       }
       
+      // Add candy jump note
+      const candyNames: Record<number, string> = {
+        310: 'Box of Bon Bons',
+        36: 'Box of Chocolate Bars',
+        528: 'Box of Extra Fine Chocolates',
+        529: 'Box of Luxury Chocolates',
+        151: 'Jawbreaker',
+      };
+      const candyName = candyNames[inputs.candyJump.itemId] || 'candies';
+      dailyNotes.push(`Used ${candyQuantity} ${candyName}${inputs.candyJump.useEcstasy ? ' + Ecstasy' : ''}`);
+      
       // Train with candy happiness for the allocated energy
       let candyRemainingEnergy = energyToUse;
       
@@ -728,6 +820,14 @@ export function simulateGymProgression(
               candyRemainingEnergy -= gym.energyPerTrain;
               remainingEnergy -= gym.energyPerTrain;
               trainSuccessful = true;
+              
+              // Track training details (candy jump training)
+              if (!dailyTrainingDetails[selectedStat]) {
+                dailyTrainingDetails[selectedStat] = { gym: gym.displayName, energy: 0 };
+              }
+              if (dailyTrainingDetails[selectedStat]) {
+                dailyTrainingDetails[selectedStat]!.energy += gym.energyPerTrain;
+              }
             }
           }
         } catch {
@@ -779,6 +879,19 @@ export function simulateGymProgression(
       // Add extra energy to remaining energy pool
       remainingEnergy += extraEnergy;
       
+      // Add energy jump note
+      const energyItemNames: Record<number, string> = {
+        985: 'Small Energy Drink',
+        986: 'Energy Drink',
+        987: 'Large Energy Drink',
+        530: 'X-Large Energy Drink',
+        532: 'XX-Large Energy Drink',
+        533: 'XXX-Large Energy Drink',
+        367: 'Feathery Hotel Coupon',
+      };
+      const itemName = energyItemNames[inputs.energyJump.itemId] || 'energy items';
+      dailyNotes.push(`Used ${energyQuantity} ${itemName}`);
+      
       energyJumpDaysPerformed++;
     }
     
@@ -815,6 +928,7 @@ export function simulateGymProgression(
       
       if (statDriftPercent > 0 && shouldAllowDrift) {
         // Calculate actual gain for each trainable stat (considering perks, gym dots, happy, etc.)
+        // Use a normalized stat value of 1000 for comparison to remove stat value bias
         const statGains: Array<{ stat: keyof typeof stats; gain: number; ratio: number }> = [];
         
         for (const stat of trainableStats) {
@@ -829,10 +943,11 @@ export function simulateGymProgression(
             const statDots = gym[stat as keyof Pick<Gym, 'strength' | 'speed' | 'defense' | 'dexterity'>];
             
             if (statDots !== null && statDots !== undefined) {
-              // Calculate actual gain using the same formula as training
+              // Calculate actual gain using normalized stat value of 1000 for fair comparison
+              // This removes the bias where higher stats would always have higher gains
               const gain = computeStatGain(
                 stat,
-                stats[stat],
+                1000, // Use normalized value instead of stats[stat]
                 currentHappy,
                 inputs.perkPercs[stat],
                 statDots,
@@ -948,6 +1063,14 @@ export function simulateGymProgression(
             totalEnergySpent += gym.energyPerTrain;
             remainingEnergy -= gym.energyPerTrain;
             trainSuccessful = true;
+            
+            // Track training details (regular training)
+            if (!dailyTrainingDetails[selectedStat]) {
+              dailyTrainingDetails[selectedStat] = { gym: gym.displayName, energy: 0 };
+            }
+            if (dailyTrainingDetails[selectedStat]) {
+              dailyTrainingDetails[selectedStat]!.energy += gym.energyPerTrain;
+            }
           }
         }
       } catch {
@@ -1039,6 +1162,8 @@ export function simulateGymProgression(
         energySpentOnGymUnlock,
         isDiabetesDayJump,
         diabetesDayJumpGains,
+        trainingDetails: Object.keys(dailyTrainingDetails).length > 0 ? dailyTrainingDetails : undefined,
+        notes: dailyNotes.length > 0 ? dailyNotes : undefined,
       };
       
       dailySnapshots.push(snapshot);

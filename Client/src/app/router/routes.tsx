@@ -5,6 +5,7 @@ import Profit from "../pages/Profit";
 import Recommendations from "../pages/Recommendations";
 import StockProfit from "../pages/StockProfit";
 import GymComparison from "../pages/GymComparison";
+import TrainingBreakdown from "../pages/TrainingBreakdown";
 
 const router = createBrowserRouter([
     {
@@ -14,6 +15,7 @@ const router = createBrowserRouter([
             { path: "/profit", element: <Profit /> },
             { path: "/stockProfit", element: <StockProfit /> },
             { path: "/gymComparison", element: <GymComparison /> },
+            { path: "/trainingBreakdown", element: <TrainingBreakdown /> },
             { path: "*", element: <UnderConstruction /> },
         ],
     },
