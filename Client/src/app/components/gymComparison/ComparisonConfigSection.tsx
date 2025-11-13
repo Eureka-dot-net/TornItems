@@ -56,6 +56,7 @@ interface ComparisonState {
   daysSkippedPerMonth: number;
   statDriftPercent: number;
   balanceAfterGeorges: boolean;
+  ignorePerksForGymSelection: boolean;
 }
 
 interface ComparisonConfigSectionProps {
@@ -227,6 +228,8 @@ export default function ComparisonConfigSection({
             onDriftUpdate={(percent) => updateState(activeState.id, { statDriftPercent: percent })}
             balanceAfterGeorges={activeState.balanceAfterGeorges}
             onBalanceAfterGeorgesUpdate={(balance) => updateState(activeState.id, { balanceAfterGeorges: balance })}
+            ignorePerksForGymSelection={activeState.ignorePerksForGymSelection}
+            onIgnorePerksForGymSelectionUpdate={(ignore) => updateState(activeState.id, { ignorePerksForGymSelection: ignore })}
           />
         </Grid>
 

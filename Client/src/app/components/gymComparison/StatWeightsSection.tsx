@@ -20,6 +20,8 @@ interface StatWeightsSectionProps {
   onDriftUpdate?: (percent: number) => void;
   balanceAfterGeorges?: boolean;
   onBalanceAfterGeorgesUpdate?: (balance: boolean) => void;
+  ignorePerksForGymSelection?: boolean;
+  onIgnorePerksForGymSelectionUpdate?: (ignore: boolean) => void;
 }
 
 export default function StatWeightsSection({
@@ -32,6 +34,8 @@ export default function StatWeightsSection({
   onDriftUpdate,
   balanceAfterGeorges,
   onBalanceAfterGeorgesUpdate,
+  ignorePerksForGymSelection,
+  onIgnorePerksForGymSelectionUpdate,
 }: StatWeightsSectionProps) {
   // Helper to get display value for dropdown
   const getDriftDisplayValue = () => {
@@ -104,21 +108,51 @@ export default function StatWeightsSection({
             </FormControl>
           </Box>
           {onBalanceAfterGeorgesUpdate && (statDriftPercent ?? 0) > 0 && (
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={balanceAfterGeorges ?? true}
-                  onChange={(e) => onBalanceAfterGeorgesUpdate(e.target.checked)}
-                  size="small"
+            <>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={balanceAfterGeorges ?? true}
+                    onChange={(e) => onBalanceAfterGeorgesUpdate(e.target.checked)}
+                    size="small"
+                  />
+                }
+                label={
+                  <Typography variant="caption">
+                    Revert to balanced training after George's gym
+                  </Typography>
+                }
+                sx={{ mt: 0.5 }}
+              />
+              {onIgnorePerksForGymSelectionUpdate && (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={ignorePerksForGymSelection ?? false}
+                      onChange={(e) => onIgnorePerksForGymSelectionUpdate(e.target.checked)}
+                      size="small"
+                    />
+                  }
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="caption">
+                        Ignore perks for gym selection
+                      </Typography>
+                      <Tooltip 
+                        title="When enabled, perks are ignored when deciding which gym/stat to train. Perks are still applied to actual gains."
+                        placement="top"
+                        arrow
+                      >
+                        <IconButton size="small" sx={{ p: 0 }}>
+                          <HelpOutlineIcon sx={{ fontSize: '0.875rem' }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  }
+                  sx={{ mt: 0.5 }}
                 />
-              }
-              label={
-                <Typography variant="caption">
-                  Revert to balanced training after George's gym
-                </Typography>
-              }
-              sx={{ mt: 0.5 }}
-            />
+              )}
+            </>
           )}
         </Box>
       )}

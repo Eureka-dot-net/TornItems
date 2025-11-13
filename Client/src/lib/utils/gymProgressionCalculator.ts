@@ -95,6 +95,7 @@ export interface SimulationInputs {
   daysSkippedPerMonth?: number; // Days per month with no energy (wars, vacations)
   statDriftPercent?: number; // 0-100: How far stats can drift from target weighings. 0 = strict balance, 100 = pure best gains
   balanceAfterGeorges?: boolean; // Whether to revert to balanced training after George's gym (default: true)
+  ignorePerksForGymSelection?: boolean; // If true, ignore perks when deciding which gym/stat to train (but still use perks for actual gains)
   itemPrices?: {
     dvdPrice: number | null;
     xanaxPrice: number | null;
@@ -931,6 +932,11 @@ export function simulateGymProgression(
         // Use a normalized stat value of 1000 for comparison to remove stat value bias
         const statGains: Array<{ stat: keyof typeof stats; gain: number; ratio: number }> = [];
         
+        // Decide whether to use perks in gym selection calculation
+        const perksForSelection = inputs.ignorePerksForGymSelection ? 
+          { strength: 0, speed: 0, defense: 0, dexterity: 0 } : 
+          inputs.perkPercs;
+        
         for (const stat of trainableStats) {
           try {
             const gym = findBestGym(
@@ -949,7 +955,7 @@ export function simulateGymProgression(
                 stat,
                 1000, // Use normalized value instead of stats[stat]
                 currentHappy,
-                inputs.perkPercs[stat],
+                perksForSelection[stat],
                 statDots,
                 gym.energyPerTrain
               ) * inputs.companyBenefit.gymGainMultiplier;
@@ -966,7 +972,15 @@ export function simulateGymProgression(
         
         if (statGains.length > 0) {
           // Find the stat with the best gain
-          statGains.sort((a, b) => b.gain - a.gain);
+          // When gains are equal (e.g., multiple stats have same gym dots), prefer the most out of balance stat
+          statGains.sort((a, b) => {
+            const gainDiff = b.gain - a.gain;
+            if (Math.abs(gainDiff) < 0.0001) {
+              // Gains are essentially equal, sort by ratio (lower ratio = more out of balance)
+              return a.ratio - b.ratio;
+            }
+            return gainDiff;
+          });
           const bestGainStat = statGains[0];
           
           // Find the stat most out of sync (for balanced approach)

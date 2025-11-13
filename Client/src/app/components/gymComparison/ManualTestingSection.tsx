@@ -57,6 +57,8 @@ interface ManualTestingSectionProps {
   setManualStatDriftPercent: (percent: number) => void;
   manualBalanceAfterGeorges: boolean;
   setManualBalanceAfterGeorges: (balance: boolean) => void;
+  manualIgnorePerksForGymSelection: boolean;
+  setManualIgnorePerksForGymSelection: (ignore: boolean) => void;
   results?: SimulationResult;
 }
 
@@ -83,6 +85,8 @@ export default function ManualTestingSection({
   setManualStatDriftPercent,
   manualBalanceAfterGeorges,
   setManualBalanceAfterGeorges,
+  manualIgnorePerksForGymSelection,
+  setManualIgnorePerksForGymSelection,
   results
 }: ManualTestingSectionProps) {
   return (
@@ -200,21 +204,49 @@ export default function ManualTestingSection({
               </FormControl>
             </Box>
             {manualStatDriftPercent > 0 && (
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={manualBalanceAfterGeorges}
-                    onChange={(e) => setManualBalanceAfterGeorges(e.target.checked)}
-                    size="small"
-                  />
-                }
-                label={
-                  <Typography variant="caption">
-                    Revert to balanced after George's gym
-                </Typography>
-              }
-              sx={{ mt: 0.5 }}
-            />
+              <>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={manualBalanceAfterGeorges}
+                      onChange={(e) => setManualBalanceAfterGeorges(e.target.checked)}
+                      size="small"
+                    />
+                  }
+                  label={
+                    <Typography variant="caption">
+                      Revert to balanced after George's gym
+                    </Typography>
+                  }
+                  sx={{ mt: 0.5 }}
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={manualIgnorePerksForGymSelection}
+                      onChange={(e) => setManualIgnorePerksForGymSelection(e.target.checked)}
+                      size="small"
+                    />
+                  }
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="caption">
+                        Ignore perks for gym selection
+                      </Typography>
+                      <Tooltip 
+                        title="When enabled, perks are ignored when deciding which gym/stat to train. Perks are still applied to actual gains."
+                        placement="top"
+                        arrow
+                      >
+                        <IconButton size="small" sx={{ p: 0 }}>
+                          <HelpOutlineIcon sx={{ fontSize: '0.875rem' }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  }
+                  sx={{ mt: 0.5 }}
+                />
+              </>
             )}
           </Box>
           
