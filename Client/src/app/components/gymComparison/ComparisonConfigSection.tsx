@@ -1,4 +1,4 @@
-import { Grid, IconButton, Paper, TextField, Box } from '@mui/material';
+import { Grid, IconButton, Paper, TextField, Box, Alert } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import StatWeightsSection from './StatWeightsSection';
 import EnergySourcesSection from './EnergySourcesSection';
@@ -8,6 +8,7 @@ import StatJumpsSection from './StatJumpsSection';
 import { Typography } from '@mui/material';
 import { getCompanyBenefit, getHanksRatio, getBaldrsRatio, getDefensiveBuildRatio } from '../../../lib/utils/gymHelpers';
 import type { ItemPrices } from '../../../lib/hooks/useItemPrices';
+import type { SegmentedSimulationConfig } from '../../../lib/types/gymComparison';
 
 interface ComparisonState {
   id: string;
@@ -58,6 +59,8 @@ interface ComparisonConfigSectionProps {
   canRemoveState: boolean;
   showCosts: boolean;
   itemPricesData?: ItemPrices;
+  segmentConfig?: SegmentedSimulationConfig;
+  updateSegment?: (stateId: string, segmentId: string, updates: Partial<ComparisonState>) => void;
 }
 
 export default function ComparisonConfigSection({
@@ -66,10 +69,76 @@ export default function ComparisonConfigSection({
   handleRemoveState,
   canRemoveState,
   showCosts,
-  itemPricesData
+  itemPricesData,
+  segmentConfig,
+  updateSegment,
 }: ComparisonConfigSectionProps) {
+  // Determine if we're editing a segment or the base state
+  const activeSegmentId = segmentConfig?.activeSegmentId;
+  const activeSegment = activeSegmentId 
+    ? segmentConfig?.segments.find(seg => seg.id === activeSegmentId)
+    : null;
+  
+  // Get the display state (base + segment overrides for display)
+  const displayState = activeSegment 
+    ? {
+        ...activeState,
+        statWeights: { ...activeState.statWeights, ...activeSegment.overrides.statWeights },
+        perkPercs: { ...activeState.perkPercs, ...activeSegment.overrides.perkPercs },
+        ...(activeSegment.overrides.hoursPlayedPerDay !== undefined && { hoursPlayedPerDay: activeSegment.overrides.hoursPlayedPerDay }),
+        ...(activeSegment.overrides.xanaxPerDay !== undefined && { xanaxPerDay: activeSegment.overrides.xanaxPerDay }),
+        ...(activeSegment.overrides.hasPointsRefill !== undefined && { hasPointsRefill: activeSegment.overrides.hasPointsRefill }),
+        ...(activeSegment.overrides.maxEnergy !== undefined && { maxEnergy: activeSegment.overrides.maxEnergy }),
+        ...(activeSegment.overrides.happy !== undefined && { happy: activeSegment.overrides.happy }),
+        ...(activeSegment.overrides.edvdJumpEnabled !== undefined && { edvdJumpEnabled: activeSegment.overrides.edvdJumpEnabled }),
+        ...(activeSegment.overrides.edvdJumpFrequency !== undefined && { edvdJumpFrequency: activeSegment.overrides.edvdJumpFrequency }),
+        ...(activeSegment.overrides.edvdJumpDvds !== undefined && { edvdJumpDvds: activeSegment.overrides.edvdJumpDvds }),
+        ...(activeSegment.overrides.edvdJumpLimit !== undefined && { edvdJumpLimit: activeSegment.overrides.edvdJumpLimit }),
+        ...(activeSegment.overrides.edvdJumpCount !== undefined && { edvdJumpCount: activeSegment.overrides.edvdJumpCount }),
+        ...(activeSegment.overrides.edvdJumpStatTarget !== undefined && { edvdJumpStatTarget: activeSegment.overrides.edvdJumpStatTarget }),
+        ...(activeSegment.overrides.edvdJumpAdultNovelties !== undefined && { edvdJumpAdultNovelties: activeSegment.overrides.edvdJumpAdultNovelties }),
+        ...(activeSegment.overrides.candyJumpEnabled !== undefined && { candyJumpEnabled: activeSegment.overrides.candyJumpEnabled }),
+        ...(activeSegment.overrides.candyJumpItemId !== undefined && { candyJumpItemId: activeSegment.overrides.candyJumpItemId }),
+        ...(activeSegment.overrides.candyJumpUseEcstasy !== undefined && { candyJumpUseEcstasy: activeSegment.overrides.candyJumpUseEcstasy }),
+        ...(activeSegment.overrides.candyJumpQuantity !== undefined && { candyJumpQuantity: activeSegment.overrides.candyJumpQuantity }),
+        ...(activeSegment.overrides.candyJumpFactionBenefit !== undefined && { candyJumpFactionBenefit: activeSegment.overrides.candyJumpFactionBenefit }),
+        ...(activeSegment.overrides.energyJumpEnabled !== undefined && { energyJumpEnabled: activeSegment.overrides.energyJumpEnabled }),
+        ...(activeSegment.overrides.energyJumpItemId !== undefined && { energyJumpItemId: activeSegment.overrides.energyJumpItemId }),
+        ...(activeSegment.overrides.energyJumpQuantity !== undefined && { energyJumpQuantity: activeSegment.overrides.energyJumpQuantity }),
+        ...(activeSegment.overrides.energyJumpFactionBenefit !== undefined && { energyJumpFactionBenefit: activeSegment.overrides.energyJumpFactionBenefit }),
+        ...(activeSegment.overrides.lossReviveEnabled !== undefined && { lossReviveEnabled: activeSegment.overrides.lossReviveEnabled }),
+        ...(activeSegment.overrides.lossReviveNumberPerDay !== undefined && { lossReviveNumberPerDay: activeSegment.overrides.lossReviveNumberPerDay }),
+        ...(activeSegment.overrides.lossReviveEnergyCost !== undefined && { lossReviveEnergyCost: activeSegment.overrides.lossReviveEnergyCost }),
+        ...(activeSegment.overrides.lossReviveDaysBetween !== undefined && { lossReviveDaysBetween: activeSegment.overrides.lossReviveDaysBetween }),
+        ...(activeSegment.overrides.lossRevivePricePerLoss !== undefined && { lossRevivePricePerLoss: activeSegment.overrides.lossRevivePricePerLoss }),
+        ...(activeSegment.overrides.diabetesDayEnabled !== undefined && { diabetesDayEnabled: activeSegment.overrides.diabetesDayEnabled }),
+        ...(activeSegment.overrides.diabetesDayNumberOfJumps !== undefined && { diabetesDayNumberOfJumps: activeSegment.overrides.diabetesDayNumberOfJumps }),
+        ...(activeSegment.overrides.diabetesDayFHC !== undefined && { diabetesDayFHC: activeSegment.overrides.diabetesDayFHC }),
+        ...(activeSegment.overrides.diabetesDayGreenEgg !== undefined && { diabetesDayGreenEgg: activeSegment.overrides.diabetesDayGreenEgg }),
+        ...(activeSegment.overrides.diabetesDaySeasonalMail !== undefined && { diabetesDaySeasonalMail: activeSegment.overrides.diabetesDaySeasonalMail }),
+        ...(activeSegment.overrides.diabetesDayLogoClick !== undefined && { diabetesDayLogoClick: activeSegment.overrides.diabetesDayLogoClick }),
+        ...(activeSegment.overrides.companyBenefitKey !== undefined && { companyBenefitKey: activeSegment.overrides.companyBenefitKey }),
+        ...(activeSegment.overrides.candleShopStars !== undefined && { candleShopStars: activeSegment.overrides.candleShopStars }),
+        ...(activeSegment.overrides.daysSkippedPerMonth !== undefined && { daysSkippedPerMonth: activeSegment.overrides.daysSkippedPerMonth }),
+      }
+    : activeState;
+  
+  // Route updates to correct target
+  const handleUpdate = (updates: Partial<ComparisonState>) => {
+    if (activeSegmentId && updateSegment) {
+      updateSegment(activeState.id, activeSegmentId, updates);
+    } else {
+      updateState(activeState.id, updates);
+    }
+  };
+  
   return (
     <Paper sx={{ p: 2, mb: 3 }}>
+      {activeSegmentId && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Editing segment: {activeSegment?.name || `Day ${activeSegment?.startDay}`}
+        </Alert>
+      )}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <TextField 
           label="Comparison Name" 
@@ -77,8 +146,9 @@ export default function ComparisonConfigSection({
           onChange={(e) => updateState(activeState.id, { name: e.target.value })} 
           size="small"
           sx={{ width: 250 }}
+          disabled={!!activeSegmentId}
         />
-        {canRemoveState && (
+        {canRemoveState && !activeSegmentId && (
           <IconButton color="error" onClick={() => handleRemoveState(activeState.id)} size="small">
             <DeleteIcon />
           </IconButton>
@@ -88,10 +158,10 @@ export default function ComparisonConfigSection({
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 3 }}>
           <StatWeightsSection
-            statWeights={activeState.statWeights}
+            statWeights={displayState.statWeights}
             onUpdate={(updates) => {
               if ('strength' in updates || 'speed' in updates || 'defense' in updates || 'dexterity' in updates) {
-                updateState(activeState.id, { statWeights: { ...activeState.statWeights, ...updates } });
+                handleUpdate({ statWeights: { ...displayState.statWeights, ...updates } });
               }
             }}
             getHanksRatio={getHanksRatio}
@@ -102,28 +172,28 @@ export default function ComparisonConfigSection({
 
         <Grid size={{ xs: 12, md: 3 }}>
           <EnergySourcesSection
-            maxEnergy={activeState.maxEnergy}
-            hoursPlayedPerDay={activeState.hoursPlayedPerDay}
-            xanaxPerDay={activeState.xanaxPerDay}
-            hasPointsRefill={activeState.hasPointsRefill}
-            daysSkippedPerMonth={activeState.daysSkippedPerMonth}
-            companyBenefit={getCompanyBenefit(activeState.companyBenefitKey, activeState.candleShopStars)}
+            maxEnergy={displayState.maxEnergy}
+            hoursPlayedPerDay={displayState.hoursPlayedPerDay}
+            xanaxPerDay={displayState.xanaxPerDay}
+            hasPointsRefill={displayState.hasPointsRefill}
+            daysSkippedPerMonth={displayState.daysSkippedPerMonth}
+            companyBenefit={getCompanyBenefit(displayState.companyBenefitKey, displayState.candleShopStars)}
             showCosts={showCosts}
             itemPricesData={itemPricesData}
-            onUpdate={(updates) => updateState(activeState.id, updates)}
+            onUpdate={(updates) => handleUpdate(updates)}
           />
         </Grid>
 
         <Grid size={{ xs: 12, md: 3 }}>
           <HappyPerksSection
-            happy={activeState.happy}
-            perkPercs={activeState.perkPercs}
+            happy={displayState.happy}
+            perkPercs={displayState.perkPercs}
             onUpdate={(updates) => {
               if ('happy' in updates) {
-                updateState(activeState.id, { happy: updates.happy });
+                handleUpdate({ happy: updates.happy });
               }
               if ('perkPercs' in updates) {
-                updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, ...updates.perkPercs } });
+                handleUpdate({ perkPercs: { ...displayState.perkPercs, ...updates.perkPercs } });
               }
             }}
           />
@@ -131,48 +201,48 @@ export default function ComparisonConfigSection({
 
         <Grid size={{ xs: 12, md: 3 }}>
           <BenefitsEventsSection
-            companyBenefitKey={activeState.companyBenefitKey}
-            candleShopStars={activeState.candleShopStars}
-            diabetesDayEnabled={activeState.diabetesDayEnabled}
-            diabetesDayNumberOfJumps={activeState.diabetesDayNumberOfJumps}
-            diabetesDayFHC={activeState.diabetesDayFHC}
-            diabetesDayGreenEgg={activeState.diabetesDayGreenEgg}
-            diabetesDaySeasonalMail={activeState.diabetesDaySeasonalMail}
-            diabetesDayLogoClick={activeState.diabetesDayLogoClick}
-            onUpdate={(updates) => updateState(activeState.id, updates)}
+            companyBenefitKey={displayState.companyBenefitKey}
+            candleShopStars={displayState.candleShopStars}
+            diabetesDayEnabled={displayState.diabetesDayEnabled}
+            diabetesDayNumberOfJumps={displayState.diabetesDayNumberOfJumps}
+            diabetesDayFHC={displayState.diabetesDayFHC}
+            diabetesDayGreenEgg={displayState.diabetesDayGreenEgg}
+            diabetesDaySeasonalMail={displayState.diabetesDaySeasonalMail}
+            diabetesDayLogoClick={displayState.diabetesDayLogoClick}
+            onUpdate={(updates) => handleUpdate(updates)}
           />
         </Grid>
       </Grid>
 
       <Typography variant="subtitle2" gutterBottom sx={{ mt: 3 }}>Stat Jumps</Typography>
       <StatJumpsSection
-        edvdJumpEnabled={activeState.edvdJumpEnabled}
-        edvdJumpFrequency={activeState.edvdJumpFrequency}
-        edvdJumpDvds={activeState.edvdJumpDvds}
-        edvdJumpLimit={activeState.edvdJumpLimit}
-        edvdJumpCount={activeState.edvdJumpCount}
-        edvdJumpStatTarget={activeState.edvdJumpStatTarget}
-        edvdJumpAdultNovelties={activeState.edvdJumpAdultNovelties}
-        candyJumpEnabled={activeState.candyJumpEnabled}
-        candyJumpItemId={activeState.candyJumpItemId}
-        candyJumpUseEcstasy={activeState.candyJumpUseEcstasy}
-        candyJumpQuantity={activeState.candyJumpQuantity}
-        candyJumpFactionBenefit={activeState.candyJumpFactionBenefit}
-        energyJumpEnabled={activeState.energyJumpEnabled}
-        energyJumpItemId={activeState.energyJumpItemId}
-        energyJumpQuantity={activeState.energyJumpQuantity}
-        energyJumpFactionBenefit={activeState.energyJumpFactionBenefit}
-        lossReviveEnabled={activeState.lossReviveEnabled}
-        lossReviveNumberPerDay={activeState.lossReviveNumberPerDay}
-        lossReviveEnergyCost={activeState.lossReviveEnergyCost}
-        lossReviveDaysBetween={activeState.lossReviveDaysBetween}
-        lossRevivePricePerLoss={activeState.lossRevivePricePerLoss}
-        hasPointsRefill={activeState.hasPointsRefill}
-        xanaxPerDay={activeState.xanaxPerDay}
-        maxEnergy={activeState.maxEnergy}
+        edvdJumpEnabled={displayState.edvdJumpEnabled}
+        edvdJumpFrequency={displayState.edvdJumpFrequency}
+        edvdJumpDvds={displayState.edvdJumpDvds}
+        edvdJumpLimit={displayState.edvdJumpLimit}
+        edvdJumpCount={displayState.edvdJumpCount}
+        edvdJumpStatTarget={displayState.edvdJumpStatTarget}
+        edvdJumpAdultNovelties={displayState.edvdJumpAdultNovelties}
+        candyJumpEnabled={displayState.candyJumpEnabled}
+        candyJumpItemId={displayState.candyJumpItemId}
+        candyJumpUseEcstasy={displayState.candyJumpUseEcstasy}
+        candyJumpQuantity={displayState.candyJumpQuantity}
+        candyJumpFactionBenefit={displayState.candyJumpFactionBenefit}
+        energyJumpEnabled={displayState.energyJumpEnabled}
+        energyJumpItemId={displayState.energyJumpItemId}
+        energyJumpQuantity={displayState.energyJumpQuantity}
+        energyJumpFactionBenefit={displayState.energyJumpFactionBenefit}
+        lossReviveEnabled={displayState.lossReviveEnabled}
+        lossReviveNumberPerDay={displayState.lossReviveNumberPerDay}
+        lossReviveEnergyCost={displayState.lossReviveEnergyCost}
+        lossReviveDaysBetween={displayState.lossReviveDaysBetween}
+        lossRevivePricePerLoss={displayState.lossRevivePricePerLoss}
+        hasPointsRefill={displayState.hasPointsRefill}
+        xanaxPerDay={displayState.xanaxPerDay}
+        maxEnergy={displayState.maxEnergy}
         showCosts={showCosts}
         itemPricesData={itemPricesData}
-        onUpdate={(updates) => updateState(activeState.id, updates)}
+        onUpdate={(updates) => handleUpdate(updates)}
       />
     </Paper>
   );
