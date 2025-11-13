@@ -8,6 +8,7 @@ const allNavItems = [
   { label: 'Profit Analysis', path: '/profit' },
   { label: 'Stock Profit', path: '/stockProfit' },
   { label: 'Gym Comparison', path: '/gymComparison' },
+  { label: 'Training Breakdown', path: '/trainingBreakdown' },
 ];
 
 export default function Navigation() {
@@ -18,13 +19,16 @@ export default function Navigation() {
 
   // Hide navigation items unless user has the flag set in localStorage
   // Owner sets: localStorage.setItem('showAllNavigation', 'true')
-  // Everyone else (friends) sees only Gym Comparison by default
+  // Everyone else (friends) sees only Gym Comparison and Training Breakdown by default
   useEffect(() => {
     const showAllNav = localStorage.getItem('showAllNavigation') === 'true';
     if (showAllNav) {
       setNavItems(allNavItems);
     } else {
-      setNavItems([{ label: 'Gym Comparison', path: '/gymComparison' }]);
+      setNavItems([
+        { label: 'Gym Comparison', path: '/gymComparison' },
+        { label: 'Training Breakdown', path: '/trainingBreakdown' },
+      ]);
     }
   }, []);
 

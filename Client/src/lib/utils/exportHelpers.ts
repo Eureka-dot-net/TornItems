@@ -427,4 +427,13 @@ export function exportIndividualComparisonData(data: IndividualComparisonExportD
   const safeName = data.name.replace(/[^a-z0-9]/gi, '-').toLowerCase();
   const filename = `gym-comparison-${safeName}-${timestamp}.csv`;
   downloadFile(csv, filename);
+  
+  // Save the data to localStorage for the Training Breakdown page
+  localStorage.setItem('trainingBreakdown_data', JSON.stringify(data));
+  
+  // Set start date to today if not already set
+  const existingStartDate = localStorage.getItem('trainingBreakdown_startDate');
+  if (!existingStartDate) {
+    localStorage.setItem('trainingBreakdown_startDate', new Date().toISOString().split('T')[0]);
+  }
 }
