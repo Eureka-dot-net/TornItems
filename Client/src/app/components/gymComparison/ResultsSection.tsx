@@ -6,6 +6,7 @@ import FinalStatsTable from './FinalStatsTable';
 import CostEstimateCard from './CostEstimateCard';
 import DiabetesDayEstimateCard from './DiabetesDayEstimateCard';
 import EdvdJumpGainsTable from './EdvdJumpGainsTable';
+import IndividualStatsSection from './IndividualStatsSection';
 import type { SimulationResult } from '../../../lib/utils/gymProgressionCalculator';
 import type { ItemPrices } from '../../../lib/hooks/useItemPrices';
 
@@ -138,6 +139,12 @@ export default function ResultsSection({
           )}
         </Grid>
         
+        <IndividualStatsSection
+          comparisonStates={comparisonStates}
+          results={results}
+          initialStats={initialStats}
+        />
+        
         <EdvdJumpGainsTable
           comparisonStates={comparisonStates}
           results={results}
@@ -192,6 +199,12 @@ export default function ResultsSection({
             />
           </Grid>
         </Grid>
+        
+        <IndividualStatsSection
+          comparisonStates={comparisonStates}
+          results={results}
+          initialStats={initialStats}
+        />
         
         <EdvdJumpGainsTable
           comparisonStates={comparisonStates}

@@ -99,6 +99,7 @@ interface ComparisonState {
   daysSkippedPerMonth: number;
   statDriftPercent: number; // 0-100: How far stats can drift from target weighings
   balanceAfterGeorges: boolean; // Whether to revert to balanced training after George's gym
+  showIndividualStats: boolean; // Whether to show individual stats chart for this state
   [key: string]: unknown;
 }
 
@@ -183,6 +184,7 @@ export default function GymComparison() {
         daysSkippedPerMonth: 0,
         statDriftPercent: 0,
         balanceAfterGeorges: true,
+        showIndividualStats: false,
       },
     ])
   );
@@ -333,6 +335,7 @@ export default function GymComparison() {
       daysSkippedPerMonth: sourceState.daysSkippedPerMonth,
       statDriftPercent: sourceState.statDriftPercent,
       balanceAfterGeorges: sourceState.balanceAfterGeorges,
+      showIndividualStats: false,
     };
     
     setComparisonStates([...comparisonStates, newState]);
@@ -625,6 +628,7 @@ export default function GymComparison() {
               daysSkippedPerMonth: typeof s.daysSkippedPerMonth === 'number' ? s.daysSkippedPerMonth : 0,
               statDriftPercent: typeof s.statDriftPercent === 'number' ? Math.max(0, Math.min(100, s.statDriftPercent)) : 0,
               balanceAfterGeorges: typeof s.balanceAfterGeorges === 'boolean' ? s.balanceAfterGeorges : true,
+              showIndividualStats: typeof s.showIndividualStats === 'boolean' ? s.showIndividualStats : false,
             };
           }
           return {
@@ -669,6 +673,7 @@ export default function GymComparison() {
             daysSkippedPerMonth: 0,
             statDriftPercent: 0,
             balanceAfterGeorges: true,
+            showIndividualStats: false,
           };
         });
         setComparisonStates(loadedStates);
