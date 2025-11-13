@@ -1,6 +1,8 @@
 import { Grid, IconButton, Paper, TextField, Box, Button } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DownloadIcon from '@mui/icons-material/Download';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import { useNavigate } from 'react-router-dom';
 import StatWeightsSection from './StatWeightsSection';
 import EnergySourcesSection from './EnergySourcesSection';
 import HappyPerksSection from './HappyPerksSection';
@@ -84,6 +86,8 @@ export default function ComparisonConfigSection({
   initialStats,
   months
 }: ComparisonConfigSectionProps) {
+  const navigate = useNavigate();
+  
   const handleDownload = () => {
     if (!result) return;
     
@@ -122,6 +126,54 @@ export default function ComparisonConfigSection({
     exportIndividualComparisonData(exportData);
   };
   
+  const handleViewTrainingRegime = () => {
+    if (!result) return;
+    
+    const statGains = {
+      strength: result.finalStats.strength - initialStats.strength,
+      speed: result.finalStats.speed - initialStats.speed,
+      defense: result.finalStats.defense - initialStats.defense,
+      dexterity: result.finalStats.dexterity - initialStats.dexterity,
+    };
+    
+    const costs = (showCosts && itemPricesData) ? {
+      edvd: result.edvdJumpCosts?.totalCost || 0,
+      xanax: result.xanaxCosts?.totalCost || 0,
+      points: result.pointsRefillCosts?.totalCost || 0,
+      candy: result.candyJumpCosts?.totalCost || 0,
+      energy: result.energyJumpCosts?.totalCost || 0,
+      lossReviveIncome: result.lossReviveIncome?.totalIncome || 0,
+      total: (result.edvdJumpCosts?.totalCost || 0) + 
+             (result.xanaxCosts?.totalCost || 0) + 
+             (result.pointsRefillCosts?.totalCost || 0) + 
+             (result.candyJumpCosts?.totalCost || 0) + 
+             (result.energyJumpCosts?.totalCost || 0) - 
+             (result.lossReviveIncome?.totalIncome || 0),
+    } : undefined;
+    
+    const exportData: IndividualComparisonExportData = {
+      name: activeState.name,
+      finalStats: result.finalStats,
+      statGains,
+      initialStats,
+      months,
+      dailySnapshots: result.dailySnapshots,
+      costs,
+    };
+    
+    // Save to localStorage
+    localStorage.setItem('trainingBreakdown_data', JSON.stringify(exportData));
+    
+    // Set start date to today if not already set
+    const existingStartDate = localStorage.getItem('trainingBreakdown_startDate');
+    if (!existingStartDate) {
+      localStorage.setItem('trainingBreakdown_startDate', new Date().toISOString().split('T')[0]);
+    }
+    
+    // Navigate to Training Breakdown page
+    navigate('/trainingBreakdown');
+  };
+  
   return (
     <Paper sx={{ p: 2, mb: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 1, flexWrap: 'wrap' }}>
@@ -133,6 +185,15 @@ export default function ComparisonConfigSection({
           sx={{ width: 250 }}
         />
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<VisibilityIcon />}
+            onClick={handleViewTrainingRegime}
+            disabled={!result}
+          >
+            View
+          </Button>
           <Button
             variant="outlined"
             size="small"

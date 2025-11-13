@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Paper, Typography, Box, Checkbox, FormControlLabel, Grid, Button } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import { useNavigate } from 'react-router-dom';
 import {
   LineChart,
   Line,
@@ -47,6 +49,7 @@ export default function IndividualStatsSection({
 }: IndividualStatsSectionProps) {
   // Track which states should show individual stats
   const [selectedStates, setSelectedStates] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
 
   const toggleStateSelection = (stateId: string) => {
     setSelectedStates((prev) => {
@@ -99,6 +102,57 @@ export default function IndividualStatsSection({
     };
     
     exportIndividualComparisonData(exportData);
+  };
+
+  const handleViewTrainingRegime = (stateId: string) => {
+    const state = comparisonStates.find(s => s.id === stateId);
+    const result = results[stateId];
+    
+    if (!state || !result) return;
+    
+    const statGains = {
+      strength: result.finalStats.strength - initialStats.strength,
+      speed: result.finalStats.speed - initialStats.speed,
+      defense: result.finalStats.defense - initialStats.defense,
+      dexterity: result.finalStats.dexterity - initialStats.dexterity,
+    };
+    
+    const costs = (showCosts && itemPricesData) ? {
+      edvd: result.edvdJumpCosts?.totalCost || 0,
+      xanax: result.xanaxCosts?.totalCost || 0,
+      points: result.pointsRefillCosts?.totalCost || 0,
+      candy: result.candyJumpCosts?.totalCost || 0,
+      energy: result.energyJumpCosts?.totalCost || 0,
+      lossReviveIncome: result.lossReviveIncome?.totalIncome || 0,
+      total: (result.edvdJumpCosts?.totalCost || 0) + 
+             (result.xanaxCosts?.totalCost || 0) + 
+             (result.pointsRefillCosts?.totalCost || 0) + 
+             (result.candyJumpCosts?.totalCost || 0) + 
+             (result.energyJumpCosts?.totalCost || 0) - 
+             (result.lossReviveIncome?.totalIncome || 0),
+    } : undefined;
+    
+    const exportData: IndividualComparisonExportData = {
+      name: state.name,
+      finalStats: result.finalStats,
+      statGains,
+      initialStats,
+      months,
+      dailySnapshots: result.dailySnapshots,
+      costs,
+    };
+    
+    // Save to localStorage
+    localStorage.setItem('trainingBreakdown_data', JSON.stringify(exportData));
+    
+    // Set start date to today if not already set
+    const existingStartDate = localStorage.getItem('trainingBreakdown_startDate');
+    if (!existingStartDate) {
+      localStorage.setItem('trainingBreakdown_startDate', new Date().toISOString().split('T')[0]);
+    }
+    
+    // Navigate to Training Breakdown page
+    navigate('/trainingBreakdown');
   };
 
   // Prepare chart data for a specific state
@@ -175,14 +229,24 @@ export default function IndividualStatsSection({
                   <Typography variant="subtitle1">
                     {state.name}
                   </Typography>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<DownloadIcon />}
-                    onClick={() => handleDownload(id)}
-                  >
-                    Download
-                  </Button>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<VisibilityIcon />}
+                      onClick={() => handleViewTrainingRegime(id)}
+                    >
+                      View
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<DownloadIcon />}
+                      onClick={() => handleDownload(id)}
+                    >
+                      Download
+                    </Button>
+                  </Box>
                 </Box>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={data}>

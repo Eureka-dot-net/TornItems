@@ -39,7 +39,7 @@ export default function TrainingBreakdown() {
 
   // Calculate current day based on start date
   const currentDay = useMemo(() => {
-    if (!startDate) return 0;
+    if (!startDate) return 1;
     const start = new Date(startDate);
     const today = new Date();
     // Reset time to midnight for accurate day calculation
@@ -47,7 +47,8 @@ export default function TrainingBreakdown() {
     today.setHours(0, 0, 0, 0);
     const diffTime = today.getTime() - start.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    return Math.max(0, diffDays);
+    // Day 1 is the start date, so add 1 to the difference
+    return Math.max(1, diffDays + 1);
   }, [startDate]);
 
   // Prepare grid rows

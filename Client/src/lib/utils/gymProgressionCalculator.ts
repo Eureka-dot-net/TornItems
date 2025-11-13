@@ -457,6 +457,19 @@ export function simulateGymProgression(
       diabetesDayJumpDays.push(5); // First jump on day 5
       diabetesDayJumpDays.push(7); // Second jump on day 7
     }
+    
+    // If both DD and eDVD jumps are enabled, adjust eDVD jump start
+    // First eDVD jump must be at least 2 days after the last DD jump
+    if (inputs.edvdJump?.enabled && inputs.edvdJump.frequencyDays > 0) {
+      const lastDdDay = diabetesDayJumpDays[diabetesDayJumpDays.length - 1];
+      const proposedEdvdDay = inputs.edvdJump.frequencyDays;
+      
+      // If the first eDVD jump would conflict with or be too close to DD jumps
+      if (proposedEdvdDay <= lastDdDay + 2) {
+        // Move it to 2 days after the last DD jump
+        nextEdvdJumpDay = lastDdDay + 2;
+      }
+    }
   }
   
   // Calculate which days to skip
@@ -503,6 +516,9 @@ export function simulateGymProgression(
     // Skip if limit is reached based on configuration
     let shouldPerformEdvdJump = inputs.edvdJump?.enabled && day === nextEdvdJumpDay && !isSkipped;
     
+    // Check if this is the day before an eDVD jump (for stacking)
+    const isDayBeforeEdvdJump = inputs.edvdJump?.enabled && day === nextEdvdJumpDay - 1 && !isSkipped;
+    
     // Track which stats should be trained during this eDVD jump (for 'stat' limit mode)
     let edvdStatsToTrain: Set<keyof typeof stats> | null = null;
     
@@ -533,6 +549,13 @@ export function simulateGymProgression(
     }
     
     let energyAvailableToday = isSkipped ? 0 : dailyEnergy;
+    
+    // If it's the day before an eDVD jump, no energy should be used (stacking)
+    if (isDayBeforeEdvdJump) {
+      energyAvailableToday = 0;
+      dailyNotes.push('Stacking for eDVD jump (no energy used)');
+    }
+    
     let currentHappy = inputs.happy;
     
     const maxEnergyValue = inputs.maxEnergy || 150;
@@ -565,7 +588,15 @@ export function simulateGymProgression(
       
       // Increment jump counter and schedule next jump
       edvdJumpsPerformed++;
-      nextEdvdJumpDay = day + inputs.edvdJump.frequencyDays;
+      let proposedNextEdvdDay = day + inputs.edvdJump.frequencyDays;
+      
+      // Make sure next eDVD jump doesn't conflict with any DD jumps
+      // Must be at least 2 days after any DD jump
+      while (diabetesDayJumpDays.some(ddDay => Math.abs(proposedNextEdvdDay - ddDay) < 2)) {
+        proposedNextEdvdDay++;
+      }
+      
+      nextEdvdJumpDay = proposedNextEdvdDay;
     }
     
     // Check if this is a Diabetes Day jump
@@ -897,6 +928,7 @@ export function simulateGymProgression(
       
       if (statDriftPercent > 0 && shouldAllowDrift) {
         // Calculate actual gain for each trainable stat (considering perks, gym dots, happy, etc.)
+        // Use a normalized stat value of 1000 for comparison to remove stat value bias
         const statGains: Array<{ stat: keyof typeof stats; gain: number; ratio: number }> = [];
         
         for (const stat of trainableStats) {
@@ -911,10 +943,11 @@ export function simulateGymProgression(
             const statDots = gym[stat as keyof Pick<Gym, 'strength' | 'speed' | 'defense' | 'dexterity'>];
             
             if (statDots !== null && statDots !== undefined) {
-              // Calculate actual gain using the same formula as training
+              // Calculate actual gain using normalized stat value of 1000 for fair comparison
+              // This removes the bias where higher stats would always have higher gains
               const gain = computeStatGain(
                 stat,
-                stats[stat],
+                1000, // Use normalized value instead of stats[stat]
                 currentHappy,
                 inputs.perkPercs[stat],
                 statDots,
