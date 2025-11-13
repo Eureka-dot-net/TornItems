@@ -913,16 +913,8 @@ export function simulateGymProgression(
       edvdJumpTotalGains.dexterity += edvdGains.dexterity;
     }
     
-    // Take snapshot every 7 days or on first day
-    // For DD mode with 2 jumps, also snapshot on day 5 to show the first jump clearly
-    // (Day 7 is already captured by the day % 7 === 0 condition)
-    // For last day, only snapshot if it's been at least 7 days since last snapshot
-    const isDDSnapshotDay = inputs.diabetesDay?.enabled && inputs.diabetesDay.numberOfJumps === 2 && day === 5;
-    const shouldSnapshot = 
-      day === 1 || 
-      day % 7 === 0 || 
-      isDDSnapshotDay ||
-      (day === totalDays && (dailySnapshots.length === 0 || day - dailySnapshots[dailySnapshots.length - 1].day >= 7));
+    // Take snapshot every day to show accurate daily progression
+    const shouldSnapshot = true;
     
     if (shouldSnapshot) {
       // Find current gym (use the best gym for the highest weighted stat)
