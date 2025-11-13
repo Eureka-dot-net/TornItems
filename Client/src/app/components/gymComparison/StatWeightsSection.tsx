@@ -1,4 +1,5 @@
-import { Box, Typography, TextField, Button } from '@mui/material';
+import { Box, Typography, TextField, Button, Select, MenuItem, FormControl, Tooltip, IconButton } from '@mui/material';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 interface StatWeights {
   strength: number;
@@ -15,6 +16,8 @@ interface StatWeightsSectionProps {
   getHanksRatio: (primaryStat: StatType) => StatWeights;
   getBaldrsRatio: (primaryStat: StatType) => StatWeights;
   getDefensiveBuildRatio: (primaryStat: 'defense' | 'dexterity') => StatWeights;
+  trainingStrategy?: 'balanced' | 'bestGains';
+  onStrategyUpdate?: (strategy: 'balanced' | 'bestGains') => void;
 }
 
 export default function StatWeightsSection({
@@ -23,6 +26,8 @@ export default function StatWeightsSection({
   getHanksRatio,
   getBaldrsRatio,
   getDefensiveBuildRatio,
+  trainingStrategy,
+  onStrategyUpdate,
 }: StatWeightsSectionProps) {
   return (
     <>
@@ -40,6 +45,45 @@ export default function StatWeightsSection({
           Balanced
         </Button>
       </Box>
+
+      {/* Training Strategy Selection */}
+      {onStrategyUpdate && (
+        <Box sx={{ mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+            <Typography variant="caption" color="text.secondary">
+              Training Strategy
+            </Typography>
+            <Tooltip 
+              title={
+                <Box>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    <strong>Balanced Training:</strong> Train the lowest stat according to your weighings to keep stats balanced based on target ratios.
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Best Gains Training:</strong> Train the stat with the highest gym dots (best gains) until George's gym is unlocked. If multiple stats have the same best dots, the most out-of-sync stat is trained. After George's gym, reverts to balanced training.
+                  </Typography>
+                </Box>
+              }
+              placement="top"
+              arrow
+            >
+              <IconButton size="small" sx={{ p: 0, ml: 0.5 }}>
+                <HelpOutlineIcon sx={{ fontSize: '1rem' }} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          <FormControl fullWidth size="small">
+            <Select
+              value={trainingStrategy || 'balanced'}
+              onChange={(e) => onStrategyUpdate(e.target.value as 'balanced' | 'bestGains')}
+              sx={{ fontSize: '0.875rem' }}
+            >
+              <MenuItem value="balanced">Balanced Training</MenuItem>
+              <MenuItem value="bestGains">Best Gains Training</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+      )}
 
       {/* Strength */}
       <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 1 }}>

@@ -97,6 +97,7 @@ interface ComparisonState {
   candleShopStars: number;
   happy: number;
   daysSkippedPerMonth: number;
+  trainingStrategy: 'balanced' | 'bestGains';
   [key: string]: unknown;
 }
 
@@ -125,6 +126,7 @@ export default function GymComparison() {
   const [manualPerkPercs, setManualPerkPercs] = useState(() => 
     loadSavedValue('manualPerkPercs', { strength: 0, speed: 0, defense: 0, dexterity: 0 })
   );
+  const [manualTrainingStrategy, setManualTrainingStrategy] = useState<'balanced' | 'bestGains'>(() => loadSavedValue('manualTrainingStrategy', 'balanced'));
   
   // Shared player stats
   const [apiKey, setApiKey] = useState<string>(() => loadSavedValue('apiKey', ''));
@@ -177,6 +179,7 @@ export default function GymComparison() {
         candleShopStars: DEFAULT_CANDLE_SHOP_STARS,
         happy: DEFAULT_HAPPY,
         daysSkippedPerMonth: 0,
+        trainingStrategy: 'balanced' as const,
       },
     ])
   );
@@ -220,6 +223,7 @@ export default function GymComparison() {
   useEffect(() => { localStorage.setItem('gymComparison_manualCompanyBenefitKey', JSON.stringify(manualCompanyBenefitKey)); }, [manualCompanyBenefitKey]);
   useEffect(() => { localStorage.setItem('gymComparison_manualCandleShopStars', JSON.stringify(manualCandleShopStars)); }, [manualCandleShopStars]);
   useEffect(() => { localStorage.setItem('gymComparison_manualPerkPercs', JSON.stringify(manualPerkPercs)); }, [manualPerkPercs]);
+  useEffect(() => { localStorage.setItem('gymComparison_manualTrainingStrategy', JSON.stringify(manualTrainingStrategy)); }, [manualTrainingStrategy]);
   useEffect(() => { localStorage.setItem('gymComparison_apiKey', JSON.stringify(apiKey)); }, [apiKey]);
   useEffect(() => { localStorage.setItem('gymComparison_initialStats', JSON.stringify(initialStats)); }, [initialStats]);
   useEffect(() => { localStorage.setItem('gymComparison_currentGymIndex', JSON.stringify(currentGymIndex)); }, [currentGymIndex]);
@@ -237,7 +241,7 @@ export default function GymComparison() {
     if (mode === 'manual') {
       handleSimulate();
     }
-  }, [manualEnergy, autoUpgradeGyms, manualHappy, initialStats, currentGymIndex, manualStatWeights, manualCompanyBenefitKey, manualCandleShopStars, manualPerkPercs, showCosts, itemPricesData]);
+  }, [manualEnergy, autoUpgradeGyms, manualHappy, initialStats, currentGymIndex, manualStatWeights, manualCompanyBenefitKey, manualCandleShopStars, manualPerkPercs, manualTrainingStrategy, showCosts, itemPricesData]);
   
   const handleFetchStats = async () => {
     if (!apiKey.trim()) {
@@ -323,6 +327,7 @@ export default function GymComparison() {
       candleShopStars: sourceState.candleShopStars,
       happy: sourceState.happy,
       daysSkippedPerMonth: sourceState.daysSkippedPerMonth,
+      trainingStrategy: sourceState.trainingStrategy,
     };
     
     setComparisonStates([...comparisonStates, newState]);
@@ -367,6 +372,7 @@ export default function GymComparison() {
           currentGymIndex: currentGymIndex,
           lockGym: !autoUpgradeGyms,
           manualEnergy,
+          trainingStrategy: manualTrainingStrategy,
         };
         
         const result = simulateGymProgression(GYMS, inputs);
@@ -391,6 +397,7 @@ export default function GymComparison() {
             perkPercs: state.perkPercs,
             currentGymIndex: currentGymIndex, // Start from current/selected gym and auto-upgrade
             lockGym: false, // Always use auto-upgrade in future mode to allow unlock speed multiplier to work
+            trainingStrategy: state.trainingStrategy,
             edvdJump: state.edvdJumpEnabled ? {
               enabled: true,
               frequencyDays: state.edvdJumpFrequency,
@@ -609,6 +616,7 @@ export default function GymComparison() {
               candleShopStars: typeof s.candleShopStars === 'number' ? s.candleShopStars : DEFAULT_CANDLE_SHOP_STARS,
               happy: typeof s.happy === 'number' ? s.happy : DEFAULT_HAPPY,
               daysSkippedPerMonth: typeof s.daysSkippedPerMonth === 'number' ? s.daysSkippedPerMonth : 0,
+              trainingStrategy: (s.trainingStrategy === 'balanced' || s.trainingStrategy === 'bestGains') ? s.trainingStrategy as 'balanced' | 'bestGains' : 'balanced',
             };
           }
           return {
@@ -651,6 +659,7 @@ export default function GymComparison() {
             candleShopStars: DEFAULT_CANDLE_SHOP_STARS,
             happy: DEFAULT_HAPPY,
             daysSkippedPerMonth: 0,
+            trainingStrategy: 'balanced' as const,
           };
         });
         setComparisonStates(loadedStates);
@@ -874,6 +883,8 @@ export default function GymComparison() {
           setManualCompanyBenefitKey={setManualCompanyBenefitKey}
           manualCandleShopStars={manualCandleShopStars}
           setManualCandleShopStars={setManualCandleShopStars}
+          manualTrainingStrategy={manualTrainingStrategy}
+          setManualTrainingStrategy={setManualTrainingStrategy}
           results={results.manual}
         />
       )}

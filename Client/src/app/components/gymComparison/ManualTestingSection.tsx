@@ -13,7 +13,10 @@ import {
   Switch,
   TextField,
   Typography,
+  Tooltip,
+  IconButton,
 } from '@mui/material';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { GYMS } from '../../../lib/data/gyms';
 import type { SimulationResult } from '../../../lib/utils/gymProgressionCalculator';
 
@@ -50,6 +53,8 @@ interface ManualTestingSectionProps {
   setManualCompanyBenefitKey: (key: string) => void;
   manualCandleShopStars: number;
   setManualCandleShopStars: (stars: number) => void;
+  manualTrainingStrategy: 'balanced' | 'bestGains';
+  setManualTrainingStrategy: (strategy: 'balanced' | 'bestGains') => void;
   results?: SimulationResult;
 }
 
@@ -72,6 +77,8 @@ export default function ManualTestingSection({
   setManualCompanyBenefitKey,
   manualCandleShopStars,
   setManualCandleShopStars,
+  manualTrainingStrategy,
+  setManualTrainingStrategy,
   results
 }: ManualTestingSectionProps) {
   return (
@@ -140,6 +147,44 @@ export default function ManualTestingSection({
           </FormControl>
           
           <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Stat Targets</Typography>
+          
+          {/* Training Strategy Selection */}
+          <Box sx={{ mb: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+              <Typography variant="caption" color="text.secondary">
+                Training Strategy
+              </Typography>
+              <Tooltip 
+                title={
+                  <Box>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>Balanced Training:</strong> Train the lowest stat according to your weighings to keep stats balanced based on target ratios.
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Best Gains Training:</strong> Train the stat with the highest gym dots (best gains) until George's gym is unlocked. If multiple stats have the same best dots, the most out-of-sync stat is trained. After George's gym, reverts to balanced training.
+                    </Typography>
+                  </Box>
+                }
+                placement="top"
+                arrow
+              >
+                <IconButton size="small" sx={{ p: 0, ml: 0.5 }}>
+                  <HelpOutlineIcon sx={{ fontSize: '1rem' }} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+            <FormControl fullWidth size="small">
+              <Select
+                value={manualTrainingStrategy}
+                onChange={(e) => setManualTrainingStrategy(e.target.value as 'balanced' | 'bestGains')}
+                sx={{ fontSize: '0.875rem' }}
+              >
+                <MenuItem value="balanced">Balanced Training</MenuItem>
+                <MenuItem value="bestGains">Best Gains Training</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+          
           <TextField label="Str" type="number" value={manualStatWeights.strength ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
           <TextField label="Spd" type="number" value={manualStatWeights.speed ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
           <TextField label="Def" type="number" value={manualStatWeights.defense ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />

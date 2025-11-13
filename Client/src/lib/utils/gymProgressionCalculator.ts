@@ -93,6 +93,7 @@ export interface SimulationInputs {
     pricePerLoss: number; // Price paid per loss/revive (income, reduces total cost)
   };
   daysSkippedPerMonth?: number; // Days per month with no energy (wars, vacations)
+  trainingStrategy?: 'balanced' | 'bestGains'; // Strategy for selecting which stat to train. 'balanced' trains the lowest stat according to weighings, 'bestGains' trains the stat with best gym dots until George's gym
   itemPrices?: {
     dvdPrice: number | null;
     xanaxPrice: number | null;
@@ -781,9 +782,7 @@ export function simulateGymProgression(
     }
     
     while (remainingEnergy > 0) {
-      // Determine which stat to train next based on how far each is from its target ratio
-      // For each stat, calculate: currentStat / targetWeight
-      // The stat with the lowest ratio is the most behind and should be trained next
+      // Determine which stat to train next based on the selected training strategy
       
       const statOrder: Array<keyof typeof stats> = ['strength', 'speed', 'defense', 'dexterity'];
       
@@ -801,15 +800,72 @@ export function simulateGymProgression(
         break;
       }
       
-      // Find the stat most out of sync (lowest currentStat / targetWeight ratio)
+      // Determine selected stat based on training strategy
       let selectedStat: keyof typeof stats | null = null;
-      let lowestRatio = Infinity;
+      const trainingStrategy = inputs.trainingStrategy || 'balanced';
       
-      for (const stat of trainableStats) {
-        const ratio = stats[stat] / inputs.statWeights[stat];
-        if (ratio < lowestRatio) {
-          lowestRatio = ratio;
-          selectedStat = stat;
+      // George's gym is at index 23 (0-indexed)
+      const GEORGES_GYM_INDEX = 23;
+      const isBeforeGeorges = !shouldLockGym && totalEnergySpent < gyms[GEORGES_GYM_INDEX].energyToUnlock;
+      
+      if (trainingStrategy === 'bestGains' && isBeforeGeorges) {
+        // Best Gains Strategy: Train the stat with the highest gym dots available
+        // Check all unlocked gyms to find the highest dots for any trainable stat
+        
+        let bestDots = -1;
+        let statsWithBestDots: Array<keyof typeof stats> = [];
+        
+        for (const stat of trainableStats) {
+          try {
+            const gym = findBestGym(
+              gyms,
+              stat,
+              totalEnergySpent,
+              inputs.companyBenefit.gymUnlockSpeedMultiplier,
+              stats
+            );
+            const statDots = gym[stat as keyof Pick<Gym, 'strength' | 'speed' | 'defense' | 'dexterity'>];
+            
+            if (statDots !== null && statDots !== undefined) {
+              if (statDots > bestDots) {
+                bestDots = statDots;
+                statsWithBestDots = [stat];
+              } else if (statDots === bestDots) {
+                statsWithBestDots.push(stat);
+              }
+            }
+          } catch {
+            // Gym not available for this stat
+          }
+        }
+        
+        if (statsWithBestDots.length === 1) {
+          // Only one stat has the best dots, train it
+          selectedStat = statsWithBestDots[0];
+        } else if (statsWithBestDots.length > 1) {
+          // Multiple stats have the same best dots, train the one most out of sync with weighings
+          let lowestRatio = Infinity;
+          for (const stat of statsWithBestDots) {
+            const ratio = stats[stat] / inputs.statWeights[stat];
+            if (ratio < lowestRatio) {
+              lowestRatio = ratio;
+              selectedStat = stat;
+            }
+          }
+        }
+      }
+      
+      // If no stat selected by bestGains strategy (or using balanced strategy), use balanced approach
+      if (!selectedStat) {
+        // Balanced Strategy: Train the stat most out of sync with target weighings
+        let lowestRatio = Infinity;
+        
+        for (const stat of trainableStats) {
+          const ratio = stats[stat] / inputs.statWeights[stat];
+          if (ratio < lowestRatio) {
+            lowestRatio = ratio;
+            selectedStat = stat;
+          }
         }
       }
       

@@ -49,6 +49,7 @@ interface ComparisonState {
   candleShopStars: number;
   happy: number;
   daysSkippedPerMonth: number;
+  trainingStrategy: 'balanced' | 'bestGains';
 }
 
 interface ComparisonConfigSectionProps {
@@ -97,6 +98,8 @@ export default function ComparisonConfigSection({
             getHanksRatio={getHanksRatio}
             getBaldrsRatio={getBaldrsRatio}
             getDefensiveBuildRatio={getDefensiveBuildRatio}
+            trainingStrategy={activeState.trainingStrategy}
+            onStrategyUpdate={(strategy) => updateState(activeState.id, { trainingStrategy: strategy })}
           />
         </Grid>
 
