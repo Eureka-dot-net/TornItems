@@ -45,11 +45,8 @@ import {
 } from '../../lib/constants/gymConstants';
 import { GYMS } from '../../lib/data/gyms';
 
-// Filter out specialized gyms that are currently disabled
-// These gyms have special requirements and are being investigated for issues
-const AVAILABLE_GYMS = GYMS.filter(gym => 
-  !['balboasgym', 'frontlinefitness', 'gym3000', 'mrisoyamas', 'totalrebound', 'elites'].includes(gym.name)
-);
+// All gyms are available - specialty gyms will be filtered by their requirements
+const AVAILABLE_GYMS = GYMS;
 
 import BuyMeXanaxCard from '../components/gymComparison/BuyMeXanaxCard';
 import ReportProblemCard from '../components/gymComparison/ReportProblemCard';
