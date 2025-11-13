@@ -55,7 +55,7 @@ interface ComparisonState {
   happy: number;
   daysSkippedPerMonth: number;
   statDriftPercent: number;
-  balanceAfterGeorges: boolean;
+  balanceAfterGymIndex: number;
   ignorePerksForGymSelection: boolean;
 }
 
@@ -226,8 +226,8 @@ export default function ComparisonConfigSection({
             getDefensiveBuildRatio={getDefensiveBuildRatio}
             statDriftPercent={activeState.statDriftPercent}
             onDriftUpdate={(percent) => updateState(activeState.id, { statDriftPercent: percent })}
-            balanceAfterGeorges={activeState.balanceAfterGeorges}
-            onBalanceAfterGeorgesUpdate={(balance) => updateState(activeState.id, { balanceAfterGeorges: balance })}
+            balanceAfterGymIndex={activeState.balanceAfterGymIndex}
+            onBalanceAfterGymIndexUpdate={(gymIndex) => updateState(activeState.id, { balanceAfterGymIndex: gymIndex })}
             ignorePerksForGymSelection={activeState.ignorePerksForGymSelection}
             onIgnorePerksForGymSelectionUpdate={(ignore) => updateState(activeState.id, { ignorePerksForGymSelection: ignore })}
           />

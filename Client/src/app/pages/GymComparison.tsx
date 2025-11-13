@@ -102,7 +102,7 @@ interface ComparisonState {
   happy: number;
   daysSkippedPerMonth: number;
   statDriftPercent: number; // 0-100: How far stats can drift from target weighings
-  balanceAfterGeorges: boolean; // Whether to revert to balanced training after George's gym
+  balanceAfterGymIndex: number; // Gym index after which to revert to balanced training (-1 = never, 19 = Cha Cha's, 23 = George's)
   ignorePerksForGymSelection: boolean; // Whether to ignore perks when deciding which gym/stat to train
   showIndividualStats: boolean; // Whether to show individual stats chart for this state
   [key: string]: unknown;
@@ -134,7 +134,7 @@ export default function GymComparison() {
     loadSavedValue('manualPerkPercs', { strength: 0, speed: 0, defense: 0, dexterity: 0 })
   );
   const [manualStatDriftPercent, setManualStatDriftPercent] = useState<number>(() => loadSavedValue('manualStatDriftPercent', 0));
-  const [manualBalanceAfterGeorges, setManualBalanceAfterGeorges] = useState<boolean>(() => loadSavedValue('manualBalanceAfterGeorges', true));
+  const [manualBalanceAfterGymIndex, setManualBalanceAfterGymIndex] = useState<number>(() => loadSavedValue('manualBalanceAfterGymIndex', 19));
   const [manualIgnorePerksForGymSelection, setManualIgnorePerksForGymSelection] = useState<boolean>(() => loadSavedValue('manualIgnorePerksForGymSelection', false));
   
   // Shared player stats
@@ -189,7 +189,7 @@ export default function GymComparison() {
         happy: DEFAULT_HAPPY,
         daysSkippedPerMonth: 0,
         statDriftPercent: 0,
-        balanceAfterGeorges: true,
+        balanceAfterGymIndex: 19, // Default to Cha Cha's
         ignorePerksForGymSelection: false,
         showIndividualStats: false,
       },
@@ -236,7 +236,7 @@ export default function GymComparison() {
   useEffect(() => { localStorage.setItem('gymComparison_manualCandleShopStars', JSON.stringify(manualCandleShopStars)); }, [manualCandleShopStars]);
   useEffect(() => { localStorage.setItem('gymComparison_manualPerkPercs', JSON.stringify(manualPerkPercs)); }, [manualPerkPercs]);
   useEffect(() => { localStorage.setItem('gymComparison_manualStatDriftPercent', JSON.stringify(manualStatDriftPercent)); }, [manualStatDriftPercent]);
-  useEffect(() => { localStorage.setItem('gymComparison_manualBalanceAfterGeorges', JSON.stringify(manualBalanceAfterGeorges)); }, [manualBalanceAfterGeorges]);
+  useEffect(() => { localStorage.setItem('gymComparison_manualBalanceAfterGymIndex', JSON.stringify(manualBalanceAfterGymIndex)); }, [manualBalanceAfterGymIndex]);
   useEffect(() => { localStorage.setItem('gymComparison_manualIgnorePerksForGymSelection', JSON.stringify(manualIgnorePerksForGymSelection)); }, [manualIgnorePerksForGymSelection]);
   useEffect(() => { localStorage.setItem('gymComparison_apiKey', JSON.stringify(apiKey)); }, [apiKey]);
   useEffect(() => { localStorage.setItem('gymComparison_initialStats', JSON.stringify(initialStats)); }, [initialStats]);
@@ -255,7 +255,7 @@ export default function GymComparison() {
     if (mode === 'manual') {
       handleSimulate();
     }
-  }, [manualEnergy, autoUpgradeGyms, manualHappy, initialStats, currentGymIndex, manualStatWeights, manualCompanyBenefitKey, manualCandleShopStars, manualPerkPercs, manualStatDriftPercent, manualBalanceAfterGeorges, manualIgnorePerksForGymSelection, showCosts, itemPricesData]);
+  }, [manualEnergy, autoUpgradeGyms, manualHappy, initialStats, currentGymIndex, manualStatWeights, manualCompanyBenefitKey, manualCandleShopStars, manualPerkPercs, manualStatDriftPercent, manualBalanceAfterGymIndex, manualIgnorePerksForGymSelection, showCosts, itemPricesData]);
   
   const handleFetchStats = async () => {
     if (!apiKey.trim()) {
@@ -342,7 +342,7 @@ export default function GymComparison() {
       happy: sourceState.happy,
       daysSkippedPerMonth: sourceState.daysSkippedPerMonth,
       statDriftPercent: sourceState.statDriftPercent,
-      balanceAfterGeorges: sourceState.balanceAfterGeorges,
+      balanceAfterGymIndex: sourceState.balanceAfterGymIndex,
       ignorePerksForGymSelection: sourceState.ignorePerksForGymSelection,
       showIndividualStats: false,
     };
@@ -390,7 +390,7 @@ export default function GymComparison() {
           lockGym: !autoUpgradeGyms,
           manualEnergy,
           statDriftPercent: manualStatDriftPercent,
-          balanceAfterGeorges: manualBalanceAfterGeorges,
+          balanceAfterGymIndex: manualBalanceAfterGymIndex,
           ignorePerksForGymSelection: manualIgnorePerksForGymSelection,
         };
         
@@ -417,7 +417,7 @@ export default function GymComparison() {
             currentGymIndex: currentGymIndex, // Start from current/selected gym and auto-upgrade
             lockGym: false, // Always use auto-upgrade in future mode to allow unlock speed multiplier to work
             statDriftPercent: state.statDriftPercent,
-            balanceAfterGeorges: state.balanceAfterGeorges,
+            balanceAfterGymIndex: state.balanceAfterGymIndex,
             ignorePerksForGymSelection: state.ignorePerksForGymSelection,
             edvdJump: state.edvdJumpEnabled ? {
               enabled: true,
@@ -638,7 +638,7 @@ export default function GymComparison() {
               happy: typeof s.happy === 'number' ? s.happy : DEFAULT_HAPPY,
               daysSkippedPerMonth: typeof s.daysSkippedPerMonth === 'number' ? s.daysSkippedPerMonth : 0,
               statDriftPercent: typeof s.statDriftPercent === 'number' ? Math.max(0, Math.min(100, s.statDriftPercent)) : 0,
-              balanceAfterGeorges: typeof s.balanceAfterGeorges === 'boolean' ? s.balanceAfterGeorges : true,
+              balanceAfterGymIndex: typeof s.balanceAfterGymIndex === 'number' ? s.balanceAfterGymIndex : 19,
               ignorePerksForGymSelection: typeof s.ignorePerksForGymSelection === 'boolean' ? s.ignorePerksForGymSelection : false,
               showIndividualStats: typeof s.showIndividualStats === 'boolean' ? s.showIndividualStats : false,
             };
@@ -684,7 +684,7 @@ export default function GymComparison() {
             happy: DEFAULT_HAPPY,
             daysSkippedPerMonth: 0,
             statDriftPercent: 0,
-            balanceAfterGeorges: true,
+            balanceAfterGymIndex: 19,
             ignorePerksForGymSelection: false,
             showIndividualStats: false,
           };
@@ -915,8 +915,8 @@ export default function GymComparison() {
           setManualCandleShopStars={setManualCandleShopStars}
           manualStatDriftPercent={manualStatDriftPercent}
           setManualStatDriftPercent={setManualStatDriftPercent}
-          manualBalanceAfterGeorges={manualBalanceAfterGeorges}
-          setManualBalanceAfterGeorges={setManualBalanceAfterGeorges}
+          manualBalanceAfterGymIndex={manualBalanceAfterGymIndex}
+          setManualBalanceAfterGymIndex={setManualBalanceAfterGymIndex}
           manualIgnorePerksForGymSelection={manualIgnorePerksForGymSelection}
           setManualIgnorePerksForGymSelection={setManualIgnorePerksForGymSelection}
           results={results.manual}
