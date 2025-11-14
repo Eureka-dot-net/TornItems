@@ -432,8 +432,8 @@ export function simulateGymProgression(
   const edvdJumpTotalGains = { strength: 0, speed: 0, defense: 0, dexterity: 0 };
   
   // Track Diabetes Day jumps
-  // DD jumps occur on day 7 for 1 jump, or days 5 and 7 for 2 jumps
-  // This aligns with the natural 7-day snapshot interval to avoid visual confusion
+  // DD jumps occur on November 13 and November 15 (calendar dates)
+  // Calculate which simulation day corresponds to these calendar dates
   const diabetesDayJumpDays: number[] = [];
   const diabetesDayTotalGains = { strength: 0, speed: 0, defense: 0, dexterity: 0 };
   let diabetesDayJump1Gains: { strength: number; speed: number; defense: number; dexterity: number } | undefined;
@@ -452,11 +452,39 @@ export function simulateGymProgression(
     : -1;
   
   if (inputs.diabetesDay?.enabled) {
-    if (inputs.diabetesDay.numberOfJumps === 1) {
-      diabetesDayJumpDays.push(7); // Single jump on day 7
-    } else if (inputs.diabetesDay.numberOfJumps === 2) {
-      diabetesDayJumpDays.push(5); // First jump on day 5
-      diabetesDayJumpDays.push(7); // Second jump on day 7
+    // Calculate which simulation days correspond to November 13 and November 15
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    
+    // Create dates for November 13 and November 15 of the current year
+    let nov13 = new Date(currentYear, 10, 13); // Month is 0-indexed, so 10 = November
+    let nov15 = new Date(currentYear, 10, 15);
+    
+    // If we're past November 15 of this year, use next year's dates
+    if (today > nov15) {
+      nov13 = new Date(currentYear + 1, 10, 13);
+      nov15 = new Date(currentYear + 1, 10, 15);
+    }
+    
+    // Calculate days from today to each DD jump date
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const daysToNov13 = Math.ceil((nov13.getTime() - today.getTime()) / msPerDay);
+    const daysToNov15 = Math.ceil((nov15.getTime() - today.getTime()) / msPerDay);
+    
+    // Only add DD jumps that fall within the simulation period
+    if (inputs.diabetesDay.numberOfJumps === 2) {
+      // Two jumps: November 13 and November 15
+      if (daysToNov13 > 0 && daysToNov13 <= totalDays) {
+        diabetesDayJumpDays.push(daysToNov13);
+      }
+      if (daysToNov15 > 0 && daysToNov15 <= totalDays) {
+        diabetesDayJumpDays.push(daysToNov15);
+      }
+    } else {
+      // One jump: November 15 only
+      if (daysToNov15 > 0 && daysToNov15 <= totalDays) {
+        diabetesDayJumpDays.push(daysToNov15);
+      }
     }
     
     // If both DD and eDVD jumps are enabled, adjust eDVD jump start
@@ -551,41 +579,78 @@ export function simulateGymProgression(
     
     let energyAvailableToday = isSkipped ? 0 : dailyEnergy;
     
-    // If it's the day before an eDVD jump, no energy should be used (stacking)
-    if (isDayBeforeEdvdJump) {
-      energyAvailableToday = 0;
-      dailyNotes.push('Stacking for eDVD jump (no energy used)');
-    }
-    
     let currentHappy = inputs.happy;
     
     const maxEnergyValue = inputs.maxEnergy || 150;
     
+    // Check if this is the day before a DD jump (for stacking)
+    const isDayBeforeDdJump = diabetesDayJumpDays.some(ddDay => day === ddDay - 1) && !isSkipped;
+    
+    // If it's the day before an eDVD or DD jump, adjust energy for stacking
+    // Stacking logic: User stacks 3 Xanax over 16 hours (0 energy spent during stacking)
+    // Outside the 16-hour window: ~8 hours of sleep = ~150 energy from natural regen (if maxEnergy=150)
+    // If daily points refill is used: also spend that energy
+    if (isDayBeforeEdvdJump || isDayBeforeDdJump) {
+      // Calculate energy available outside stacking window
+      // Natural energy regen during ~8 hours sleep (assuming user plays less during stacking day)
+      const energyPerHour = maxEnergyValue === 100 ? 20 : 30;
+      const sleepEnergy = Math.min(maxEnergyValue, 8 * energyPerHour); // ~150 for maxEnergy=150, ~100 for maxEnergy=100
+      
+      // Start with sleep energy
+      energyAvailableToday = sleepEnergy;
+      
+      // Add points refill if enabled
+      if (inputs.hasPointsRefill) {
+        energyAvailableToday += maxEnergyValue;
+      }
+      
+      const jumpType = isDayBeforeEdvdJump ? 'eDVD' : 'DD';
+      dailyNotes.push(`Stacking for ${jumpType} jump (3 Xanax over 16 hours, using natural regen outside stacking window)`);
+    }
+    
     if (shouldPerformEdvdJump && inputs.edvdJump) {
-      // EDVD jump calculation:
-      // 1. User gets energy to 0 and starts taking xanax
-      // 2. Takes 4 xanax over ~32 hours (8 hours between each, no natural regen)
-      // 3. Waits 8 hours for drug cooldown
-      // 4. Uses DVDs: happy becomes (baseHappy + 2500*numDVDs)
-      //    - If 10★ Adult Novelties enabled, DVD happiness doubles: (baseHappy + 5000*numDVDs)
-      // 5. Pops ecstasy: happy doubles to final value
-      // 6. Trains 1000 energy (4 xanax * 250)
-      // 7. Uses points refill for maxEnergy and trains that
-      // 8. Must wait 6 more hours before can use xanax again
+      // EDVD jump calculation (NEW LOGIC):
+      // Day before: Stack 3 Xanax over 16 hours (handled above)
+      // Jump day:
+      // 1. On wake-up, stack 1 more Xanax
+      // 2. Wait 8 hours for cooldown
+      // 3. Use 1 Ecstasy (consumes a drug slot, replaces a Xanax slot in cooldown)
+      // 4. After cooldown completes → perform the jump:
+      //    - Spend ALL available energy at boosted happy
+      //    - eDVD jump energy spent: 1150 energy
+      // 5. After the jump, continue normal training:
+      //    - Natural energy regen
+      //    - If user normally takes 3 Xanax/day → consume one more Xanax after the jump
       
-      // Total time for EDVD jump: 32 + 8 + 6 = 46 hours
-      // During this time: no natural energy generation, loses 1 xanax from daily allowance
-      
-      // Energy available: 1000 (from 4 xanax) + maxEnergy (points refill)
-      energyAvailableToday = 1000 + maxEnergyValue;
+      // Jump energy: exactly 1150 energy
+      const edvdJumpEnergy = 1150;
       
       // Happy during jump
       // DVD happiness: 2500 per DVD normally, 5000 per DVD with Adult Novelties
       const dvdHappinessPerDvd = inputs.edvdJump.adultNovelties ? 5000 : 2500;
       currentHappy = (inputs.happy + dvdHappinessPerDvd * inputs.edvdJump.dvdsUsed) * 2;
       
+      // Post-jump energy (energy available after the jump for normal training)
+      // This includes natural regen and potentially one more Xanax if user normally takes 3 Xanax/day
+      const energyPerHour = maxEnergyValue === 100 ? 20 : 30;
+      let postJumpEnergy = 0;
+      
+      // Calculate remaining time in the day after the jump
+      // Assume jump happens mid-day, leaving ~12 hours for natural regen and training
+      const remainingHours = 12;
+      postJumpEnergy = remainingHours * energyPerHour;
+      
+      // If user normally takes 3 Xanax/day, they can take one more after the jump
+      if (inputs.xanaxPerDay >= 3) {
+        postJumpEnergy += 250; // One Xanax
+      }
+      
+      // Set total energy for today: jump energy + post-jump energy
+      energyAvailableToday = edvdJumpEnergy + postJumpEnergy;
+      
       // Add note about eDVD jump
-      dailyNotes.push(`eDVD jump: Used ${inputs.edvdJump.dvdsUsed} DVD${inputs.edvdJump.dvdsUsed > 1 ? 's' : ''}, 1 Ecstasy, 4 Xanax${inputs.edvdJump.adultNovelties ? ' (with 10★ Adult Novelties)' : ''}`);
+      dailyNotes.push(`eDVD jump: Used ${inputs.edvdJump.dvdsUsed} DVD${inputs.edvdJump.dvdsUsed > 1 ? 's' : ''}, 1 Ecstasy${inputs.edvdJump.adultNovelties ? ' (with 10★ Adult Novelties)' : ''}`);
+      dailyNotes.push(`Post-jump training: ${Math.round(postJumpEnergy)} energy at normal happy`);
       
       // Increment jump counter and schedule next jump
       edvdJumpsPerformed++;
@@ -605,15 +670,26 @@ export function simulateGymProgression(
     let diabetesDayJumpGains: { strength: number; speed: number; defense: number; dexterity: number } | undefined;
     
     if (isDiabetesDayJump && inputs.diabetesDay && !isSkipped) {
-      // Diabetes Day jump:
-      // Base energy: 1000 (xanax) + maxEnergy (points refill)
-      // Happy: 99999
-      // Additional energy based on options:
+      // Diabetes Day jump (NEW LOGIC):
+      // Day before: Stack 3 Xanax over 16 hours (handled above)
+      // Jump day:
+      // 1. On wake-up, stack 1 more Xanax
+      // 2. Wait 8 hours for cooldown
+      // 3. Use 1 Ecstasy (consumes a drug slot)
+      // 4. After cooldown completes → perform the jump:
+      //    - Spend ALL available energy at boosted happy (99,999)
+      //    - DD jump energy spent: at least 1150 energy, possibly more depending on options
+      // 5. After the jump, continue normal training:
+      //    - Natural energy regen
+      //    - If user normally takes 3 Xanax/day → consume one more Xanax after the jump
+      
       const isFirstJump = day === diabetesDayJumpDays[0];
       const jumpIndex = diabetesDayJumpDays.indexOf(day);
       
-      let ddEnergy = 1000 + maxEnergyValue; // Base energy from 4 xanax (1000) + points refill (maxEnergy)
+      // Base DD jump energy: at least 1150 energy
+      let ddJumpEnergy = 1150;
       
+      // Additional energy based on options:
       // FHC (Feathery Hotel Coupon): maxEnergy each, max 1 per jump
       // Green Egg: 500 energy each, max 1 per jump
       // Only 1 FHC OR Green Egg can be used per jump
@@ -621,9 +697,9 @@ export function simulateGymProgression(
       if (inputs.diabetesDay.numberOfJumps === 1) {
         // Only one jump, use the better option
         if (inputs.diabetesDay.greenEgg > 0) {
-          ddEnergy += 500; // Green Egg
+          ddJumpEnergy += 500; // Green Egg
         } else if (inputs.diabetesDay.featheryHotelCoupon > 0) {
-          ddEnergy += maxEnergyValue; // FHC
+          ddJumpEnergy += maxEnergyValue; // FHC
         }
       } else {
         // Two jumps - distribute items across jumps
@@ -631,38 +707,55 @@ export function simulateGymProgression(
         if (jumpIndex === 0) {
           // First jump
           if (inputs.diabetesDay.greenEgg > 0) {
-            ddEnergy += 500; // First Green Egg
+            ddJumpEnergy += 500; // First Green Egg
           } else if (inputs.diabetesDay.featheryHotelCoupon > 0) {
-            ddEnergy += maxEnergyValue; // First FHC
+            ddJumpEnergy += maxEnergyValue; // First FHC
           }
         } else if (jumpIndex === 1) {
           // Second jump - use second item if available
           if (inputs.diabetesDay.greenEgg >= 2) {
-            ddEnergy += 500; // Second Green Egg
+            ddJumpEnergy += 500; // Second Green Egg
           } else if (inputs.diabetesDay.featheryHotelCoupon >= 2) {
-            ddEnergy += maxEnergyValue; // Second FHC
+            ddJumpEnergy += maxEnergyValue; // Second FHC
           } else if (inputs.diabetesDay.greenEgg === 1 && inputs.diabetesDay.featheryHotelCoupon >= 1) {
             // Used Green Egg in first jump, use FHC in second
-            ddEnergy += maxEnergyValue;
+            ddJumpEnergy += maxEnergyValue;
           } else if (inputs.diabetesDay.featheryHotelCoupon === 1 && inputs.diabetesDay.greenEgg >= 1) {
             // Used FHC in first jump, use Green Egg in second
-            ddEnergy += 500;
+            ddJumpEnergy += 500;
           }
         }
       }
       
       // Seasonal mail: 250 energy for first jump only
       if (isFirstJump && inputs.diabetesDay.seasonalMail) {
-        ddEnergy += 250;
+        ddJumpEnergy += 250;
       }
       
       // Logo energy click: 50 energy for second jump only
       if (!isFirstJump && inputs.diabetesDay.logoEnergyClick) {
-        ddEnergy += 50;
+        ddJumpEnergy += 50;
       }
       
-      energyAvailableToday = ddEnergy;
       currentHappy = 99999; // DD happy is always 99999
+      
+      // Post-jump energy (energy available after the jump for normal training)
+      // This includes natural regen and potentially one more Xanax if user normally takes 3 Xanax/day
+      const energyPerHour = maxEnergyValue === 100 ? 20 : 30;
+      let postJumpEnergy = 0;
+      
+      // Calculate remaining time in the day after the jump
+      // Assume jump happens mid-day, leaving ~12 hours for natural regen and training
+      const remainingHours = 12;
+      postJumpEnergy = remainingHours * energyPerHour;
+      
+      // If user normally takes 3 Xanax/day, they can take one more after the jump
+      if (inputs.xanaxPerDay >= 3) {
+        postJumpEnergy += 250; // One Xanax
+      }
+      
+      // Set total energy for today: jump energy + post-jump energy
+      energyAvailableToday = ddJumpEnergy + postJumpEnergy;
       
       // Build Diabetes Day note
       const ddNoteItems: string[] = ['Diabetes Day jump'];
