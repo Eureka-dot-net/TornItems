@@ -570,23 +570,89 @@ export function simulateGymProgression(
       if (inputs.edvdJump.limit === 'count' && inputs.edvdJump.count !== undefined && edvdJumpsPerformed >= inputs.edvdJump.count) {
         shouldPerformEdvdJump = false;
       } else if (inputs.edvdJump.limit === 'stat' && inputs.edvdJump.statTarget !== undefined) {
-        // Check if ANY stat is under the individual stat limit
-        // Only train stats that are under the limit
-        const statsUnderLimit: Array<keyof typeof stats> = [];
+        // NEW LOGIC: Determine mode and apply appropriate jump-trigger rules
         const statOrder: Array<keyof typeof stats> = ['strength', 'speed', 'defense', 'dexterity'];
+        const threshold = inputs.edvdJump.statTarget;
         
-        for (const stat of statOrder) {
-          if (stats[stat] < inputs.edvdJump.statTarget && inputs.statWeights[stat] > 0) {
-            statsUnderLimit.push(stat);
+        // 1. Determine mode
+        const weights = inputs.statWeights;
+        const nonZeroWeights = statOrder.filter(stat => weights[stat] > 0);
+        const noLimits = (inputs.statDriftPercent ?? 0) === 100;
+        
+        // Balanced/Weighted mode: !noLimits && nonZeroWeights.length >= 2
+        // No-Limits mode: noLimits === true (any number of non-zero weights)
+        // Single-stat builds (only 1 weight > 0) behave like No-Limits mode
+        const isBalancedMode = !noLimits && nonZeroWeights.length >= 2;
+        
+        if (isBalancedMode) {
+          // 2. Balanced/Weighted mode: Start jump if ANY stat with weight > 0 is below threshold
+          const statsUnderLimit: Array<keyof typeof stats> = [];
+          
+          for (const stat of statOrder) {
+            if (stats[stat] < threshold && weights[stat] > 0) {
+              statsUnderLimit.push(stat);
+            }
           }
-        }
-        
-        if (statsUnderLimit.length === 0) {
-          // All stats are at or above the target, no more jumps
-          shouldPerformEdvdJump = false;
+          
+          if (statsUnderLimit.length === 0) {
+            // All weighted stats are at or above target, no more jumps
+            shouldPerformEdvdJump = false;
+          } else {
+            // Some weighted stats are under the limit - train only those stats during this jump
+            edvdStatsToTrain = new Set(statsUnderLimit);
+          }
         } else {
-          // Some stats are under the limit - train only those stats during this jump
-          edvdStatsToTrain = new Set(statsUnderLimit);
+          // 3. No-Limits mode (stat drift / train-best-stat) OR single-stat builds
+          // Determine bestGymStat: stat with highest gym dots
+          let bestGymStat: keyof typeof stats | null = null;
+          let bestDots = -1;
+          
+          // Decide whether to use perks in gym selection calculation
+          const perksForSelection = inputs.ignorePerksForGymSelection ? 
+            { strength: 0, speed: 0, defense: 0, dexterity: 0 } : 
+            inputs.perkPercs;
+          
+          for (const stat of nonZeroWeights) {
+            try {
+              const gym = findBestGym(
+                gyms,
+                stat,
+                totalEnergySpent,
+                inputs.companyBenefit.gymUnlockSpeedMultiplier,
+                stats
+              );
+              const statDots = gym[stat as keyof Pick<Gym, 'strength' | 'speed' | 'defense' | 'dexterity'>];
+              
+              if (statDots !== null && statDots !== undefined) {
+                // Calculate actual gain using current happy for comparison
+                const gain = computeStatGain(
+                  stat,
+                  1000, // Use normalized value for fair comparison
+                  inputs.happy,
+                  perksForSelection[stat],
+                  statDots,
+                  gym.energyPerTrain
+                ) * inputs.companyBenefit.gymGainMultiplier;
+                
+                // Pick stat with highest gym dots (use gain calculation to break ties)
+                if (statDots > bestDots || (statDots === bestDots && gain > 0)) {
+                  bestDots = statDots;
+                  bestGymStat = stat;
+                }
+              }
+            } catch {
+              // Gym not available for this stat
+            }
+          }
+          
+          // Start jump ONLY if weights[bestGymStat] > 0 AND stats[bestGymStat] < threshold
+          if (bestGymStat && weights[bestGymStat] > 0 && stats[bestGymStat] < threshold) {
+            // Train only the best gym stat during this jump
+            edvdStatsToTrain = new Set([bestGymStat]);
+          } else {
+            // bestGymStat is at or above target (or not found), no more jumps
+            shouldPerformEdvdJump = false;
+          }
         }
       }
     }
