@@ -62,7 +62,7 @@ export const CANDY_HAPPINESS_VALUES: Record<number, number> = {
 export const CHART_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042'];
 
 // Max number of comparison states allowed
-export const MAX_COMPARISON_STATES = 4;
+export const MAX_COMPARISON_STATES = 999; // Effectively unlimited
 
 // Default stat weights
 export const DEFAULT_STAT_WEIGHTS = {

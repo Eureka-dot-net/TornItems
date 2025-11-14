@@ -146,6 +146,10 @@ export default function GymComparison() {
   );
   const [currentGymIndex, setCurrentGymIndex] = useState<number>(() => loadSavedValue('currentGymIndex', 0));
   const [months, setMonths] = useState<number>(() => loadSavedValue('months', DEFAULT_SIMULATION_MONTHS));
+  const [simulatedDate, setSimulatedDate] = useState<Date | null>(() => {
+    const saved = loadSavedValue<string | null>('simulatedDate', null);
+    return saved ? new Date(saved) : null;
+  });
   
   // Comparison states
   const [comparisonStates, setComparisonStates] = useState<ComparisonState[]>(() => 
@@ -243,6 +247,7 @@ export default function GymComparison() {
   useEffect(() => { localStorage.setItem('gymComparison_manualIgnorePerksForGymSelection', JSON.stringify(manualIgnorePerksForGymSelection)); }, [manualIgnorePerksForGymSelection]);
   useEffect(() => { localStorage.setItem('gymComparison_apiKey', JSON.stringify(apiKey)); }, [apiKey]);
   useEffect(() => { localStorage.setItem('gymComparison_initialStats', JSON.stringify(initialStats)); }, [initialStats]);
+  useEffect(() => { localStorage.setItem('gymComparison_simulatedDate', JSON.stringify(simulatedDate ? simulatedDate.toISOString() : null)); }, [simulatedDate]);
   useEffect(() => { localStorage.setItem('gymComparison_currentGymIndex', JSON.stringify(currentGymIndex)); }, [currentGymIndex]);
   useEffect(() => { localStorage.setItem('gymComparison_months', JSON.stringify(months)); }, [months]);
   useEffect(() => { localStorage.setItem('gymComparison_comparisonStates', JSON.stringify(comparisonStates)); }, [comparisonStates]);
@@ -252,7 +257,7 @@ export default function GymComparison() {
     if (mode === 'future' && comparisonStates.length > 0) {
       handleSimulate();
     }
-  }, [comparisonStates, initialStats, months, showCosts, itemPricesData]);
+  }, [comparisonStates, initialStats, months, showCosts, itemPricesData, simulatedDate]);
   
   useEffect(() => {
     if (mode === 'manual') {
@@ -462,6 +467,7 @@ export default function GymComparison() {
             } : undefined,
             daysSkippedPerMonth: state.daysSkippedPerMonth,
             islandCostPerDay: showCosts ? state.islandCostPerDay : undefined,
+            simulatedDate: simulatedDate,
             itemPrices: (showCosts && itemPricesData) ? {
               dvdPrice: itemPricesData.prices[366],
               xanaxPrice: itemPricesData.prices[206],
@@ -852,6 +858,8 @@ export default function GymComparison() {
             setMonths={setMonths}
             isLoadingGymStats={isLoadingGymStats}
             handleFetchStats={handleFetchStats}
+            simulatedDate={simulatedDate}
+            setSimulatedDate={setSimulatedDate}
           />
 
           <ComparisonSelector

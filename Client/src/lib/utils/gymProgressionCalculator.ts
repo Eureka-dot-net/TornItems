@@ -97,6 +97,7 @@ export interface SimulationInputs {
   balanceAfterGymIndex?: number; // Gym index after which to revert to balanced training (-1 = never, default: 19 = Cha Cha's)
   ignorePerksForGymSelection?: boolean; // If true, ignore perks when deciding which gym/stat to train (but still use perks for actual gains)
   islandCostPerDay?: number; // Optional: daily island cost (rent + staff) to include in cost calculations
+  simulatedDate?: Date | null; // Optional: simulated "today" date for Diabetes Day calculations. If not provided, uses actual current date.
   itemPrices?: {
     dvdPrice: number | null;
     xanaxPrice: number | null;
@@ -458,7 +459,7 @@ export function simulateGymProgression(
   
   if (inputs.diabetesDay?.enabled) {
     // Calculate which simulation days correspond to November 13 and November 15
-    const today = new Date();
+    const today = inputs.simulatedDate ? new Date(inputs.simulatedDate) : new Date();
     // Reset time to start of day for accurate day calculations
     today.setHours(0, 0, 0, 0);
     const currentYear = today.getFullYear();
