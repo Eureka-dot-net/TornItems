@@ -59,7 +59,19 @@ export const CANDY_HAPPINESS_VALUES: Record<number, number> = {
 };
 
 // Chart colors for multiple comparison states
-export const CHART_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042'];
+// First 10 colors are distinctly different to support better visual comparison
+export const CHART_COLORS = [
+  '#8884d8', // blue/purple (original)
+  '#82ca9d', // green (original)
+  '#ffc658', // yellow/orange (original)
+  '#ff8042', // orange/red (original)
+  '#ff4444', // bright red
+  '#ff69b4', // hot pink
+  '#9370db', // medium purple
+  '#8b4513', // saddle brown
+  '#a9a9a9', // dark gray
+  '#f0f0f0', // light gray (high contrast with black background)
+];
 
 // Max number of comparison states allowed
 export const MAX_COMPARISON_STATES = 999; // Effectively unlimited
