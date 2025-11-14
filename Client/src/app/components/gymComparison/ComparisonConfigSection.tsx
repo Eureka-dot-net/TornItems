@@ -57,6 +57,7 @@ interface ComparisonState {
   statDriftPercent: number;
   balanceAfterGymIndex: number;
   ignorePerksForGymSelection: boolean;
+  islandCostPerDay?: number;
 }
 
 interface ComparisonConfigSectionProps {
@@ -106,11 +107,13 @@ export default function ComparisonConfigSection({
       candy: result.candyJumpCosts?.totalCost || 0,
       energy: result.energyJumpCosts?.totalCost || 0,
       lossReviveIncome: result.lossReviveIncome?.totalIncome || 0,
+      island: result.islandCosts?.totalCost || 0,
       total: (result.edvdJumpCosts?.totalCost || 0) + 
              (result.xanaxCosts?.totalCost || 0) + 
              (result.pointsRefillCosts?.totalCost || 0) + 
              (result.candyJumpCosts?.totalCost || 0) + 
-             (result.energyJumpCosts?.totalCost || 0) - 
+             (result.energyJumpCosts?.totalCost || 0) + 
+             (result.islandCosts?.totalCost || 0) - 
              (result.lossReviveIncome?.totalIncome || 0),
     } : undefined;
     
@@ -144,11 +147,13 @@ export default function ComparisonConfigSection({
       candy: result.candyJumpCosts?.totalCost || 0,
       energy: result.energyJumpCosts?.totalCost || 0,
       lossReviveIncome: result.lossReviveIncome?.totalIncome || 0,
+      island: result.islandCosts?.totalCost || 0,
       total: (result.edvdJumpCosts?.totalCost || 0) + 
              (result.xanaxCosts?.totalCost || 0) + 
              (result.pointsRefillCosts?.totalCost || 0) + 
              (result.candyJumpCosts?.totalCost || 0) + 
-             (result.energyJumpCosts?.totalCost || 0) - 
+             (result.energyJumpCosts?.totalCost || 0) + 
+             (result.islandCosts?.totalCost || 0) - 
              (result.lossReviveIncome?.totalIncome || 0),
     } : undefined;
     
@@ -251,12 +256,17 @@ export default function ComparisonConfigSection({
           <HappyPerksSection
             happy={activeState.happy}
             perkPercs={activeState.perkPercs}
+            showCosts={showCosts}
+            islandCostPerDay={activeState.islandCostPerDay}
             onUpdate={(updates) => {
               if ('happy' in updates) {
                 updateState(activeState.id, { happy: updates.happy });
               }
               if ('perkPercs' in updates) {
                 updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, ...updates.perkPercs } });
+              }
+              if ('islandCostPerDay' in updates) {
+                updateState(activeState.id, { islandCostPerDay: updates.islandCostPerDay });
               }
             }}
           />

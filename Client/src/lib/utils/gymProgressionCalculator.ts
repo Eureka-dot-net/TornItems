@@ -96,6 +96,7 @@ export interface SimulationInputs {
   statDriftPercent?: number; // 0-100: How far stats can drift from target weighings. 0 = strict balance, 100 = pure best gains
   balanceAfterGymIndex?: number; // Gym index after which to revert to balanced training (-1 = never, default: 19 = Cha Cha's)
   ignorePerksForGymSelection?: boolean; // If true, ignore perks when deciding which gym/stat to train (but still use perks for actual gains)
+  islandCostPerDay?: number; // Optional: daily island cost (rent + staff) to include in cost calculations
   itemPrices?: {
     dvdPrice: number | null;
     xanaxPrice: number | null;
@@ -195,6 +196,10 @@ export interface SimulationResult {
     totalDays: number;
     incomePerDay: number;
     totalIncome: number;
+  };
+  islandCosts?: {
+    costPerDay: number;
+    totalCost: number;
   };
   diabetesDayTotalGains?: {
     strength: number;
@@ -1477,6 +1482,16 @@ export function simulateGymProgression(
     };
   }
   
+  // Calculate island costs
+  let islandCosts: { costPerDay: number; totalCost: number } | undefined;
+  
+  if (inputs.islandCostPerDay && inputs.islandCostPerDay > 0) {
+    islandCosts = {
+      costPerDay: inputs.islandCostPerDay,
+      totalCost: inputs.islandCostPerDay * totalDays,
+    };
+  }
+  
   return {
     dailySnapshots,
     finalStats: {
@@ -1505,6 +1520,7 @@ export function simulateGymProgression(
     candyJumpCosts,
     energyJumpCosts,
     lossReviveIncome,
+    islandCosts,
     diabetesDayTotalGains: inputs.diabetesDay?.enabled ? diabetesDayTotalGains : undefined,
     diabetesDayJump1Gains: inputs.diabetesDay?.enabled ? diabetesDayJump1Gains : undefined,
     diabetesDayJump2Gains: inputs.diabetesDay?.enabled ? diabetesDayJump2Gains : undefined,
