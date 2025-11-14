@@ -137,8 +137,8 @@ export default function EdvdJumpConfig({
                 <Typography variant="caption" sx={{ color: 'info.contrastText' }}>
                   <strong>Note:</strong> Jumps will only trigger when:
                   <br />• Your best-gym stat is below the threshold
-                  <br />• Jumping won't distort your build ratios (±5%)
                   <br />• Only relevant stats (weight &gt; 0) are considered
+                  <br />• Ratio protection may delay jumps (checked before starting)
                 </Typography>
               </Box>
             </>

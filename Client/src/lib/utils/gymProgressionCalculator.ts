@@ -501,6 +501,106 @@ function determineBestGymStat(
 }
 
 /**
+ * Check if a simulated eDVD jump would violate ratio protection (±5%)
+ * This is used when SCHEDULING future jumps to prevent ratio distortion
+ */
+function wouldJumpViolateRatios(
+  gyms: Gym[],
+  currentStats: { strength: number; speed: number; defense: number; dexterity: number },
+  statWeights: StatWeights,
+  relevantStats: Array<keyof typeof currentStats>,
+  threshold: number,
+  jumpEnergy: number,
+  jumpHappy: number,
+  totalEnergySpent: number,
+  gymUnlockSpeedMultiplier: number,
+  perkPercs: { strength: number; speed: number; defense: number; dexterity: number },
+  companyBenefit: CompanyBenefit
+): boolean {
+  // Simulate the jump
+  const simulatedStats = { ...currentStats };
+  const statsToJump = relevantStats.filter(stat => currentStats[stat] < threshold);
+  
+  if (statsToJump.length === 0) {
+    return false; // No stats to jump, no ratio violation
+  }
+  
+  let remainingJumpEnergy = jumpEnergy;
+  
+  // Simulate training for jump energy
+  for (let simEnergy = 0; simEnergy < jumpEnergy && remainingJumpEnergy > 0; simEnergy += 10) {
+    // Select stat most out of balance
+    let selectedStat: keyof typeof currentStats | null = null;
+    let lowestRatio = Infinity;
+    
+    for (const stat of statsToJump) {
+      const ratio = simulatedStats[stat] / statWeights[stat];
+      if (ratio < lowestRatio) {
+        lowestRatio = ratio;
+        selectedStat = stat;
+      }
+    }
+    
+    if (!selectedStat) break;
+    
+    try {
+      const gym = findBestGym(
+        gyms,
+        selectedStat,
+        totalEnergySpent,
+        gymUnlockSpeedMultiplier,
+        simulatedStats
+      );
+      const statDots = gym[selectedStat as keyof Pick<Gym, 'strength' | 'speed' | 'defense' | 'dexterity'>];
+      
+      if (statDots && remainingJumpEnergy >= gym.energyPerTrain) {
+        const gain = computeStatGain(
+          selectedStat,
+          simulatedStats[selectedStat],
+          jumpHappy,
+          perkPercs[selectedStat],
+          statDots,
+          gym.energyPerTrain
+        ) * companyBenefit.gymGainMultiplier;
+        
+        simulatedStats[selectedStat] += gain;
+        remainingJumpEnergy -= gym.energyPerTrain;
+      } else {
+        break;
+      }
+    } catch {
+      break;
+    }
+  }
+  
+  // Check if simulated stats break ratio protection (±5%)
+  for (const stat of relevantStats) {
+    const currentRatio = currentStats[stat] / statWeights[stat];
+    const simulatedRatio = simulatedStats[stat] / statWeights[stat];
+    
+    // Check if this stat's ratio has changed by more than 5% relative to other stats
+    for (const otherStat of relevantStats) {
+      if (stat === otherStat) continue;
+      
+      const otherCurrentRatio = currentStats[otherStat] / statWeights[otherStat];
+      const otherSimulatedRatio = simulatedStats[otherStat] / statWeights[otherStat];
+      
+      // Calculate relative ratio before and after
+      const relativeBefore = currentRatio / otherCurrentRatio;
+      const relativeAfter = simulatedRatio / otherSimulatedRatio;
+      
+      // Check if relative ratio changed by more than 5%
+      const ratioChange = Math.abs(relativeAfter - relativeBefore) / relativeBefore;
+      if (ratioChange > 0.05) {
+        return true; // Ratio violated
+      }
+    }
+  }
+  
+  return false; // No ratio violations
+}
+
+/**
  * Simulate gym progression over time
  */
 export function simulateGymProgression(
@@ -686,10 +786,46 @@ export function simulateGymProgression(
     
     // Check if EDVD jump should be performed
     // Skip if limit is reached based on configuration
+    // Check if EDVD jump should be performed
+    // Skip if limit is reached based on configuration
     let shouldPerformEdvdJump = inputs.edvdJump?.enabled && day === nextEdvdJumpDay && !isSkipped;
     
     // Check if this is the day before an eDVD jump (for stacking)
     const isDayBeforeEdvdJump = inputs.edvdJump?.enabled && day === nextEdvdJumpDay - 1 && !isSkipped;
+    
+    // RATIO PROTECTION CHECK: On the day before the jump, check if the jump would violate ratios
+    // If it would, delay the jump by 1 day. This is when we decide whether to START the jump.
+    if (isDayBeforeEdvdJump && inputs.edvdJump && inputs.edvdJump.limit === 'stat' && inputs.edvdJump.statTarget !== undefined) {
+      const statOrder: Array<keyof typeof stats> = ['strength', 'speed', 'defense', 'dexterity'];
+      const relevantStats = statOrder.filter(stat => inputs.statWeights[stat] > 0);
+      
+      if (relevantStats.length > 0) {
+        const threshold = inputs.edvdJump.statTarget;
+        const jumpEnergy = 1150;
+        const dvdHappinessPerDvd = inputs.edvdJump.adultNovelties ? 5000 : 2500;
+        const jumpHappy = (inputs.happy + dvdHappinessPerDvd * inputs.edvdJump.dvdsUsed) * 2;
+        
+        const ratiosViolated = wouldJumpViolateRatios(
+          gyms,
+          stats,
+          inputs.statWeights,
+          relevantStats,
+          threshold,
+          jumpEnergy,
+          jumpHappy,
+          totalEnergySpent,
+          inputs.companyBenefit.gymUnlockSpeedMultiplier,
+          inputs.perkPercs,
+          inputs.companyBenefit
+        );
+        
+        if (ratiosViolated) {
+          // Delay the jump by 1 day
+          nextEdvdJumpDay++;
+          dailyNotes.push('eDVD jump delayed: ratio protection (would distort build by >5%)');
+        }
+      }
+    }
     
     // Track which stats should be trained during this eDVD jump (for 'stat' limit mode)
     let edvdStatsToTrain: Set<keyof typeof stats> | null = null;
@@ -700,7 +836,8 @@ export function simulateGymProgression(
         shouldPerformEdvdJump = false;
       } else if (inputs.edvdJump.limit === 'stat' && inputs.edvdJump.statTarget !== undefined) {
         // NEW LOGIC: Check if jump should be triggered based on best-gym-trained stat
-        // and ratio protection rules
+        // NOTE: Once a jump day arrives, it MUST complete. Ratio protection only applies
+        // when SCHEDULING future jumps, not when executing the current one.
         
         const statOrder: Array<keyof typeof stats> = ['strength', 'speed', 'defense', 'dexterity'];
         
@@ -731,107 +868,15 @@ export function simulateGymProgression(
           if (!bestGymStat || !relevantStats.includes(bestGymStat) || stats[bestGymStat] >= inputs.edvdJump.statTarget) {
             shouldPerformEdvdJump = false;
           } else {
-            // Step 4: Simulate the jump to check ratio protection
-            // Calculate what stats would be after the jump
-            const simulatedStats = { ...stats };
-            const jumpEnergy = 1150; // Standard eDVD jump energy
+            // All conditions pass, perform the jump
+            // Train only stats below threshold during this jump
             const threshold = inputs.edvdJump.statTarget;
-            
-            // Simulate training with jump happy for all relevant stats below threshold
             const statsToJump = relevantStats.filter(stat => stats[stat] < threshold);
             
             if (statsToJump.length === 0) {
               shouldPerformEdvdJump = false;
             } else {
-              // Quick simulation: distribute jump energy proportionally among stats below threshold
-              let remainingJumpEnergy = jumpEnergy;
-              const dvdHappinessPerDvd = inputs.edvdJump.adultNovelties ? 5000 : 2500;
-              const jumpHappy = (inputs.happy + dvdHappinessPerDvd * inputs.edvdJump.dvdsUsed) * 2;
-              
-              // Train each stat proportionally during simulation
-              for (let simEnergy = 0; simEnergy < jumpEnergy && remainingJumpEnergy > 0; simEnergy += 10) {
-                // Select stat most out of balance
-                let selectedStat: keyof typeof stats | null = null;
-                let lowestRatio = Infinity;
-                
-                for (const stat of statsToJump) {
-                  const ratio = simulatedStats[stat] / inputs.statWeights[stat];
-                  if (ratio < lowestRatio) {
-                    lowestRatio = ratio;
-                    selectedStat = stat;
-                  }
-                }
-                
-                if (!selectedStat) break;
-                
-                try {
-                  const gym = findBestGym(
-                    gyms,
-                    selectedStat,
-                    totalEnergySpent,
-                    inputs.companyBenefit.gymUnlockSpeedMultiplier,
-                    simulatedStats
-                  );
-                  const statDots = gym[selectedStat as keyof Pick<Gym, 'strength' | 'speed' | 'defense' | 'dexterity'>];
-                  
-                  if (statDots && remainingJumpEnergy >= gym.energyPerTrain) {
-                    const gain = computeStatGain(
-                      selectedStat,
-                      simulatedStats[selectedStat],
-                      jumpHappy,
-                      inputs.perkPercs[selectedStat],
-                      statDots,
-                      gym.energyPerTrain
-                    ) * inputs.companyBenefit.gymGainMultiplier;
-                    
-                    simulatedStats[selectedStat] += gain;
-                    remainingJumpEnergy -= gym.energyPerTrain;
-                  } else {
-                    break;
-                  }
-                } catch {
-                  break;
-                }
-              }
-              
-              // Step 5: Check if simulated stats break ratio protection (±5%)
-              // Calculate current ratios and post-jump ratios
-              let ratiosViolated = false;
-              
-              for (const stat of relevantStats) {
-                const currentRatio = stats[stat] / inputs.statWeights[stat];
-                const simulatedRatio = simulatedStats[stat] / inputs.statWeights[stat];
-                
-                // Check if this stat's ratio has changed by more than 5% relative to other stats
-                for (const otherStat of relevantStats) {
-                  if (stat === otherStat) continue;
-                  
-                  const otherCurrentRatio = stats[otherStat] / inputs.statWeights[otherStat];
-                  const otherSimulatedRatio = simulatedStats[otherStat] / inputs.statWeights[otherStat];
-                  
-                  // Calculate relative ratio before and after
-                  const relativeBefore = currentRatio / otherCurrentRatio;
-                  const relativeAfter = simulatedRatio / otherSimulatedRatio;
-                  
-                  // Check if relative ratio changed by more than 5%
-                  const ratioChange = Math.abs(relativeAfter - relativeBefore) / relativeBefore;
-                  if (ratioChange > 0.05) {
-                    ratiosViolated = true;
-                    break;
-                  }
-                }
-                
-                if (ratiosViolated) break;
-              }
-              
-              if (ratiosViolated) {
-                // Jump would distort ratios too much, don't jump yet
-                shouldPerformEdvdJump = false;
-              } else {
-                // All conditions pass, perform the jump
-                // Train only stats below threshold during this jump
-                edvdStatsToTrain = new Set(statsToJump);
-              }
+              edvdStatsToTrain = new Set(statsToJump);
             }
           }
         }
