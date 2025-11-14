@@ -6,6 +6,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Typography,
+  Box,
 } from '@mui/material';
 
 interface EdvdJumpConfigProps {
@@ -115,21 +117,31 @@ export default function EdvdJumpConfig({
           )}
 
           {limit === 'stat' && (
-            <TextField
-              label="Stat Target (Individual)"
-              type="number"
-              value={statTarget ?? ''}
-              onChange={(e) =>
-                onUpdate({
-                  edvdJumpStatTarget:
-                    e.target.value === '' ? 1000000 : Math.max(0, Number(e.target.value)),
-                })
-              }
-              fullWidth
-              margin="dense"
-              size="small"
-              inputProps={{ step: 'any', min: 0 }}
-            />
+            <>
+              <TextField
+                label="Stat Target (Individual)"
+                type="number"
+                value={statTarget ?? ''}
+                onChange={(e) =>
+                  onUpdate({
+                    edvdJumpStatTarget:
+                      e.target.value === '' ? 1000000 : Math.max(0, Number(e.target.value)),
+                  })
+                }
+                fullWidth
+                margin="dense"
+                size="small"
+                inputProps={{ step: 'any', min: 0 }}
+              />
+              <Box sx={{ mt: 1, mb: 1, p: 1, bgcolor: 'info.main', borderRadius: 1, opacity: 0.1 }}>
+                <Typography variant="caption" sx={{ color: 'info.contrastText' }}>
+                  <strong>Note:</strong> Jumps will only trigger when:
+                  <br />• Your best-gym stat is below the threshold
+                  <br />• Jumping won't distort your build ratios (±5%)
+                  <br />• Only relevant stats (weight &gt; 0) are considered
+                </Typography>
+              </Box>
+            </>
           )}
 
           <FormControlLabel
