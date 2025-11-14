@@ -454,38 +454,47 @@ export function simulateGymProgression(
   if (inputs.diabetesDay?.enabled) {
     // Calculate which simulation days correspond to November 13 and November 15
     const today = new Date();
+    // Reset time to start of day for accurate day calculations
+    today.setHours(0, 0, 0, 0);
     const currentYear = today.getFullYear();
     
     // Create dates for November 13 and November 15 of the current year
     let nov13 = new Date(currentYear, 10, 13); // Month is 0-indexed, so 10 = November
     let nov15 = new Date(currentYear, 10, 15);
+    nov13.setHours(0, 0, 0, 0);
+    nov15.setHours(0, 0, 0, 0);
     
     // If we're past November 15 of this year, use next year's dates
     if (today > nov15) {
       nov13 = new Date(currentYear + 1, 10, 13);
       nov15 = new Date(currentYear + 1, 10, 15);
+      nov13.setHours(0, 0, 0, 0);
+      nov15.setHours(0, 0, 0, 0);
     }
     
-    // Calculate days from today to each DD jump date
+    // Calculate days from today to each DD jump date (1-indexed, day 1 = tomorrow or today if it's the date)
     const msPerDay = 1000 * 60 * 60 * 24;
-    const daysToNov13 = Math.ceil((nov13.getTime() - today.getTime()) / msPerDay);
-    const daysToNov15 = Math.ceil((nov15.getTime() - today.getTime()) / msPerDay);
+    const daysToNov13 = Math.ceil((nov13.getTime() - today.getTime()) / msPerDay) + 1;
+    const daysToNov15 = Math.ceil((nov15.getTime() - today.getTime()) / msPerDay) + 1;
     
-    // Only add DD jumps that fall within the simulation period
+    // Only add DD jumps that fall within the simulation period (day 1 to totalDays)
     if (inputs.diabetesDay.numberOfJumps === 2) {
       // Two jumps: November 13 and November 15
-      if (daysToNov13 > 0 && daysToNov13 <= totalDays) {
+      if (daysToNov13 >= 1 && daysToNov13 <= totalDays) {
         diabetesDayJumpDays.push(daysToNov13);
       }
-      if (daysToNov15 > 0 && daysToNov15 <= totalDays) {
+      if (daysToNov15 >= 1 && daysToNov15 <= totalDays) {
         diabetesDayJumpDays.push(daysToNov15);
       }
     } else {
       // One jump: November 15 only
-      if (daysToNov15 > 0 && daysToNov15 <= totalDays) {
+      if (daysToNov15 >= 1 && daysToNov15 <= totalDays) {
         diabetesDayJumpDays.push(daysToNov15);
       }
     }
+    
+    // If DD is enabled but no jumps fall within the simulation period, 
+    // the diabetesDayJumpDays array will remain empty and no DD jumps will occur
     
     // If both DD and eDVD jumps are enabled, adjust eDVD jump start
     // First eDVD jump must be at least 2 days after the last DD jump
@@ -583,6 +592,11 @@ export function simulateGymProgression(
     
     const maxEnergyValue = inputs.maxEnergy || 150;
     
+    // Track if this is a jump day and the energy split between jump and post-jump training
+    let jumpEnergy = 0; // Energy to train at boosted happy
+    let postJumpEnergy = 0; // Energy to train at normal happy after the jump
+    let isJumpDay = false;
+    
     // Check if this is the day before a DD jump (for stacking)
     const isDayBeforeDdJump = diabetesDayJumpDays.some(ddDay => day === ddDay - 1) && !isSkipped;
     
@@ -622,8 +636,10 @@ export function simulateGymProgression(
       //    - Natural energy regen
       //    - If user normally takes 3 Xanax/day → consume one more Xanax after the jump
       
+      isJumpDay = true;
+      
       // Jump energy: exactly 1150 energy
-      const edvdJumpEnergy = 1150;
+      jumpEnergy = 1150;
       
       // Happy during jump
       // DVD happiness: 2500 per DVD normally, 5000 per DVD with Adult Novelties
@@ -633,7 +649,6 @@ export function simulateGymProgression(
       // Post-jump energy (energy available after the jump for normal training)
       // This includes natural regen and potentially one more Xanax if user normally takes 3 Xanax/day
       const energyPerHour = maxEnergyValue === 100 ? 20 : 30;
-      let postJumpEnergy = 0;
       
       // Calculate remaining time in the day after the jump
       // Assume jump happens mid-day, leaving ~12 hours for natural regen and training
@@ -646,11 +661,10 @@ export function simulateGymProgression(
       }
       
       // Set total energy for today: jump energy + post-jump energy
-      energyAvailableToday = edvdJumpEnergy + postJumpEnergy;
+      energyAvailableToday = jumpEnergy + postJumpEnergy;
       
       // Add note about eDVD jump
       dailyNotes.push(`eDVD jump: Used ${inputs.edvdJump.dvdsUsed} DVD${inputs.edvdJump.dvdsUsed > 1 ? 's' : ''}, 1 Ecstasy${inputs.edvdJump.adultNovelties ? ' (with 10★ Adult Novelties)' : ''}`);
-      dailyNotes.push(`Post-jump training: ${Math.round(postJumpEnergy)} energy at normal happy`);
       
       // Increment jump counter and schedule next jump
       edvdJumpsPerformed++;
@@ -683,11 +697,13 @@ export function simulateGymProgression(
       //    - Natural energy regen
       //    - If user normally takes 3 Xanax/day → consume one more Xanax after the jump
       
+      isJumpDay = true;
+      
       const isFirstJump = day === diabetesDayJumpDays[0];
       const jumpIndex = diabetesDayJumpDays.indexOf(day);
       
       // Base DD jump energy: at least 1150 energy
-      let ddJumpEnergy = 1150;
+      jumpEnergy = 1150;
       
       // Additional energy based on options:
       // FHC (Feathery Hotel Coupon): maxEnergy each, max 1 per jump
@@ -697,9 +713,9 @@ export function simulateGymProgression(
       if (inputs.diabetesDay.numberOfJumps === 1) {
         // Only one jump, use the better option
         if (inputs.diabetesDay.greenEgg > 0) {
-          ddJumpEnergy += 500; // Green Egg
+          jumpEnergy += 500; // Green Egg
         } else if (inputs.diabetesDay.featheryHotelCoupon > 0) {
-          ddJumpEnergy += maxEnergyValue; // FHC
+          jumpEnergy += maxEnergyValue; // FHC
         }
       } else {
         // Two jumps - distribute items across jumps
@@ -707,34 +723,34 @@ export function simulateGymProgression(
         if (jumpIndex === 0) {
           // First jump
           if (inputs.diabetesDay.greenEgg > 0) {
-            ddJumpEnergy += 500; // First Green Egg
+            jumpEnergy += 500; // First Green Egg
           } else if (inputs.diabetesDay.featheryHotelCoupon > 0) {
-            ddJumpEnergy += maxEnergyValue; // First FHC
+            jumpEnergy += maxEnergyValue; // First FHC
           }
         } else if (jumpIndex === 1) {
           // Second jump - use second item if available
           if (inputs.diabetesDay.greenEgg >= 2) {
-            ddJumpEnergy += 500; // Second Green Egg
+            jumpEnergy += 500; // Second Green Egg
           } else if (inputs.diabetesDay.featheryHotelCoupon >= 2) {
-            ddJumpEnergy += maxEnergyValue; // Second FHC
+            jumpEnergy += maxEnergyValue; // Second FHC
           } else if (inputs.diabetesDay.greenEgg === 1 && inputs.diabetesDay.featheryHotelCoupon >= 1) {
             // Used Green Egg in first jump, use FHC in second
-            ddJumpEnergy += maxEnergyValue;
+            jumpEnergy += maxEnergyValue;
           } else if (inputs.diabetesDay.featheryHotelCoupon === 1 && inputs.diabetesDay.greenEgg >= 1) {
             // Used FHC in first jump, use Green Egg in second
-            ddJumpEnergy += 500;
+            jumpEnergy += 500;
           }
         }
       }
       
       // Seasonal mail: 250 energy for first jump only
       if (isFirstJump && inputs.diabetesDay.seasonalMail) {
-        ddJumpEnergy += 250;
+        jumpEnergy += 250;
       }
       
       // Logo energy click: 50 energy for second jump only
       if (!isFirstJump && inputs.diabetesDay.logoEnergyClick) {
-        ddJumpEnergy += 50;
+        jumpEnergy += 50;
       }
       
       currentHappy = 99999; // DD happy is always 99999
@@ -742,7 +758,6 @@ export function simulateGymProgression(
       // Post-jump energy (energy available after the jump for normal training)
       // This includes natural regen and potentially one more Xanax if user normally takes 3 Xanax/day
       const energyPerHour = maxEnergyValue === 100 ? 20 : 30;
-      let postJumpEnergy = 0;
       
       // Calculate remaining time in the day after the jump
       // Assume jump happens mid-day, leaving ~12 hours for natural regen and training
@@ -755,7 +770,7 @@ export function simulateGymProgression(
       }
       
       // Set total energy for today: jump energy + post-jump energy
-      energyAvailableToday = ddJumpEnergy + postJumpEnergy;
+      energyAvailableToday = jumpEnergy + postJumpEnergy;
       
       // Build Diabetes Day note
       const ddNoteItems: string[] = ['Diabetes Day jump'];
@@ -796,7 +811,15 @@ export function simulateGymProgression(
     // Train one energy at a time, always choosing the stat that is most out of sync with target ratio
     let remainingEnergy = energyAvailableToday;
     
-    // Track stats before training for DD jumps and eDVD jumps
+    // For jump days, we need to track two phases:
+    // Phase 1: Train jump energy at boosted happy
+    // Phase 2: Train post-jump energy at normal happy
+    let remainingJumpEnergy = isJumpDay ? jumpEnergy : 0;
+    let remainingPostJumpEnergy = isJumpDay ? postJumpEnergy : 0;
+    const statsBeforeJump = isJumpDay ? { ...stats } : undefined;
+    let statsAfterJump: typeof stats | undefined;
+    
+    // Track stats before training for DD jumps and eDVD jumps (for total gains calculation)
     const statsBeforeTraining = (isDiabetesDayJump || shouldPerformEdvdJump) ? { ...stats } : undefined;
     
     // Handle candy jump if enabled and not on an EDVD or DD jump day
@@ -990,6 +1013,14 @@ export function simulateGymProgression(
     }
     
     while (remainingEnergy > 0) {
+      // For jump days, handle phase transition from jump to post-jump training
+      if (isJumpDay && remainingJumpEnergy === 0 && remainingPostJumpEnergy > 0 && !statsAfterJump) {
+        // We've finished the jump phase, now switch to post-jump phase
+        statsAfterJump = { ...stats }; // Save stats after jump
+        currentHappy = inputs.happy; // Switch back to normal happy
+        dailyNotes.push(`Post-jump training: ${Math.round(postJumpEnergy)} energy at normal happy`);
+      }
+      
       // Determine which stat to train next based on drift tolerance and actual gains
       
       const statOrder: Array<keyof typeof stats> = ['strength', 'speed', 'defense', 'dexterity'];
@@ -1179,6 +1210,16 @@ export function simulateGymProgression(
             stats[selectedStat] += actualGain;
             totalEnergySpent += gym.energyPerTrain;
             remainingEnergy -= gym.energyPerTrain;
+            
+            // For jump days, also decrement the appropriate phase-specific energy counter
+            if (isJumpDay) {
+              if (remainingJumpEnergy > 0) {
+                remainingJumpEnergy -= gym.energyPerTrain;
+              } else if (remainingPostJumpEnergy > 0) {
+                remainingPostJumpEnergy -= gym.energyPerTrain;
+              }
+            }
+            
             trainSuccessful = true;
             
             // Track training details (regular training)
@@ -1213,6 +1254,26 @@ export function simulateGymProgression(
         dexterity: Math.round(stats.dexterity - statsBeforeTraining.dexterity),
       };
       
+      // Add detailed breakdown of jump vs post-jump gains
+      if (statsBeforeJump && statsAfterJump) {
+        const jumpOnlyGains = {
+          strength: Math.round(statsAfterJump.strength - statsBeforeJump.strength),
+          speed: Math.round(statsAfterJump.speed - statsBeforeJump.speed),
+          defense: Math.round(statsAfterJump.defense - statsBeforeJump.defense),
+          dexterity: Math.round(statsAfterJump.dexterity - statsBeforeJump.dexterity),
+        };
+        const postJumpGains = {
+          strength: Math.round(stats.strength - statsAfterJump.strength),
+          speed: Math.round(stats.speed - statsAfterJump.speed),
+          defense: Math.round(stats.defense - statsAfterJump.defense),
+          dexterity: Math.round(stats.dexterity - statsAfterJump.dexterity),
+        };
+        const jumpTotal = jumpOnlyGains.strength + jumpOnlyGains.speed + jumpOnlyGains.defense + jumpOnlyGains.dexterity;
+        const postJumpTotal = postJumpGains.strength + postJumpGains.speed + postJumpGains.defense + postJumpGains.dexterity;
+        dailyNotes.push(`DD jump gains: +${Math.round(jumpTotal).toLocaleString()} total stats at happy 99,999`);
+        dailyNotes.push(`Post-DD training gains: +${Math.round(postJumpTotal).toLocaleString()} total stats at normal happy`);
+      }
+      
       // Store individual jump gains
       const jumpIndex = diabetesDayJumpDays.indexOf(day);
       if (jumpIndex === 0) {
@@ -1236,6 +1297,28 @@ export function simulateGymProgression(
         defense: stats.defense - statsBeforeTraining.defense,
         dexterity: stats.dexterity - statsBeforeTraining.dexterity,
       };
+      
+      // Add detailed breakdown of jump vs post-jump gains
+      if (statsBeforeJump && statsAfterJump) {
+        const jumpOnlyGains = {
+          strength: Math.round(statsAfterJump.strength - statsBeforeJump.strength),
+          speed: Math.round(statsAfterJump.speed - statsBeforeJump.speed),
+          defense: Math.round(statsAfterJump.defense - statsBeforeJump.defense),
+          dexterity: Math.round(statsAfterJump.dexterity - statsBeforeJump.dexterity),
+        };
+        const postJumpGains = {
+          strength: Math.round(stats.strength - statsAfterJump.strength),
+          speed: Math.round(stats.speed - statsAfterJump.speed),
+          defense: Math.round(stats.defense - statsAfterJump.defense),
+          dexterity: Math.round(stats.dexterity - statsAfterJump.dexterity),
+        };
+        const jumpTotal = jumpOnlyGains.strength + jumpOnlyGains.speed + jumpOnlyGains.defense + jumpOnlyGains.dexterity;
+        const postJumpTotal = postJumpGains.strength + postJumpGains.speed + postJumpGains.defense + postJumpGains.dexterity;
+        const dvdHappinessPerDvd = inputs.edvdJump!.adultNovelties ? 5000 : 2500;
+        const jumpHappy = (inputs.happy + dvdHappinessPerDvd * inputs.edvdJump!.dvdsUsed) * 2;
+        dailyNotes.push(`eDVD jump gains: +${Math.round(jumpTotal).toLocaleString()} total stats at happy ${jumpHappy.toLocaleString()}`);
+        dailyNotes.push(`Post-eDVD training gains: +${Math.round(postJumpTotal).toLocaleString()} total stats at normal happy`);
+      }
       
       // Add to total eDVD gains
       edvdJumpTotalGains.strength += edvdGains.strength;
