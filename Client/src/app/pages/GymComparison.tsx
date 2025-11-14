@@ -42,6 +42,7 @@ import {
   DEFAULT_LOSS_REVIVE_ENERGY_COST,
   DEFAULT_LOSS_REVIVE_DAYS_BETWEEN,
   DEFAULT_LOSS_REVIVE_PRICE,
+  DEFAULT_ISLAND_COST_PER_DAY,
 } from '../../lib/constants/gymConstants';
 import { GYMS } from '../../lib/data/gyms';
 
@@ -105,6 +106,7 @@ interface ComparisonState {
   balanceAfterGymIndex: number; // Gym index after which to revert to balanced training (-1 = never, 19 = Cha Cha's, 23 = George's)
   ignorePerksForGymSelection: boolean; // Whether to ignore perks when deciding which gym/stat to train
   showIndividualStats: boolean; // Whether to show individual stats chart for this state
+  islandCostPerDay?: number; // Island cost per day (rent + staff)
   [key: string]: unknown;
 }
 
@@ -192,6 +194,7 @@ export default function GymComparison() {
         balanceAfterGymIndex: 19, // Default to Cha Cha's
         ignorePerksForGymSelection: false,
         showIndividualStats: false,
+        islandCostPerDay: DEFAULT_ISLAND_COST_PER_DAY,
       },
     ])
   );
@@ -345,6 +348,7 @@ export default function GymComparison() {
       balanceAfterGymIndex: sourceState.balanceAfterGymIndex,
       ignorePerksForGymSelection: sourceState.ignorePerksForGymSelection,
       showIndividualStats: false,
+      islandCostPerDay: sourceState.islandCostPerDay,
     };
     
     setComparisonStates([...comparisonStates, newState]);
@@ -457,6 +461,7 @@ export default function GymComparison() {
               pricePerLoss: state.lossRevivePricePerLoss,
             } : undefined,
             daysSkippedPerMonth: state.daysSkippedPerMonth,
+            islandCostPerDay: showCosts ? state.islandCostPerDay : undefined,
             itemPrices: (showCosts && itemPricesData) ? {
               dvdPrice: itemPricesData.prices[366],
               xanaxPrice: itemPricesData.prices[206],
@@ -641,6 +646,7 @@ export default function GymComparison() {
               balanceAfterGymIndex: typeof s.balanceAfterGymIndex === 'number' ? s.balanceAfterGymIndex : 19,
               ignorePerksForGymSelection: typeof s.ignorePerksForGymSelection === 'boolean' ? s.ignorePerksForGymSelection : false,
               showIndividualStats: typeof s.showIndividualStats === 'boolean' ? s.showIndividualStats : false,
+              islandCostPerDay: typeof s.islandCostPerDay === 'number' ? s.islandCostPerDay : DEFAULT_ISLAND_COST_PER_DAY,
             };
           }
           return {
@@ -687,6 +693,7 @@ export default function GymComparison() {
             balanceAfterGymIndex: 19,
             ignorePerksForGymSelection: false,
             showIndividualStats: false,
+            islandCostPerDay: DEFAULT_ISLAND_COST_PER_DAY,
           };
         });
         setComparisonStates(loadedStates);
@@ -757,11 +764,13 @@ export default function GymComparison() {
             candy: result.candyJumpCosts?.totalCost || 0,
             energy: result.energyJumpCosts?.totalCost || 0,
             lossReviveIncome: result.lossReviveIncome?.totalIncome || 0,
+            island: result.islandCosts?.totalCost || 0,
             total: (result.edvdJumpCosts?.totalCost || 0) + 
                    (result.xanaxCosts?.totalCost || 0) + 
                    (result.pointsRefillCosts?.totalCost || 0) + 
                    (result.candyJumpCosts?.totalCost || 0) + 
-                   (result.energyJumpCosts?.totalCost || 0) - 
+                   (result.energyJumpCosts?.totalCost || 0) + 
+                   (result.islandCosts?.totalCost || 0) - 
                    (result.lossReviveIncome?.totalIncome || 0),
           } : undefined;
           

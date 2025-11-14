@@ -1,4 +1,4 @@
-import { Typography, TextField } from '@mui/material';
+import { Typography, TextField, Box, FormHelperText } from '@mui/material';
 
 interface PerkPercs {
   strength: number;
@@ -10,13 +10,17 @@ interface PerkPercs {
 interface HappyPerksSectionProps {
   happy: number;
   perkPercs: PerkPercs;
-  onUpdate: (updates: { happy?: number; perkPercs?: Partial<PerkPercs> }) => void;
+  onUpdate: (updates: { happy?: number; perkPercs?: Partial<PerkPercs>; islandCostPerDay?: number }) => void;
+  showCosts?: boolean;
+  islandCostPerDay?: number;
 }
 
 export default function HappyPerksSection({
   happy,
   perkPercs,
   onUpdate,
+  showCosts = false,
+  islandCostPerDay = 0,
 }: HappyPerksSectionProps) {
   return (
     <>
@@ -38,6 +42,28 @@ export default function HappyPerksSection({
         size="small"
         inputProps={{ step: 'any', min: 0, max: 99999 }}
       />
+
+      {showCosts && (
+        <Box sx={{ mb: 1 }}>
+          <TextField
+            label="Island cost per day (rent + staff)"
+            type="number"
+            value={islandCostPerDay ?? ''}
+            onChange={(e) =>
+              onUpdate({
+                islandCostPerDay: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)),
+              })
+            }
+            fullWidth
+            margin="dense"
+            size="small"
+            inputProps={{ step: 1, min: 0 }}
+          />
+          <FormHelperText>
+            This should include both your island rent cost and your staff cost.
+          </FormHelperText>
+        </Box>
+      )}
 
       <TextField
         label="Str Perk %"

@@ -121,3 +121,6 @@ export const DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY = 1;
 export const DEFAULT_LOSS_REVIVE_ENERGY_COST = 25;
 export const DEFAULT_LOSS_REVIVE_DAYS_BETWEEN = 7;
 export const DEFAULT_LOSS_REVIVE_PRICE = 10000000; // $10M default
+
+// Island cost defaults
+export const DEFAULT_ISLAND_COST_PER_DAY = 1000000; // $1M default (rent + staff)
