@@ -94,6 +94,7 @@ export function simulateWithSections(
   // Run simulation for each section, chaining the end stats to the next section's initial stats
   let currentStats = { ...initStats };
   let currentGymIndex = currentGym;
+  let currentEnergySpent: number | undefined = undefined; // Track energy spent for gym progression
   const allSnapshots: DailySnapshot[] = [];
   
   // Tracking for aggregated results
@@ -129,6 +130,7 @@ export function simulateWithSections(
       happy: section.happy,
       perkPercs: section.perkPercs,
       currentGymIndex: currentGymIndex,
+      initialEnergySpent: currentEnergySpent, // Pass gym unlock progress to next section
       lockGym: false,
       statDriftPercent: section.statDriftPercent,
       balanceAfterGymIndex: section.balanceAfterGymIndex,
@@ -208,8 +210,9 @@ export function simulateWithSections(
     
     allSnapshots.push(...adjustedSnapshots);
     
-    // Update current stats and gym index for next section
+    // Update current stats, gym index, and energy spent for next section
     currentStats = sectionResult.finalStats;
+    currentEnergySpent = sectionResult.finalEnergySpent;
     
     // Update gym index from the last snapshot
     if (sectionResult.dailySnapshots.length > 0) {
