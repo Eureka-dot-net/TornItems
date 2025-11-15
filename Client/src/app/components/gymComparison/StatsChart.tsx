@@ -55,6 +55,7 @@ export default function StatsChart({
     stateName: string;
     stateColor: string;
     snapshot: any;
+    sectionNumber: number;
   }> = [];
 
   comparisonStates.forEach((state, stateIndex) => {
@@ -74,8 +75,8 @@ export default function StatsChart({
       
       for (let sectionIdx = 0; sectionIdx < boundaries.length; sectionIdx++) {
         const lineKey = `${state.name}_section${sectionIdx}`;
-        // First section is solid, rest have dash patterns
-        const strokeDasharray = LINE_STYLES[sectionIdx % LINE_STYLES.length];
+        // First section (index 0) is solid (undefined), rest have dash patterns
+        const strokeDasharray = sectionIdx === 0 ? undefined : LINE_STYLES[sectionIdx % LINE_STYLES.length];
         
         chartLines.push({
           dataKey: lineKey,
@@ -87,15 +88,17 @@ export default function StatsChart({
         });
       }
 
-      // Add section boundaries for reference lines (excluding the last boundary which is the end)
-      for (let i = 0; i < result.sectionBoundaries.length - 1; i++) {
-        const boundaryDay = result.sectionBoundaries[i];
+      // Add section boundaries for reference lines (skip first boundary at 0, and last boundary which is the end)
+      // Reference lines should be placed where sections TRANSITION (between sections)
+      for (let i = 1; i < result.sectionBoundaries.length; i++) {
+        const boundaryDay = result.sectionBoundaries[i - 1]; // This is where section i-1 ends and section i begins
         const snapshot = result.dailySnapshots.find(s => s.day === boundaryDay);
         sectionBoundaries.push({
           day: boundaryDay,
           stateName: state.name,
           stateColor: CHART_COLORS[stateIndex % CHART_COLORS.length],
           snapshot: snapshot,
+          sectionNumber: i + 1, // Section number starting from 1 (this is the section that STARTS at this boundary)
         });
       }
     }
@@ -143,21 +146,31 @@ export default function StatsChart({
           <Tooltip content={<ChartTooltip comparisonStates={comparisonStates} results={results} showCosts={showCosts} itemPricesData={itemPricesData} />} />
           <Legend />
           {/* Section boundary reference lines */}
-          {sectionBoundaries.map((boundary, idx) => (
-            <ReferenceLine
-              key={`boundary-${idx}`}
-              x={boundary.day}
-              stroke={boundary.stateColor}
-              strokeWidth={2}
-              strokeDasharray="3 3"
-              label={{
-                value: boundary.snapshot ? `${boundary.stateName} Section ${Math.floor(idx / (sectionBoundaries.length / comparisonStates.length)) + 2} | Gym: ${boundary.snapshot.currentGym}` : '',
-                position: 'top',
-                fill: boundary.stateColor,
-                fontSize: 10,
-              }}
-            />
-          ))}
+          {sectionBoundaries.map((boundary, idx) => {
+            // Build label with stats information
+            let label = `${boundary.stateName} Section ${boundary.sectionNumber}`;
+            if (boundary.snapshot) {
+              label += ` | Gym: ${boundary.snapshot.currentGym}`;
+              label += `\nStr: ${boundary.snapshot.strength.toLocaleString()} | Spd: ${boundary.snapshot.speed.toLocaleString()}`;
+              label += `\nDef: ${boundary.snapshot.defense.toLocaleString()} | Dex: ${boundary.snapshot.dexterity.toLocaleString()}`;
+            }
+            
+            return (
+              <ReferenceLine
+                key={`boundary-${idx}`}
+                x={boundary.day}
+                stroke={boundary.stateColor}
+                strokeWidth={2}
+                strokeDasharray="3 3"
+                label={{
+                  value: label,
+                  position: 'top',
+                  fill: boundary.stateColor,
+                  fontSize: 10,
+                }}
+              />
+            );
+          })}
           {chartLines.map((line, idx) => (
             <Line 
               key={`${line.dataKey}-${idx}`}

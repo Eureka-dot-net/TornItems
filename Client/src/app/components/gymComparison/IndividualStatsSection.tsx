@@ -262,8 +262,19 @@ export default function IndividualStatsSection({
                     <Legend />
                     {/* Section boundary reference lines */}
                     {results[id].sectionBoundaries && results[id].sectionBoundaries!.length > 1 && 
-                      results[id].sectionBoundaries!.slice(0, -1).map((boundaryDay, idx) => {
+                      results[id].sectionBoundaries!.slice(1).map((_, idx) => {
+                        // Get the boundary day (end of section idx)
+                        const boundaryDay = results[id].sectionBoundaries![idx];
                         const snapshot = results[id].dailySnapshots.find(s => s.day === boundaryDay);
+                        
+                        // Build label with stats information
+                        let label = `Section ${idx + 2}`;
+                        if (snapshot) {
+                          label += ` | Gym: ${snapshot.currentGym}`;
+                          label += `\nStr: ${snapshot.strength.toLocaleString()} | Spd: ${snapshot.speed.toLocaleString()}`;
+                          label += `\nDef: ${snapshot.defense.toLocaleString()} | Dex: ${snapshot.dexterity.toLocaleString()}`;
+                        }
+                        
                         return (
                           <ReferenceLine
                             key={`boundary-${idx}`}
@@ -272,7 +283,7 @@ export default function IndividualStatsSection({
                             strokeWidth={2}
                             strokeDasharray="3 3"
                             label={{
-                              value: snapshot ? `Section ${idx + 2} | Gym: ${snapshot.currentGym}` : '',
+                              value: label,
                               position: 'top',
                               fill: '#888',
                               fontSize: 10,
