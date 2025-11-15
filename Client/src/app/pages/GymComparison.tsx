@@ -508,6 +508,32 @@ export default function GymComparison() {
     ));
   };
   
+  const handleCopyState = (stateId: string) => {
+    if (comparisonStates.length >= MAX_COMPARISON_STATES) {
+      setError(`Maximum ${MAX_COMPARISON_STATES} comparison states allowed`);
+      return;
+    }
+    
+    const stateToCopy = comparisonStates.find(s => s.id === stateId);
+    if (!stateToCopy) return;
+    
+    // Deep clone all sections with their settings
+    const copiedSections = stateToCopy.sections.map(section => ({
+      ...section,
+      id: `${Date.now()}-${section.id}`, // Generate unique section IDs
+    }));
+    
+    const copiedState: ComparisonState = {
+      id: Date.now().toString(),
+      name: stateToCopy.name, // Keep the same name - user can rename it
+      sections: copiedSections,
+      showIndividualStats: stateToCopy.showIndividualStats,
+    };
+    
+    setComparisonStates([...comparisonStates, copiedState]);
+    setActiveTabIndex(comparisonStates.length); // Switch to the new copied state
+  };
+  
   const handleSimulate = () => {
     setError(null);
     
@@ -873,6 +899,7 @@ export default function GymComparison() {
               activeState={activeState}
               updateState={updateState}
               handleRemoveState={handleRemoveState}
+              handleCopyState={handleCopyState}
               canRemoveState={comparisonStates.length > 1}
               showCosts={showCosts}
               itemPricesData={itemPricesData}
