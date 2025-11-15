@@ -308,9 +308,25 @@ export default function GymComparison() {
     // Clear any previous validation error
     setMonthValidationError(null);
     
-    // No comparison states, just update
+    // Always update the months state so the user can type freely
+    setMonths(newMonths);
+    
+    // Validate upper limit to prevent crashes
+    if (newMonths > 36) {
+      setMonthValidationError('Maximum duration is 36 months to prevent performance issues.');
+      setResults({});
+      return;
+    }
+    
+    // Validate that it's a reasonable value
+    if (!newMonths || newMonths < 1 || !Number.isFinite(newMonths)) {
+      setMonthValidationError('Please enter a valid duration (at least 1 month).');
+      setResults({});
+      return;
+    }
+    
+    // No comparison states, we're done
     if (comparisonStates.length === 0) {
-      setMonths(newMonths);
       return;
     }
     
@@ -331,7 +347,6 @@ export default function GymComparison() {
       // Clear results to force re-simulation with new duration
       setResults({});
       setComparisonStates(updatedStates);
-      setMonths(newMonths);
       return;
     }
     
@@ -355,7 +370,6 @@ export default function GymComparison() {
       // Clear results to force re-simulation
       setResults({});
       setComparisonStates(updatedStates);
-      setMonths(newMonths);
       return;
     }
     
@@ -397,14 +411,14 @@ export default function GymComparison() {
       // Clear results to force re-simulation
       setResults({});
       setComparisonStates(updatedStates);
-      setMonths(newMonths);
     } else {
-      // Cannot shrink - show error
+      // Cannot shrink - show error but keep the months value
       const minRequiredMonths = Math.ceil(minRequiredDays / 30);
       
       setMonthValidationError(
         `Cannot reduce duration below ${minRequiredMonths} month${minRequiredMonths !== 1 ? 's' : ''} because some comparison states have sections starting at day ${minRequiredDays}. Please delete or adjust sections to start before day ${newTotalDays} first.`
       );
+      setResults({});
     }
   };
   
@@ -525,6 +539,13 @@ export default function GymComparison() {
         // Validate months value
         if (!months || months < 1 || !Number.isFinite(months)) {
           setError('Please enter a valid duration (at least 1 month)');
+          setResults({});
+          return;
+        }
+        
+        // Validate upper limit to prevent crashes
+        if (months > 36) {
+          setError('Maximum duration is 36 months to prevent performance issues.');
           setResults({});
           return;
         }
