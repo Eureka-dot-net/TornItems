@@ -197,22 +197,40 @@ export default function SectionedComparisonConfig({
   
   const handleAddSection = () => {
     const lastSection = activeState.sections[activeState.sections.length - 1];
-    const newStartDay = lastSection.endDay + 1;
-    const newEndDay = Math.min(newStartDay + 29, totalDays);
     
-    if (newStartDay > totalDays) {
-      return; // Can't add section beyond total days
+    // Calculate where to split the last section
+    // If the last section is more than 30 days, split it roughly in half
+    // Otherwise, split it with at least 1 day remaining in the last section
+    const lastSectionDays = lastSection.endDay - lastSection.startDay + 1;
+    
+    if (lastSectionDays < 2) {
+      return; // Can't split a 1-day section
     }
     
-    // Clone settings from last section
+    // Split point: aim for roughly equal sections, but ensure at least 1 day in each
+    const splitPoint = Math.floor((lastSection.startDay + lastSection.endDay) / 2);
+    
+    // Adjust the last section to end at the split point
+    const updatedLastSection = {
+      ...lastSection,
+      endDay: splitPoint,
+    };
+    
+    // Create new section from split point + 1 to the original end
     const newSection: TrainingSection = {
       ...lastSection,
       id: Date.now().toString(),
-      startDay: newStartDay,
-      endDay: newEndDay,
+      startDay: splitPoint + 1,
+      endDay: lastSection.endDay,
     };
     
-    const updatedSections = [...activeState.sections, newSection];
+    // Update sections array
+    const updatedSections = [
+      ...activeState.sections.slice(0, -1),
+      updatedLastSection,
+      newSection,
+    ];
+    
     updateState(activeState.id, { sections: updatedSections });
     setExpandedSection(newSection.id);
   };
@@ -357,7 +375,7 @@ export default function SectionedComparisonConfig({
             size="small"
             startIcon={<AddIcon />}
             onClick={handleAddSection}
-            disabled={activeState.sections[activeState.sections.length - 1]?.endDay >= totalDays}
+            disabled={activeState.sections[activeState.sections.length - 1]?.endDay - activeState.sections[activeState.sections.length - 1]?.startDay < 1}
           >
             Add Section
           </Button>
