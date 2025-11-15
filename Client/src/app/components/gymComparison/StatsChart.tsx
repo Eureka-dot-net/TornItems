@@ -8,6 +8,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceLine,
 } from 'recharts';
 import { CHART_COLORS } from '../../../lib/constants/gymConstants';
 import ChartTooltip from './ChartTooltip';
@@ -28,8 +29,8 @@ interface StatsChartProps {
   itemPricesData?: ItemPrices;
 }
 
-// Different line styles to alternate between sections
-const LINE_STYLES = ['5 5', '10 5', '15 5', '5 10', '10 10'];
+// Different line styles to alternate between sections - FIRST section is always solid
+const LINE_STYLES = [undefined, '5 5', '10 5', '15 5', '5 10', '10 10'];
 
 export default function StatsChart({
   chartData,
@@ -46,6 +47,14 @@ export default function StatsChart({
     name: string;
     stateIndex: number;
     sectionIndex: number;
+  }> = [];
+
+  // Collect section boundaries for reference lines
+  const sectionBoundaries: Array<{ 
+    day: number; 
+    stateName: string;
+    stateColor: string;
+    snapshot: any;
   }> = [];
 
   comparisonStates.forEach((state, stateIndex) => {
@@ -65,6 +74,7 @@ export default function StatsChart({
       
       for (let sectionIdx = 0; sectionIdx < boundaries.length; sectionIdx++) {
         const lineKey = `${state.name}_section${sectionIdx}`;
+        // First section is solid, rest have dash patterns
         const strokeDasharray = LINE_STYLES[sectionIdx % LINE_STYLES.length];
         
         chartLines.push({
@@ -74,6 +84,18 @@ export default function StatsChart({
           name: sectionIdx === 0 ? state.name : undefined as any, // Only show in legend once
           stateIndex,
           sectionIndex: sectionIdx,
+        });
+      }
+
+      // Add section boundaries for reference lines (excluding the last boundary which is the end)
+      for (let i = 0; i < result.sectionBoundaries.length - 1; i++) {
+        const boundaryDay = result.sectionBoundaries[i];
+        const snapshot = result.dailySnapshots.find(s => s.day === boundaryDay);
+        sectionBoundaries.push({
+          day: boundaryDay,
+          stateName: state.name,
+          stateColor: CHART_COLORS[stateIndex % CHART_COLORS.length],
+          snapshot: snapshot,
         });
       }
     }
@@ -120,6 +142,22 @@ export default function StatsChart({
           <YAxis label={{ value: 'Total Stats', angle: -90, position: 'insideLeft' }} />
           <Tooltip content={<ChartTooltip comparisonStates={comparisonStates} results={results} showCosts={showCosts} itemPricesData={itemPricesData} />} />
           <Legend />
+          {/* Section boundary reference lines */}
+          {sectionBoundaries.map((boundary, idx) => (
+            <ReferenceLine
+              key={`boundary-${idx}`}
+              x={boundary.day}
+              stroke={boundary.stateColor}
+              strokeWidth={2}
+              strokeDasharray="3 3"
+              label={{
+                value: boundary.snapshot ? `${boundary.stateName} Section ${Math.floor(idx / (sectionBoundaries.length / comparisonStates.length)) + 2} | Gym: ${boundary.snapshot.currentGym}` : '',
+                position: 'top',
+                fill: boundary.stateColor,
+                fontSize: 10,
+              }}
+            />
+          ))}
           {chartLines.map((line, idx) => (
             <Line 
               key={`${line.dataKey}-${idx}`}

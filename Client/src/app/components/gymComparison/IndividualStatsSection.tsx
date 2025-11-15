@@ -12,6 +12,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceLine,
 } from 'recharts';
 import IndividualStatsTooltip from './IndividualStatsTooltip';
 import type { SimulationResult } from '../../../lib/utils/gymProgressionCalculator';
@@ -259,6 +260,27 @@ export default function IndividualStatsSection({
                     <YAxis label={{ value: 'Stat Value', angle: -90, position: 'insideLeft' }} />
                     <Tooltip content={<IndividualStatsTooltip result={results[id]} />} />
                     <Legend />
+                    {/* Section boundary reference lines */}
+                    {results[id].sectionBoundaries && results[id].sectionBoundaries!.length > 1 && 
+                      results[id].sectionBoundaries!.slice(0, -1).map((boundaryDay, idx) => {
+                        const snapshot = results[id].dailySnapshots.find(s => s.day === boundaryDay);
+                        return (
+                          <ReferenceLine
+                            key={`boundary-${idx}`}
+                            x={boundaryDay}
+                            stroke="#888"
+                            strokeWidth={2}
+                            strokeDasharray="3 3"
+                            label={{
+                              value: snapshot ? `Section ${idx + 2} | Gym: ${snapshot.currentGym}` : '',
+                              position: 'top',
+                              fill: '#888',
+                              fontSize: 10,
+                            }}
+                          />
+                        );
+                      })
+                    }
                     <Line
                       type="monotone"
                       dataKey="strength"

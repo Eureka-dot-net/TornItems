@@ -10,6 +10,7 @@ interface ChartTooltipProps {
     name: string; 
     value: number; 
     color: string;
+    dataKey?: string;
   }>;
   comparisonStates: Array<{ id: string; name: string; [key: string]: unknown }>;
   results: Record<string, SimulationResult>;
@@ -35,14 +36,23 @@ export default function ChartTooltip({
           Time: {timeStr}
         </Typography>
         {payload.map((entry, index: number) => {
-          const state = comparisonStates.find(s => s.name === entry.name);
+          // entry.name might be "State 1" or undefined for sectioned lines
+          // entry.dataKey might be "State 1_section0", "State 1_section1", etc.
+          const dataKey = entry.dataKey || entry.name;
+          
+          // Extract base state name from dataKey (remove _sectionX suffix if present)
+          const baseStateName = typeof dataKey === 'string' && dataKey.includes('_section') 
+            ? dataKey.substring(0, dataKey.indexOf('_section'))
+            : (entry.name || dataKey);
+            
+          const state = comparisonStates.find(s => s.name === baseStateName);
           const snapshot = state && results[state.id] ? 
             results[state.id].dailySnapshots.find(s => s.day === day) : null;
           
           return (
             <Box key={index} sx={{ mb: 1 }}>
               <Typography variant="body2" style={{ color: entry.color }}>
-                {entry.name}: {entry.value?.toLocaleString()}
+                {baseStateName}: {entry.value?.toLocaleString()}
               </Typography>
               {snapshot && (
                 <>
