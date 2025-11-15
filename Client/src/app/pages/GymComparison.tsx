@@ -335,37 +335,58 @@ export default function GymComparison() {
       return;
     }
     
-    // Multiple sections exist - check if change would invalidate any sections
+    // Multiple sections exist - check if we can auto-adjust
     if (newMonths >= months) {
       // Increasing months - no validation needed
       setMonths(newMonths);
       return;
     }
     
-    // Decreasing months - check if any sections would become invalid
-    let hasInvalidSections = false;
+    // Decreasing months - check if we can shrink the last section
+    // We can shrink if the new duration is >= the start of the last section
+    let canShrink = true;
+    let minRequiredDays = 0;
+    
     for (const state of comparisonStates) {
-      for (const section of state.sections) {
-        if (section.endDay > newTotalDays) {
-          hasInvalidSections = true;
-          break;
+      if (state.sections.length > 0) {
+        // Get the last section's start day
+        const lastSection = state.sections[state.sections.length - 1];
+        const lastSectionStart = lastSection.startDay;
+        
+        // If new duration would cut off before the last section starts, we can't shrink
+        if (newTotalDays < lastSectionStart) {
+          canShrink = false;
+          minRequiredDays = Math.max(minRequiredDays, lastSectionStart);
         }
       }
-      if (hasInvalidSections) break;
     }
     
-    if (!hasInvalidSections) {
-      // No sections would be invalid, proceed with the change
+    if (canShrink) {
+      // We can shrink - adjust the last section of each state to end at newTotalDays
+      const updatedStates = comparisonStates.map(state => ({
+        ...state,
+        sections: state.sections.map((section, index) => {
+          // Only adjust the last section
+          if (index === state.sections.length - 1) {
+            return {
+              ...section,
+              endDay: Math.min(section.endDay, newTotalDays),
+            };
+          }
+          return section;
+        }),
+      }));
+      
+      // Clear results to force re-simulation
+      setResults({});
+      setComparisonStates(updatedStates);
       setMonths(newMonths);
     } else {
-      // Cannot adjust - show error
-      const maxSectionEndDay = Math.max(
-        ...comparisonStates.flatMap(state => state.sections.map(s => s.endDay))
-      );
-      const maxAllowedMonths = Math.ceil(maxSectionEndDay / 30);
+      // Cannot shrink - show error
+      const minRequiredMonths = Math.ceil(minRequiredDays / 30);
       
       setMonthValidationError(
-        `Cannot reduce duration below ${maxAllowedMonths} month${maxAllowedMonths !== 1 ? 's' : ''} because some comparison states have multiple sections extending to day ${maxSectionEndDay}. Please delete or adjust sections to be within ${newMonths} month${newMonths !== 1 ? 's' : ''} (${newTotalDays} days) first.`
+        `Cannot reduce duration below ${minRequiredMonths} month${minRequiredMonths !== 1 ? 's' : ''} because some comparison states have sections starting at day ${minRequiredDays}. Please delete or adjust sections to start before day ${newTotalDays} first.`
       );
     }
   };
