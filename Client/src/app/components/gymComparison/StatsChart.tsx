@@ -32,6 +32,95 @@ interface StatsChartProps {
 // Different line styles to alternate between sections - FIRST section is always solid
 const LINE_STYLES = [undefined, '5 5', '10 5', '15 5', '5 10', '10 10'];
 
+// Types for section boundary label props
+interface SectionBoundaryLabelProps {
+  viewBox?: {
+    x?: number;
+    y?: number;
+    height?: number;
+    width?: number;
+  };
+  boundary: {
+    day: number;
+    stateName: string;
+    stateColor: string;
+    snapshot?: {
+      day: number;
+      currentGym: string;
+      strength: number;
+      speed: number;
+      defense: number;
+      dexterity: number;
+    };
+    sectionNumber: number;
+  };
+}
+
+// Custom label component for section boundaries with icon and tooltip
+const SectionBoundaryLabel = (props: SectionBoundaryLabelProps) => {
+  const { viewBox, boundary } = props;
+  
+  if (!viewBox || viewBox.x === undefined || viewBox.y === undefined || viewBox.height === undefined) {
+    return null;
+  }
+  
+  const { x, y, height } = viewBox;
+  
+  // Position icon at the bottom of the chart (near the x-axis)
+  const iconX = x - 8; // Center the icon (16px width / 2)
+  const iconY = y + height - 25; // Position near bottom
+  
+  // Build tooltip content with individual stats
+  let tooltipContent = `Section ${boundary.sectionNumber} starts`;
+  if (boundary.snapshot) {
+    tooltipContent += `\nGym: ${boundary.snapshot.currentGym}`;
+    tooltipContent += `\nStrength: ${boundary.snapshot.strength.toLocaleString()}`;
+    tooltipContent += `\nSpeed: ${boundary.snapshot.speed.toLocaleString()}`;
+    tooltipContent += `\nDefense: ${boundary.snapshot.defense.toLocaleString()}`;
+    tooltipContent += `\nDexterity: ${boundary.snapshot.dexterity.toLocaleString()}`;
+    const total = boundary.snapshot.strength + boundary.snapshot.speed + 
+                  boundary.snapshot.defense + boundary.snapshot.dexterity;
+    tooltipContent += `\nTotal: ${total.toLocaleString()}`;
+  }
+  
+  return (
+    <g>
+      {/* Invisible wider hitbox for easier hovering */}
+      <rect
+        x={x - 15}
+        y={y}
+        width={30}
+        height={height}
+        fill="transparent"
+        style={{ cursor: 'pointer' }}
+      >
+        <title>{tooltipContent}</title>
+      </rect>
+      {/* Icon marker at bottom */}
+      <g transform={`translate(${iconX}, ${iconY})`}>
+        <circle
+          cx={8}
+          cy={8}
+          r={10}
+          fill={boundary.stateColor}
+          opacity={0.9}
+          style={{ cursor: 'pointer' }}
+        >
+          <title>{tooltipContent}</title>
+        </circle>
+        {/* Flag icon */}
+        <path
+          d="M8 4 L8 12 M8 4 L14 6 L8 8"
+          stroke="white"
+          strokeWidth={1.5}
+          fill="white"
+          style={{ cursor: 'pointer', pointerEvents: 'none' }}
+        />
+      </g>
+    </g>
+  );
+};
+
 export default function StatsChart({
   chartData,
   comparisonStates,
@@ -54,7 +143,14 @@ export default function StatsChart({
     day: number; 
     stateName: string;
     stateColor: string;
-    snapshot: any;
+    snapshot?: {
+      day: number;
+      currentGym: string;
+      strength: number;
+      speed: number;
+      defense: number;
+      dexterity: number;
+    };
     sectionNumber: number;
   }> = [];
 
@@ -84,7 +180,7 @@ export default function StatsChart({
           dataKey: lineKey,
           stroke: CHART_COLORS[stateIndex % CHART_COLORS.length],
           strokeDasharray,
-          name: sectionIdx === 0 ? state.name : undefined as any, // Only show in legend once
+          name: sectionIdx === 0 ? state.name : '', // Only show in legend once
           stateIndex,
           sectionIndex: sectionIdx,
         });
@@ -152,14 +248,6 @@ export default function StatsChart({
           <Legend />
           {/* Section boundary reference lines */}
           {sectionBoundaries.map((boundary, idx) => {
-            // Build label with stats information
-            let label = `${boundary.stateName} Section ${boundary.sectionNumber}`;
-            if (boundary.snapshot) {
-              label += ` | Gym: ${boundary.snapshot.currentGym}`;
-              label += `\nStr: ${boundary.snapshot.strength.toLocaleString()} | Spd: ${boundary.snapshot.speed.toLocaleString()}`;
-              label += `\nDef: ${boundary.snapshot.defense.toLocaleString()} | Dex: ${boundary.snapshot.dexterity.toLocaleString()}`;
-            }
-            
             return (
               <ReferenceLine
                 key={`boundary-${idx}`}
@@ -167,12 +255,7 @@ export default function StatsChart({
                 stroke={boundary.stateColor}
                 strokeWidth={2}
                 strokeDasharray="3 3"
-                label={{
-                  value: label,
-                  position: 'top',
-                  fill: boundary.stateColor,
-                  fontSize: 10,
-                }}
+                label={<SectionBoundaryLabel boundary={boundary} />}
               />
             );
           })}
