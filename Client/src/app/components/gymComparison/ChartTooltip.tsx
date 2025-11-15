@@ -59,6 +59,12 @@ export default function ChartTooltip({
                   <Typography variant="caption" sx={{ color: '#aaa', display: 'block', ml: 1 }}>
                     Gym: {snapshot.currentGym}
                   </Typography>
+                  <Typography variant="caption" sx={{ color: '#aaa', display: 'block', ml: 1 }}>
+                    Str: {snapshot.strength.toLocaleString()} | Spd: {snapshot.speed.toLocaleString()}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#aaa', display: 'block', ml: 1 }}>
+                    Def: {snapshot.defense.toLocaleString()} | Dex: {snapshot.dexterity.toLocaleString()}
+                  </Typography>
                   {showCosts && state && results[state.id] && itemPricesData && (
                     <>
                       {(() => {

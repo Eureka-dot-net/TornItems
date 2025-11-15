@@ -295,37 +295,65 @@ export default function SectionedComparisonConfig({
     updateState(activeState.id, { sections: updatedSections });
   };
   
-  // Validate section date changes
+  // Validate section date changes and automatically adjust adjacent sections
   const validateAndUpdateSectionDates = (sectionId: string, field: 'startDay' | 'endDay', value: number) => {
     const sectionIndex = activeState.sections.findIndex(s => s.id === sectionId);
     const section = activeState.sections[sectionIndex];
     
+    // Validate value is within total days range
+    if (value < 1 || value > totalDays) {
+      return; // Invalid: out of bounds
+    }
+    
     if (field === 'startDay') {
-      // Ensure startDay doesn't overlap with previous section
-      if (sectionIndex > 0) {
-        const prevSection = activeState.sections[sectionIndex - 1];
-        if (value <= prevSection.endDay) {
-          return; // Invalid: overlaps with previous
-        }
-      }
-      // Ensure startDay is before endDay
+      // Validate: startDay must be less than current section's endDay
       if (value >= section.endDay) {
-        return; // Invalid
+        return; // Invalid: would make section have 0 or negative days
       }
-      updateSection(sectionId, { startDay: value });
-    } else {
-      // Ensure endDay doesn't overlap with next section
-      if (sectionIndex < activeState.sections.length - 1) {
-        const nextSection = activeState.sections[sectionIndex + 1];
-        if (value >= nextSection.startDay) {
-          return; // Invalid: overlaps with next
+      
+      // Validate: if there's a previous section, ensure we're not going before day 1
+      if (sectionIndex > 0 && value < 1) {
+        return; // Invalid: can't start before day 1
+      }
+      
+      // Update this section's startDay AND the previous section's endDay
+      const updatedSections = activeState.sections.map((s, idx) => {
+        if (s.id === sectionId) {
+          return { ...s, startDay: value };
         }
-      }
-      // Ensure endDay is after startDay
+        // Adjust previous section's endDay to be value - 1
+        if (idx === sectionIndex - 1) {
+          return { ...s, endDay: value - 1 };
+        }
+        return s;
+      });
+      
+      updateState(activeState.id, { sections: updatedSections });
+    } else {
+      // field === 'endDay'
+      // Validate: endDay must be greater than current section's startDay
       if (value <= section.startDay) {
-        return; // Invalid
+        return; // Invalid: would make section have 0 or negative days
       }
-      updateSection(sectionId, { endDay: value });
+      
+      // Validate: if there's a next section, ensure we don't exceed totalDays
+      if (sectionIndex < activeState.sections.length - 1 && value >= totalDays) {
+        return; // Invalid: can't extend beyond total days
+      }
+      
+      // Update this section's endDay AND the next section's startDay
+      const updatedSections = activeState.sections.map((s, idx) => {
+        if (s.id === sectionId) {
+          return { ...s, endDay: value };
+        }
+        // Adjust next section's startDay to be value + 1
+        if (idx === sectionIndex + 1) {
+          return { ...s, startDay: value + 1 };
+        }
+        return s;
+      });
+      
+      updateState(activeState.id, { sections: updatedSections });
     }
   };
   
