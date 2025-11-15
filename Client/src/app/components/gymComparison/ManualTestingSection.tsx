@@ -13,7 +13,10 @@ import {
   Switch,
   TextField,
   Typography,
+  Tooltip,
+  IconButton,
 } from '@mui/material';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { GYMS } from '../../../lib/data/gyms';
 import type { SimulationResult } from '../../../lib/utils/gymProgressionCalculator';
 
@@ -50,6 +53,12 @@ interface ManualTestingSectionProps {
   setManualCompanyBenefitKey: (key: string) => void;
   manualCandleShopStars: number;
   setManualCandleShopStars: (stars: number) => void;
+  manualStatDriftPercent: number;
+  setManualStatDriftPercent: (percent: number) => void;
+  manualBalanceAfterGymIndex: number;
+  setManualBalanceAfterGymIndex: (gymIndex: number) => void;
+  manualIgnorePerksForGymSelection: boolean;
+  setManualIgnorePerksForGymSelection: (ignore: boolean) => void;
   results?: SimulationResult;
 }
 
@@ -72,6 +81,12 @@ export default function ManualTestingSection({
   setManualCompanyBenefitKey,
   manualCandleShopStars,
   setManualCandleShopStars,
+  manualStatDriftPercent,
+  setManualStatDriftPercent,
+  manualBalanceAfterGymIndex,
+  setManualBalanceAfterGymIndex,
+  manualIgnorePerksForGymSelection,
+  setManualIgnorePerksForGymSelection,
   results
 }: ManualTestingSectionProps) {
   return (
@@ -140,6 +155,102 @@ export default function ManualTestingSection({
           </FormControl>
           
           <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Stat Targets</Typography>
+          
+          {/* Stat Drift Configuration */}
+          <Box sx={{ mb: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                Stat Drift
+              </Typography>
+              <Tooltip 
+                title={
+                  <Box>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>No stat drift:</strong> Always maintain exact ratio balance (e.g., 1:1:1:1).
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>25%-75%:</strong> Allow flexibility to train stats with better gains while staying relatively balanced.
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>No limits:</strong> Pure "train best stat" behavior. Train the stat with the highest actual gain (considering perks) until George's gym unlocks.
+                    </Typography>
+                  </Box>
+                }
+                placement="top"
+                arrow
+              >
+                <IconButton size="small" sx={{ p: 0 }}>
+                  <HelpOutlineIcon sx={{ fontSize: '1rem' }} />
+                </IconButton>
+              </Tooltip>
+              <FormControl size="small" sx={{ flexGrow: 1 }}>
+                <Select
+                  value={
+                    manualStatDriftPercent === 0 ? '0' :
+                    manualStatDriftPercent === 25 ? '25' :
+                    manualStatDriftPercent === 50 ? '50' :
+                    manualStatDriftPercent === 75 ? '75' :
+                    manualStatDriftPercent === 100 ? '100' : '0'
+                  }
+                  onChange={(e) => setManualStatDriftPercent(Number(e.target.value))}
+                  sx={{ fontSize: '0.875rem' }}
+                >
+                  <MenuItem value="0">No stat drift</MenuItem>
+                  <MenuItem value="25">25%</MenuItem>
+                  <MenuItem value="50">50%</MenuItem>
+                  <MenuItem value="75">75%</MenuItem>
+                  <MenuItem value="100">No limits</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            {manualStatDriftPercent > 0 && (
+              <>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, mt: 0.5 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                    Revert to balanced after
+                  </Typography>
+                  <FormControl size="small" sx={{ flexGrow: 1 }}>
+                    <Select
+                      value={manualBalanceAfterGymIndex}
+                      onChange={(e) => setManualBalanceAfterGymIndex(Number(e.target.value))}
+                      sx={{ fontSize: '0.875rem' }}
+                    >
+                      <MenuItem value={-1}>Never</MenuItem>
+                      <MenuItem value={19}>Cha Cha's</MenuItem>
+                      <MenuItem value={23}>George's</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={manualIgnorePerksForGymSelection}
+                      onChange={(e) => setManualIgnorePerksForGymSelection(e.target.checked)}
+                      size="small"
+                    />
+                  }
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="caption">
+                        Ignore perks for gym selection
+                      </Typography>
+                      <Tooltip 
+                        title="When enabled, perks are ignored when deciding which gym/stat to train. Perks are still applied to actual gains."
+                        placement="top"
+                        arrow
+                      >
+                        <IconButton size="small" sx={{ p: 0 }}>
+                          <HelpOutlineIcon sx={{ fontSize: '0.875rem' }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  }
+                  sx={{ mt: 0.5 }}
+                />
+              </>
+            )}
+          </Box>
+          
           <TextField label="Str" type="number" value={manualStatWeights.strength ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
           <TextField label="Spd" type="number" value={manualStatWeights.speed ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
           <TextField label="Def" type="number" value={manualStatWeights.defense ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />

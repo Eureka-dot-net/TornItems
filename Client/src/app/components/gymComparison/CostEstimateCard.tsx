@@ -142,6 +142,21 @@ export default function CostEstimateCard({
                 );
               })}
             </TableRow>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 'bold' }}>Island Cost (rent + staff)</TableCell>
+              {comparisonStates.map((state) => {
+                const result = results[state.id];
+                if (!result || !result.islandCosts) {
+                  return <TableCell key={state.id} align="right">-</TableCell>;
+                }
+                
+                return (
+                  <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
+                    {formatCurrency(result.islandCosts.totalCost)}
+                  </TableCell>
+                );
+              })}
+            </TableRow>
             <TableRow sx={{ borderTop: 2, borderColor: 'divider' }}>
               <TableCell sx={{ fontWeight: 'bold' }}>Total Cost</TableCell>
               {comparisonStates.map((state) => {
@@ -156,7 +171,8 @@ export default function CostEstimateCard({
                 const candyCost = result.candyJumpCosts?.totalCost || 0;
                 const energyCost = result.energyJumpCosts?.totalCost || 0;
                 const lossReviveIncome = result.lossReviveIncome?.totalIncome || 0;
-                const totalCost = edvdCost + xanaxCost + pointsCost + candyCost + energyCost - lossReviveIncome;
+                const islandCost = result.islandCosts?.totalCost || 0;
+                const totalCost = edvdCost + xanaxCost + pointsCost + candyCost + energyCost + islandCost - lossReviveIncome;
                 
                 return (
                   <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}>
@@ -179,7 +195,8 @@ export default function CostEstimateCard({
                 const candyCost = result.candyJumpCosts?.totalCost || 0;
                 const energyCost = result.energyJumpCosts?.totalCost || 0;
                 const lossReviveIncome = result.lossReviveIncome?.totalIncome || 0;
-                const totalCost = edvdCost + xanaxCost + pointsCost + candyCost + energyCost - lossReviveIncome;
+                const islandCost = result.islandCosts?.totalCost || 0;
+                const totalCost = edvdCost + xanaxCost + pointsCost + candyCost + energyCost + islandCost - lossReviveIncome;
                 
                 const totalDays = months * 30;
                 const pricePerDay = totalDays > 0 ? totalCost / totalDays : 0;
@@ -228,7 +245,8 @@ export default function CostEstimateCard({
                   const candyCost = result.candyJumpCosts?.totalCost || 0;
                   const energyCost = result.energyJumpCosts?.totalCost || 0;
                   const lossReviveIncome = result.lossReviveIncome?.totalIncome || 0;
-                  const totalCost = edvdCost + xanaxCost + pointsCost + candyCost + energyCost - lossReviveIncome;
+                  const islandCost = result.islandCosts?.totalCost || 0;
+                  const totalCost = edvdCost + xanaxCost + pointsCost + candyCost + energyCost + islandCost - lossReviveIncome;
                   const totalGain = calculateTotalGain(result);
                   
                   if (totalGain === 0) {

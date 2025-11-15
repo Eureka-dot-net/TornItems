@@ -1,5 +1,8 @@
-import { Grid, IconButton, Paper, TextField, Box } from '@mui/material';
+import { Grid, IconButton, Paper, TextField, Box, Button } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import DownloadIcon from '@mui/icons-material/Download';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import { useNavigate } from 'react-router-dom';
 import StatWeightsSection from './StatWeightsSection';
 import EnergySourcesSection from './EnergySourcesSection';
 import HappyPerksSection from './HappyPerksSection';
@@ -8,6 +11,8 @@ import StatJumpsSection from './StatJumpsSection';
 import { Typography } from '@mui/material';
 import { getCompanyBenefit, getHanksRatio, getBaldrsRatio, getDefensiveBuildRatio } from '../../../lib/utils/gymHelpers';
 import type { ItemPrices } from '../../../lib/hooks/useItemPrices';
+import type { SimulationResult } from '../../../lib/utils/gymProgressionCalculator';
+import { exportIndividualComparisonData, type IndividualComparisonExportData } from '../../../lib/utils/exportHelpers';
 
 interface ComparisonState {
   id: string;
@@ -49,6 +54,10 @@ interface ComparisonState {
   candleShopStars: number;
   happy: number;
   daysSkippedPerMonth: number;
+  statDriftPercent: number;
+  balanceAfterGymIndex: number;
+  ignorePerksForGymSelection: boolean;
+  islandCostPerDay?: number;
 }
 
 interface ComparisonConfigSectionProps {
@@ -58,6 +67,14 @@ interface ComparisonConfigSectionProps {
   canRemoveState: boolean;
   showCosts: boolean;
   itemPricesData?: ItemPrices;
+  result?: SimulationResult;
+  initialStats: {
+    strength: number;
+    speed: number;
+    defense: number;
+    dexterity: number;
+  };
+  months: number;
 }
 
 export default function ComparisonConfigSection({
@@ -66,11 +83,106 @@ export default function ComparisonConfigSection({
   handleRemoveState,
   canRemoveState,
   showCosts,
-  itemPricesData
+  itemPricesData,
+  result,
+  initialStats,
+  months
 }: ComparisonConfigSectionProps) {
+  const navigate = useNavigate();
+  
+  const handleDownload = () => {
+    if (!result) return;
+    
+    const statGains = {
+      strength: result.finalStats.strength - initialStats.strength,
+      speed: result.finalStats.speed - initialStats.speed,
+      defense: result.finalStats.defense - initialStats.defense,
+      dexterity: result.finalStats.dexterity - initialStats.dexterity,
+    };
+    
+    const costs = (showCosts && itemPricesData) ? {
+      edvd: result.edvdJumpCosts?.totalCost || 0,
+      xanax: result.xanaxCosts?.totalCost || 0,
+      points: result.pointsRefillCosts?.totalCost || 0,
+      candy: result.candyJumpCosts?.totalCost || 0,
+      energy: result.energyJumpCosts?.totalCost || 0,
+      lossReviveIncome: result.lossReviveIncome?.totalIncome || 0,
+      island: result.islandCosts?.totalCost || 0,
+      total: (result.edvdJumpCosts?.totalCost || 0) + 
+             (result.xanaxCosts?.totalCost || 0) + 
+             (result.pointsRefillCosts?.totalCost || 0) + 
+             (result.candyJumpCosts?.totalCost || 0) + 
+             (result.energyJumpCosts?.totalCost || 0) + 
+             (result.islandCosts?.totalCost || 0) - 
+             (result.lossReviveIncome?.totalIncome || 0),
+    } : undefined;
+    
+    const exportData: IndividualComparisonExportData = {
+      name: activeState.name,
+      finalStats: result.finalStats,
+      statGains,
+      initialStats,
+      months,
+      dailySnapshots: result.dailySnapshots,
+      costs,
+    };
+    
+    exportIndividualComparisonData(exportData);
+  };
+  
+  const handleViewTrainingRegime = () => {
+    if (!result) return;
+    
+    const statGains = {
+      strength: result.finalStats.strength - initialStats.strength,
+      speed: result.finalStats.speed - initialStats.speed,
+      defense: result.finalStats.defense - initialStats.defense,
+      dexterity: result.finalStats.dexterity - initialStats.dexterity,
+    };
+    
+    const costs = (showCosts && itemPricesData) ? {
+      edvd: result.edvdJumpCosts?.totalCost || 0,
+      xanax: result.xanaxCosts?.totalCost || 0,
+      points: result.pointsRefillCosts?.totalCost || 0,
+      candy: result.candyJumpCosts?.totalCost || 0,
+      energy: result.energyJumpCosts?.totalCost || 0,
+      lossReviveIncome: result.lossReviveIncome?.totalIncome || 0,
+      island: result.islandCosts?.totalCost || 0,
+      total: (result.edvdJumpCosts?.totalCost || 0) + 
+             (result.xanaxCosts?.totalCost || 0) + 
+             (result.pointsRefillCosts?.totalCost || 0) + 
+             (result.candyJumpCosts?.totalCost || 0) + 
+             (result.energyJumpCosts?.totalCost || 0) + 
+             (result.islandCosts?.totalCost || 0) - 
+             (result.lossReviveIncome?.totalIncome || 0),
+    } : undefined;
+    
+    const exportData: IndividualComparisonExportData = {
+      name: activeState.name,
+      finalStats: result.finalStats,
+      statGains,
+      initialStats,
+      months,
+      dailySnapshots: result.dailySnapshots,
+      costs,
+    };
+    
+    // Save to localStorage
+    localStorage.setItem('trainingBreakdown_data', JSON.stringify(exportData));
+    
+    // Set start date to today if not already set
+    const existingStartDate = localStorage.getItem('trainingBreakdown_startDate');
+    if (!existingStartDate) {
+      localStorage.setItem('trainingBreakdown_startDate', new Date().toISOString().split('T')[0]);
+    }
+    
+    // Navigate to Training Breakdown page
+    navigate('/trainingBreakdown');
+  };
+  
   return (
     <Paper sx={{ p: 2, mb: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 1, flexWrap: 'wrap' }}>
         <TextField 
           label="Comparison Name" 
           value={activeState.name} 
@@ -78,11 +190,31 @@ export default function ComparisonConfigSection({
           size="small"
           sx={{ width: 250 }}
         />
-        {canRemoveState && (
-          <IconButton color="error" onClick={() => handleRemoveState(activeState.id)} size="small">
-            <DeleteIcon />
-          </IconButton>
-        )}
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<VisibilityIcon />}
+            onClick={handleViewTrainingRegime}
+            disabled={!result}
+          >
+            View
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<DownloadIcon />}
+            onClick={handleDownload}
+            disabled={!result}
+          >
+            Download
+          </Button>
+          {canRemoveState && (
+            <IconButton color="error" onClick={() => handleRemoveState(activeState.id)} size="small">
+              <DeleteIcon />
+            </IconButton>
+          )}
+        </Box>
       </Box>
 
       <Grid container spacing={2}>
@@ -97,6 +229,12 @@ export default function ComparisonConfigSection({
             getHanksRatio={getHanksRatio}
             getBaldrsRatio={getBaldrsRatio}
             getDefensiveBuildRatio={getDefensiveBuildRatio}
+            statDriftPercent={activeState.statDriftPercent}
+            onDriftUpdate={(percent) => updateState(activeState.id, { statDriftPercent: percent })}
+            balanceAfterGymIndex={activeState.balanceAfterGymIndex}
+            onBalanceAfterGymIndexUpdate={(gymIndex) => updateState(activeState.id, { balanceAfterGymIndex: gymIndex })}
+            ignorePerksForGymSelection={activeState.ignorePerksForGymSelection}
+            onIgnorePerksForGymSelectionUpdate={(ignore) => updateState(activeState.id, { ignorePerksForGymSelection: ignore })}
           />
         </Grid>
 
@@ -118,12 +256,17 @@ export default function ComparisonConfigSection({
           <HappyPerksSection
             happy={activeState.happy}
             perkPercs={activeState.perkPercs}
+            showCosts={showCosts}
+            islandCostPerDay={activeState.islandCostPerDay}
             onUpdate={(updates) => {
               if ('happy' in updates) {
                 updateState(activeState.id, { happy: updates.happy });
               }
               if ('perkPercs' in updates) {
                 updateState(activeState.id, { perkPercs: { ...activeState.perkPercs, ...updates.perkPercs } });
+              }
+              if ('islandCostPerDay' in updates) {
+                updateState(activeState.id, { islandCostPerDay: updates.islandCostPerDay });
               }
             }}
           />

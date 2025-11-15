@@ -42,8 +42,13 @@ import {
   DEFAULT_LOSS_REVIVE_ENERGY_COST,
   DEFAULT_LOSS_REVIVE_DAYS_BETWEEN,
   DEFAULT_LOSS_REVIVE_PRICE,
+  DEFAULT_ISLAND_COST_PER_DAY,
 } from '../../lib/constants/gymConstants';
 import { GYMS } from '../../lib/data/gyms';
+
+// All gyms are available - specialty gyms will be filtered by their requirements
+const AVAILABLE_GYMS = GYMS;
+
 import BuyMeXanaxCard from '../components/gymComparison/BuyMeXanaxCard';
 import ReportProblemCard from '../components/gymComparison/ReportProblemCard';
 import LoadSettingsButton from '../components/gymComparison/LoadSettingsButton';
@@ -97,6 +102,11 @@ interface ComparisonState {
   candleShopStars: number;
   happy: number;
   daysSkippedPerMonth: number;
+  statDriftPercent: number; // 0-100: How far stats can drift from target weighings
+  balanceAfterGymIndex: number; // Gym index after which to revert to balanced training (-1 = never, 19 = Cha Cha's, 23 = George's)
+  ignorePerksForGymSelection: boolean; // Whether to ignore perks when deciding which gym/stat to train
+  showIndividualStats: boolean; // Whether to show individual stats chart for this state
+  islandCostPerDay?: number; // Island cost per day (rent + staff)
   [key: string]: unknown;
 }
 
@@ -125,6 +135,9 @@ export default function GymComparison() {
   const [manualPerkPercs, setManualPerkPercs] = useState(() => 
     loadSavedValue('manualPerkPercs', { strength: 0, speed: 0, defense: 0, dexterity: 0 })
   );
+  const [manualStatDriftPercent, setManualStatDriftPercent] = useState<number>(() => loadSavedValue('manualStatDriftPercent', 0));
+  const [manualBalanceAfterGymIndex, setManualBalanceAfterGymIndex] = useState<number>(() => loadSavedValue('manualBalanceAfterGymIndex', 19));
+  const [manualIgnorePerksForGymSelection, setManualIgnorePerksForGymSelection] = useState<boolean>(() => loadSavedValue('manualIgnorePerksForGymSelection', false));
   
   // Shared player stats
   const [apiKey, setApiKey] = useState<string>(() => loadSavedValue('apiKey', ''));
@@ -133,6 +146,10 @@ export default function GymComparison() {
   );
   const [currentGymIndex, setCurrentGymIndex] = useState<number>(() => loadSavedValue('currentGymIndex', 0));
   const [months, setMonths] = useState<number>(() => loadSavedValue('months', DEFAULT_SIMULATION_MONTHS));
+  const [simulatedDate, setSimulatedDate] = useState<Date | null>(() => {
+    const saved = loadSavedValue<string | null>('simulatedDate', null);
+    return saved ? new Date(saved) : null;
+  });
   
   // Comparison states
   const [comparisonStates, setComparisonStates] = useState<ComparisonState[]>(() => 
@@ -177,6 +194,11 @@ export default function GymComparison() {
         candleShopStars: DEFAULT_CANDLE_SHOP_STARS,
         happy: DEFAULT_HAPPY,
         daysSkippedPerMonth: 0,
+        statDriftPercent: 0,
+        balanceAfterGymIndex: 19, // Default to Cha Cha's
+        ignorePerksForGymSelection: false,
+        showIndividualStats: false,
+        islandCostPerDay: DEFAULT_ISLAND_COST_PER_DAY,
       },
     ])
   );
@@ -220,8 +242,12 @@ export default function GymComparison() {
   useEffect(() => { localStorage.setItem('gymComparison_manualCompanyBenefitKey', JSON.stringify(manualCompanyBenefitKey)); }, [manualCompanyBenefitKey]);
   useEffect(() => { localStorage.setItem('gymComparison_manualCandleShopStars', JSON.stringify(manualCandleShopStars)); }, [manualCandleShopStars]);
   useEffect(() => { localStorage.setItem('gymComparison_manualPerkPercs', JSON.stringify(manualPerkPercs)); }, [manualPerkPercs]);
+  useEffect(() => { localStorage.setItem('gymComparison_manualStatDriftPercent', JSON.stringify(manualStatDriftPercent)); }, [manualStatDriftPercent]);
+  useEffect(() => { localStorage.setItem('gymComparison_manualBalanceAfterGymIndex', JSON.stringify(manualBalanceAfterGymIndex)); }, [manualBalanceAfterGymIndex]);
+  useEffect(() => { localStorage.setItem('gymComparison_manualIgnorePerksForGymSelection', JSON.stringify(manualIgnorePerksForGymSelection)); }, [manualIgnorePerksForGymSelection]);
   useEffect(() => { localStorage.setItem('gymComparison_apiKey', JSON.stringify(apiKey)); }, [apiKey]);
   useEffect(() => { localStorage.setItem('gymComparison_initialStats', JSON.stringify(initialStats)); }, [initialStats]);
+  useEffect(() => { localStorage.setItem('gymComparison_simulatedDate', JSON.stringify(simulatedDate ? simulatedDate.toISOString() : null)); }, [simulatedDate]);
   useEffect(() => { localStorage.setItem('gymComparison_currentGymIndex', JSON.stringify(currentGymIndex)); }, [currentGymIndex]);
   useEffect(() => { localStorage.setItem('gymComparison_months', JSON.stringify(months)); }, [months]);
   useEffect(() => { localStorage.setItem('gymComparison_comparisonStates', JSON.stringify(comparisonStates)); }, [comparisonStates]);
@@ -231,13 +257,13 @@ export default function GymComparison() {
     if (mode === 'future' && comparisonStates.length > 0) {
       handleSimulate();
     }
-  }, [comparisonStates, initialStats, months, showCosts, itemPricesData]);
+  }, [comparisonStates, initialStats, months, showCosts, itemPricesData, simulatedDate]);
   
   useEffect(() => {
     if (mode === 'manual') {
       handleSimulate();
     }
-  }, [manualEnergy, autoUpgradeGyms, manualHappy, initialStats, currentGymIndex, manualStatWeights, manualCompanyBenefitKey, manualCandleShopStars, manualPerkPercs, showCosts, itemPricesData]);
+  }, [manualEnergy, autoUpgradeGyms, manualHappy, initialStats, currentGymIndex, manualStatWeights, manualCompanyBenefitKey, manualCandleShopStars, manualPerkPercs, manualStatDriftPercent, manualBalanceAfterGymIndex, manualIgnorePerksForGymSelection, showCosts, itemPricesData]);
   
   const handleFetchStats = async () => {
     if (!apiKey.trim()) {
@@ -323,6 +349,11 @@ export default function GymComparison() {
       candleShopStars: sourceState.candleShopStars,
       happy: sourceState.happy,
       daysSkippedPerMonth: sourceState.daysSkippedPerMonth,
+      statDriftPercent: sourceState.statDriftPercent,
+      balanceAfterGymIndex: sourceState.balanceAfterGymIndex,
+      ignorePerksForGymSelection: sourceState.ignorePerksForGymSelection,
+      showIndividualStats: false,
+      islandCostPerDay: sourceState.islandCostPerDay,
     };
     
     setComparisonStates([...comparisonStates, newState]);
@@ -367,9 +398,12 @@ export default function GymComparison() {
           currentGymIndex: currentGymIndex,
           lockGym: !autoUpgradeGyms,
           manualEnergy,
+          statDriftPercent: manualStatDriftPercent,
+          balanceAfterGymIndex: manualBalanceAfterGymIndex,
+          ignorePerksForGymSelection: manualIgnorePerksForGymSelection,
         };
         
-        const result = simulateGymProgression(GYMS, inputs);
+        const result = simulateGymProgression(AVAILABLE_GYMS, inputs);
         setResults({ manual: result });
       } else {
         const newResults: Record<string, SimulationResult> = {};
@@ -391,6 +425,9 @@ export default function GymComparison() {
             perkPercs: state.perkPercs,
             currentGymIndex: currentGymIndex, // Start from current/selected gym and auto-upgrade
             lockGym: false, // Always use auto-upgrade in future mode to allow unlock speed multiplier to work
+            statDriftPercent: state.statDriftPercent,
+            balanceAfterGymIndex: state.balanceAfterGymIndex,
+            ignorePerksForGymSelection: state.ignorePerksForGymSelection,
             edvdJump: state.edvdJumpEnabled ? {
               enabled: true,
               frequencyDays: state.edvdJumpFrequency,
@@ -429,6 +466,8 @@ export default function GymComparison() {
               pricePerLoss: state.lossRevivePricePerLoss,
             } : undefined,
             daysSkippedPerMonth: state.daysSkippedPerMonth,
+            islandCostPerDay: showCosts ? state.islandCostPerDay : undefined,
+            simulatedDate: simulatedDate,
             itemPrices: (showCosts && itemPricesData) ? {
               dvdPrice: itemPricesData.prices[366],
               xanaxPrice: itemPricesData.prices[206],
@@ -454,7 +493,7 @@ export default function GymComparison() {
             } : undefined,
           };
           
-          const result = simulateGymProgression(GYMS, inputs);
+          const result = simulateGymProgression(AVAILABLE_GYMS, inputs);
           newResults[state.id] = result;
         }
         
@@ -609,6 +648,11 @@ export default function GymComparison() {
               candleShopStars: typeof s.candleShopStars === 'number' ? s.candleShopStars : DEFAULT_CANDLE_SHOP_STARS,
               happy: typeof s.happy === 'number' ? s.happy : DEFAULT_HAPPY,
               daysSkippedPerMonth: typeof s.daysSkippedPerMonth === 'number' ? s.daysSkippedPerMonth : 0,
+              statDriftPercent: typeof s.statDriftPercent === 'number' ? Math.max(0, Math.min(100, s.statDriftPercent)) : 0,
+              balanceAfterGymIndex: typeof s.balanceAfterGymIndex === 'number' ? s.balanceAfterGymIndex : 19,
+              ignorePerksForGymSelection: typeof s.ignorePerksForGymSelection === 'boolean' ? s.ignorePerksForGymSelection : false,
+              showIndividualStats: typeof s.showIndividualStats === 'boolean' ? s.showIndividualStats : false,
+              islandCostPerDay: typeof s.islandCostPerDay === 'number' ? s.islandCostPerDay : DEFAULT_ISLAND_COST_PER_DAY,
             };
           }
           return {
@@ -651,6 +695,11 @@ export default function GymComparison() {
             candleShopStars: DEFAULT_CANDLE_SHOP_STARS,
             happy: DEFAULT_HAPPY,
             daysSkippedPerMonth: 0,
+            statDriftPercent: 0,
+            balanceAfterGymIndex: 19,
+            ignorePerksForGymSelection: false,
+            showIndividualStats: false,
+            islandCostPerDay: DEFAULT_ISLAND_COST_PER_DAY,
           };
         });
         setComparisonStates(loadedStates);
@@ -721,11 +770,13 @@ export default function GymComparison() {
             candy: result.candyJumpCosts?.totalCost || 0,
             energy: result.energyJumpCosts?.totalCost || 0,
             lossReviveIncome: result.lossReviveIncome?.totalIncome || 0,
+            island: result.islandCosts?.totalCost || 0,
             total: (result.edvdJumpCosts?.totalCost || 0) + 
                    (result.xanaxCosts?.totalCost || 0) + 
                    (result.pointsRefillCosts?.totalCost || 0) + 
                    (result.candyJumpCosts?.totalCost || 0) + 
-                   (result.energyJumpCosts?.totalCost || 0) - 
+                   (result.energyJumpCosts?.totalCost || 0) + 
+                   (result.islandCosts?.totalCost || 0) - 
                    (result.lossReviveIncome?.totalIncome || 0),
           } : undefined;
           
@@ -807,6 +858,8 @@ export default function GymComparison() {
             setMonths={setMonths}
             isLoadingGymStats={isLoadingGymStats}
             handleFetchStats={handleFetchStats}
+            simulatedDate={simulatedDate}
+            setSimulatedDate={setSimulatedDate}
           />
 
           <ComparisonSelector
@@ -827,6 +880,9 @@ export default function GymComparison() {
               canRemoveState={comparisonStates.length > 1}
               showCosts={showCosts}
               itemPricesData={itemPricesData}
+              result={results[activeState.id]}
+              initialStats={initialStats}
+              months={months}
             />
           )}
 
@@ -874,6 +930,12 @@ export default function GymComparison() {
           setManualCompanyBenefitKey={setManualCompanyBenefitKey}
           manualCandleShopStars={manualCandleShopStars}
           setManualCandleShopStars={setManualCandleShopStars}
+          manualStatDriftPercent={manualStatDriftPercent}
+          setManualStatDriftPercent={setManualStatDriftPercent}
+          manualBalanceAfterGymIndex={manualBalanceAfterGymIndex}
+          setManualBalanceAfterGymIndex={setManualBalanceAfterGymIndex}
+          manualIgnorePerksForGymSelection={manualIgnorePerksForGymSelection}
+          setManualIgnorePerksForGymSelection={setManualIgnorePerksForGymSelection}
           results={results.manual}
         />
       )}
