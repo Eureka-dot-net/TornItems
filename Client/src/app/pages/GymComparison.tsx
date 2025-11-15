@@ -57,7 +57,7 @@ import SaveConfigurationButton from '../components/gymComparison/SaveConfigurati
 import LoadConfigurationButton from '../components/gymComparison/LoadConfigurationButton';
 import PlayerStatsSection from '../components/gymComparison/PlayerStatsSection';
 import ComparisonSelector from '../components/gymComparison/ComparisonSelector';
-import ComparisonConfigSection from '../components/gymComparison/ComparisonConfigSection';
+import SectionedComparisonConfig from '../components/gymComparison/SectionedComparisonConfig';
 import ManualTestingSection from '../components/gymComparison/ManualTestingSection';
 import ResultsSection from '../components/gymComparison/ResultsSection';
 import { exportGymComparisonData, type ExportData } from '../../lib/utils/exportHelpers';
@@ -1020,7 +1020,7 @@ export default function GymComparison() {
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
           {activeState && (
-            <ComparisonConfigSection
+            <SectionedComparisonConfig
               activeState={activeState}
               updateState={updateState}
               handleRemoveState={handleRemoveState}
@@ -1037,7 +1037,14 @@ export default function GymComparison() {
           {Object.keys(results).length > 0 && (
             <ResultsSection
               chartData={chartData}
-              comparisonStates={comparisonStates}
+              comparisonStates={comparisonStates.map(state => ({
+                id: state.id,
+                name: state.name,
+                diabetesDayEnabled: state.sections.some(s => s.diabetesDayEnabled),
+                edvdJumpEnabled: state.sections.some(s => s.edvdJumpEnabled),
+                statDriftPercent: state.sections[0]?.statDriftPercent,
+                balanceAfterGymIndex: state.sections[0]?.balanceAfterGymIndex,
+              }))}
               results={results}
               initialStats={initialStats}
               months={months}
