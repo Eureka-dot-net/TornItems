@@ -24,6 +24,7 @@ interface PlayerStatsSectionProps {
   handleFetchStats: () => void;
   simulatedDate: Date | null;
   setSimulatedDate: (date: Date | null) => void;
+  monthValidationError?: string | null;
 }
 
 export default function PlayerStatsSection({
@@ -38,11 +39,18 @@ export default function PlayerStatsSection({
   isLoadingGymStats,
   handleFetchStats,
   simulatedDate,
-  setSimulatedDate
+  setSimulatedDate,
+  monthValidationError
 }: PlayerStatsSectionProps) {
   return (
     <Paper sx={{ p: 2, mb: 3 }}>
       <Typography variant="h6" gutterBottom>Fixed options</Typography>
+      
+      {monthValidationError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {monthValidationError}
+        </Alert>
+      )}
       
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 6 }}>

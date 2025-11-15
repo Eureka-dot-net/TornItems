@@ -242,6 +242,7 @@ export default function GymComparison() {
   const [activeTabIndex, setActiveTabIndex] = useState<number>(0);
   const [results, setResults] = useState<Record<string, SimulationResult>>({});
   const [error, setError] = useState<string | null>(null);
+  const [monthValidationError, setMonthValidationError] = useState<string | null>(null);
   const [showCosts, setShowCosts] = useState<boolean>(() => loadSavedValue('showCosts', false));
   const [isLoadingGymStats, setIsLoadingGymStats] = useState<boolean>(false);
   
@@ -300,6 +301,64 @@ export default function GymComparison() {
       handleSimulate();
     }
   }, [manualEnergy, autoUpgradeGyms, manualHappy, initialStats, currentGymIndex, manualStatWeights, manualCompanyBenefitKey, manualCandleShopStars, manualPerkPercs, manualStatDriftPercent, manualBalanceAfterGymIndex, manualIgnorePerksForGymSelection, showCosts, itemPricesData]);
+  
+  const handleMonthsChange = (newMonths: number) => {
+    const newTotalDays = newMonths * 30;
+    
+    // Clear any previous validation error
+    setMonthValidationError(null);
+    
+    // If increasing months or no comparison states, just update
+    if (newMonths >= months || comparisonStates.length === 0) {
+      setMonths(newMonths);
+      return;
+    }
+    
+    // Decreasing months - check if any sections would become invalid
+    let hasInvalidSections = false;
+    for (const state of comparisonStates) {
+      for (const section of state.sections) {
+        if (section.endDay > newTotalDays) {
+          hasInvalidSections = true;
+          break;
+        }
+      }
+      if (hasInvalidSections) break;
+    }
+    
+    if (!hasInvalidSections) {
+      // No sections would be invalid, proceed with the change
+      setMonths(newMonths);
+      return;
+    }
+    
+    // Check if we can auto-adjust (only if all states have exactly one section)
+    const canAutoAdjust = comparisonStates.every(state => state.sections.length === 1);
+    
+    if (canAutoAdjust) {
+      // Auto-adjust all single-section states
+      const updatedStates = comparisonStates.map(state => ({
+        ...state,
+        sections: state.sections.map(section => ({
+          ...section,
+          endDay: Math.min(section.endDay, newTotalDays),
+        })),
+      }));
+      
+      setComparisonStates(updatedStates);
+      setMonths(newMonths);
+    } else {
+      // Cannot auto-adjust - show error
+      const maxSectionEndDay = Math.max(
+        ...comparisonStates.flatMap(state => state.sections.map(s => s.endDay))
+      );
+      const maxAllowedMonths = Math.ceil(maxSectionEndDay / 30);
+      
+      setMonthValidationError(
+        `Cannot reduce duration below ${maxAllowedMonths} month${maxAllowedMonths !== 1 ? 's' : ''} because some comparison states have multiple sections extending to day ${maxSectionEndDay}. Please delete or adjust sections to be within ${newMonths} month${newMonths !== 1 ? 's' : ''} (${newTotalDays} days) first.`
+      );
+    }
+  };
   
   const handleFetchStats = async () => {
     if (!apiKey.trim()) {
@@ -703,11 +762,12 @@ export default function GymComparison() {
             currentGymIndex={currentGymIndex}
             setCurrentGymIndex={setCurrentGymIndex}
             months={months}
-            setMonths={setMonths}
+            setMonths={handleMonthsChange}
             isLoadingGymStats={isLoadingGymStats}
             handleFetchStats={handleFetchStats}
             simulatedDate={simulatedDate}
             setSimulatedDate={setSimulatedDate}
+            monthValidationError={monthValidationError}
           />
 
           <ComparisonSelector
