@@ -308,9 +308,25 @@ export default function GymComparison() {
     // Clear any previous validation error
     setMonthValidationError(null);
     
-    // No comparison states, just update
+    // Always update the months state so the user can type freely
+    setMonths(newMonths);
+    
+    // Validate upper limit to prevent crashes
+    if (newMonths > 36) {
+      setMonthValidationError('Maximum duration is 36 months to prevent performance issues.');
+      setResults({});
+      return;
+    }
+    
+    // Validate that it's a reasonable value
+    if (!newMonths || newMonths < 1 || !Number.isFinite(newMonths)) {
+      setMonthValidationError('Please enter a valid duration (at least 1 month).');
+      setResults({});
+      return;
+    }
+    
+    // No comparison states, we're done
     if (comparisonStates.length === 0) {
-      setMonths(newMonths);
       return;
     }
     
@@ -331,14 +347,29 @@ export default function GymComparison() {
       // Clear results to force re-simulation with new duration
       setResults({});
       setComparisonStates(updatedStates);
-      setMonths(newMonths);
       return;
     }
     
     // Multiple sections exist - check if we can auto-adjust
     if (newMonths >= months) {
-      // Increasing months - no validation needed
-      setMonths(newMonths);
+      // Increasing months - extend the last section of each state to the new duration
+      const updatedStates = comparisonStates.map(state => ({
+        ...state,
+        sections: state.sections.map((section, index) => {
+          // Only adjust the last section
+          if (index === state.sections.length - 1) {
+            return {
+              ...section,
+              endDay: newTotalDays,
+            };
+          }
+          return section;
+        }),
+      }));
+      
+      // Clear results to force re-simulation
+      setResults({});
+      setComparisonStates(updatedStates);
       return;
     }
     
@@ -380,14 +411,14 @@ export default function GymComparison() {
       // Clear results to force re-simulation
       setResults({});
       setComparisonStates(updatedStates);
-      setMonths(newMonths);
     } else {
-      // Cannot shrink - show error
+      // Cannot shrink - show error but keep the months value
       const minRequiredMonths = Math.ceil(minRequiredDays / 30);
       
       setMonthValidationError(
         `Cannot reduce duration below ${minRequiredMonths} month${minRequiredMonths !== 1 ? 's' : ''} because some comparison states have sections starting at day ${minRequiredDays}. Please delete or adjust sections to start before day ${newTotalDays} first.`
       );
+      setResults({});
     }
   };
   
@@ -505,6 +536,32 @@ export default function GymComparison() {
         const result = simulateGymProgression(AVAILABLE_GYMS, inputs);
         setResults({ manual: result });
       } else {
+        // Validate months value
+        if (!months || months < 1 || !Number.isFinite(months)) {
+          setError('Please enter a valid duration (at least 1 month)');
+          setResults({});
+          return;
+        }
+        
+        // Validate upper limit to prevent crashes
+        if (months > 36) {
+          setError('Maximum duration is 36 months to prevent performance issues.');
+          setResults({});
+          return;
+        }
+        
+        // Validate that all sections fit within the total duration
+        const totalDays = months * 30;
+        for (const state of comparisonStates) {
+          for (const section of state.sections) {
+            if (section.startDay > totalDays || section.endDay > totalDays) {
+              setError(`Section dates in "${state.name}" exceed the total duration of ${months} month${months !== 1 ? 's' : ''}. Please adjust sections or increase the duration.`);
+              setResults({});
+              return;
+            }
+          }
+        }
+        
         const newResults: Record<string, SimulationResult> = {};
         
         for (const state of comparisonStates) {
