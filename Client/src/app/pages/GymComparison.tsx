@@ -242,6 +242,7 @@ export default function GymComparison() {
   const [activeTabIndex, setActiveTabIndex] = useState<number>(0);
   const [results, setResults] = useState<Record<string, SimulationResult>>({});
   const [error, setError] = useState<string | null>(null);
+  const [monthValidationError, setMonthValidationError] = useState<string | null>(null);
   const [showCosts, setShowCosts] = useState<boolean>(() => loadSavedValue('showCosts', false));
   const [isLoadingGymStats, setIsLoadingGymStats] = useState<boolean>(false);
   
@@ -300,6 +301,95 @@ export default function GymComparison() {
       handleSimulate();
     }
   }, [manualEnergy, autoUpgradeGyms, manualHappy, initialStats, currentGymIndex, manualStatWeights, manualCompanyBenefitKey, manualCandleShopStars, manualPerkPercs, manualStatDriftPercent, manualBalanceAfterGymIndex, manualIgnorePerksForGymSelection, showCosts, itemPricesData]);
+  
+  const handleMonthsChange = (newMonths: number) => {
+    const newTotalDays = newMonths * 30;
+    
+    // Clear any previous validation error
+    setMonthValidationError(null);
+    
+    // No comparison states, just update
+    if (comparisonStates.length === 0) {
+      setMonths(newMonths);
+      return;
+    }
+    
+    // Check if all states have exactly one section
+    const allSingleSection = comparisonStates.every(state => state.sections.length === 1);
+    
+    if (allSingleSection) {
+      // Auto-adjust all single-section states to match new duration
+      const updatedStates = comparisonStates.map(state => ({
+        ...state,
+        sections: [{
+          ...state.sections[0],
+          startDay: 1,
+          endDay: newTotalDays,
+        }],
+      }));
+      
+      // Clear results to force re-simulation with new duration
+      setResults({});
+      setComparisonStates(updatedStates);
+      setMonths(newMonths);
+      return;
+    }
+    
+    // Multiple sections exist - check if we can auto-adjust
+    if (newMonths >= months) {
+      // Increasing months - no validation needed
+      setMonths(newMonths);
+      return;
+    }
+    
+    // Decreasing months - check if we can shrink the last section
+    // We can shrink if the new duration is >= the start of the last section
+    let canShrink = true;
+    let minRequiredDays = 0;
+    
+    for (const state of comparisonStates) {
+      if (state.sections.length > 0) {
+        // Get the last section's start day
+        const lastSection = state.sections[state.sections.length - 1];
+        const lastSectionStart = lastSection.startDay;
+        
+        // If new duration would cut off before the last section starts, we can't shrink
+        if (newTotalDays < lastSectionStart) {
+          canShrink = false;
+          minRequiredDays = Math.max(minRequiredDays, lastSectionStart);
+        }
+      }
+    }
+    
+    if (canShrink) {
+      // We can shrink - adjust the last section of each state to end at newTotalDays
+      const updatedStates = comparisonStates.map(state => ({
+        ...state,
+        sections: state.sections.map((section, index) => {
+          // Only adjust the last section
+          if (index === state.sections.length - 1) {
+            return {
+              ...section,
+              endDay: Math.min(section.endDay, newTotalDays),
+            };
+          }
+          return section;
+        }),
+      }));
+      
+      // Clear results to force re-simulation
+      setResults({});
+      setComparisonStates(updatedStates);
+      setMonths(newMonths);
+    } else {
+      // Cannot shrink - show error
+      const minRequiredMonths = Math.ceil(minRequiredDays / 30);
+      
+      setMonthValidationError(
+        `Cannot reduce duration below ${minRequiredMonths} month${minRequiredMonths !== 1 ? 's' : ''} because some comparison states have sections starting at day ${minRequiredDays}. Please delete or adjust sections to start before day ${newTotalDays} first.`
+      );
+    }
+  };
   
   const handleFetchStats = async () => {
     if (!apiKey.trim()) {
@@ -703,11 +793,12 @@ export default function GymComparison() {
             currentGymIndex={currentGymIndex}
             setCurrentGymIndex={setCurrentGymIndex}
             months={months}
-            setMonths={setMonths}
+            setMonths={handleMonthsChange}
             isLoadingGymStats={isLoadingGymStats}
             handleFetchStats={handleFetchStats}
             simulatedDate={simulatedDate}
             setSimulatedDate={setSimulatedDate}
+            monthValidationError={monthValidationError}
           />
 
           <ComparisonSelector
