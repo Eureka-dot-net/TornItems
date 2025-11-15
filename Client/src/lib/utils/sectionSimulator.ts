@@ -91,128 +91,6 @@ export function simulateWithSections(
     }
   }
   
-  // Check if all sections have identical settings (excluding id, startDay, endDay)
-  const allSectionsIdentical = sections.length > 1 && sections.every((section, index) => {
-    if (index === 0) return true;
-    const prev = sections[index - 1];
-    return (
-      section.statWeights.strength === prev.statWeights.strength &&
-      section.statWeights.speed === prev.statWeights.speed &&
-      section.statWeights.defense === prev.statWeights.defense &&
-      section.statWeights.dexterity === prev.statWeights.dexterity &&
-      section.xanaxPerDay === prev.xanaxPerDay &&
-      section.hasPointsRefill === prev.hasPointsRefill &&
-      section.hoursPlayedPerDay === prev.hoursPlayedPerDay &&
-      section.maxEnergy === prev.maxEnergy &&
-      section.companyBenefitKey === prev.companyBenefitKey &&
-      section.candleShopStars === prev.candleShopStars &&
-      section.happy === prev.happy &&
-      section.perkPercs.strength === prev.perkPercs.strength &&
-      section.perkPercs.speed === prev.perkPercs.speed &&
-      section.perkPercs.defense === prev.perkPercs.defense &&
-      section.perkPercs.dexterity === prev.perkPercs.dexterity &&
-      section.statDriftPercent === prev.statDriftPercent &&
-      section.balanceAfterGymIndex === prev.balanceAfterGymIndex &&
-      section.ignorePerksForGymSelection === prev.ignorePerksForGymSelection &&
-      section.edvdJumpEnabled === prev.edvdJumpEnabled &&
-      section.candyJumpEnabled === prev.candyJumpEnabled &&
-      section.energyJumpEnabled === prev.energyJumpEnabled &&
-      section.lossReviveEnabled === prev.lossReviveEnabled &&
-      section.diabetesDayEnabled === prev.diabetesDayEnabled &&
-      section.daysSkippedPerMonth === prev.daysSkippedPerMonth
-    );
-  });
-  
-  // For single section OR identical sections, just run the normal simulation to avoid any discrepancies
-  if (sections.length === 1 || allSectionsIdentical) {
-    const section = sections[0];
-    const benefit = getCompanyBenefit(section.companyBenefitKey, section.candleShopStars);
-    
-    const inputs: SimulationInputs = {
-      statWeights: section.statWeights,
-      months: totalMonths,
-      xanaxPerDay: section.xanaxPerDay,
-      hasPointsRefill: section.hasPointsRefill,
-      hoursPlayedPerDay: section.hoursPlayedPerDay,
-      maxEnergy: section.maxEnergy,
-      companyBenefit: benefit,
-      apiKey,
-      initialStats: initStats,
-      happy: section.happy,
-      perkPercs: section.perkPercs,
-      currentGymIndex: currentGym,
-      lockGym: false,
-      statDriftPercent: section.statDriftPercent,
-      balanceAfterGymIndex: section.balanceAfterGymIndex,
-      ignorePerksForGymSelection: section.ignorePerksForGymSelection,
-      edvdJump: section.edvdJumpEnabled ? {
-        enabled: true,
-        frequencyDays: section.edvdJumpFrequency,
-        dvdsUsed: section.edvdJumpDvds,
-        limit: section.edvdJumpLimit,
-        count: section.edvdJumpCount,
-        statTarget: section.edvdJumpStatTarget,
-        adultNovelties: section.edvdJumpAdultNovelties,
-      } : undefined,
-      diabetesDay: section.diabetesDayEnabled ? {
-        enabled: true,
-        numberOfJumps: section.diabetesDayNumberOfJumps,
-        featheryHotelCoupon: section.diabetesDayFHC,
-        greenEgg: section.diabetesDayGreenEgg,
-        seasonalMail: section.diabetesDaySeasonalMail,
-        logoEnergyClick: section.diabetesDayLogoClick,
-      } : undefined,
-      candyJump: section.candyJumpEnabled ? {
-        enabled: true,
-        itemId: section.candyJumpItemId,
-        useEcstasy: section.candyJumpUseEcstasy,
-        quantity: section.candyJumpQuantity,
-        factionBenefitPercent: section.candyJumpFactionBenefit,
-      } : undefined,
-      energyJump: section.energyJumpEnabled ? {
-        enabled: true,
-        itemId: section.energyJumpItemId,
-        quantity: section.energyJumpQuantity,
-        factionBenefitPercent: section.energyJumpFactionBenefit,
-      } : undefined,
-      lossRevive: section.lossReviveEnabled ? {
-        enabled: true,
-        numberPerDay: section.lossReviveNumberPerDay,
-        energyCost: section.lossReviveEnergyCost,
-        daysBetween: section.lossReviveDaysBetween,
-        pricePerLoss: section.lossRevivePricePerLoss,
-      } : undefined,
-      daysSkippedPerMonth: section.daysSkippedPerMonth,
-      islandCostPerDay: showCost ? section.islandCostPerDay : undefined,
-      simulatedDate: simulatedDate,
-      itemPrices: (showCost && itemPrices) ? {
-        dvdPrice: itemPrices.prices[366],
-        xanaxPrice: itemPrices.prices[206],
-        ecstasyPrice: itemPrices.prices[196],
-        candyEcstasyPrice: itemPrices.prices[197],
-        pointsPrice: itemPrices.prices[0],
-        candyPrices: {
-          310: itemPrices.prices[310],
-          36: itemPrices.prices[36],
-          528: itemPrices.prices[528],
-          529: itemPrices.prices[529],
-          151: itemPrices.prices[151],
-        },
-        energyPrices: {
-          985: itemPrices.prices[985],
-          986: itemPrices.prices[986],
-          987: itemPrices.prices[987],
-          530: itemPrices.prices[530],
-          532: itemPrices.prices[532],
-          533: itemPrices.prices[533],
-          367: itemPrices.prices[367],
-        },
-      } : undefined,
-    };
-    
-    return simulateGymProgression(gyms, inputs);
-  }
-  
   // Run simulation for each section, chaining the end stats to the next section's initial stats
   let currentStats = { ...initStats };
   let currentGymIndex = currentGym;
@@ -390,7 +268,7 @@ export function simulateWithSections(
   const finalResult: SimulationResult = {
     dailySnapshots: allSnapshots,
     finalStats: currentStats,
-    sectionBoundaries: sections.length > 1 ? sections.map(s => s.endDay) : undefined,
+    sectionBoundaries: sections.map(s => s.endDay),
   };
   
   // Add aggregated cost information

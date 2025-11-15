@@ -38,103 +38,102 @@ export default function StatsChart({
   showCosts,
   itemPricesData
 }: StatsChartProps) {
-  // Helper function to create segment keys for each section
-  const createSegmentedData = () => {
-    if (chartData.length === 0) return { data: chartData, segments: [] };
-    
-    const segmentedData: Array<Record<string, number | null>> = chartData.map(d => ({ ...d }));
-    const segments: Array<{ stateName: string; sectionIndex: number; startDay: number; endDay: number; strokeDasharray: string }> = [];
-    
-    // For each state, check if it has section boundaries
-    comparisonStates.forEach((state) => {
-      const result = results[state.id];
-      if (!result || !result.sectionBoundaries || result.sectionBoundaries.length === 0) {
-        // No sections, just render normally
-        return;
-      }
-      
+  // Prepare chart lines - create separate line for each section of each state
+  const chartLines: Array<{
+    dataKey: string;
+    stroke: string;
+    strokeDasharray?: string;
+    name: string;
+    stateIndex: number;
+    sectionIndex: number;
+  }> = [];
+
+  comparisonStates.forEach((state, stateIndex) => {
+    const result = results[state.id];
+    if (!result || !result.sectionBoundaries || result.sectionBoundaries.length === 0) {
+      // No sections, render as single line
+      chartLines.push({
+        dataKey: state.name,
+        stroke: CHART_COLORS[stateIndex % CHART_COLORS.length],
+        name: state.name,
+        stateIndex,
+        sectionIndex: 0,
+      });
+    } else {
+      // Multiple sections - create a separate line for each section
       const boundaries = [0, ...result.sectionBoundaries];
       
-      // Create segment data for each section
-      for (let sectionIndex = 0; sectionIndex < boundaries.length; sectionIndex++) {
-        const startDay = sectionIndex === 0 ? 0 : boundaries[sectionIndex - 1];
-        const endDay = boundaries[sectionIndex];
-        const segmentKey = `${state.name}_section_${sectionIndex}`;
-        const strokeDasharray = LINE_STYLES[sectionIndex % LINE_STYLES.length];
+      for (let sectionIdx = 0; sectionIdx < boundaries.length; sectionIdx++) {
+        const lineKey = `${state.name}_section${sectionIdx}`;
+        const strokeDasharray = LINE_STYLES[sectionIdx % LINE_STYLES.length];
         
-        segments.push({
-          stateName: state.name,
-          sectionIndex,
-          startDay,
-          endDay,
-          strokeDasharray
-        });
-        
-        // For each data point, add the segmented value
-        segmentedData.forEach((dataPoint) => {
-          const day = dataPoint.day as number;
-          if (day >= startDay && day <= endDay) {
-            dataPoint[segmentKey] = dataPoint[state.name] as number;
-          } else {
-            dataPoint[segmentKey] = null;
-          }
+        chartLines.push({
+          dataKey: lineKey,
+          stroke: CHART_COLORS[stateIndex % CHART_COLORS.length],
+          strokeDasharray,
+          name: sectionIdx === 0 ? state.name : undefined as any, // Only show in legend once
+          stateIndex,
+          sectionIndex: sectionIdx,
         });
       }
+    }
+  });
+
+  // Prepare chart data with separate data series for each section
+  const processedChartData = chartData.map(dataPoint => {
+    const newPoint: Record<string, number> = { day: dataPoint.day };
+    
+    comparisonStates.forEach((state) => {
+      const result = results[state.id];
+      const statValue = dataPoint[state.name];
       
-      // Remove the original state key since we're replacing it with segments
-      segmentedData.forEach(dataPoint => {
-        delete dataPoint[state.name];
-      });
+      if (!result || !result.sectionBoundaries || result.sectionBoundaries.length === 0) {
+        // No sections, copy value as-is
+        newPoint[state.name] = statValue;
+      } else {
+        // Multiple sections - assign value to appropriate section's data key
+        const boundaries = [0, ...result.sectionBoundaries];
+        const day = dataPoint.day;
+        
+        for (let sectionIdx = 0; sectionIdx < boundaries.length; sectionIdx++) {
+          const startDay = sectionIdx === 0 ? 0 : boundaries[sectionIdx - 1];
+          const endDay = boundaries[sectionIdx];
+          const lineKey = `${state.name}_section${sectionIdx}`;
+          
+          if (day >= startDay && day <= endDay) {
+            newPoint[lineKey] = statValue;
+          }
+        }
+      }
     });
     
-    return { data: segmentedData, segments };
-  };
-  
-  const { data: processedData, segments } = createSegmentedData();
+    return newPoint;
+  });
   
   return (
     <Paper sx={{ p: 2, mb: 3 }}>
       <Typography variant="h6" gutterBottom>Total Battle Stats Over Time</Typography>
       <ResponsiveContainer width="100%" height={400}>
-        <LineChart data={processedData}>
+        <LineChart data={processedChartData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="day" label={{ value: 'Days', position: 'insideBottom', offset: -5 }} />
           <YAxis label={{ value: 'Total Stats', angle: -90, position: 'insideLeft' }} />
           <Tooltip content={<ChartTooltip comparisonStates={comparisonStates} results={results} showCosts={showCosts} itemPricesData={itemPricesData} />} />
           <Legend />
-          {segments.length === 0 ? (
-            // No sections, render normally
-            comparisonStates.map((state, index) => (
-              <Line 
-                key={state.id} 
-                type="monotone" 
-                dataKey={state.name} 
-                stroke={CHART_COLORS[index % CHART_COLORS.length]} 
-                strokeWidth={2} 
-                dot={false} 
-              />
-            ))
-          ) : (
-            // Render segments with different line styles
-            segments.map((segment) => {
-              const stateIndex = comparisonStates.findIndex(s => s.name === segment.stateName);
-              const segmentKey = `${segment.stateName}_section_${segment.sectionIndex}`;
-              return (
-                <Line 
-                  key={segmentKey}
-                  type="monotone" 
-                  dataKey={segmentKey} 
-                  stroke={CHART_COLORS[stateIndex % CHART_COLORS.length]} 
-                  strokeWidth={2} 
-                  strokeDasharray={segment.strokeDasharray}
-                  dot={false}
-                  connectNulls={false}
-                  name={segment.sectionIndex === 0 ? segment.stateName : undefined} // Only show legend for first segment
-                  legendType={segment.sectionIndex === 0 ? 'line' : 'none'}
-                />
-              );
-            })
-          )}
+          {chartLines.map((line, idx) => (
+            <Line 
+              key={`${line.dataKey}-${idx}`}
+              type="monotone" 
+              dataKey={line.dataKey} 
+              stroke={line.stroke} 
+              strokeWidth={2} 
+              strokeDasharray={line.strokeDasharray}
+              dot={false}
+              connectNulls={false}
+              name={line.name}
+              legendType={line.name ? 'line' : 'none'}
+            />
+          ))}
         </LineChart>
       </ResponsiveContainer>
     </Paper>
