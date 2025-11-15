@@ -67,6 +67,24 @@
       "js": [
         "content-racing-skill.js"
       ]
+    },
+    {
+      "matches": [
+        "https://weav3r.dev/categories?cat=Energy+Drink*"
+      ],
+      "js": [
+        "injector-weaver-bazaar.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://weav3r.dev/item/*"
+      ],
+      "js": [
+        "injector-weaver-bazaar.js"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "background": {

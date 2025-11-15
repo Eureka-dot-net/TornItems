@@ -1,11 +1,11 @@
-// injector-travel.js — MODE C (robust) — countdown + checklist + OC timing + energy/nerve prediction
+// injector-travel.js — MODE C (robust) — countdown + checklist + OC timing + energy/nerve prediction + cooldown check + fixed green toggle
 (() => {
   // ─────────────────────────────────────────
   // Tiny DOM helpers
   // ─────────────────────────────────────────
   const $  = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
-  const cc = (frag) => `[class*="${frag}"]`;            // "class contains" selector
+  const cc = (frag) => `[class*="${frag}"]`;
   const txt = (el) => (el ? (el.textContent || "").trim() : "");
 
   // ─────────────────────────────────────────
@@ -47,9 +47,8 @@
   }
 
   // ─────────────────────────────────────────
-  // Flight time + countdown
+  // Flight + countdown logic
   // ─────────────────────────────────────────
-  // Parses "00:18" or "01:20:00" into minutes (round up if seconds > 0)
   function parseFlightMinutesFromText(timeText) {
     if (!timeText || !timeText.includes(":")) return 0;
     const parts = timeText.split(":").map(Number);
@@ -63,14 +62,10 @@
     }
     return 0;
   }
-
-  // Find the visible "Flight Time - <span aria-hidden='true'>00:18</span>" after a pin click
   function getFlightMinutesFromDOM() {
-    // Look for a segment that includes the plane icon + the time span
     const segments = $$(cc("segment"));
     for (const seg of segments) {
       if (!$(cc("planeIcon"), seg)) continue;
-      // Prefer aria-hidden time
       const t = $("span[aria-hidden='true']", seg) || null;
       const val = txt(t);
       const mins = parseFlightMinutesFromText(val);
@@ -78,8 +73,6 @@
     }
     return 0;
   }
-
-  // Compute aligned boarding for “land on 15-min mark”, then subtract flight time
   function computeBoarding(flightMinutes) {
     if (!flightMinutes) return null;
     const now = new Date();
@@ -89,7 +82,6 @@
     const roundedMins = Math.ceil(mins / 15) * 15;
     aligned.setMinutes(roundedMins % 60, 0, 0);
     if (roundedMins >= 60) aligned.setHours(aligned.getHours() + 1);
-
     let boarding = new Date(aligned.getTime() - flightMinutes * 60_000);
     if (boarding <= now) {
       const nextAligned = new Date(aligned.getTime() + 15 * 60_000);
@@ -99,8 +91,9 @@
   }
 
   // ─────────────────────────────────────────
-  // Overlay UI
+  // Overlay + toggle logic
   // ─────────────────────────────────────────
+  let hideGreen = true;
   function makeOverlay() {
     const box = document.createElement("div");
     box.id = "torn-travel-overlay";
@@ -111,6 +104,20 @@
       box-shadow:0 6px 16px rgba(0,0,0,.5);backdrop-filter:blur(2px);
       transition:opacity .3s, transform .3s;
     `;
+    const controls = document.createElement("label");
+    controls.style.cssText = "display:flex;align-items:center;gap:6px;margin-bottom:6px;cursor:pointer;";
+    const chk = document.createElement("input");
+    chk.type = "checkbox";
+    chk.checked = hideGreen;
+    chk.addEventListener("change", () => {
+      hideGreen = chk.checked;
+      updateGreenVisibility();
+    });
+    const span = document.createElement("span");
+    span.textContent = "Hide green items";
+    controls.appendChild(chk);
+    controls.appendChild(span);
+
     const header = document.createElement("div");
     header.id = "torn-travel-countdown";
     header.style.cssText = `
@@ -120,12 +127,25 @@
     const list = document.createElement("div");
     list.id = "torn-travel-checklist";
     list.style.cssText = `display:grid;gap:6px;`;
+
+    box.appendChild(controls);
+    box.appendChild(header);
     const hr = document.createElement("div");
     hr.style.cssText = `height:1px;background:rgba(255,255,255,.12);margin:6px 0;`;
-    box.appendChild(header); box.appendChild(hr); box.appendChild(list);
+    box.appendChild(hr);
+    box.appendChild(list);
     document.body.appendChild(box);
     return { box, header, list };
   }
+
+  // ✅ green filter now uses data-status instead of sniffing rgba strings
+  function updateGreenVisibility() {
+    $$("#torn-travel-checklist > div").forEach((row) => {
+      const isGreen = row.dataset.status === "good";
+      row.style.display = hideGreen && isGreen ? "none" : "flex";
+    });
+  }
+
   function makeToggleButton(overlayBox) {
     const btn = document.createElement("button");
     btn.textContent = "⚙️";
@@ -143,8 +163,10 @@
     });
     document.body.appendChild(btn);
   }
+
   function addRow(listEl, label, status = "neutral", detail = "") {
     const row = document.createElement("div");
+    row.dataset.status = status; // ✅ tag status for reliable filtering
     row.style.cssText = `display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:8px;`;
     const left = document.createElement("div"); left.textContent = label;
     const right = document.createElement("div"); right.textContent = detail;
@@ -158,9 +180,10 @@
     row.style.background = c.bg; row.style.color = c.fg;
     row.appendChild(left); if (detail) { right.style.opacity = ".9"; row.appendChild(right); }
     listEl.appendChild(row);
+    updateGreenVisibility();
   }
 
-  // Countdown (with guard to avoid multiple intervals)
+  // Countdown
   let countdownTimer = null;
   function clearCountdown() { if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; } }
   function fmtSecs(s) { s = Math.max(0, Math.floor(s)); const m = Math.floor(s/60), sec = s%60; return `${m}:${String(sec).padStart(2,"0")}`; }
@@ -183,12 +206,10 @@
     countdownTimer = setInterval(tick, 1000);
   }
 
-  // ─────────────────────────────────────────
-  // Prediction helpers (Energy/Nerve)
-  // ─────────────────────────────────────────
+  // Regen + OC + Cooldowns
   function predictRegen(stat, flightMinutes, ratePerMin) {
     if (!stat) return { status: "warn", text: "Unknown" };
-    const roundTripMins = flightMinutes * 2 + 15;         // out + back + 15m align
+    const roundTripMins = flightMinutes * 2 + 15;
     const regen = roundTripMins * ratePerMin;
     const predicted = stat.cur + regen;
     if (predicted < stat.max) {
@@ -198,18 +219,23 @@
     const sev = lost < 10 ? "warn" : "bad";
     return { status: sev, text: `Will cap (+${Math.round(lost)} wasted)` };
   }
-
-  // ─────────────────────────────────────────
-  // OC API
-  // ─────────────────────────────────────────
   async function fetchOrganizedCrime(apiKey) {
     try {
       const res = await fetch(`https://api.torn.com/v2/user/organizedcrime?key=${apiKey}`);
       const data = await res.json();
       if (!data || !data.organizedCrime) return null;
       const oc = data.organizedCrime;
-      const endsAt = oc.ready_at || oc.executed_at || oc.expired_at || null; // unix seconds
+      const endsAt = oc.ready_at || oc.executed_at || oc.expired_at || null;
       return { status: oc.status, endsAt };
+    } catch { return null; }
+  }
+
+  async function fetchCooldowns(apiKey) {
+    try {
+      const res = await fetch(`https://api.torn.com/v2/user?selections=cooldowns&key=${apiKey}`);
+      const data = await res.json();
+      if (!data || !data.cooldowns) return null;
+      return data.cooldowns;
     } catch { return null; }
   }
 
@@ -217,11 +243,8 @@
   // Boot
   // ─────────────────────────────────────────
   (async () => {
-    // Skip when actually in-flight
     const travelingTitle = $$("h4").find(h => txt(h) === "Traveling");
     if (travelingTitle) return;
-
-    // Wait for travel UI container to exist
     function waitForTravelRoot() {
       return new Promise(resolve => {
         const check = () => { const root = $("#travel-root"); if (root) return resolve(root); requestAnimationFrame(check); };
@@ -229,25 +252,20 @@
       });
     }
     const travelRoot = await waitForTravelRoot();
-
     const overlay = makeOverlay();
     makeToggleButton(overlay.box);
 
-    // First pass: before clicking a destination, no flight time is present
     overlay.header.textContent = "Select a destination on the map…";
 
-    // Render checklist once, then we’ll re-render when flight time appears
     function renderAll(flightMinutes) {
       const flags = detectFlags();
       overlay.list.innerHTML = "";
 
-      // Top block: basics
       addRow(overlay.list, "Bazaar open",       flags.bazaarOpen      ? "good" : "warn", flags.bazaarOpen ? "Yes" : "Check");
       addRow(overlay.list, "Education active",  flags.educationActive ? "good" : "warn", flags.educationActive ? "Yes" : "No");
       addRow(overlay.list, "Booster cooldown",  flags.boosterCooldown ? "good" : "warn", flags.boosterCooldown ? "Active" : "None");
       addRow(overlay.list, "Drug cooldown",     flags.drugCooldown    ? "good" : "warn", flags.drugCooldown ? "Active" : "None");
 
-      // Predictions (only if we have a flight selected)
       if (flightMinutes && flightMinutes > 0) {
         const e = predictRegen(flags.energy, flightMinutes, 0.5);
         const n = predictRegen(flags.nerve,  flightMinutes, 0.2);
@@ -255,16 +273,36 @@
         addRow(overlay.list, "Nerve on return",  n.status, n.text);
       }
 
-      // Life reminder (kept simple)
       if (flags.life) {
         const pct = Math.round(flags.life.ratio * 100);
         addRow(overlay.list, "Life low enough (<33%)", flags.life.ratio < 1/3 ? "good" : "bad", `${flags.life.cur}/${flags.life.max} (${pct}%)`);
       }
 
-      // OC timing (uses current flightMinutes if present)
       (async () => {
-        const apiKey = "YOUR_API_KEY_HERE"; // <-- insert your key
-        const oc = await fetchOrganizedCrime(apiKey);
+        const apiKey = "pFtEvDBFVYkVpbW9";
+        const [oc, cooldowns] = await Promise.all([
+          fetchOrganizedCrime(apiKey),
+          fetchCooldowns(apiKey)
+        ]);
+
+        if (cooldowns && flightMinutes > 0) {
+          const flightSecs = flightMinutes * 60;
+          const checkCd = (type, label) => {
+            const remain = cooldowns[type] || 0;
+            if (remain > flightSecs) {
+              const left = Math.round((remain - flightSecs) / 60);
+              addRow(overlay.list, `${label} cooldown OK`, "good", `Still ${left} min left`);
+            } else {
+              const gap = Math.round((flightSecs - remain) / 60);
+              addRow(overlay.list, `${label} cooldown ends mid-flight`, "bad", `${gap} min without cooldown`);
+            }
+          };
+          checkCd("drug", "Drug");
+          checkCd("booster", "Booster");
+        } else {
+          addRow(overlay.list, "Cooldown check", "warn", "No data or no flight selected");
+        }
+
         if (oc && flightMinutes && flightMinutes > 0) {
           const now = Math.floor(Date.now()/1000);
           const returnEpoch = now + (flightMinutes * 2 + 15) * 60;
@@ -272,36 +310,28 @@
             const diffMins = Math.round((oc.endsAt - returnEpoch) / 60);
             if (diffMins > 0) addRow(overlay.list, "OC timing safe", "good", `Return ${diffMins} min before OC`);
             else              addRow(overlay.list, "OC may start before return!", "bad", `${Math.abs(diffMins)} min overlap`);
-          } else {
-            addRow(overlay.list, "OC timing unknown", "warn", oc.status || "No data");
-          }
-        } else {
-          addRow(overlay.list, "OC timing check", "warn", (oc ? "No flight selected" : "Not in OC / no API key"));
-        }
+          } else addRow(overlay.list, "OC timing unknown", "warn", oc.status || "No data");
+        } else addRow(overlay.list, "OC timing check", "warn", oc ? "No flight selected" : "Not in OC / no API key");
+
+        updateGreenVisibility();
       })();
     }
 
-    // Initial render (no flight yet)
     renderAll(0);
 
-    // Observe DOM for when the user clicks a destination and the flight time span appears/changes
     let lastFlightMinutes = 0;
     const recompute = () => {
       const flightMinutes = getFlightMinutesFromDOM();
       if (!flightMinutes || flightMinutes === lastFlightMinutes) return;
       lastFlightMinutes = flightMinutes;
-
       const boardingEpoch = computeBoarding(flightMinutes);
       if (boardingEpoch) runCountdown(overlay.header, boardingEpoch, "Selected destination");
-
       renderAll(flightMinutes);
     };
 
-    // Run once and then watch for changes
     recompute();
     const obs = new MutationObserver(() => { try { recompute(); } catch {} });
     obs.observe(travelRoot, { childList: true, subtree: true });
-    // Also poll lightly in case parts update without mutations (rare)
     setInterval(recompute, 1000);
   })();
 })();
