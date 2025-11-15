@@ -14,6 +14,7 @@ import type { ItemPrices } from '../../../lib/hooks/useItemPrices';
 import type { SimulationResult } from '../../../lib/utils/gymProgressionCalculator';
 import DownloadIcon from '@mui/icons-material/Download';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { useNavigate } from 'react-router-dom';
 import { exportIndividualComparisonData, type IndividualComparisonExportData } from '../../../lib/utils/exportHelpers';
 
@@ -76,6 +77,7 @@ interface SectionedComparisonConfigProps {
   activeState: ComparisonState;
   updateState: (stateId: string, updates: Partial<ComparisonState>) => void;
   handleRemoveState: (stateId: string) => void;
+  handleCopyState: (stateId: string) => void;
   canRemoveState: boolean;
   showCosts: boolean;
   itemPricesData?: ItemPrices;
@@ -93,6 +95,7 @@ export default function SectionedComparisonConfig({
   activeState,
   updateState,
   handleRemoveState,
+  handleCopyState,
   canRemoveState,
   showCosts,
   itemPricesData,
@@ -385,6 +388,14 @@ export default function SectionedComparisonConfig({
             disabled={!result}
           >
             Download
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<ContentCopyIcon />}
+            onClick={() => handleCopyState(activeState.id)}
+          >
+            Copy
           </Button>
           {canRemoveState && (
             <IconButton color="error" onClick={() => handleRemoveState(activeState.id)} size="small">

@@ -13,8 +13,9 @@ import {
   IconButton,
   Box,
   Typography,
+  TextField,
 } from '@mui/material';
-import { FolderOpen, Delete } from '@mui/icons-material';
+import { FolderOpen, Delete, ContentCopy } from '@mui/icons-material';
 
 interface LoadConfigurationButtonProps {
   onLoadSettings: (settings: Record<string, unknown>) => void;
@@ -32,6 +33,10 @@ export default function LoadConfigurationButton({ onLoadSettings }: LoadConfigur
   const [open, setOpen] = useState(false);
   const [savedConfigs, setSavedConfigs] = useState<SavedConfiguration[]>([]);
   const [selectedConfig, setSelectedConfig] = useState<string | null>(null);
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+  const [configToCopy, setConfigToCopy] = useState<SavedConfiguration | null>(null);
+  const [copyName, setCopyName] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -86,6 +91,44 @@ export default function LoadConfigurationButton({ onLoadSettings }: LoadConfigur
     }
   };
 
+  const handleCopy = (name: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    const configToCopy = savedConfigs.find(c => c.name === name);
+    if (!configToCopy) return;
+    
+    setConfigToCopy(configToCopy);
+    setCopyName(`${configToCopy.name} (Copy)`);
+    setCopyDialogOpen(true);
+  };
+
+  const handleConfirmCopy = () => {
+    if (!configToCopy || !copyName.trim()) {
+      setError('Please enter a name for the copy.');
+      return;
+    }
+
+    try {
+      // Create a new configuration with all the same settings and segments
+      const copiedConfig: SavedConfiguration = {
+        name: copyName.trim(),
+        timestamp: new Date().toISOString(),
+        settings: JSON.parse(JSON.stringify(configToCopy.settings)), // Deep clone the settings
+      };
+
+      // Add the copied configuration to the list
+      const updatedConfigs = [...savedConfigs, copiedConfig];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedConfigs));
+      setSavedConfigs(updatedConfigs);
+      setCopyDialogOpen(false);
+      setConfigToCopy(null);
+      setCopyName('');
+      setError('');
+    } catch (err) {
+      console.error('Copy error:', err);
+      setError('Failed to copy configuration. Please try again.');
+    }
+  };
+
   return (
     <>
       <Button
@@ -126,6 +169,14 @@ export default function LoadConfigurationButton({ onLoadSettings }: LoadConfigur
                   />
                   <ListItemSecondaryAction>
                     <IconButton 
+                      aria-label="copy"
+                      onClick={(e) => handleCopy(config.name, e)}
+                      size="small"
+                      sx={{ mr: 1 }}
+                    >
+                      <ContentCopy />
+                    </IconButton>
+                    <IconButton 
                       edge="end" 
                       aria-label="delete"
                       onClick={(e) => handleDelete(config.name, e)}
@@ -147,6 +198,42 @@ export default function LoadConfigurationButton({ onLoadSettings }: LoadConfigur
             disabled={!selectedConfig}
           >
             Load
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Copy Configuration Dialog */}
+      <Dialog open={copyDialogOpen} onClose={() => setCopyDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Copy Configuration</DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Enter a name for the copied configuration.
+          </Alert>
+          
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+          
+          <TextField
+            label="Configuration Name"
+            fullWidth
+            value={copyName}
+            onChange={(e) => setCopyName(e.target.value)}
+            placeholder='E.g., "My EDVD Build (Copy)"'
+            sx={{ mt: 1 }}
+            autoFocus
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCopyDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleConfirmCopy} 
+            variant="contained"
+            disabled={!copyName.trim()}
+          >
+            Copy
           </Button>
         </DialogActions>
       </Dialog>

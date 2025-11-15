@@ -14,7 +14,7 @@ import {
   IconButton,
   Box,
 } from '@mui/material';
-import { Save, Delete } from '@mui/icons-material';
+import { Save, Delete, ContentCopy } from '@mui/icons-material';
 
 interface SaveConfigurationButtonProps {
   getCurrentSettings: () => Record<string, unknown>;
@@ -33,6 +33,9 @@ export default function SaveConfigurationButton({ getCurrentSettings }: SaveConf
   const [configName, setConfigName] = useState('');
   const [error, setError] = useState('');
   const [savedConfigs, setSavedConfigs] = useState<SavedConfiguration[]>([]);
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+  const [configToCopy, setConfigToCopy] = useState<SavedConfiguration | null>(null);
+  const [copyName, setCopyName] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -112,6 +115,42 @@ export default function SaveConfigurationButton({ getCurrentSettings }: SaveConf
     }
   };
 
+  const handleCopy = (name: string) => {
+    const configToCopy = savedConfigs.find(c => c.name === name);
+    if (!configToCopy) return;
+    
+    setConfigToCopy(configToCopy);
+    setCopyName(`${configToCopy.name} (Copy)`);
+    setCopyDialogOpen(true);
+  };
+
+  const handleConfirmCopy = () => {
+    if (!configToCopy || !copyName.trim()) {
+      setError('Please enter a name for the copy.');
+      return;
+    }
+
+    try {
+      // Create a new configuration with all the same settings and segments
+      const copiedConfig: SavedConfiguration = {
+        name: copyName.trim(),
+        timestamp: new Date().toISOString(),
+        settings: JSON.parse(JSON.stringify(configToCopy.settings)), // Deep clone the settings
+      };
+
+      // Add the copied configuration to the list
+      const updatedConfigs = [...savedConfigs, copiedConfig];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedConfigs));
+      setSavedConfigs(updatedConfigs);
+      setCopyDialogOpen(false);
+      setConfigToCopy(null);
+      setCopyName('');
+    } catch (err) {
+      console.error('Copy error:', err);
+      setError('Failed to copy configuration. Please try again.');
+    }
+  };
+
   return (
     <>
       <Button
@@ -159,6 +198,14 @@ export default function SaveConfigurationButton({ getCurrentSettings }: SaveConf
                     />
                     <ListItemSecondaryAction>
                       <IconButton 
+                        aria-label="copy"
+                        onClick={() => handleCopy(config.name)}
+                        size="small"
+                        sx={{ mr: 1 }}
+                      >
+                        <ContentCopy />
+                      </IconButton>
+                      <IconButton 
                         edge="end" 
                         aria-label="delete"
                         onClick={() => handleDelete(config.name)}
@@ -181,6 +228,36 @@ export default function SaveConfigurationButton({ getCurrentSettings }: SaveConf
             disabled={!configName.trim()}
           >
             Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Copy Configuration Dialog */}
+      <Dialog open={copyDialogOpen} onClose={() => setCopyDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Copy Configuration</DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Enter a name for the copied configuration.
+          </Alert>
+          
+          <TextField
+            label="Configuration Name"
+            fullWidth
+            value={copyName}
+            onChange={(e) => setCopyName(e.target.value)}
+            placeholder='E.g., "My EDVD Build (Copy)"'
+            sx={{ mt: 1 }}
+            autoFocus
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCopyDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleConfirmCopy} 
+            variant="contained"
+            disabled={!copyName.trim()}
+          >
+            Copy
           </Button>
         </DialogActions>
       </Dialog>
