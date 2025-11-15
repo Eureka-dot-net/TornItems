@@ -308,8 +308,36 @@ export default function GymComparison() {
     // Clear any previous validation error
     setMonthValidationError(null);
     
-    // If increasing months or no comparison states, just update
-    if (newMonths >= months || comparisonStates.length === 0) {
+    // No comparison states, just update
+    if (comparisonStates.length === 0) {
+      setMonths(newMonths);
+      return;
+    }
+    
+    // Check if all states have exactly one section
+    const allSingleSection = comparisonStates.every(state => state.sections.length === 1);
+    
+    if (allSingleSection) {
+      // Auto-adjust all single-section states to match new duration
+      const updatedStates = comparisonStates.map(state => ({
+        ...state,
+        sections: [{
+          ...state.sections[0],
+          startDay: 1,
+          endDay: newTotalDays,
+        }],
+      }));
+      
+      // Clear results to force re-simulation with new duration
+      setResults({});
+      setComparisonStates(updatedStates);
+      setMonths(newMonths);
+      return;
+    }
+    
+    // Multiple sections exist - check if change would invalidate any sections
+    if (newMonths >= months) {
+      // Increasing months - no validation needed
       setMonths(newMonths);
       return;
     }
@@ -329,26 +357,8 @@ export default function GymComparison() {
     if (!hasInvalidSections) {
       // No sections would be invalid, proceed with the change
       setMonths(newMonths);
-      return;
-    }
-    
-    // Check if we can auto-adjust (only if all states have exactly one section)
-    const canAutoAdjust = comparisonStates.every(state => state.sections.length === 1);
-    
-    if (canAutoAdjust) {
-      // Auto-adjust all single-section states
-      const updatedStates = comparisonStates.map(state => ({
-        ...state,
-        sections: state.sections.map(section => ({
-          ...section,
-          endDay: Math.min(section.endDay, newTotalDays),
-        })),
-      }));
-      
-      setComparisonStates(updatedStates);
-      setMonths(newMonths);
     } else {
-      // Cannot auto-adjust - show error
+      // Cannot adjust - show error
       const maxSectionEndDay = Math.max(
         ...comparisonStates.flatMap(state => state.sections.map(s => s.endDay))
       );
