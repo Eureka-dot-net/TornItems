@@ -126,10 +126,13 @@ export default function PlayerStatsSection({
             label="Duration (months)" 
             type="number" 
             value={months ?? ''} 
-            onChange={(e) => setMonths(e.target.value === '' ? 1 : Math.max(1, Math.min(36, Number(e.target.value))))} 
+            onChange={(e) => {
+              const value = e.target.value === '' ? 1 : Number(e.target.value);
+              setMonths(value);
+            }}
             size="small" 
             fullWidth
-            inputProps={{ step: 'any' }} 
+            inputProps={{ step: 'any', min: 1 }} 
           />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
