@@ -71,12 +71,14 @@ export default function StatsChart({
       });
     } else {
       // Multiple sections - create a separate line for each section
-      const boundaries = [0, ...result.sectionBoundaries];
+      // sectionBoundaries contains the END day of each section: [180, 360]
+      // For 2 sections, we need 2 lines
+      const numSections = result.sectionBoundaries.length;
       
-      for (let sectionIdx = 0; sectionIdx < boundaries.length; sectionIdx++) {
+      for (let sectionIdx = 0; sectionIdx < numSections; sectionIdx++) {
         const lineKey = `${state.name}_section${sectionIdx}`;
         // First section (index 0) is solid (undefined), rest have dash patterns
-        const strokeDasharray = sectionIdx === 0 ? undefined : LINE_STYLES[sectionIdx % LINE_STYLES.length];
+        const strokeDasharray = sectionIdx === 0 ? undefined : LINE_STYLES[(sectionIdx % (LINE_STYLES.length - 1)) + 1];
         
         chartLines.push({
           dataKey: lineKey,
@@ -88,17 +90,18 @@ export default function StatsChart({
         });
       }
 
-      // Add section boundaries for reference lines (skip first boundary at 0, and last boundary which is the end)
+      // Add section boundaries for reference lines
       // Reference lines should be placed where sections TRANSITION (between sections)
-      for (let i = 1; i < result.sectionBoundaries.length; i++) {
-        const boundaryDay = result.sectionBoundaries[i - 1]; // This is where section i-1 ends and section i begins
+      // For 2 sections with boundaries [180, 360], we want a line at day 180 (between sections)
+      for (let i = 0; i < result.sectionBoundaries.length - 1; i++) {
+        const boundaryDay = result.sectionBoundaries[i]; // End of section i
         const snapshot = result.dailySnapshots.find(s => s.day === boundaryDay);
         sectionBoundaries.push({
           day: boundaryDay,
           stateName: state.name,
           stateColor: CHART_COLORS[stateIndex % CHART_COLORS.length],
           snapshot: snapshot,
-          sectionNumber: i + 1, // Section number starting from 1 (this is the section that STARTS at this boundary)
+          sectionNumber: i + 2, // Section number that STARTS after this boundary (section 2, 3, etc.)
         });
       }
     }
@@ -117,12 +120,14 @@ export default function StatsChart({
         newPoint[state.name] = statValue;
       } else {
         // Multiple sections - assign value to appropriate section's data key
-        const boundaries = [0, ...result.sectionBoundaries];
+        // sectionBoundaries = [180, 360] means:
+        //   Section 0: days 1-180
+        //   Section 1: days 181-360
         const day = dataPoint.day;
         
-        for (let sectionIdx = 0; sectionIdx < boundaries.length; sectionIdx++) {
-          const startDay = sectionIdx === 0 ? 0 : boundaries[sectionIdx - 1];
-          const endDay = boundaries[sectionIdx];
+        for (let sectionIdx = 0; sectionIdx < result.sectionBoundaries.length; sectionIdx++) {
+          const startDay = sectionIdx === 0 ? 1 : result.sectionBoundaries[sectionIdx - 1] + 1;
+          const endDay = result.sectionBoundaries[sectionIdx];
           const lineKey = `${state.name}_section${sectionIdx}`;
           
           if (day >= startDay && day <= endDay) {
