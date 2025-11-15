@@ -14,9 +14,10 @@ import {
   simulateGymProgression,
   type SimulationInputs,
   type SimulationResult,
+  type DailySnapshot,
 } from '../../lib/utils/gymProgressionCalculator';
 import { type GymStatsResponse } from '../../lib/hooks/useGymStats';
-import { useItemPrices } from '../../lib/hooks/useItemPrices';
+import { useItemPrices, type ItemPrices } from '../../lib/hooks/useItemPrices';
 import { getCompanyBenefit, type StatWeights } from '../../lib/utils/gymHelpers';
 import { agent } from '../../lib/api/agent';
 import {
@@ -61,10 +62,11 @@ import ManualTestingSection from '../components/gymComparison/ManualTestingSecti
 import ResultsSection from '../components/gymComparison/ResultsSection';
 import { exportGymComparisonData, type ExportData } from '../../lib/utils/exportHelpers';
 
-// Comparison state interface
-interface ComparisonState {
+// Training section interface - each section represents a time period with its own settings
+interface TrainingSection {
   id: string;
-  name: string;
+  startDay: number;
+  endDay: number;
   statWeights: { strength: number; speed: number; defense: number; dexterity: number };
   hoursPlayedPerDay: number;
   xanaxPerDay: number;
@@ -102,11 +104,18 @@ interface ComparisonState {
   candleShopStars: number;
   happy: number;
   daysSkippedPerMonth: number;
-  statDriftPercent: number; // 0-100: How far stats can drift from target weighings
-  balanceAfterGymIndex: number; // Gym index after which to revert to balanced training (-1 = never, 19 = Cha Cha's, 23 = George's)
-  ignorePerksForGymSelection: boolean; // Whether to ignore perks when deciding which gym/stat to train
+  statDriftPercent: number;
+  balanceAfterGymIndex: number;
+  ignorePerksForGymSelection: boolean;
+  islandCostPerDay?: number;
+}
+
+// Comparison state interface - now contains multiple sections
+interface ComparisonState {
+  id: string;
+  name: string;
+  sections: TrainingSection[];
   showIndividualStats: boolean; // Whether to show individual stats chart for this state
-  islandCostPerDay?: number; // Island cost per day (rent + staff)
   [key: string]: unknown;
 }
 
@@ -118,6 +127,69 @@ export default function GymComparison() {
     } catch {
       return defaultValue;
     }
+  };
+
+  // Migration function to convert old format to new format
+  const migrateComparisonState = (state: Record<string, unknown>, totalDays: number): ComparisonState => {
+    // Check if already in new format
+    if ('sections' in state && Array.isArray(state.sections)) {
+      return state as ComparisonState;
+    }
+    
+    // Old format - convert to new format with a single section covering the entire duration
+    const section: TrainingSection = {
+      id: '1',
+      startDay: 1,
+      endDay: totalDays,
+      statWeights: (state.statWeights as { strength: number; speed: number; defense: number; dexterity: number }) || DEFAULT_STAT_WEIGHTS,
+      hoursPlayedPerDay: (state.hoursPlayedPerDay as number) || DEFAULT_HOURS_PER_DAY,
+      xanaxPerDay: (state.xanaxPerDay as number) || DEFAULT_XANAX_PER_DAY,
+      hasPointsRefill: (state.hasPointsRefill as boolean) ?? true,
+      maxEnergy: (state.maxEnergy as number) || MAX_ENERGY_DEFAULT,
+      perkPercs: (state.perkPercs as { strength: number; speed: number; defense: number; dexterity: number }) || DEFAULT_PERK_PERCS,
+      edvdJumpEnabled: (state.edvdJumpEnabled as boolean) || false,
+      edvdJumpFrequency: (state.edvdJumpFrequency as number) || DEFAULT_EDVD_FREQUENCY_DAYS,
+      edvdJumpDvds: (state.edvdJumpDvds as number) || DEFAULT_EDVD_DVDS,
+      edvdJumpLimit: (state.edvdJumpLimit as 'indefinite' | 'count' | 'stat') || 'indefinite',
+      edvdJumpCount: (state.edvdJumpCount as number) || 10,
+      edvdJumpStatTarget: (state.edvdJumpStatTarget as number) || 10000000,
+      edvdJumpAdultNovelties: (state.edvdJumpAdultNovelties as boolean) || false,
+      candyJumpEnabled: (state.candyJumpEnabled as boolean) || false,
+      candyJumpItemId: (state.candyJumpItemId as number) || CANDY_ITEM_IDS.HAPPY_25,
+      candyJumpUseEcstasy: (state.candyJumpUseEcstasy as boolean) || false,
+      candyJumpQuantity: (state.candyJumpQuantity as number) || DEFAULT_CANDY_QUANTITY,
+      candyJumpFactionBenefit: (state.candyJumpFactionBenefit as number) || 0,
+      energyJumpEnabled: (state.energyJumpEnabled as boolean) || false,
+      energyJumpItemId: (state.energyJumpItemId as number) || ENERGY_ITEM_IDS.ENERGY_5,
+      energyJumpQuantity: (state.energyJumpQuantity as number) || DEFAULT_ENERGY_DRINK_QUANTITY,
+      energyJumpFactionBenefit: (state.energyJumpFactionBenefit as number) || 0,
+      lossReviveEnabled: (state.lossReviveEnabled as boolean) || false,
+      lossReviveNumberPerDay: (state.lossReviveNumberPerDay as number) || DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY,
+      lossReviveEnergyCost: (state.lossReviveEnergyCost as number) || DEFAULT_LOSS_REVIVE_ENERGY_COST,
+      lossReviveDaysBetween: (state.lossReviveDaysBetween as number) || DEFAULT_LOSS_REVIVE_DAYS_BETWEEN,
+      lossRevivePricePerLoss: (state.lossRevivePricePerLoss as number) || DEFAULT_LOSS_REVIVE_PRICE,
+      diabetesDayEnabled: (state.diabetesDayEnabled as boolean) || false,
+      diabetesDayNumberOfJumps: (state.diabetesDayNumberOfJumps as 1 | 2) || 1,
+      diabetesDayFHC: (state.diabetesDayFHC as 0 | 1 | 2) || 0,
+      diabetesDayGreenEgg: (state.diabetesDayGreenEgg as 0 | 1 | 2) || 0,
+      diabetesDaySeasonalMail: (state.diabetesDaySeasonalMail as boolean) || false,
+      diabetesDayLogoClick: (state.diabetesDayLogoClick as boolean) || false,
+      companyBenefitKey: (state.companyBenefitKey as string) || COMPANY_BENEFIT_TYPES.NONE,
+      candleShopStars: (state.candleShopStars as number) || DEFAULT_CANDLE_SHOP_STARS,
+      happy: (state.happy as number) || DEFAULT_HAPPY,
+      daysSkippedPerMonth: (state.daysSkippedPerMonth as number) || 0,
+      statDriftPercent: (state.statDriftPercent as number) || 0,
+      balanceAfterGymIndex: (state.balanceAfterGymIndex as number) ?? 19,
+      ignorePerksForGymSelection: (state.ignorePerksForGymSelection as boolean) || false,
+      islandCostPerDay: (state.islandCostPerDay as number) || DEFAULT_ISLAND_COST_PER_DAY,
+    };
+    
+    return {
+      id: (state.id as string) || '1',
+      name: (state.name as string) || 'State 1',
+      sections: [section],
+      showIndividualStats: (state.showIndividualStats as boolean) || false,
+    };
   };
 
   // Mode
@@ -152,56 +224,68 @@ export default function GymComparison() {
   });
   
   // Comparison states
-  const [comparisonStates, setComparisonStates] = useState<ComparisonState[]>(() => 
-    loadSavedValue('comparisonStates', [
-      {
+  const [comparisonStates, setComparisonStates] = useState<ComparisonState[]>(() => {
+    const savedStates = loadSavedValue<unknown[]>('comparisonStates', []);
+    const totalDays = DEFAULT_SIMULATION_MONTHS * 30;
+    
+    if (savedStates.length === 0) {
+      // No saved states, create default state with new format
+      return [{
         id: '1',
         name: 'State 1',
-        statWeights: DEFAULT_STAT_WEIGHTS,
-        hoursPlayedPerDay: DEFAULT_HOURS_PER_DAY,
-        xanaxPerDay: DEFAULT_XANAX_PER_DAY,
-        hasPointsRefill: true,
-        maxEnergy: MAX_ENERGY_DEFAULT,
-        perkPercs: DEFAULT_PERK_PERCS,
-        edvdJumpEnabled: false,
-        edvdJumpFrequency: DEFAULT_EDVD_FREQUENCY_DAYS,
-        edvdJumpDvds: DEFAULT_EDVD_DVDS,
-        edvdJumpLimit: 'indefinite',
-        edvdJumpCount: 10,
-        edvdJumpStatTarget: 10000000,
-        edvdJumpAdultNovelties: false,
-        candyJumpEnabled: false,
-        candyJumpItemId: CANDY_ITEM_IDS.HAPPY_25,
-        candyJumpUseEcstasy: false,
-        candyJumpQuantity: DEFAULT_CANDY_QUANTITY,
-        candyJumpFactionBenefit: 0,
-        energyJumpEnabled: false,
-        energyJumpItemId: ENERGY_ITEM_IDS.ENERGY_5,
-        energyJumpQuantity: DEFAULT_ENERGY_DRINK_QUANTITY,
-        energyJumpFactionBenefit: 0,
-        lossReviveEnabled: false,
-        lossReviveNumberPerDay: DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY,
-        lossReviveEnergyCost: DEFAULT_LOSS_REVIVE_ENERGY_COST,
-        lossReviveDaysBetween: DEFAULT_LOSS_REVIVE_DAYS_BETWEEN,
-        lossRevivePricePerLoss: DEFAULT_LOSS_REVIVE_PRICE,
-        diabetesDayEnabled: false,
-        diabetesDayNumberOfJumps: 1,
-        diabetesDayFHC: 0,
-        diabetesDayGreenEgg: 0,
-        diabetesDaySeasonalMail: false,
-        diabetesDayLogoClick: false,
-        companyBenefitKey: COMPANY_BENEFIT_TYPES.NONE,
-        candleShopStars: DEFAULT_CANDLE_SHOP_STARS,
-        happy: DEFAULT_HAPPY,
-        daysSkippedPerMonth: 0,
-        statDriftPercent: 0,
-        balanceAfterGymIndex: 19, // Default to Cha Cha's
-        ignorePerksForGymSelection: false,
+        sections: [{
+          id: '1',
+          startDay: 1,
+          endDay: totalDays,
+          statWeights: DEFAULT_STAT_WEIGHTS,
+          hoursPlayedPerDay: DEFAULT_HOURS_PER_DAY,
+          xanaxPerDay: DEFAULT_XANAX_PER_DAY,
+          hasPointsRefill: true,
+          maxEnergy: MAX_ENERGY_DEFAULT,
+          perkPercs: DEFAULT_PERK_PERCS,
+          edvdJumpEnabled: false,
+          edvdJumpFrequency: DEFAULT_EDVD_FREQUENCY_DAYS,
+          edvdJumpDvds: DEFAULT_EDVD_DVDS,
+          edvdJumpLimit: 'indefinite',
+          edvdJumpCount: 10,
+          edvdJumpStatTarget: 10000000,
+          edvdJumpAdultNovelties: false,
+          candyJumpEnabled: false,
+          candyJumpItemId: CANDY_ITEM_IDS.HAPPY_25,
+          candyJumpUseEcstasy: false,
+          candyJumpQuantity: DEFAULT_CANDY_QUANTITY,
+          candyJumpFactionBenefit: 0,
+          energyJumpEnabled: false,
+          energyJumpItemId: ENERGY_ITEM_IDS.ENERGY_5,
+          energyJumpQuantity: DEFAULT_ENERGY_DRINK_QUANTITY,
+          energyJumpFactionBenefit: 0,
+          lossReviveEnabled: false,
+          lossReviveNumberPerDay: DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY,
+          lossReviveEnergyCost: DEFAULT_LOSS_REVIVE_ENERGY_COST,
+          lossReviveDaysBetween: DEFAULT_LOSS_REVIVE_DAYS_BETWEEN,
+          lossRevivePricePerLoss: DEFAULT_LOSS_REVIVE_PRICE,
+          diabetesDayEnabled: false,
+          diabetesDayNumberOfJumps: 1,
+          diabetesDayFHC: 0,
+          diabetesDayGreenEgg: 0,
+          diabetesDaySeasonalMail: false,
+          diabetesDayLogoClick: false,
+          companyBenefitKey: COMPANY_BENEFIT_TYPES.NONE,
+          candleShopStars: DEFAULT_CANDLE_SHOP_STARS,
+          happy: DEFAULT_HAPPY,
+          daysSkippedPerMonth: 0,
+          statDriftPercent: 0,
+          balanceAfterGymIndex: 19,
+          ignorePerksForGymSelection: false,
+          islandCostPerDay: DEFAULT_ISLAND_COST_PER_DAY,
+        }],
         showIndividualStats: false,
-        islandCostPerDay: DEFAULT_ISLAND_COST_PER_DAY,
-      },
-    ])
-  );
+      }];
+    }
+    
+    // Migrate saved states
+    return savedStates.map(state => migrateComparisonState(state as Record<string, unknown>, totalDays));
+  });
   
   const [activeTabIndex, setActiveTabIndex] = useState<number>(0);
   const [results, setResults] = useState<Record<string, SimulationResult>>({});
@@ -289,9 +373,13 @@ export default function GymComparison() {
       // Update manual mode perk percs
       setManualPerkPercs(data.perkPercs);
       
+      // Update perk percs in all sections of all comparison states
       setComparisonStates((prev) => prev.map((state) => ({
         ...state,
-        perkPercs: data.perkPercs,
+        sections: state.sections.map(section => ({
+          ...section,
+          perkPercs: data.perkPercs,
+        })),
       })));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch gym stats');
@@ -308,52 +396,21 @@ export default function GymComparison() {
     
     // Copy values from the current/last state
     const sourceState = comparisonStates[activeTabIndex] || comparisonStates[comparisonStates.length - 1];
+    const totalDays = months * 30;
+    
+    // Copy the first section from the source state as a template
+    const sourceSection = sourceState.sections[0];
     
     const newState: ComparisonState = {
       id: Date.now().toString(),
       name: `State ${comparisonStates.length + 1}`,
-      statWeights: { ...sourceState.statWeights },
-      hoursPlayedPerDay: sourceState.hoursPlayedPerDay,
-      xanaxPerDay: sourceState.xanaxPerDay,
-      hasPointsRefill: sourceState.hasPointsRefill,
-      maxEnergy: sourceState.maxEnergy,
-      perkPercs: { ...sourceState.perkPercs },
-      edvdJumpEnabled: sourceState.edvdJumpEnabled,
-      edvdJumpFrequency: sourceState.edvdJumpFrequency,
-      edvdJumpDvds: sourceState.edvdJumpDvds,
-      edvdJumpLimit: sourceState.edvdJumpLimit,
-      edvdJumpCount: sourceState.edvdJumpCount,
-      edvdJumpStatTarget: sourceState.edvdJumpStatTarget,
-      edvdJumpAdultNovelties: sourceState.edvdJumpAdultNovelties,
-      candyJumpEnabled: sourceState.candyJumpEnabled,
-      candyJumpItemId: sourceState.candyJumpItemId,
-      candyJumpUseEcstasy: sourceState.candyJumpUseEcstasy,
-      candyJumpQuantity: sourceState.candyJumpQuantity,
-      candyJumpFactionBenefit: sourceState.candyJumpFactionBenefit,
-      energyJumpEnabled: sourceState.energyJumpEnabled,
-      energyJumpItemId: sourceState.energyJumpItemId,
-      energyJumpQuantity: sourceState.energyJumpQuantity,
-      energyJumpFactionBenefit: sourceState.energyJumpFactionBenefit,
-      lossReviveEnabled: sourceState.lossReviveEnabled,
-      lossReviveNumberPerDay: sourceState.lossReviveNumberPerDay,
-      lossReviveEnergyCost: sourceState.lossReviveEnergyCost,
-      lossReviveDaysBetween: sourceState.lossReviveDaysBetween,
-      lossRevivePricePerLoss: sourceState.lossRevivePricePerLoss,
-      diabetesDayEnabled: sourceState.diabetesDayEnabled,
-      diabetesDayNumberOfJumps: sourceState.diabetesDayNumberOfJumps,
-      diabetesDayFHC: sourceState.diabetesDayFHC,
-      diabetesDayGreenEgg: sourceState.diabetesDayGreenEgg,
-      diabetesDaySeasonalMail: sourceState.diabetesDaySeasonalMail,
-      diabetesDayLogoClick: sourceState.diabetesDayLogoClick,
-      companyBenefitKey: sourceState.companyBenefitKey,
-      candleShopStars: sourceState.candleShopStars,
-      happy: sourceState.happy,
-      daysSkippedPerMonth: sourceState.daysSkippedPerMonth,
-      statDriftPercent: sourceState.statDriftPercent,
-      balanceAfterGymIndex: sourceState.balanceAfterGymIndex,
-      ignorePerksForGymSelection: sourceState.ignorePerksForGymSelection,
+      sections: [{
+        ...sourceSection,
+        id: '1',
+        startDay: 1,
+        endDay: totalDays,
+      }],
       showIndividualStats: false,
-      islandCostPerDay: sourceState.islandCostPerDay,
     };
     
     setComparisonStates([...comparisonStates, newState]);
@@ -376,6 +433,267 @@ export default function GymComparison() {
     setComparisonStates((prev) => prev.map((state) => 
       state.id === stateId ? { ...state, ...updates } : state
     ));
+  };
+  
+  // Helper function to simulate gym progression with multiple sections
+  const simulateWithSections = (
+    state: ComparisonState,
+    totalMonths: number,
+    currentGym: number,
+    initStats: { strength: number; speed: number; defense: number; dexterity: number },
+    showCost: boolean,
+    itemPrices?: ItemPrices
+  ): SimulationResult => {
+    const totalDays = totalMonths * 30;
+    const sections = [...state.sections].sort((a, b) => a.startDay - b.startDay);
+    
+    // Validate sections
+    for (let i = 0; i < sections.length; i++) {
+      const section = sections[i];
+      if (section.startDay < 1 || section.endDay > totalDays) {
+        throw new Error(`Section ${i + 1} has invalid day range`);
+      }
+      if (i > 0 && sections[i - 1].endDay + 1 !== section.startDay) {
+        throw new Error(`Gap between sections ${i} and ${i + 1}`);
+      }
+    }
+    
+    // Run simulation for each section, chaining the end stats to the next section's initial stats
+    let currentStats = { ...initStats };
+    const allSnapshots: DailySnapshot[] = [];
+    
+    // Tracking for aggregated results
+    let totalEdvdJumps = 0;
+    let totalEdvdCost = 0;
+    const edvdGains = { strength: 0, speed: 0, defense: 0, dexterity: 0 };
+    let totalXanaxCost = 0;
+    let totalPointsCost = 0;
+    let totalCandyCost = 0;
+    let totalEnergyCost = 0;
+    let totalLossReviveIncome = 0;
+    let totalIslandCost = 0;
+    const diabetesDayGains = { strength: 0, speed: 0, defense: 0, dexterity: 0 };
+    let ddJump1Gains: { strength: number; speed: number; defense: number; dexterity: number } | undefined;
+    let ddJump2Gains: { strength: number; speed: number; defense: number; dexterity: number } | undefined;
+    
+    for (const section of sections) {
+      const sectionDays = section.endDay - section.startDay + 1;
+      const sectionMonths = sectionDays / 30;
+      
+      const benefit = getCompanyBenefit(section.companyBenefitKey, section.candleShopStars);
+      
+      const inputs: SimulationInputs = {
+        statWeights: section.statWeights,
+        months: sectionMonths,
+        xanaxPerDay: section.xanaxPerDay,
+        hasPointsRefill: section.hasPointsRefill,
+        hoursPlayedPerDay: section.hoursPlayedPerDay,
+        maxEnergy: section.maxEnergy,
+        companyBenefit: benefit,
+        apiKey,
+        initialStats: currentStats,
+        happy: section.happy,
+        perkPercs: section.perkPercs,
+        currentGymIndex: currentGym,
+        lockGym: false,
+        statDriftPercent: section.statDriftPercent,
+        balanceAfterGymIndex: section.balanceAfterGymIndex,
+        ignorePerksForGymSelection: section.ignorePerksForGymSelection,
+        edvdJump: section.edvdJumpEnabled ? {
+          enabled: true,
+          frequencyDays: section.edvdJumpFrequency,
+          dvdsUsed: section.edvdJumpDvds,
+          limit: section.edvdJumpLimit,
+          count: section.edvdJumpCount,
+          statTarget: section.edvdJumpStatTarget,
+          adultNovelties: section.edvdJumpAdultNovelties,
+        } : undefined,
+        diabetesDay: section.diabetesDayEnabled ? {
+          enabled: true,
+          numberOfJumps: section.diabetesDayNumberOfJumps,
+          featheryHotelCoupon: section.diabetesDayFHC,
+          greenEgg: section.diabetesDayGreenEgg,
+          seasonalMail: section.diabetesDaySeasonalMail,
+          logoEnergyClick: section.diabetesDayLogoClick,
+        } : undefined,
+        candyJump: section.candyJumpEnabled ? {
+          enabled: true,
+          itemId: section.candyJumpItemId,
+          useEcstasy: section.candyJumpUseEcstasy,
+          quantity: section.candyJumpQuantity,
+          factionBenefitPercent: section.candyJumpFactionBenefit,
+        } : undefined,
+        energyJump: section.energyJumpEnabled ? {
+          enabled: true,
+          itemId: section.energyJumpItemId,
+          quantity: section.energyJumpQuantity,
+          factionBenefitPercent: section.energyJumpFactionBenefit,
+        } : undefined,
+        lossRevive: section.lossReviveEnabled ? {
+          enabled: true,
+          numberPerDay: section.lossReviveNumberPerDay,
+          energyCost: section.lossReviveEnergyCost,
+          daysBetween: section.lossReviveDaysBetween,
+          pricePerLoss: section.lossRevivePricePerLoss,
+        } : undefined,
+        daysSkippedPerMonth: section.daysSkippedPerMonth,
+        islandCostPerDay: showCost ? section.islandCostPerDay : undefined,
+        simulatedDate: simulatedDate,
+        itemPrices: (showCost && itemPrices) ? {
+          dvdPrice: itemPrices.prices[366],
+          xanaxPrice: itemPrices.prices[206],
+          ecstasyPrice: itemPrices.prices[196],
+          candyEcstasyPrice: itemPrices.prices[197],
+          pointsPrice: itemPrices.prices[0],
+          candyPrices: {
+            310: itemPrices.prices[310],
+            36: itemPrices.prices[36],
+            528: itemPrices.prices[528],
+            529: itemPrices.prices[529],
+            151: itemPrices.prices[151],
+          },
+          energyPrices: {
+            985: itemPrices.prices[985],
+            986: itemPrices.prices[986],
+            987: itemPrices.prices[987],
+            530: itemPrices.prices[530],
+            532: itemPrices.prices[532],
+            533: itemPrices.prices[533],
+            367: itemPrices.prices[367],
+          },
+        } : undefined,
+      };
+      
+      const sectionResult = simulateGymProgression(AVAILABLE_GYMS, inputs);
+      
+      // Adjust day numbers in snapshots to be relative to the total simulation
+      const adjustedSnapshots = sectionResult.dailySnapshots.map(snapshot => ({
+        ...snapshot,
+        day: snapshot.day + section.startDay - 1,
+      }));
+      
+      allSnapshots.push(...adjustedSnapshots);
+      
+      // Update current stats for next section
+      currentStats = sectionResult.finalStats;
+      
+      // Aggregate costs and gains
+      if (sectionResult.edvdJumpCosts) {
+        totalEdvdJumps += sectionResult.edvdJumpCosts.totalJumps;
+        totalEdvdCost += sectionResult.edvdJumpCosts.totalCost;
+      }
+      if (sectionResult.edvdJumpGains) {
+        edvdGains.strength += sectionResult.edvdJumpGains.totalGains.strength;
+        edvdGains.speed += sectionResult.edvdJumpGains.totalGains.speed;
+        edvdGains.defense += sectionResult.edvdJumpGains.totalGains.defense;
+        edvdGains.dexterity += sectionResult.edvdJumpGains.totalGains.dexterity;
+      }
+      if (sectionResult.xanaxCosts) {
+        totalXanaxCost += sectionResult.xanaxCosts.totalCost;
+      }
+      if (sectionResult.pointsRefillCosts) {
+        totalPointsCost += sectionResult.pointsRefillCosts.totalCost;
+      }
+      if (sectionResult.candyJumpCosts) {
+        totalCandyCost += sectionResult.candyJumpCosts.totalCost;
+      }
+      if (sectionResult.energyJumpCosts) {
+        totalEnergyCost += sectionResult.energyJumpCosts.totalCost;
+      }
+      if (sectionResult.lossReviveIncome) {
+        totalLossReviveIncome += sectionResult.lossReviveIncome.totalIncome;
+      }
+      if (sectionResult.islandCosts) {
+        totalIslandCost += sectionResult.islandCosts.totalCost;
+      }
+      if (sectionResult.diabetesDayTotalGains) {
+        diabetesDayGains.strength += sectionResult.diabetesDayTotalGains.strength;
+        diabetesDayGains.speed += sectionResult.diabetesDayTotalGains.speed;
+        diabetesDayGains.defense += sectionResult.diabetesDayTotalGains.defense;
+        diabetesDayGains.dexterity += sectionResult.diabetesDayTotalGains.dexterity;
+      }
+      if (sectionResult.diabetesDayJump1Gains && !ddJump1Gains) {
+        ddJump1Gains = sectionResult.diabetesDayJump1Gains;
+      }
+      if (sectionResult.diabetesDayJump2Gains && !ddJump2Gains) {
+        ddJump2Gains = sectionResult.diabetesDayJump2Gains;
+      }
+    }
+    
+    // Build final result
+    const finalResult: SimulationResult = {
+      dailySnapshots: allSnapshots,
+      finalStats: currentStats,
+    };
+    
+    // Add aggregated cost information
+    if (totalEdvdJumps > 0 && totalEdvdCost > 0) {
+      finalResult.edvdJumpCosts = {
+        totalJumps: totalEdvdJumps,
+        costPerJump: totalEdvdCost / totalEdvdJumps,
+        totalCost: totalEdvdCost,
+      };
+      finalResult.edvdJumpGains = {
+        averagePerJump: {
+          strength: edvdGains.strength / totalEdvdJumps,
+          speed: edvdGains.speed / totalEdvdJumps,
+          defense: edvdGains.defense / totalEdvdJumps,
+          dexterity: edvdGains.dexterity / totalEdvdJumps,
+        },
+        totalGains: edvdGains,
+      };
+    }
+    if (totalXanaxCost > 0) {
+      finalResult.xanaxCosts = { totalCost: totalXanaxCost };
+    }
+    if (totalPointsCost > 0) {
+      finalResult.pointsRefillCosts = { totalCost: totalPointsCost };
+    }
+    if (totalCandyCost > 0) {
+      const totalCandyDays = sections.reduce((sum, s) => sum + (s.candyJumpEnabled ? (s.endDay - s.startDay + 1) : 0), 0);
+      finalResult.candyJumpCosts = {
+        totalDays: totalCandyDays,
+        costPerDay: totalCandyDays > 0 ? totalCandyCost / totalCandyDays : 0,
+        totalCost: totalCandyCost,
+      };
+    }
+    if (totalEnergyCost > 0) {
+      const totalEnergyDays = sections.reduce((sum, s) => sum + (s.energyJumpEnabled ? (s.endDay - s.startDay + 1) : 0), 0);
+      finalResult.energyJumpCosts = {
+        totalDays: totalEnergyDays,
+        costPerDay: totalEnergyDays > 0 ? totalEnergyCost / totalEnergyDays : 0,
+        totalCost: totalEnergyCost,
+      };
+    }
+    if (totalLossReviveIncome > 0) {
+      const totalLossReviveDays = sections.reduce((sum, s) => {
+        if (!s.lossReviveEnabled) return sum;
+        const sectionDays = s.endDay - s.startDay + 1;
+        return sum + Math.floor(sectionDays / s.lossReviveDaysBetween);
+      }, 0);
+      finalResult.lossReviveIncome = {
+        totalDays: totalLossReviveDays,
+        incomePerDay: totalLossReviveDays > 0 ? totalLossReviveIncome / totalLossReviveDays : 0,
+        totalIncome: totalLossReviveIncome,
+      };
+    }
+    if (totalIslandCost > 0) {
+      finalResult.islandCosts = {
+        costPerDay: totalIslandCost / totalDays,
+        totalCost: totalIslandCost,
+      };
+    }
+    if (diabetesDayGains.strength + diabetesDayGains.speed + diabetesDayGains.defense + diabetesDayGains.dexterity > 0) {
+      finalResult.diabetesDayTotalGains = diabetesDayGains;
+    }
+    if (ddJump1Gains) {
+      finalResult.diabetesDayJump1Gains = ddJump1Gains;
+    }
+    if (ddJump2Gains) {
+      finalResult.diabetesDayJump2Gains = ddJump2Gains;
+    }
+    
+    return finalResult;
   };
   
   const handleSimulate = () => {
@@ -409,91 +727,7 @@ export default function GymComparison() {
         const newResults: Record<string, SimulationResult> = {};
         
         for (const state of comparisonStates) {
-          const benefit = getCompanyBenefit(state.companyBenefitKey, state.candleShopStars);
-          
-          const inputs: SimulationInputs = {
-            statWeights: state.statWeights,
-            months,
-            xanaxPerDay: state.xanaxPerDay,
-            hasPointsRefill: state.hasPointsRefill,
-            hoursPlayedPerDay: state.hoursPlayedPerDay,
-            maxEnergy: state.maxEnergy,
-            companyBenefit: benefit,
-            apiKey,
-            initialStats,
-            happy: state.happy, 
-            perkPercs: state.perkPercs,
-            currentGymIndex: currentGymIndex, // Start from current/selected gym and auto-upgrade
-            lockGym: false, // Always use auto-upgrade in future mode to allow unlock speed multiplier to work
-            statDriftPercent: state.statDriftPercent,
-            balanceAfterGymIndex: state.balanceAfterGymIndex,
-            ignorePerksForGymSelection: state.ignorePerksForGymSelection,
-            edvdJump: state.edvdJumpEnabled ? {
-              enabled: true,
-              frequencyDays: state.edvdJumpFrequency,
-              dvdsUsed: state.edvdJumpDvds,
-              limit: state.edvdJumpLimit,
-              count: state.edvdJumpCount,
-              statTarget: state.edvdJumpStatTarget,
-              adultNovelties: state.edvdJumpAdultNovelties,
-            } : undefined,
-            diabetesDay: state.diabetesDayEnabled ? {
-              enabled: true,
-              numberOfJumps: state.diabetesDayNumberOfJumps,
-              featheryHotelCoupon: state.diabetesDayFHC,
-              greenEgg: state.diabetesDayGreenEgg,
-              seasonalMail: state.diabetesDaySeasonalMail,
-              logoEnergyClick: state.diabetesDayLogoClick,
-            } : undefined,
-            candyJump: state.candyJumpEnabled ? {
-              enabled: true,
-              itemId: state.candyJumpItemId,
-              useEcstasy: state.candyJumpUseEcstasy,
-              quantity: state.candyJumpQuantity,
-              factionBenefitPercent: state.candyJumpFactionBenefit,
-            } : undefined,
-            energyJump: state.energyJumpEnabled ? {
-              enabled: true,
-              itemId: state.energyJumpItemId,
-              quantity: state.energyJumpQuantity,
-              factionBenefitPercent: state.energyJumpFactionBenefit,
-            } : undefined,
-            lossRevive: state.lossReviveEnabled ? {
-              enabled: true,
-              numberPerDay: state.lossReviveNumberPerDay,
-              energyCost: state.lossReviveEnergyCost,
-              daysBetween: state.lossReviveDaysBetween,
-              pricePerLoss: state.lossRevivePricePerLoss,
-            } : undefined,
-            daysSkippedPerMonth: state.daysSkippedPerMonth,
-            islandCostPerDay: showCosts ? state.islandCostPerDay : undefined,
-            simulatedDate: simulatedDate,
-            itemPrices: (showCosts && itemPricesData) ? {
-              dvdPrice: itemPricesData.prices[366],
-              xanaxPrice: itemPricesData.prices[206],
-              ecstasyPrice: itemPricesData.prices[196],
-              candyEcstasyPrice: itemPricesData.prices[197],
-              pointsPrice: itemPricesData.prices[0], // Points market price
-              candyPrices: {
-                310: itemPricesData.prices[310],
-                36: itemPricesData.prices[36],
-                528: itemPricesData.prices[528],
-                529: itemPricesData.prices[529],
-                151: itemPricesData.prices[151],
-              },
-              energyPrices: {
-                985: itemPricesData.prices[985],
-                986: itemPricesData.prices[986],
-                987: itemPricesData.prices[987],
-                530: itemPricesData.prices[530],
-                532: itemPricesData.prices[532],
-                533: itemPricesData.prices[533],
-                367: itemPricesData.prices[367],
-              },
-            } : undefined,
-          };
-          
-          const result = simulateGymProgression(AVAILABLE_GYMS, inputs);
+          const result = simulateWithSections(state, months, currentGymIndex, initialStats, showCosts, itemPricesData);
           newResults[state.id] = result;
         }
         
@@ -601,106 +835,19 @@ export default function GymComparison() {
 
       // Load comparison states (future mode)
       if (Array.isArray(settings.comparisonStates) && settings.comparisonStates.length > 0) {
+        const totalDays = (typeof settings.months === 'number' ? settings.months : months) * 30;
         const loadedStates = settings.comparisonStates.map((state: unknown, index: number) => {
           if (typeof state === 'object' && state !== null) {
             const s = state as Record<string, unknown>;
-            return {
-              id: Date.now().toString() + index, // Generate new IDs
-              name: typeof s.name === 'string' ? s.name : `State ${index + 1}`,
-              statWeights: typeof s.statWeights === 'object' ? s.statWeights as StatWeights : DEFAULT_STAT_WEIGHTS,
-              hoursPlayedPerDay: typeof s.hoursPlayedPerDay === 'number' ? s.hoursPlayedPerDay : DEFAULT_HOURS_PER_DAY,
-              xanaxPerDay: typeof s.xanaxPerDay === 'number' ? s.xanaxPerDay : DEFAULT_XANAX_PER_DAY,
-              hasPointsRefill: typeof s.hasPointsRefill === 'boolean' ? s.hasPointsRefill : true,
-              maxEnergy: typeof s.maxEnergy === 'number' ? s.maxEnergy : MAX_ENERGY_DEFAULT,
-              perkPercs: (typeof s.perkPercs === 'object' && s.perkPercs !== null && 
-                         'strength' in s.perkPercs && 'speed' in s.perkPercs && 
-                         'defense' in s.perkPercs && 'dexterity' in s.perkPercs) 
-                         ? s.perkPercs as { strength: number; speed: number; defense: number; dexterity: number } 
-                         : DEFAULT_PERK_PERCS,
-              edvdJumpEnabled: typeof s.edvdJumpEnabled === 'boolean' ? s.edvdJumpEnabled : false,
-              edvdJumpFrequency: typeof s.edvdJumpFrequency === 'number' ? s.edvdJumpFrequency : DEFAULT_EDVD_FREQUENCY_DAYS,
-              edvdJumpDvds: typeof s.edvdJumpDvds === 'number' ? s.edvdJumpDvds : DEFAULT_EDVD_DVDS,
-              edvdJumpLimit: (s.edvdJumpLimit === 'indefinite' || s.edvdJumpLimit === 'count' || s.edvdJumpLimit === 'stat') ? s.edvdJumpLimit as 'indefinite' | 'count' | 'stat' : 'indefinite',
-              edvdJumpCount: typeof s.edvdJumpCount === 'number' ? s.edvdJumpCount : 10,
-              edvdJumpStatTarget: typeof s.edvdJumpStatTarget === 'number' ? s.edvdJumpStatTarget : 10000000,
-              edvdJumpAdultNovelties: typeof s.edvdJumpAdultNovelties === 'boolean' ? s.edvdJumpAdultNovelties : false,
-              candyJumpEnabled: typeof s.candyJumpEnabled === 'boolean' ? s.candyJumpEnabled : false,
-              candyJumpItemId: typeof s.candyJumpItemId === 'number' ? s.candyJumpItemId : CANDY_ITEM_IDS.HAPPY_25,
-              candyJumpUseEcstasy: typeof s.candyJumpUseEcstasy === 'boolean' ? s.candyJumpUseEcstasy : false,
-              candyJumpQuantity: typeof s.candyJumpQuantity === 'number' ? s.candyJumpQuantity : DEFAULT_CANDY_QUANTITY,
-              candyJumpFactionBenefit: typeof s.candyJumpFactionBenefit === 'number' ? s.candyJumpFactionBenefit : 0,
-              energyJumpEnabled: typeof s.energyJumpEnabled === 'boolean' ? s.energyJumpEnabled : false,
-              energyJumpItemId: typeof s.energyJumpItemId === 'number' ? s.energyJumpItemId : ENERGY_ITEM_IDS.ENERGY_5,
-              energyJumpQuantity: typeof s.energyJumpQuantity === 'number' ? s.energyJumpQuantity : DEFAULT_ENERGY_DRINK_QUANTITY,
-              energyJumpFactionBenefit: typeof s.energyJumpFactionBenefit === 'number' ? s.energyJumpFactionBenefit : 0,
-              lossReviveEnabled: typeof s.lossReviveEnabled === 'boolean' ? s.lossReviveEnabled : false,
-              lossReviveNumberPerDay: typeof s.lossReviveNumberPerDay === 'number' ? s.lossReviveNumberPerDay : DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY,
-              lossReviveEnergyCost: typeof s.lossReviveEnergyCost === 'number' ? s.lossReviveEnergyCost : DEFAULT_LOSS_REVIVE_ENERGY_COST,
-              lossReviveDaysBetween: typeof s.lossReviveDaysBetween === 'number' ? s.lossReviveDaysBetween : DEFAULT_LOSS_REVIVE_DAYS_BETWEEN,
-              lossRevivePricePerLoss: typeof s.lossRevivePricePerLoss === 'number' ? s.lossRevivePricePerLoss : DEFAULT_LOSS_REVIVE_PRICE,
-              diabetesDayEnabled: typeof s.diabetesDayEnabled === 'boolean' ? s.diabetesDayEnabled : false,
-              diabetesDayNumberOfJumps: (s.diabetesDayNumberOfJumps === 1 || s.diabetesDayNumberOfJumps === 2) ? s.diabetesDayNumberOfJumps as 1 | 2 : 1,
-              diabetesDayFHC: (s.diabetesDayFHC === 0 || s.diabetesDayFHC === 1 || s.diabetesDayFHC === 2) ? s.diabetesDayFHC as 0 | 1 | 2 : 0,
-              diabetesDayGreenEgg: (s.diabetesDayGreenEgg === 0 || s.diabetesDayGreenEgg === 1 || s.diabetesDayGreenEgg === 2) ? s.diabetesDayGreenEgg as 0 | 1 | 2 : 0,
-              diabetesDaySeasonalMail: typeof s.diabetesDaySeasonalMail === 'boolean' ? s.diabetesDaySeasonalMail : false,
-              diabetesDayLogoClick: typeof s.diabetesDayLogoClick === 'boolean' ? s.diabetesDayLogoClick : false,
-              companyBenefitKey: typeof s.companyBenefitKey === 'string' ? s.companyBenefitKey : COMPANY_BENEFIT_TYPES.NONE,
-              candleShopStars: typeof s.candleShopStars === 'number' ? s.candleShopStars : DEFAULT_CANDLE_SHOP_STARS,
-              happy: typeof s.happy === 'number' ? s.happy : DEFAULT_HAPPY,
-              daysSkippedPerMonth: typeof s.daysSkippedPerMonth === 'number' ? s.daysSkippedPerMonth : 0,
-              statDriftPercent: typeof s.statDriftPercent === 'number' ? Math.max(0, Math.min(100, s.statDriftPercent)) : 0,
-              balanceAfterGymIndex: typeof s.balanceAfterGymIndex === 'number' ? s.balanceAfterGymIndex : 19,
-              ignorePerksForGymSelection: typeof s.ignorePerksForGymSelection === 'boolean' ? s.ignorePerksForGymSelection : false,
-              showIndividualStats: typeof s.showIndividualStats === 'boolean' ? s.showIndividualStats : false,
-              islandCostPerDay: typeof s.islandCostPerDay === 'number' ? s.islandCostPerDay : DEFAULT_ISLAND_COST_PER_DAY,
-            };
+            // Use migration function to convert old or new format
+            const migrated = migrateComparisonState(s, totalDays);
+            // Update id and name
+            migrated.id = Date.now().toString() + index;
+            migrated.name = typeof s.name === 'string' ? s.name : `State ${index + 1}`;
+            return migrated;
           }
-          return {
-            id: Date.now().toString() + index,
-            name: `State ${index + 1}`,
-            statWeights: DEFAULT_STAT_WEIGHTS,
-            hoursPlayedPerDay: DEFAULT_HOURS_PER_DAY,
-            xanaxPerDay: DEFAULT_XANAX_PER_DAY,
-            hasPointsRefill: true,
-            maxEnergy: MAX_ENERGY_DEFAULT,
-            perkPercs: DEFAULT_PERK_PERCS,
-            edvdJumpEnabled: false,
-            edvdJumpFrequency: DEFAULT_EDVD_FREQUENCY_DAYS,
-            edvdJumpDvds: DEFAULT_EDVD_DVDS,
-            edvdJumpLimit: 'indefinite' as const,
-            edvdJumpCount: 10,
-            edvdJumpStatTarget: 10000000,
-            edvdJumpAdultNovelties: false,
-            candyJumpEnabled: false,
-            candyJumpItemId: CANDY_ITEM_IDS.HAPPY_25,
-            candyJumpUseEcstasy: false,
-            candyJumpQuantity: DEFAULT_CANDY_QUANTITY,
-            candyJumpFactionBenefit: 0,
-            energyJumpEnabled: false,
-            energyJumpItemId: ENERGY_ITEM_IDS.ENERGY_5,
-            energyJumpQuantity: DEFAULT_ENERGY_DRINK_QUANTITY,
-            energyJumpFactionBenefit: 0,
-            lossReviveEnabled: false,
-            lossReviveNumberPerDay: DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY,
-            lossReviveEnergyCost: DEFAULT_LOSS_REVIVE_ENERGY_COST,
-            lossReviveDaysBetween: DEFAULT_LOSS_REVIVE_DAYS_BETWEEN,
-            lossRevivePricePerLoss: DEFAULT_LOSS_REVIVE_PRICE,
-            diabetesDayEnabled: false,
-            diabetesDayNumberOfJumps: 1 as const,
-            diabetesDayFHC: 0 as const,
-            diabetesDayGreenEgg: 0 as const,
-            diabetesDaySeasonalMail: false,
-            diabetesDayLogoClick: false,
-            companyBenefitKey: COMPANY_BENEFIT_TYPES.NONE,
-            candleShopStars: DEFAULT_CANDLE_SHOP_STARS,
-            happy: DEFAULT_HAPPY,
-            daysSkippedPerMonth: 0,
-            statDriftPercent: 0,
-            balanceAfterGymIndex: 19,
-            ignorePerksForGymSelection: false,
-            showIndividualStats: false,
-            islandCostPerDay: DEFAULT_ISLAND_COST_PER_DAY,
-          };
+          // Fallback for invalid state
+          return migrateComparisonState({}, totalDays);
         });
         setComparisonStates(loadedStates);
       }
