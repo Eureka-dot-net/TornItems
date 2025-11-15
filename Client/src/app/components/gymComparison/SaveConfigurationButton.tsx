@@ -14,7 +14,7 @@ import {
   IconButton,
   Box,
 } from '@mui/material';
-import { Save, Delete } from '@mui/icons-material';
+import { Save, Delete, ContentCopy } from '@mui/icons-material';
 
 interface SaveConfigurationButtonProps {
   getCurrentSettings: () => Record<string, unknown>;
@@ -112,6 +112,27 @@ export default function SaveConfigurationButton({ getCurrentSettings }: SaveConf
     }
   };
 
+  const handleCopy = (name: string) => {
+    try {
+      const configToCopy = savedConfigs.find(c => c.name === name);
+      if (!configToCopy) return;
+
+      // Create a new configuration with all the same settings and segments
+      const copiedConfig: SavedConfiguration = {
+        name: configToCopy.name, // Keep the same name - user can rename it
+        timestamp: new Date().toISOString(),
+        settings: JSON.parse(JSON.stringify(configToCopy.settings)), // Deep clone the settings
+      };
+
+      // Add the copied configuration to the list
+      const updatedConfigs = [...savedConfigs, copiedConfig];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedConfigs));
+      setSavedConfigs(updatedConfigs);
+    } catch (err) {
+      console.error('Copy error:', err);
+    }
+  };
+
   return (
     <>
       <Button
@@ -158,6 +179,14 @@ export default function SaveConfigurationButton({ getCurrentSettings }: SaveConf
                       secondary={new Date(config.timestamp).toLocaleString()}
                     />
                     <ListItemSecondaryAction>
+                      <IconButton 
+                        aria-label="copy"
+                        onClick={() => handleCopy(config.name)}
+                        size="small"
+                        sx={{ mr: 1 }}
+                      >
+                        <ContentCopy />
+                      </IconButton>
                       <IconButton 
                         edge="end" 
                         aria-label="delete"

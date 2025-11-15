@@ -14,7 +14,7 @@ import {
   Box,
   Typography,
 } from '@mui/material';
-import { FolderOpen, Delete } from '@mui/icons-material';
+import { FolderOpen, Delete, ContentCopy } from '@mui/icons-material';
 
 interface LoadConfigurationButtonProps {
   onLoadSettings: (settings: Record<string, unknown>) => void;
@@ -86,6 +86,28 @@ export default function LoadConfigurationButton({ onLoadSettings }: LoadConfigur
     }
   };
 
+  const handleCopy = (name: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    try {
+      const configToCopy = savedConfigs.find(c => c.name === name);
+      if (!configToCopy) return;
+
+      // Create a new configuration with all the same settings and segments
+      const copiedConfig: SavedConfiguration = {
+        name: configToCopy.name, // Keep the same name - user can rename it
+        timestamp: new Date().toISOString(),
+        settings: JSON.parse(JSON.stringify(configToCopy.settings)), // Deep clone the settings
+      };
+
+      // Add the copied configuration to the list
+      const updatedConfigs = [...savedConfigs, copiedConfig];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedConfigs));
+      setSavedConfigs(updatedConfigs);
+    } catch (err) {
+      console.error('Copy error:', err);
+    }
+  };
+
   return (
     <>
       <Button
@@ -125,6 +147,14 @@ export default function LoadConfigurationButton({ onLoadSettings }: LoadConfigur
                     secondary={new Date(config.timestamp).toLocaleString()}
                   />
                   <ListItemSecondaryAction>
+                    <IconButton 
+                      aria-label="copy"
+                      onClick={(e) => handleCopy(config.name, e)}
+                      size="small"
+                      sx={{ mr: 1 }}
+                    >
+                      <ContentCopy />
+                    </IconButton>
                     <IconButton 
                       edge="end" 
                       aria-label="delete"
