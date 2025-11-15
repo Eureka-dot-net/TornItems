@@ -157,6 +157,7 @@ export interface SimulationResult {
     defense: number;
     dexterity: number;
   };
+  sectionBoundaries?: number[]; // Array of day numbers where sections change (e.g., [180, 360] means section 1 ends at day 180, section 2 ends at day 360)
   edvdJumpCosts?: {
     totalJumps: number;
     costPerJump: number;

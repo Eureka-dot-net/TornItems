@@ -91,8 +91,40 @@ export function simulateWithSections(
     }
   }
   
-  // For single section, just run the normal simulation to avoid any discrepancies
-  if (sections.length === 1) {
+  // Check if all sections have identical settings (excluding id, startDay, endDay)
+  const allSectionsIdentical = sections.length > 1 && sections.every((section, index) => {
+    if (index === 0) return true;
+    const prev = sections[index - 1];
+    return (
+      section.statWeights.strength === prev.statWeights.strength &&
+      section.statWeights.speed === prev.statWeights.speed &&
+      section.statWeights.defense === prev.statWeights.defense &&
+      section.statWeights.dexterity === prev.statWeights.dexterity &&
+      section.xanaxPerDay === prev.xanaxPerDay &&
+      section.hasPointsRefill === prev.hasPointsRefill &&
+      section.hoursPlayedPerDay === prev.hoursPlayedPerDay &&
+      section.maxEnergy === prev.maxEnergy &&
+      section.companyBenefitKey === prev.companyBenefitKey &&
+      section.candleShopStars === prev.candleShopStars &&
+      section.happy === prev.happy &&
+      section.perkPercs.strength === prev.perkPercs.strength &&
+      section.perkPercs.speed === prev.perkPercs.speed &&
+      section.perkPercs.defense === prev.perkPercs.defense &&
+      section.perkPercs.dexterity === prev.perkPercs.dexterity &&
+      section.statDriftPercent === prev.statDriftPercent &&
+      section.balanceAfterGymIndex === prev.balanceAfterGymIndex &&
+      section.ignorePerksForGymSelection === prev.ignorePerksForGymSelection &&
+      section.edvdJumpEnabled === prev.edvdJumpEnabled &&
+      section.candyJumpEnabled === prev.candyJumpEnabled &&
+      section.energyJumpEnabled === prev.energyJumpEnabled &&
+      section.lossReviveEnabled === prev.lossReviveEnabled &&
+      section.diabetesDayEnabled === prev.diabetesDayEnabled &&
+      section.daysSkippedPerMonth === prev.daysSkippedPerMonth
+    );
+  });
+  
+  // For single section OR identical sections, just run the normal simulation to avoid any discrepancies
+  if (sections.length === 1 || allSectionsIdentical) {
     const section = sections[0];
     const benefit = getCompanyBenefit(section.companyBenefitKey, section.candleShopStars);
     
@@ -358,6 +390,7 @@ export function simulateWithSections(
   const finalResult: SimulationResult = {
     dailySnapshots: allSnapshots,
     finalStats: currentStats,
+    sectionBoundaries: sections.length > 1 ? sections.map(s => s.endDay) : undefined,
   };
   
   // Add aggregated cost information
