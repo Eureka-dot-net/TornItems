@@ -55,6 +55,7 @@ export interface SimulationInputs {
   lockGym?: boolean; // Optional: if true, stay locked to currentGymIndex. If false/undefined, auto-upgrade from currentGymIndex
   manualEnergy?: number; // Optional: if specified, use this instead of calculating daily energy
   maxEnergy?: number; // Optional: 150 (default) or 100. Affects energy regeneration rate and max capacity
+  initialEnergySpent?: number; // Optional: if specified, use this as starting totalEnergySpent (for chaining sections with gym progress)
   edvdJump?: {
     enabled: boolean;
     frequencyDays: number; // e.g., 7 for weekly, 14 for every 2 weeks
@@ -157,6 +158,8 @@ export interface SimulationResult {
     defense: number;
     dexterity: number;
   };
+  finalEnergySpent?: number; // Total energy spent at end of simulation (for chaining sections)
+  sectionBoundaries?: number[]; // Array of day numbers where sections change (e.g., [180, 360] means section 1 ends at day 180, section 2 ends at day 360)
   edvdJumpCosts?: {
     totalJumps: number;
     costPerJump: number;
@@ -420,8 +423,12 @@ export function simulateGymProgression(
   // Determine if we should lock to a specific gym or auto-upgrade
   const shouldLockGym = inputs.lockGym === true;
   
-  // Set initial energy spent based on starting gym
-  if (inputs.currentGymIndex >= 0 && inputs.currentGymIndex < gyms.length) {
+  // Set initial energy spent based on initialEnergySpent parameter or starting gym
+  if (inputs.initialEnergySpent !== undefined) {
+    // Use provided initial energy spent (for chaining sections)
+    totalEnergySpent = inputs.initialEnergySpent;
+  } else if (inputs.currentGymIndex >= 0 && inputs.currentGymIndex < gyms.length) {
+    // Default: assume all energy to unlock current gym has been spent
     const startingGym = gyms[inputs.currentGymIndex];
     if (startingGym) {
       totalEnergySpent = startingGym.energyToUnlock;
@@ -1567,6 +1574,7 @@ export function simulateGymProgression(
       defense: Math.round(stats.defense),
       dexterity: Math.round(stats.dexterity),
     },
+    finalEnergySpent: totalEnergySpent,
     edvdJumpCosts,
     edvdJumpGains: inputs.edvdJump?.enabled && edvdJumpsPerformed > 0 ? {
       averagePerJump: {
