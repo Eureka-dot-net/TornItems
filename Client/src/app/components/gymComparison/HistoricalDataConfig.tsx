@@ -9,7 +9,6 @@ import {
   Radio,
   RadioGroup,
   Switch,
-  TextField,
   Typography,
   Alert,
 } from '@mui/material';
@@ -46,7 +45,8 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
     const saved = loadSavedValue<string | null>('endDate', null);
     return saved ? new Date(saved) : new Date();
   });
-  const [samplingFrequencyDays, setSamplingFrequencyDays] = useState(() => loadSavedValue('samplingFrequencyDays', 7));
+  // Always fetch daily (samplingFrequencyDays = 1)
+  const samplingFrequencyDays = 1;
   const [cachingMode, setCachingMode] = useState<'store' | 'refetch'>(() => loadSavedValue('cachingMode', 'store'));
   const [fetchProgress, setFetchProgress] = useState<{ current: number; total: number } | null>(null);
   
@@ -56,7 +56,6 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
   useEffect(() => { localStorage.setItem('historicalDataConfig_enabled', JSON.stringify(enabled)); }, [enabled]);
   useEffect(() => { localStorage.setItem('historicalDataConfig_startDate', JSON.stringify(startDate ? startDate.toISOString() : null)); }, [startDate]);
   useEffect(() => { localStorage.setItem('historicalDataConfig_endDate', JSON.stringify(endDate ? endDate.toISOString() : null)); }, [endDate]);
-  useEffect(() => { localStorage.setItem('historicalDataConfig_samplingFrequencyDays', JSON.stringify(samplingFrequencyDays)); }, [samplingFrequencyDays]);
   useEffect(() => { localStorage.setItem('historicalDataConfig_cachingMode', JSON.stringify(cachingMode)); }, [cachingMode]);
 
   // Calculate estimates
@@ -96,19 +95,47 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
       lastFetchedParams.samplingFrequencyDays !== samplingFrequencyDays;
 
     if (paramsChanged && cachingMode === 'store') {
-      // Check if we have cached data for these parameters
-      const cacheKey = `historicalStats_${startDate.getTime()}_${endDate.getTime()}_${samplingFrequencyDays}`;
-      const cached = localStorage.getItem(cacheKey);
+      // Calculate all timestamps we need
+      const allTimestamps: number[] = [];
+      const currentDate = new Date(startDate);
+      const endTime = endDate.getTime();
       
-      if (cached) {
-        // Load from cache
-        try {
-          const data = JSON.parse(cached) as HistoricalStat[];
-          onHistoricalDataFetched(data);
-          setLastFetchedParams({ startDate, endDate, samplingFrequencyDays });
-        } catch (err) {
-          console.error('Failed to load cached data:', err);
+      while (currentDate.getTime() <= endTime) {
+        allTimestamps.push(Math.floor(currentDate.getTime() / 1000));
+        currentDate.setDate(currentDate.getDate() + samplingFrequencyDays);
+      }
+      
+      const endTimestamp = Math.floor(endTime / 1000);
+      if (allTimestamps[allTimestamps.length - 1] !== endTimestamp) {
+        allTimestamps.push(endTimestamp);
+      }
+      
+      // Check if we have all data cached
+      const cachedData: HistoricalStat[] = [];
+      let allCached = true;
+      
+      for (const timestamp of allTimestamps) {
+        const cacheKey = `historicalStat_${timestamp}`;
+        const cached = localStorage.getItem(cacheKey);
+        
+        if (cached) {
+          try {
+            cachedData.push(JSON.parse(cached) as HistoricalStat);
+          } catch {
+            allCached = false;
+            break;
+          }
+        } else {
+          allCached = false;
+          break;
         }
+      }
+      
+      if (allCached && cachedData.length > 0) {
+        // All data is cached, load it
+        cachedData.sort((a, b) => a.timestamp - b.timestamp);
+        onHistoricalDataFetched(cachedData);
+        setLastFetchedParams({ startDate, endDate, samplingFrequencyDays });
       }
     }
   }, [enabled, apiKey, startDate, endDate, samplingFrequencyDays, cachingMode, lastFetchedParams, onHistoricalDataFetched]);
@@ -119,37 +146,75 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
     }
     
     try {
-      // Check cache if in store mode
+      let dataToFetch: HistoricalStat[] = [];
+      const timestampsToFetch: number[] = [];
+      
+      // Calculate all timestamps we need
+      const allTimestamps: number[] = [];
+      const currentDate = new Date(startDate);
+      const endTime = endDate.getTime();
+      
+      while (currentDate.getTime() <= endTime) {
+        allTimestamps.push(Math.floor(currentDate.getTime() / 1000));
+        currentDate.setDate(currentDate.getDate() + samplingFrequencyDays);
+      }
+      
+      // Ensure we include the end date
+      const endTimestamp = Math.floor(endTime / 1000);
+      if (allTimestamps[allTimestamps.length - 1] !== endTimestamp) {
+        allTimestamps.push(endTimestamp);
+      }
+      
+      // Check cache for each timestamp
       if (cachingMode === 'store') {
-        const cacheKey = `historicalStats_${startDate.getTime()}_${endDate.getTime()}_${samplingFrequencyDays}`;
-        const cached = localStorage.getItem(cacheKey);
-        
-        if (cached) {
-          const data = JSON.parse(cached) as HistoricalStat[];
-          onHistoricalDataFetched(data);
-          setLastFetchedParams({ startDate, endDate, samplingFrequencyDays });
-          return;
+        for (const timestamp of allTimestamps) {
+          const cacheKey = `historicalStat_${timestamp}`;
+          const cached = localStorage.getItem(cacheKey);
+          
+          if (cached) {
+            try {
+              dataToFetch.push(JSON.parse(cached) as HistoricalStat);
+            } catch {
+              // If parse fails, fetch this timestamp
+              timestampsToFetch.push(timestamp);
+            }
+          } else {
+            timestampsToFetch.push(timestamp);
+          }
         }
+      } else {
+        // Refetch mode - fetch all timestamps
+        timestampsToFetch.push(...allTimestamps);
       }
       
-      // Fetch data
-      const data = await fetchHistoricalStats({
-        apiKey,
-        startDate,
-        endDate,
-        samplingFrequencyDays,
-        onProgress: (current, total) => {
-          setFetchProgress({ current, total });
-        },
-      });
-      
-      // Store in cache if in store mode
-      if (cachingMode === 'store') {
-        const cacheKey = `historicalStats_${startDate.getTime()}_${endDate.getTime()}_${samplingFrequencyDays}`;
-        localStorage.setItem(cacheKey, JSON.stringify(data));
+      // Fetch missing data
+      if (timestampsToFetch.length > 0) {
+        const fetchedData = await fetchHistoricalStats({
+          apiKey,
+          startDate,
+          endDate,
+          samplingFrequencyDays,
+          onProgress: (current, total) => {
+            setFetchProgress({ current, total });
+          },
+          timestampsToFetch, // Only fetch these specific timestamps
+        });
+        
+        // Store each fetched stat individually in cache
+        if (cachingMode === 'store') {
+          fetchedData.forEach(stat => {
+            const cacheKey = `historicalStat_${stat.timestamp}`;
+            localStorage.setItem(cacheKey, JSON.stringify(stat));
+          });
+        }
+        
+        dataToFetch.push(...fetchedData);
       }
       
-      onHistoricalDataFetched(data);
+      // Sort by timestamp
+      dataToFetch.sort((a, b) => a.timestamp - b.timestamp);
+      
+      onHistoricalDataFetched(dataToFetch);
       setLastFetchedParams({ startDate, endDate, samplingFrequencyDays });
       setFetchProgress(null);
     } catch (err) {
@@ -186,11 +251,11 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
       {enabled && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Alert severity="info">
-            Fetch your actual gym stats history to compare with simulated predictions. This uses the Torn API v2 personalstats endpoint.
+            Fetch your actual gym stats history to compare with simulated predictions. This uses the Torn API v2 personalstats endpoint. Data is fetched daily for accuracy.
           </Alert>
 
           <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
               <DatePicker
                 label="Start Date"
                 value={startDate}
@@ -213,30 +278,17 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
                   } 
                 }}
               />
+              
+              <Box sx={{ flex: 1, minWidth: 250 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Estimated: {estimates.requestCount} API requests
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Fetch time: ~{formatTime(estimates.estimatedTime)} (30 req/min safety limit)
+                </Typography>
+              </Box>
             </Box>
           </LocalizationProvider>
-
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-            <TextField
-              label="Sampling frequency (days)"
-              type="number"
-              value={samplingFrequencyDays}
-              onChange={(e) => setSamplingFrequencyDays(Math.max(1, Number(e.target.value)))}
-              size="small"
-              sx={{ width: 200 }}
-              inputProps={{ min: 1 }}
-              helperText="Sample every X days"
-            />
-
-            <Box sx={{ flex: 1, minWidth: 250 }}>
-              <Typography variant="body2" color="text.secondary">
-                Estimated: {estimates.requestCount} API requests
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Fetch time: ~{formatTime(estimates.estimatedTime)} (30 req/min safety limit)
-              </Typography>
-            </Box>
-          </Box>
 
           <FormControl component="fieldset">
             <Typography variant="body2" gutterBottom sx={{ fontWeight: 'medium' }}>

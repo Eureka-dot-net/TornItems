@@ -22,6 +22,7 @@ interface FetchHistoricalStatsParams {
   endDate: Date;
   samplingFrequencyDays: number;
   onProgress?: (current: number, total: number) => void;
+  timestampsToFetch?: number[]; // Optional: specific timestamps to fetch
 }
 
 export function useHistoricalStats() {
@@ -35,25 +36,34 @@ export function useHistoricalStats() {
     endDate,
     samplingFrequencyDays,
     onProgress,
+    timestampsToFetch,
   }: FetchHistoricalStatsParams): Promise<HistoricalStat[]> => {
     setIsLoading(true);
     setError(null);
     
     try {
       // Calculate timestamps to fetch
-      const timestamps: number[] = [];
-      const currentDate = new Date(startDate);
-      const endTime = endDate.getTime();
+      let timestamps: number[];
       
-      while (currentDate.getTime() <= endTime) {
-        timestamps.push(Math.floor(currentDate.getTime() / 1000));
-        currentDate.setDate(currentDate.getDate() + samplingFrequencyDays);
-      }
-      
-      // Ensure we include the end date
-      const endTimestamp = Math.floor(endTime / 1000);
-      if (timestamps[timestamps.length - 1] !== endTimestamp) {
-        timestamps.push(endTimestamp);
+      if (timestampsToFetch && timestampsToFetch.length > 0) {
+        // Use provided timestamps
+        timestamps = timestampsToFetch;
+      } else {
+        // Calculate from date range
+        timestamps = [];
+        const currentDate = new Date(startDate);
+        const endTime = endDate.getTime();
+        
+        while (currentDate.getTime() <= endTime) {
+          timestamps.push(Math.floor(currentDate.getTime() / 1000));
+          currentDate.setDate(currentDate.getDate() + samplingFrequencyDays);
+        }
+        
+        // Ensure we include the end date
+        const endTimestamp = Math.floor(endTime / 1000);
+        if (timestamps[timestamps.length - 1] !== endTimestamp) {
+          timestamps.push(endTimestamp);
+        }
       }
       
       const results: HistoricalStat[] = [];
