@@ -261,24 +261,28 @@ export default function StatsChart({
       };
     });
     
-    // Merge historical data with existing chart data
-    mergedChartData = processedChartData.map(point => {
-      const historicalPoint = historicalPoints.find(hp => hp.day === point.day);
-      if (historicalPoint) {
-        return { ...point, 'Historical Data': historicalPoint['Historical Data'] };
-      }
-      return point;
+    // Create a map of all days that exist in either dataset
+    const allDaysMap = new Map<number, Record<string, number>>();
+    
+    // Add all simulation data points
+    processedChartData.forEach(point => {
+      allDaysMap.set(point.day, { ...point });
     });
     
-    // Add historical points that don't exist in chart data
+    // Add or merge historical data points
     historicalPoints.forEach(hp => {
-      if (!processedChartData.some(p => p.day === hp.day)) {
-        mergedChartData.push({ ...hp });
+      const existing = allDaysMap.get(hp.day);
+      if (existing) {
+        // Merge with existing simulation data
+        allDaysMap.set(hp.day, { ...existing, 'Historical Data': hp['Historical Data'] });
+      } else {
+        // Add new point with only historical data
+        allDaysMap.set(hp.day, { day: hp.day, 'Historical Data': hp['Historical Data'] });
       }
     });
     
-    // Sort by day
-    mergedChartData.sort((a, b) => a.day - b.day);
+    // Convert map back to array and sort by day
+    mergedChartData = Array.from(allDaysMap.values()).sort((a, b) => a.day - b.day);
   }
   
   return (

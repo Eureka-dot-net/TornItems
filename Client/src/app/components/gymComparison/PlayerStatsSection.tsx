@@ -121,31 +121,33 @@ export default function PlayerStatsSection({
         </Alert>
       )}
       
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Optional: Enter a Limited API Key to auto-fetch your stats, or fill them in manually below. Get one from{' '}
-            <a href="https://www.torn.com/preferences.php#tab=api" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
-              Torn Settings → API Key
-            </a>
-          </Alert>
-          
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <TextField
-              label="Torn API Key"
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              size="small"
-              sx={{ flex: 1 }}
-            />
-            <Button variant="outlined" onClick={handleEnhancedFetch} disabled={isLoadingGymStats || !apiKey.trim()}>
-              {isLoadingGymStats ? <CircularProgress size={20} /> : 'Fetch'}
-            </Button>
-          </Box>
-        </Grid>
+      {/* API Key Section - Full width block */}
+      <Box sx={{ mb: 3 }}>
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Optional: Enter a Limited API Key to auto-fetch your stats, or fill them in manually below. Get one from{' '}
+          <a href="https://www.torn.com/preferences.php#tab=api" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+            Torn Settings → API Key
+          </a>
+        </Alert>
         
-        <Grid size={{ xs: 6, md: 1.5 }}>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <TextField
+            label="Torn API Key"
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            size="small"
+            sx={{ flex: 1 }}
+          />
+          <Button variant="outlined" onClick={handleEnhancedFetch} disabled={isLoadingGymStats || !apiKey.trim()}>
+            {isLoadingGymStats ? <CircularProgress size={20} /> : 'Fetch'}
+          </Button>
+        </Box>
+      </Box>
+      
+      {/* Starting Stats - Four fields in one row */}
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        <Grid size={{ xs: 6, md: 3 }}>
           <TextField 
             label="Strength" 
             type="number" 
@@ -156,7 +158,7 @@ export default function PlayerStatsSection({
             inputProps={{ step: 'any', min: 0 }} 
           />
         </Grid>
-        <Grid size={{ xs: 6, md: 1.5 }}>
+        <Grid size={{ xs: 6, md: 3 }}>
           <TextField 
             label="Speed" 
             type="number" 
@@ -167,7 +169,7 @@ export default function PlayerStatsSection({
             inputProps={{ step: 'any', min: 0 }} 
           />
         </Grid>
-        <Grid size={{ xs: 6, md: 1.5 }}>
+        <Grid size={{ xs: 6, md: 3 }}>
           <TextField 
             label="Defense" 
             type="number" 
@@ -178,7 +180,7 @@ export default function PlayerStatsSection({
             inputProps={{ step: 'any', min: 0 }} 
           />
         </Grid>
-        <Grid size={{ xs: 6, md: 1.5 }}>
+        <Grid size={{ xs: 6, md: 3 }}>
           <TextField 
             label="Dexterity" 
             type="number" 
@@ -189,33 +191,11 @@ export default function PlayerStatsSection({
             inputProps={{ step: 'any', min: 0 }} 
           />
         </Grid>
-        
-        <Grid size={{ xs: 6, md: 1.5 }}>
-          <TextField 
-            label="Duration (months)" 
-            type="number" 
-            value={months ?? ''} 
-            onChange={(e) => {
-              const value = e.target.value === '' ? 1 : Number(e.target.value);
-              setMonths(value);
-            }}
-            size="small" 
-            fullWidth
-            inputProps={{ step: 'any', min: 1 }} 
-          />
-        </Grid>
-        <Grid size={{ xs: 6, md: 1.5 }}>
-          <FormControl fullWidth size="small">
-            <InputLabel>Starting Gym</InputLabel>
-            <Select value={currentGymIndex} label="Starting Gym" onChange={(e) => setCurrentGymIndex(Number(e.target.value))}>
-              {GYMS.map((gym, index) => (
-                <MenuItem key={gym.name} value={index}>{gym.displayName}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        
-        <Grid size={{ xs: 12, md: 3 }}>
+      </Grid>
+      
+      {/* Start Date + Checkbox - Same row */}
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <LocalizationProvider dateAdapter={AdapterDateFns}>
             <DatePicker
               label="Start Date"
@@ -231,8 +211,7 @@ export default function PlayerStatsSection({
             />
           </LocalizationProvider>
         </Grid>
-        
-        <Grid size={{ xs: 12, md: 3 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <FormControlLabel
             control={
               <Checkbox
@@ -244,6 +223,34 @@ export default function PlayerStatsSection({
             label="Fetch starting stats at this date"
             sx={{ mt: 1 }}
           />
+        </Grid>
+      </Grid>
+      
+      {/* Other Options - Duration and Starting Gym */}
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <TextField 
+            label="Duration (months)" 
+            type="number" 
+            value={months ?? ''} 
+            onChange={(e) => {
+              const value = e.target.value === '' ? 1 : Number(e.target.value);
+              setMonths(value);
+            }}
+            size="small" 
+            fullWidth
+            inputProps={{ step: 'any', min: 1 }} 
+          />
+        </Grid>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Starting Gym</InputLabel>
+            <Select value={currentGymIndex} label="Starting Gym" onChange={(e) => setCurrentGymIndex(Number(e.target.value))}>
+              {GYMS.map((gym, index) => (
+                <MenuItem key={gym.name} value={index}>{gym.displayName}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Grid>
       </Grid>
     </Paper>
