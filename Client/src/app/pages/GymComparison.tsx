@@ -933,6 +933,7 @@ export default function GymComparison() {
               showCosts={showCosts}
               itemPricesData={itemPricesData}
               historicalData={historicalData}
+              simulatedDate={simulatedDate}
             />
           )}
 

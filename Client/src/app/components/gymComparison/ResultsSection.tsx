@@ -37,6 +37,7 @@ interface ResultsSectionProps {
   showCosts: boolean;
   itemPricesData?: ItemPrices;
   historicalData?: HistoricalStat[];
+  simulatedDate?: Date | null;
 }
 
 export default function ResultsSection({
@@ -48,6 +49,7 @@ export default function ResultsSection({
   showCosts,
   itemPricesData,
   historicalData = [],
+  simulatedDate = null,
 }: ResultsSectionProps) {
   const [showWarning, setShowWarning] = useState(true);
   
@@ -111,6 +113,7 @@ export default function ResultsSection({
           showCosts={showCosts}
           itemPricesData={itemPricesData}
           historicalData={historicalData}
+          simulatedDate={simulatedDate}
         />
 
         <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -196,6 +199,7 @@ export default function ResultsSection({
               showCosts={showCosts}
               itemPricesData={itemPricesData}
               historicalData={historicalData}
+              simulatedDate={simulatedDate}
             />
           </Grid>
 

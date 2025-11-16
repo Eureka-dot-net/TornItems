@@ -21,9 +21,10 @@ import { useHistoricalStats, type HistoricalStat } from '../../../lib/hooks/useH
 interface HistoricalDataConfigProps {
   apiKey: string;
   onHistoricalDataFetched: (data: HistoricalStat[]) => void;
+  simulatedDate: Date | null;
 }
 
-export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched }: HistoricalDataConfigProps) {
+export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, simulatedDate }: HistoricalDataConfigProps) {
   // Load from localStorage
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
     try {
@@ -37,7 +38,9 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched }
   const [enabled, setEnabled] = useState(() => loadSavedValue('enabled', false));
   const [startDate, setStartDate] = useState<Date | null>(() => {
     const saved = loadSavedValue<string | null>('startDate', null);
-    return saved ? new Date(saved) : null;
+    // If no saved value, use simulatedDate as default
+    if (saved) return new Date(saved);
+    return simulatedDate || null;
   });
   const [endDate, setEndDate] = useState<Date | null>(() => {
     const saved = loadSavedValue<string | null>('endDate', null);

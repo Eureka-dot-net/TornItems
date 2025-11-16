@@ -190,7 +190,7 @@ export default function PlayerStatsSection({
           />
         </Grid>
         
-        <Grid size={{ xs: 6, md: 3 }}>
+        <Grid size={{ xs: 6, md: 1.5 }}>
           <TextField 
             label="Duration (months)" 
             type="number" 
@@ -204,7 +204,7 @@ export default function PlayerStatsSection({
             inputProps={{ step: 'any', min: 1 }} 
           />
         </Grid>
-        <Grid size={{ xs: 6, md: 3 }}>
+        <Grid size={{ xs: 6, md: 1.5 }}>
           <FormControl fullWidth size="small">
             <InputLabel>Starting Gym</InputLabel>
             <Select value={currentGymIndex} label="Starting Gym" onChange={(e) => setCurrentGymIndex(Number(e.target.value))}>
@@ -215,7 +215,7 @@ export default function PlayerStatsSection({
           </FormControl>
         </Grid>
         
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <LocalizationProvider dateAdapter={AdapterDateFns}>
             <DatePicker
               label="Start Date"
@@ -230,6 +230,9 @@ export default function PlayerStatsSection({
               }}
             />
           </LocalizationProvider>
+        </Grid>
+        
+        <Grid size={{ xs: 12, md: 3 }}>
           <FormControlLabel
             control={
               <Checkbox
@@ -250,6 +253,7 @@ export default function PlayerStatsSection({
       <HistoricalDataConfig 
         apiKey={apiKey}
         onHistoricalDataFetched={onHistoricalDataFetched}
+        simulatedDate={simulatedDate}
       />
     )}
     </>

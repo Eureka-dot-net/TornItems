@@ -29,6 +29,7 @@ interface StatsChartProps {
   showCosts: boolean;
   itemPricesData?: ItemPrices;
   historicalData?: HistoricalStat[];
+  simulatedDate?: Date | null;
 }
 
 // Different line styles to alternate between sections - FIRST section is always solid
@@ -130,6 +131,7 @@ export default function StatsChart({
   showCosts,
   itemPricesData,
   historicalData = [],
+  simulatedDate = null,
 }: StatsChartProps) {
   // Prepare chart lines - create separate line for each section of each state
   const chartLines: Array<{
@@ -240,14 +242,21 @@ export default function StatsChart({
   });
   
   // Process historical data and merge with chart data
-  // Convert historical data timestamps to day numbers based on first timestamp
+  // Convert historical data timestamps to day numbers based on simulatedDate
   let mergedChartData = processedChartData;
-  if (historicalData && historicalData.length > 0) {
-    const firstTimestamp = historicalData[0].timestamp;
+  if (historicalData && historicalData.length > 0 && simulatedDate) {
+    // Calculate the reference timestamp (start of the day for simulatedDate)
+    const simulatedDateStart = new Date(simulatedDate);
+    simulatedDateStart.setHours(0, 0, 0, 0);
+    const referenceTimestamp = Math.floor(simulatedDateStart.getTime() / 1000);
+    
     const historicalPoints = historicalData.map(stat => {
-      const daysSinceStart = Math.floor((stat.timestamp - firstTimestamp) / (24 * 60 * 60));
+      // Calculate days from the simulatedDate (which is day 1 in the simulation)
+      const daysSinceReference = Math.round((stat.timestamp - referenceTimestamp) / (24 * 60 * 60));
+      // Add 1 because simulation starts at day 1, not day 0
+      const day = daysSinceReference + 1;
       return {
-        day: daysSinceStart,
+        day,
         'Historical Data': stat.totalstats,
       };
     });
