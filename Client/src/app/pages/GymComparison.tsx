@@ -658,6 +658,7 @@ export default function GymComparison() {
       initialStats,
       currentGymIndex,
       months,
+      simulatedDate: simulatedDate ? simulatedDate.toISOString() : null, // Include start date
       comparisonStates: comparisonStates.map(state => ({
         ...state,
         id: 'redacted', // Don't include internal IDs
@@ -704,6 +705,18 @@ export default function GymComparison() {
       // Load months
       if (typeof settings.months === 'number') {
         setMonths(settings.months);
+      }
+      
+      // Load simulated date
+      if (typeof settings.simulatedDate === 'string') {
+        try {
+          const date = new Date(settings.simulatedDate);
+          if (!isNaN(date.getTime())) {
+            setSimulatedDate(date);
+          }
+        } catch (err) {
+          console.error('Failed to parse simulatedDate:', err);
+        }
       }
 
       // Load show costs

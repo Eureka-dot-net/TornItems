@@ -174,7 +174,9 @@ export function simulateWithSections(
       } : undefined,
       daysSkippedPerMonth: section.daysSkippedPerMonth,
       islandCostPerDay: showCost ? section.islandCostPerDay : undefined,
-      simulatedDate: simulatedDate,
+      // Adjust simulatedDate for this section based on its start day
+      // Section starts at day N means it's N-1 days after the original simulatedDate
+      simulatedDate: simulatedDate ? new Date(simulatedDate.getTime() + (section.startDay - 1) * 24 * 60 * 60 * 1000) : null,
       itemPrices: (showCost && itemPrices) ? {
         dvdPrice: itemPrices.prices[366],
         xanaxPrice: itemPrices.prices[206],
