@@ -1,10 +1,12 @@
-import { Alert, Box, Button, CircularProgress, FormControl, Grid, InputLabel, MenuItem, Paper, Select, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Checkbox, CircularProgress, FormControl, FormControlLabel, Grid, InputLabel, MenuItem, Paper, Select, TextField, Typography } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { useState, useEffect } from 'react';
 import { GYMS } from '../../../lib/data/gyms';
 import HistoricalDataConfig from './HistoricalDataConfig';
 import { type HistoricalStat } from '../../../lib/hooks/useHistoricalStats';
+import axios from 'axios';
 
 interface Stats {
   strength: number;
@@ -46,6 +48,68 @@ export default function PlayerStatsSection({
   monthValidationError,
   onHistoricalDataFetched,
 }: PlayerStatsSectionProps) {
+  // State for fetching stats at simulated date
+  const [fetchStatsAtDate, setFetchStatsAtDate] = useState(() => {
+    try {
+      const saved = localStorage.getItem('fetchStatsAtDate');
+      return saved ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
+  });
+  
+  // Save fetchStatsAtDate to localStorage
+  useEffect(() => {
+    localStorage.setItem('fetchStatsAtDate', JSON.stringify(fetchStatsAtDate));
+  }, [fetchStatsAtDate]);
+  
+  // Enhanced fetch function that can fetch at a specific date
+  const handleEnhancedFetch = async () => {
+    if (!apiKey.trim()) {
+      return;
+    }
+    
+    try {
+      if (fetchStatsAtDate && simulatedDate) {
+        // Fetch stats at the simulated date using Torn API v2
+        const timestamp = Math.floor(simulatedDate.getTime() / 1000);
+        const response = await axios.get('https://api.torn.com/v2/user/personalstats', {
+          params: {
+            stat: 'strength,speed,defense,dexterity',
+            timestamp,
+            key: apiKey,
+          },
+        });
+        
+        const personalstats = response.data.personalstats;
+        const stats = {
+          strength: 0,
+          speed: 0,
+          defense: 0,
+          dexterity: 0,
+        };
+        
+        if (Array.isArray(personalstats)) {
+          personalstats.forEach((item: { name: string; value: number }) => {
+            if (item.name === 'strength') stats.strength = item.value;
+            else if (item.name === 'speed') stats.speed = item.value;
+            else if (item.name === 'defense') stats.defense = item.value;
+            else if (item.name === 'dexterity') stats.dexterity = item.value;
+          });
+        }
+        
+        setInitialStats(stats);
+      } else {
+        // Call the original fetch function for current stats
+        handleFetchStats();
+      }
+    } catch (err) {
+      console.error('Failed to fetch stats:', err);
+      // Fallback to regular fetch if date-based fetch fails
+      handleFetchStats();
+    }
+  };
+  
   return (
     <>
     <Paper sx={{ p: 2, mb: 3 }}>
@@ -75,7 +139,7 @@ export default function PlayerStatsSection({
               size="small"
               sx={{ flex: 1 }}
             />
-            <Button variant="outlined" onClick={handleFetchStats} disabled={isLoadingGymStats || !apiKey.trim()}>
+            <Button variant="outlined" onClick={handleEnhancedFetch} disabled={isLoadingGymStats || !apiKey.trim()}>
               {isLoadingGymStats ? <CircularProgress size={20} /> : 'Fetch'}
             </Button>
           </Box>
@@ -154,18 +218,29 @@ export default function PlayerStatsSection({
         <Grid size={{ xs: 12, md: 6 }}>
           <LocalizationProvider dateAdapter={AdapterDateFns}>
             <DatePicker
-              label="Simulated Date (for Diabetes Day)"
+              label="Start Date"
               value={simulatedDate}
               onChange={(newValue) => setSimulatedDate(newValue)}
               slotProps={{ 
                 textField: { 
                   size: 'small',
                   fullWidth: true,
-                  helperText: 'Diabetes Day is Nov 13-15. Set a date to simulate when it will occur.'
+                  helperText: 'Sets the start date for the graph and Diabetes Day calculations (Nov 13-15).'
                 } 
               }}
             />
           </LocalizationProvider>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={fetchStatsAtDate}
+                onChange={(e) => setFetchStatsAtDate(e.target.checked)}
+                size="small"
+              />
+            }
+            label="Fetch starting stats at this date"
+            sx={{ mt: 1 }}
+          />
         </Grid>
       </Grid>
     </Paper>

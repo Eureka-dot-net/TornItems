@@ -300,7 +300,7 @@ export default function StatsChart({
             <Line 
               type="monotone" 
               dataKey="Historical Data" 
-              stroke="#000000"
+              stroke="#FFFFFF"
               strokeWidth={3} 
               strokeDasharray="5 5"
               dot={false}
