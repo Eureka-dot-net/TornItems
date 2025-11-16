@@ -150,25 +150,24 @@ export default function PlayerStatsSection({
             </Select>
           </FormControl>
         </Grid>
+        
+        <Grid size={{ xs: 12, md: 6 }}>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <DatePicker
+              label="Simulated Date (for Diabetes Day)"
+              value={simulatedDate}
+              onChange={(newValue) => setSimulatedDate(newValue)}
+              slotProps={{ 
+                textField: { 
+                  size: 'small',
+                  fullWidth: true,
+                  helperText: 'Diabetes Day is Nov 13-15. Set a date to simulate when it will occur.'
+                } 
+              }}
+            />
+          </LocalizationProvider>
+        </Grid>
       </Grid>
-      
-      {/* Move simulated date higher in layout */}
-      <Box sx={{ mt: 2 }}>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <DatePicker
-            label="Simulated Date (for Diabetes Day)"
-            value={simulatedDate}
-            onChange={(newValue) => setSimulatedDate(newValue)}
-            slotProps={{ 
-              textField: { 
-                size: 'small',
-                fullWidth: true,
-                helperText: 'Diabetes Day is Nov 13-15. Set a date to simulate when it will occur.'
-              } 
-            }}
-          />
-        </LocalizationProvider>
-      </Box>
     </Paper>
     
     {/* Historical data section - only visible when API key is present */}

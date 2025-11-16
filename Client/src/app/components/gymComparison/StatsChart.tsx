@@ -303,7 +303,7 @@ export default function StatsChart({
               stroke="#000000"
               strokeWidth={3} 
               strokeDasharray="5 5"
-              dot={{ r: 4 }}
+              dot={false}
               connectNulls={false}
               name="Historical Data (Actual)"
               legendType="line"

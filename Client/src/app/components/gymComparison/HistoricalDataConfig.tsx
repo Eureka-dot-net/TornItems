@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -24,14 +24,37 @@ interface HistoricalDataConfigProps {
 }
 
 export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched }: HistoricalDataConfigProps) {
-  const [enabled, setEnabled] = useState(false);
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(new Date());
-  const [samplingFrequencyDays, setSamplingFrequencyDays] = useState(7);
-  const [cachingMode, setCachingMode] = useState<'store' | 'refetch'>('store');
+  // Load from localStorage
+  const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
+    try {
+      const saved = localStorage.getItem(`historicalDataConfig_${key}`);
+      return saved ? JSON.parse(saved) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  };
+  
+  const [enabled, setEnabled] = useState(() => loadSavedValue('enabled', false));
+  const [startDate, setStartDate] = useState<Date | null>(() => {
+    const saved = loadSavedValue<string | null>('startDate', null);
+    return saved ? new Date(saved) : null;
+  });
+  const [endDate, setEndDate] = useState<Date | null>(() => {
+    const saved = loadSavedValue<string | null>('endDate', null);
+    return saved ? new Date(saved) : new Date();
+  });
+  const [samplingFrequencyDays, setSamplingFrequencyDays] = useState(() => loadSavedValue('samplingFrequencyDays', 7));
+  const [cachingMode, setCachingMode] = useState<'store' | 'refetch'>(() => loadSavedValue('cachingMode', 'store'));
   const [fetchProgress, setFetchProgress] = useState<{ current: number; total: number } | null>(null);
   
   const { fetchHistoricalStats, isLoading, error } = useHistoricalStats();
+
+  // Save to localStorage when values change
+  useEffect(() => { localStorage.setItem('historicalDataConfig_enabled', JSON.stringify(enabled)); }, [enabled]);
+  useEffect(() => { localStorage.setItem('historicalDataConfig_startDate', JSON.stringify(startDate ? startDate.toISOString() : null)); }, [startDate]);
+  useEffect(() => { localStorage.setItem('historicalDataConfig_endDate', JSON.stringify(endDate ? endDate.toISOString() : null)); }, [endDate]);
+  useEffect(() => { localStorage.setItem('historicalDataConfig_samplingFrequencyDays', JSON.stringify(samplingFrequencyDays)); }, [samplingFrequencyDays]);
+  useEffect(() => { localStorage.setItem('historicalDataConfig_cachingMode', JSON.stringify(cachingMode)); }, [cachingMode]);
 
   // Calculate estimates
   const calculateEstimates = () => {
@@ -50,6 +73,43 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched }
 
   const estimates = calculateEstimates();
 
+  // Track the last fetched parameters to detect changes
+  const [lastFetchedParams, setLastFetchedParams] = useState<{
+    startDate: Date | null;
+    endDate: Date | null;
+    samplingFrequencyDays: number;
+  } | null>(null);
+
+  // Auto-fetch when parameters change and enabled
+  useEffect(() => {
+    if (!enabled || !apiKey || !startDate || !endDate) {
+      return;
+    }
+
+    // Check if parameters have changed
+    const paramsChanged = !lastFetchedParams ||
+      lastFetchedParams.startDate?.getTime() !== startDate.getTime() ||
+      lastFetchedParams.endDate?.getTime() !== endDate.getTime() ||
+      lastFetchedParams.samplingFrequencyDays !== samplingFrequencyDays;
+
+    if (paramsChanged && cachingMode === 'store') {
+      // Check if we have cached data for these parameters
+      const cacheKey = `historicalStats_${startDate.getTime()}_${endDate.getTime()}_${samplingFrequencyDays}`;
+      const cached = localStorage.getItem(cacheKey);
+      
+      if (cached) {
+        // Load from cache
+        try {
+          const data = JSON.parse(cached) as HistoricalStat[];
+          onHistoricalDataFetched(data);
+          setLastFetchedParams({ startDate, endDate, samplingFrequencyDays });
+        } catch (err) {
+          console.error('Failed to load cached data:', err);
+        }
+      }
+    }
+  }, [enabled, apiKey, startDate, endDate, samplingFrequencyDays, cachingMode, lastFetchedParams, onHistoricalDataFetched]);
+
   const handleFetch = async () => {
     if (!apiKey || !startDate || !endDate) {
       return;
@@ -64,6 +124,7 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched }
         if (cached) {
           const data = JSON.parse(cached) as HistoricalStat[];
           onHistoricalDataFetched(data);
+          setLastFetchedParams({ startDate, endDate, samplingFrequencyDays });
           return;
         }
       }
@@ -86,6 +147,7 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched }
       }
       
       onHistoricalDataFetched(data);
+      setLastFetchedParams({ startDate, endDate, samplingFrequencyDays });
       setFetchProgress(null);
     } catch (err) {
       console.error('Failed to fetch historical data:', err);
