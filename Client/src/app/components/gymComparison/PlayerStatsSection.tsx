@@ -3,6 +3,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { GYMS } from '../../../lib/data/gyms';
+import HistoricalDataConfig from './HistoricalDataConfig';
+import { type HistoricalStat } from '../../../lib/hooks/useHistoricalStats';
 
 interface Stats {
   strength: number;
@@ -25,6 +27,7 @@ interface PlayerStatsSectionProps {
   simulatedDate: Date | null;
   setSimulatedDate: (date: Date | null) => void;
   monthValidationError?: string | null;
+  onHistoricalDataFetched?: (data: HistoricalStat[]) => void;
 }
 
 export default function PlayerStatsSection({
@@ -40,9 +43,11 @@ export default function PlayerStatsSection({
   handleFetchStats,
   simulatedDate,
   setSimulatedDate,
-  monthValidationError
+  monthValidationError,
+  onHistoricalDataFetched,
 }: PlayerStatsSectionProps) {
   return (
+    <>
     <Paper sx={{ p: 2, mb: 3 }}>
       <Typography variant="h6" gutterBottom>Fixed options</Typography>
       
@@ -145,24 +150,34 @@ export default function PlayerStatsSection({
             </Select>
           </FormControl>
         </Grid>
-        
-        <Grid size={{ xs: 12, md: 6 }}>
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <DatePicker
-              label="Simulated Date (for Diabetes Day)"
-              value={simulatedDate}
-              onChange={(newValue) => setSimulatedDate(newValue)}
-              slotProps={{ 
-                textField: { 
-                  size: 'small',
-                  fullWidth: true,
-                  helperText: 'Diabetes Day is Nov 13-15. Set a date to simulate when it will occur.'
-                } 
-              }}
-            />
-          </LocalizationProvider>
-        </Grid>
       </Grid>
+      
+      {/* Move simulated date higher in layout */}
+      <Box sx={{ mt: 2 }}>
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <DatePicker
+            label="Simulated Date (for Diabetes Day)"
+            value={simulatedDate}
+            onChange={(newValue) => setSimulatedDate(newValue)}
+            slotProps={{ 
+              textField: { 
+                size: 'small',
+                fullWidth: true,
+                helperText: 'Diabetes Day is Nov 13-15. Set a date to simulate when it will occur.'
+              } 
+            }}
+          />
+        </LocalizationProvider>
+      </Box>
     </Paper>
+    
+    {/* Historical data section - only visible when API key is present */}
+    {apiKey && onHistoricalDataFetched && (
+      <HistoricalDataConfig 
+        apiKey={apiKey}
+        onHistoricalDataFetched={onHistoricalDataFetched}
+      />
+    )}
+    </>
   );
 }

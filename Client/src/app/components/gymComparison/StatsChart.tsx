@@ -14,6 +14,7 @@ import { CHART_COLORS } from '../../../lib/constants/gymConstants';
 import ChartTooltip from './ChartTooltip';
 import type { SimulationResult } from '../../../lib/utils/gymProgressionCalculator';
 import type { ItemPrices } from '../../../lib/hooks/useItemPrices';
+import type { HistoricalStat } from '../../../lib/hooks/useHistoricalStats';
 
 interface ComparisonState {
   id: string;
@@ -27,6 +28,7 @@ interface StatsChartProps {
   results: Record<string, SimulationResult>;
   showCosts: boolean;
   itemPricesData?: ItemPrices;
+  historicalData?: HistoricalStat[];
 }
 
 // Different line styles to alternate between sections - FIRST section is always solid
@@ -126,7 +128,8 @@ export default function StatsChart({
   comparisonStates,
   results,
   showCosts,
-  itemPricesData
+  itemPricesData,
+  historicalData = [],
 }: StatsChartProps) {
   // Prepare chart lines - create separate line for each section of each state
   const chartLines: Array<{
@@ -236,11 +239,44 @@ export default function StatsChart({
     return newPoint;
   });
   
+  // Process historical data and merge with chart data
+  // Convert historical data timestamps to day numbers based on first timestamp
+  let mergedChartData = processedChartData;
+  if (historicalData && historicalData.length > 0) {
+    const firstTimestamp = historicalData[0].timestamp;
+    const historicalPoints = historicalData.map(stat => {
+      const daysSinceStart = Math.floor((stat.timestamp - firstTimestamp) / (24 * 60 * 60));
+      return {
+        day: daysSinceStart,
+        'Historical Data': stat.totalstats,
+      };
+    });
+    
+    // Merge historical data with existing chart data
+    mergedChartData = processedChartData.map(point => {
+      const historicalPoint = historicalPoints.find(hp => hp.day === point.day);
+      if (historicalPoint) {
+        return { ...point, 'Historical Data': historicalPoint['Historical Data'] };
+      }
+      return point;
+    });
+    
+    // Add historical points that don't exist in chart data
+    historicalPoints.forEach(hp => {
+      if (!processedChartData.some(p => p.day === hp.day)) {
+        mergedChartData.push({ ...hp });
+      }
+    });
+    
+    // Sort by day
+    mergedChartData.sort((a, b) => a.day - b.day);
+  }
+  
   return (
     <Paper sx={{ p: 2, mb: 3 }}>
       <Typography variant="h6" gutterBottom>Total Battle Stats Over Time</Typography>
       <ResponsiveContainer width="100%" height={400}>
-        <LineChart data={processedChartData}>
+        <LineChart data={mergedChartData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="day" label={{ value: 'Days', position: 'insideBottom', offset: -5 }} />
           <YAxis label={{ value: 'Total Stats', angle: -90, position: 'insideLeft' }} />
@@ -259,6 +295,21 @@ export default function StatsChart({
               />
             );
           })}
+          {/* Historical data line (if present) */}
+          {historicalData && historicalData.length > 0 && (
+            <Line 
+              type="monotone" 
+              dataKey="Historical Data" 
+              stroke="#000000"
+              strokeWidth={3} 
+              strokeDasharray="5 5"
+              dot={{ r: 4 }}
+              connectNulls={false}
+              name="Historical Data (Actual)"
+              legendType="line"
+            />
+          )}
+          {/* Simulated data lines */}
           {chartLines.map((line, idx) => (
             <Line 
               key={`${line.dataKey}-${idx}`}

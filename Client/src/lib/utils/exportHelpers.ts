@@ -51,6 +51,14 @@ export interface ExportData {
     dexterity: number;
   };
   months: number;
+  historicalData?: Array<{
+    timestamp: number;
+    strength: number;
+    speed: number;
+    defense: number;
+    dexterity: number;
+    totalstats: number;
+  }>;
 }
 
 /**
@@ -140,6 +148,16 @@ export function exportToIncrementalCSV(data: ExportData): string {
       });
     }
   });
+  
+  // Add historical data days if present
+  if (data.historicalData && data.historicalData.length > 0) {
+    const firstTimestamp = data.historicalData[0].timestamp;
+    data.historicalData.forEach(stat => {
+      const daysSinceStart = Math.floor((stat.timestamp - firstTimestamp) / (24 * 60 * 60));
+      allDays.add(daysSinceStart);
+    });
+  }
+  
   const sortedDays = Array.from(allDays).sort((a, b) => a - b);
   
   // Determine actual sampling from the data
@@ -158,7 +176,7 @@ export function exportToIncrementalCSV(data: ExportData): string {
   lines.push('');
   
   // Build header row for incremental data
-  // Format: Day | Comparison 1 - Strength | Speed | Defense | Dexterity | Total | Comparison 2 - Strength | ... | Total
+  // Format: Day | Comparison 1 - Strength | Speed | Defense | Dexterity | Total | Comparison 2 - Strength | ... | Total | Historical - Strength | ...
   const headerParts = ['Day'];
   data.comparisonStates.forEach(state => {
     headerParts.push(`${state.name} - Strength`);
@@ -167,6 +185,16 @@ export function exportToIncrementalCSV(data: ExportData): string {
     headerParts.push(`${state.name} - Dexterity`);
     headerParts.push(`${state.name} - Total`);
   });
+  
+  // Add historical data columns if present
+  if (data.historicalData && data.historicalData.length > 0) {
+    headerParts.push('Historical - Strength');
+    headerParts.push('Historical - Speed');
+    headerParts.push('Historical - Defense');
+    headerParts.push('Historical - Dexterity');
+    headerParts.push('Historical - Total');
+  }
+  
   lines.push(headerParts.join(','));
   
   // Add initial stats (Day 0)
@@ -179,6 +207,17 @@ export function exportToIncrementalCSV(data: ExportData): string {
     const stateTotal = data.initialStats.strength + data.initialStats.speed + data.initialStats.defense + data.initialStats.dexterity;
     day0Parts.push(String(stateTotal));
   });
+  
+  // Add historical data for day 0 if present
+  if (data.historicalData && data.historicalData.length > 0) {
+    const firstHistorical = data.historicalData[0];
+    day0Parts.push(String(firstHistorical.strength));
+    day0Parts.push(String(firstHistorical.speed));
+    day0Parts.push(String(firstHistorical.defense));
+    day0Parts.push(String(firstHistorical.dexterity));
+    day0Parts.push(String(firstHistorical.totalstats));
+  }
+  
   lines.push(day0Parts.join(','));
   
   // Add daily data for all available days
@@ -208,6 +247,25 @@ export function exportToIncrementalCSV(data: ExportData): string {
         dayParts.push('', '', '', '', '');
       }
     });
+    
+    // Add historical data for this day if present
+    if (data.historicalData && data.historicalData.length > 0) {
+      const firstTimestamp = data.historicalData[0].timestamp;
+      const historicalStat = data.historicalData.find(stat => {
+        const daysSinceStart = Math.floor((stat.timestamp - firstTimestamp) / (24 * 60 * 60));
+        return daysSinceStart === day;
+      });
+      
+      if (historicalStat) {
+        dayParts.push(String(historicalStat.strength));
+        dayParts.push(String(historicalStat.speed));
+        dayParts.push(String(historicalStat.defense));
+        dayParts.push(String(historicalStat.dexterity));
+        dayParts.push(String(historicalStat.totalstats));
+      } else {
+        dayParts.push('', '', '', '', '');
+      }
+    }
     
     lines.push(dayParts.join(','));
   });
