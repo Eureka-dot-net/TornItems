@@ -368,9 +368,12 @@ export default function SectionedComparisonConfig({
           value={activeState.name} 
           onChange={(e) => updateState(activeState.id, { name: e.target.value })} 
           size="small"
-          sx={{ width: 250 }}
+          sx={{ 
+            width: { xs: '100%', sm: 250 },
+            minWidth: { xs: 0, sm: 200 }
+          }}
         />
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
           <Button
             variant="outlined"
             size="small"

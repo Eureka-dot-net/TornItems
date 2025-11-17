@@ -1001,10 +1001,10 @@ export default function GymComparison() {
           <BuyMeXanaxCard />
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
-          <ThankYouCard />
-        </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
           <ReportProblemCard getCurrentSettings={getCurrentSettings} />
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <ThankYouCard />
         </Grid>
       </Grid>
     </Box>
