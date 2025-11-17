@@ -16,6 +16,7 @@ import {
   type SimulationResult,
 } from '../../lib/utils/gymProgressionCalculator';
 import { type GymStatsResponse } from '../../lib/hooks/useGymStats';
+import { type HistoricalStat } from '../../lib/hooks/useHistoricalStats';
 import { useItemPrices } from '../../lib/hooks/useItemPrices';
 import { getCompanyBenefit, type StatWeights } from '../../lib/utils/gymHelpers';
 import { simulateWithSections, type TrainingSection } from '../../lib/utils/sectionSimulator';
@@ -245,6 +246,9 @@ export default function GymComparison() {
   const [monthValidationError, setMonthValidationError] = useState<string | null>(null);
   const [showCosts, setShowCosts] = useState<boolean>(() => loadSavedValue('showCosts', false));
   const [isLoadingGymStats, setIsLoadingGymStats] = useState<boolean>(false);
+  
+  // Historical data state
+  const [historicalData, setHistoricalData] = useState<HistoricalStat[]>([]);
   
   // Don't use the hook for auto-fetching, we'll fetch manually with the button
   
@@ -654,6 +658,7 @@ export default function GymComparison() {
       initialStats,
       currentGymIndex,
       months,
+      simulatedDate: simulatedDate ? simulatedDate.toISOString() : null, // Include start date
       comparisonStates: comparisonStates.map(state => ({
         ...state,
         id: 'redacted', // Don't include internal IDs
@@ -700,6 +705,18 @@ export default function GymComparison() {
       // Load months
       if (typeof settings.months === 'number') {
         setMonths(settings.months);
+      }
+      
+      // Load simulated date
+      if (typeof settings.simulatedDate === 'string') {
+        try {
+          const date = new Date(settings.simulatedDate);
+          if (!isNaN(date.getTime())) {
+            setSimulatedDate(date);
+          }
+        } catch (err) {
+          console.error('Failed to parse simulatedDate:', err);
+        }
       }
 
       // Load show costs
@@ -811,6 +828,7 @@ export default function GymComparison() {
         }),
         initialStats,
         months,
+        historicalData: historicalData.length > 0 ? historicalData : undefined,
       };
       
       exportGymComparisonData(exportData);
@@ -882,6 +900,7 @@ export default function GymComparison() {
             simulatedDate={simulatedDate}
             setSimulatedDate={setSimulatedDate}
             monthValidationError={monthValidationError}
+            onHistoricalDataFetched={setHistoricalData}
           />
 
           <ComparisonSelector
@@ -926,6 +945,8 @@ export default function GymComparison() {
               months={months}
               showCosts={showCosts}
               itemPricesData={itemPricesData}
+              historicalData={historicalData}
+              simulatedDate={simulatedDate}
             />
           )}
 

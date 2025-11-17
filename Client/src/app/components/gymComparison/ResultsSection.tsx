@@ -9,6 +9,7 @@ import EdvdJumpGainsTable from './EdvdJumpGainsTable';
 import IndividualStatsSection from './IndividualStatsSection';
 import type { SimulationResult } from '../../../lib/utils/gymProgressionCalculator';
 import type { ItemPrices } from '../../../lib/hooks/useItemPrices';
+import type { HistoricalStat } from '../../../lib/hooks/useHistoricalStats';
 
 interface ComparisonState {
   id: string;
@@ -35,6 +36,8 @@ interface ResultsSectionProps {
   months: number;
   showCosts: boolean;
   itemPricesData?: ItemPrices;
+  historicalData?: HistoricalStat[];
+  simulatedDate?: Date | null;
 }
 
 export default function ResultsSection({
@@ -44,7 +47,9 @@ export default function ResultsSection({
   initialStats,
   months,
   showCosts,
-  itemPricesData
+  itemPricesData,
+  historicalData = [],
+  simulatedDate = null,
 }: ResultsSectionProps) {
   const [showWarning, setShowWarning] = useState(true);
   
@@ -107,6 +112,8 @@ export default function ResultsSection({
           results={results}
           showCosts={showCosts}
           itemPricesData={itemPricesData}
+          historicalData={historicalData}
+          simulatedDate={simulatedDate}
         />
 
         <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -191,6 +198,8 @@ export default function ResultsSection({
               results={results}
               showCosts={showCosts}
               itemPricesData={itemPricesData}
+              historicalData={historicalData}
+              simulatedDate={simulatedDate}
             />
           </Grid>
 

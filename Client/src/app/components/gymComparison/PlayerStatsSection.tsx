@@ -1,8 +1,12 @@
-import { Alert, Box, Button, CircularProgress, FormControl, Grid, InputLabel, MenuItem, Paper, Select, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Checkbox, CircularProgress, FormControl, FormControlLabel, Grid, InputLabel, MenuItem, Paper, Select, TextField, Typography } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { useState, useEffect } from 'react';
 import { GYMS } from '../../../lib/data/gyms';
+import HistoricalDataConfig from './HistoricalDataConfig';
+import { type HistoricalStat } from '../../../lib/hooks/useHistoricalStats';
+import axios from 'axios';
 
 interface Stats {
   strength: number;
@@ -25,6 +29,7 @@ interface PlayerStatsSectionProps {
   simulatedDate: Date | null;
   setSimulatedDate: (date: Date | null) => void;
   monthValidationError?: string | null;
+  onHistoricalDataFetched?: (data: HistoricalStat[]) => void;
 }
 
 export default function PlayerStatsSection({
@@ -40,9 +45,73 @@ export default function PlayerStatsSection({
   handleFetchStats,
   simulatedDate,
   setSimulatedDate,
-  monthValidationError
+  monthValidationError,
+  onHistoricalDataFetched,
 }: PlayerStatsSectionProps) {
+  // State for fetching stats at simulated date
+  const [fetchStatsAtDate, setFetchStatsAtDate] = useState(() => {
+    try {
+      const saved = localStorage.getItem('fetchStatsAtDate');
+      return saved ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
+  });
+  
+  // Save fetchStatsAtDate to localStorage
+  useEffect(() => {
+    localStorage.setItem('fetchStatsAtDate', JSON.stringify(fetchStatsAtDate));
+  }, [fetchStatsAtDate]);
+  
+  // Enhanced fetch function that can fetch at a specific date
+  const handleEnhancedFetch = async () => {
+    if (!apiKey.trim()) {
+      return;
+    }
+    
+    try {
+      if (fetchStatsAtDate && simulatedDate) {
+        // Fetch stats at the simulated date using Torn API v2
+        const timestamp = Math.floor(simulatedDate.getTime() / 1000);
+        const response = await axios.get('https://api.torn.com/v2/user/personalstats', {
+          params: {
+            stat: 'strength,speed,defense,dexterity',
+            timestamp,
+            key: apiKey,
+          },
+        });
+        
+        const personalstats = response.data.personalstats;
+        const stats = {
+          strength: 0,
+          speed: 0,
+          defense: 0,
+          dexterity: 0,
+        };
+        
+        if (Array.isArray(personalstats)) {
+          personalstats.forEach((item: { name: string; value: number }) => {
+            if (item.name === 'strength') stats.strength = item.value;
+            else if (item.name === 'speed') stats.speed = item.value;
+            else if (item.name === 'defense') stats.defense = item.value;
+            else if (item.name === 'dexterity') stats.dexterity = item.value;
+          });
+        }
+        
+        setInitialStats(stats);
+      } else {
+        // Call the original fetch function for current stats
+        handleFetchStats();
+      }
+    } catch (err) {
+      console.error('Failed to fetch stats:', err);
+      // Fallback to regular fetch if date-based fetch fails
+      handleFetchStats();
+    }
+  };
+  
   return (
+    <>
     <Paper sx={{ p: 2, mb: 3 }}>
       <Typography variant="h6" gutterBottom>Fixed options</Typography>
       
@@ -52,31 +121,33 @@ export default function PlayerStatsSection({
         </Alert>
       )}
       
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Optional: Enter a Limited API Key to auto-fetch your stats, or fill them in manually below. Get one from{' '}
-            <a href="https://www.torn.com/preferences.php#tab=api" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
-              Torn Settings → API Key
-            </a>
-          </Alert>
-          
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <TextField
-              label="Torn API Key"
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              size="small"
-              sx={{ flex: 1 }}
-            />
-            <Button variant="outlined" onClick={handleFetchStats} disabled={isLoadingGymStats || !apiKey.trim()}>
-              {isLoadingGymStats ? <CircularProgress size={20} /> : 'Fetch'}
-            </Button>
-          </Box>
-        </Grid>
+      {/* API Key Section - Full width block */}
+      <Box sx={{ mb: 3 }}>
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Optional: Enter a Limited API Key to auto-fetch your stats, or fill them in manually below. Get one from{' '}
+          <a href="https://www.torn.com/preferences.php#tab=api" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+            Torn Settings → API Key
+          </a>
+        </Alert>
         
-        <Grid size={{ xs: 6, md: 1.5 }}>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <TextField
+            label="Torn API Key"
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            size="small"
+            sx={{ flex: 1 }}
+          />
+          <Button variant="outlined" onClick={handleEnhancedFetch} disabled={isLoadingGymStats || !apiKey.trim()}>
+            {isLoadingGymStats ? <CircularProgress size={20} /> : 'Fetch'}
+          </Button>
+        </Box>
+      </Box>
+      
+      {/* Starting Stats - Four fields in one row */}
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        <Grid size={{ xs: 6, md: 3 }}>
           <TextField 
             label="Strength" 
             type="number" 
@@ -87,7 +158,7 @@ export default function PlayerStatsSection({
             inputProps={{ step: 'any', min: 0 }} 
           />
         </Grid>
-        <Grid size={{ xs: 6, md: 1.5 }}>
+        <Grid size={{ xs: 6, md: 3 }}>
           <TextField 
             label="Speed" 
             type="number" 
@@ -98,7 +169,7 @@ export default function PlayerStatsSection({
             inputProps={{ step: 'any', min: 0 }} 
           />
         </Grid>
-        <Grid size={{ xs: 6, md: 1.5 }}>
+        <Grid size={{ xs: 6, md: 3 }}>
           <TextField 
             label="Defense" 
             type="number" 
@@ -109,7 +180,7 @@ export default function PlayerStatsSection({
             inputProps={{ step: 'any', min: 0 }} 
           />
         </Grid>
-        <Grid size={{ xs: 6, md: 1.5 }}>
+        <Grid size={{ xs: 6, md: 3 }}>
           <TextField 
             label="Dexterity" 
             type="number" 
@@ -120,7 +191,43 @@ export default function PlayerStatsSection({
             inputProps={{ step: 'any', min: 0 }} 
           />
         </Grid>
-        
+      </Grid>
+      
+      {/* Start Date + Checkbox - Same row */}
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <DatePicker
+              label="Start Date"
+              value={simulatedDate}
+              onChange={(newValue) => setSimulatedDate(newValue)}
+              slotProps={{ 
+                textField: { 
+                  size: 'small',
+                  fullWidth: true,
+                  helperText: 'Sets the start date for the graph and Diabetes Day calculations (Nov 13-15).'
+                } 
+              }}
+            />
+          </LocalizationProvider>
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={fetchStatsAtDate}
+                onChange={(e) => setFetchStatsAtDate(e.target.checked)}
+                size="small"
+              />
+            }
+            label="Fetch starting stats at this date"
+            sx={{ mt: 1 }}
+          />
+        </Grid>
+      </Grid>
+      
+      {/* Other Options - Duration and Starting Gym */}
+      <Grid container spacing={2}>
         <Grid size={{ xs: 6, md: 3 }}>
           <TextField 
             label="Duration (months)" 
@@ -145,24 +252,17 @@ export default function PlayerStatsSection({
             </Select>
           </FormControl>
         </Grid>
-        
-        <Grid size={{ xs: 12, md: 6 }}>
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <DatePicker
-              label="Simulated Date (for Diabetes Day)"
-              value={simulatedDate}
-              onChange={(newValue) => setSimulatedDate(newValue)}
-              slotProps={{ 
-                textField: { 
-                  size: 'small',
-                  fullWidth: true,
-                  helperText: 'Diabetes Day is Nov 13-15. Set a date to simulate when it will occur.'
-                } 
-              }}
-            />
-          </LocalizationProvider>
-        </Grid>
       </Grid>
     </Paper>
+    
+    {/* Historical data section - only visible when API key is present */}
+    {apiKey && onHistoricalDataFetched && (
+      <HistoricalDataConfig 
+        apiKey={apiKey}
+        onHistoricalDataFetched={onHistoricalDataFetched}
+        simulatedDate={simulatedDate}
+      />
+    )}
+    </>
   );
 }

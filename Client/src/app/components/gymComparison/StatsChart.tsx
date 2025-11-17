@@ -14,6 +14,7 @@ import { CHART_COLORS } from '../../../lib/constants/gymConstants';
 import ChartTooltip from './ChartTooltip';
 import type { SimulationResult } from '../../../lib/utils/gymProgressionCalculator';
 import type { ItemPrices } from '../../../lib/hooks/useItemPrices';
+import type { HistoricalStat } from '../../../lib/hooks/useHistoricalStats';
 
 interface ComparisonState {
   id: string;
@@ -27,6 +28,8 @@ interface StatsChartProps {
   results: Record<string, SimulationResult>;
   showCosts: boolean;
   itemPricesData?: ItemPrices;
+  historicalData?: HistoricalStat[];
+  simulatedDate?: Date | null;
 }
 
 // Different line styles to alternate between sections - FIRST section is always solid
@@ -126,7 +129,9 @@ export default function StatsChart({
   comparisonStates,
   results,
   showCosts,
-  itemPricesData
+  itemPricesData,
+  historicalData = [],
+  simulatedDate = null,
 }: StatsChartProps) {
   // Prepare chart lines - create separate line for each section of each state
   const chartLines: Array<{
@@ -236,11 +241,55 @@ export default function StatsChart({
     return newPoint;
   });
   
+  // Process historical data and merge with chart data
+  // Convert historical data timestamps to day numbers based on simulatedDate
+  let mergedChartData = processedChartData;
+  if (historicalData && historicalData.length > 0 && simulatedDate) {
+    // Calculate the reference timestamp (start of the day for simulatedDate)
+    const simulatedDateStart = new Date(simulatedDate);
+    simulatedDateStart.setHours(0, 0, 0, 0);
+    const referenceTimestamp = Math.floor(simulatedDateStart.getTime() / 1000);
+    
+    const historicalPoints = historicalData.map(stat => {
+      // Calculate days from the simulatedDate (which is day 1 in the simulation)
+      const daysSinceReference = Math.round((stat.timestamp - referenceTimestamp) / (24 * 60 * 60));
+      // Add 1 because simulation starts at day 1, not day 0
+      const day = daysSinceReference + 1;
+      return {
+        day,
+        'Historical Data': stat.totalstats,
+      };
+    });
+    
+    // Create a map of all days that exist in either dataset
+    const allDaysMap = new Map<number, Record<string, number>>();
+    
+    // Add all simulation data points
+    processedChartData.forEach(point => {
+      allDaysMap.set(point.day, { ...point });
+    });
+    
+    // Add or merge historical data points
+    historicalPoints.forEach(hp => {
+      const existing = allDaysMap.get(hp.day);
+      if (existing) {
+        // Merge with existing simulation data
+        allDaysMap.set(hp.day, { ...existing, 'Historical Data': hp['Historical Data'] });
+      } else {
+        // Add new point with only historical data
+        allDaysMap.set(hp.day, { day: hp.day, 'Historical Data': hp['Historical Data'] });
+      }
+    });
+    
+    // Convert map back to array and sort by day
+    mergedChartData = Array.from(allDaysMap.values()).sort((a, b) => a.day - b.day);
+  }
+  
   return (
     <Paper sx={{ p: 2, mb: 3 }}>
       <Typography variant="h6" gutterBottom>Total Battle Stats Over Time</Typography>
       <ResponsiveContainer width="100%" height={400}>
-        <LineChart data={processedChartData}>
+        <LineChart data={mergedChartData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="day" label={{ value: 'Days', position: 'insideBottom', offset: -5 }} />
           <YAxis label={{ value: 'Total Stats', angle: -90, position: 'insideLeft' }} />
@@ -259,6 +308,21 @@ export default function StatsChart({
               />
             );
           })}
+          {/* Historical data line (if present) */}
+          {historicalData && historicalData.length > 0 && (
+            <Line 
+              type="monotone" 
+              dataKey="Historical Data" 
+              stroke="#FFFFFF"
+              strokeWidth={3} 
+              strokeDasharray="5 5"
+              dot={false}
+              connectNulls={false}
+              name="Historical Data (Actual)"
+              legendType="line"
+            />
+          )}
+          {/* Simulated data lines */}
           {chartLines.map((line, idx) => (
             <Line 
               key={`${line.dataKey}-${idx}`}
