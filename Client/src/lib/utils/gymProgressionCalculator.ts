@@ -486,10 +486,9 @@ export function simulateGymProgression(
     }
     
     // Calculate days from today to each DD jump date (1-indexed, day 1 = tomorrow or today if it's the date)
-    // Add 1 extra day because DD ends on Nov 13/15, marker should be shown one day later
     const msPerDay = 1000 * 60 * 60 * 24;
-    const daysToNov13 = Math.ceil((nov13.getTime() - today.getTime()) / msPerDay) + 1 + 1; // +1 for day later
-    const daysToNov15 = Math.ceil((nov15.getTime() - today.getTime()) / msPerDay) + 1 + 1; // +1 for day later
+    const daysToNov13 = Math.ceil((nov13.getTime() - today.getTime()) / msPerDay) + 1;
+    const daysToNov15 = Math.ceil((nov15.getTime() - today.getTime()) / msPerDay) + 1;
     
     // Only add DD jumps that fall within the simulation period (day 1 to totalDays)
     if (inputs.diabetesDay.numberOfJumps === 2) {
