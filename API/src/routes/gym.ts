@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { fetchGymStats } from '../utils/tornApi';
 import { logInfo, logError } from '../utils/logger';
+import { Donation } from '../models/Donation';
 
 const router = express.Router({ mergeParams: true });
 
@@ -115,6 +116,26 @@ router.get('/stats', async (req: Request, res: Response) => {
     }
     
     res.status(500).json({ error: 'Failed to fetch gym stats' });
+  }
+});
+
+/**
+ * GET /api/gym/donations
+ * Fetch all donations to display on the thank you section
+ */
+router.get('/donations', async (req: Request, res: Response) => {
+  try {
+    logInfo('Fetching donations');
+    
+    const donations = await Donation.find()
+      .sort({ createdAt: -1 }) // Most recent first
+      .select('playerName donationItem createdAt')
+      .lean();
+    
+    res.json(donations);
+  } catch (error) {
+    logError('Error fetching donations', error instanceof Error ? error : new Error(String(error)));
+    res.status(500).json({ error: 'Failed to fetch donations' });
   }
 });
 

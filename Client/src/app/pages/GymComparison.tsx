@@ -52,6 +52,7 @@ import { GYMS } from '../../lib/data/gyms';
 const AVAILABLE_GYMS = GYMS;
 
 import BuyMeXanaxCard from '../components/gymComparison/BuyMeXanaxCard';
+import ThankYouCard from '../components/gymComparison/ThankYouCard';
 import ReportProblemCard from '../components/gymComparison/ReportProblemCard';
 import LoadSettingsButton from '../components/gymComparison/LoadSettingsButton';
 import SaveConfigurationButton from '../components/gymComparison/SaveConfigurationButton';
@@ -998,6 +999,9 @@ export default function GymComparison() {
       <Grid container spacing={2} sx={{ mt: 8 }}>
         <Grid size={{ xs: 12, md: 6 }}>
           <BuyMeXanaxCard />
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <ThankYouCard />
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <ReportProblemCard getCurrentSettings={getCurrentSettings} />
