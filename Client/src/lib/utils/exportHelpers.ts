@@ -220,8 +220,9 @@ export function exportToIncrementalCSV(data: ExportData): string {
   
   lines.push(day0Parts.join(','));
   
-  // Add daily data for all available days
+  // Add daily data for all available days (skip day 0 as it's already added above)
   sortedDays.forEach(day => {
+    if (day === 0) return; // Skip day 0 to avoid duplicate
     const dayParts: string[] = [String(day)];
     
     // Add stats for each comparison state

@@ -30,6 +30,7 @@ interface StatsChartProps {
   itemPricesData?: ItemPrices;
   historicalData?: HistoricalStat[];
   simulatedDate?: Date | null;
+  historicalComparisonEnabled?: boolean;
 }
 
 // Different line styles to alternate between sections - FIRST section is always solid
@@ -132,6 +133,7 @@ export default function StatsChart({
   itemPricesData,
   historicalData = [],
   simulatedDate = null,
+  historicalComparisonEnabled = false,
 }: StatsChartProps) {
   // Prepare chart lines - create separate line for each section of each state
   const chartLines: Array<{
@@ -222,17 +224,24 @@ export default function StatsChart({
       } else {
         // Multiple sections - assign value to appropriate section's data key
         // sectionBoundaries = [180, 360] means:
-        //   Section 0: days 1-180
-        //   Section 1: days 181-360
+        //   Section 0: days 1-180 (inclusive)
+        //   Section 1: days 180-360 (inclusive, overlapping at day 180 to connect lines)
         const day = dataPoint.day;
         
-        for (let sectionIdx = 0; sectionIdx < result.sectionBoundaries.length; sectionIdx++) {
-          const startDay = sectionIdx === 0 ? 1 : result.sectionBoundaries[sectionIdx - 1] + 1;
-          const endDay = result.sectionBoundaries[sectionIdx];
-          const lineKey = `${state.name}_section${sectionIdx}`;
-          
-          if (day >= startDay && day <= endDay) {
-            newPoint[lineKey] = statValue;
+        // Special handling for day 0 - assign to first section to avoid gap
+        if (day === 0) {
+          const lineKey = `${state.name}_section0`;
+          newPoint[lineKey] = statValue;
+        } else {
+          for (let sectionIdx = 0; sectionIdx < result.sectionBoundaries.length; sectionIdx++) {
+            // Make sections overlap at boundaries - start day of section N is the end day of section N-1
+            const startDay = sectionIdx === 0 ? 1 : result.sectionBoundaries[sectionIdx - 1];
+            const endDay = result.sectionBoundaries[sectionIdx];
+            const lineKey = `${state.name}_section${sectionIdx}`;
+            
+            if (day >= startDay && day <= endDay) {
+              newPoint[lineKey] = statValue;
+            }
           }
         }
       }
@@ -241,20 +250,20 @@ export default function StatsChart({
     return newPoint;
   });
   
-  // Process historical data and merge with chart data
+  // Process historical data and merge with chart data - only if enabled
   // Convert historical data timestamps to day numbers based on simulatedDate
   let mergedChartData = processedChartData;
-  if (historicalData && historicalData.length > 0 && simulatedDate) {
+  if (historicalComparisonEnabled && historicalData && historicalData.length > 0 && simulatedDate) {
     // Calculate the reference timestamp (start of the day for simulatedDate)
     const simulatedDateStart = new Date(simulatedDate);
     simulatedDateStart.setHours(0, 0, 0, 0);
     const referenceTimestamp = Math.floor(simulatedDateStart.getTime() / 1000);
     
     const historicalPoints = historicalData.map(stat => {
-      // Calculate days from the simulatedDate (which is day 1 in the simulation)
+      // Calculate days from the simulatedDate
+      // simulatedDate is day 0 (starting point), so daysSinceReference = 0 maps to day 0
       const daysSinceReference = Math.round((stat.timestamp - referenceTimestamp) / (24 * 60 * 60));
-      // Add 1 because simulation starts at day 1, not day 0
-      const day = daysSinceReference + 1;
+      const day = daysSinceReference;
       return {
         day,
         'Historical Data': stat.totalstats,
@@ -308,8 +317,8 @@ export default function StatsChart({
               />
             );
           })}
-          {/* Historical data line (if present) */}
-          {historicalData && historicalData.length > 0 && (
+          {/* Historical data line (only show if enabled and data exists) */}
+          {historicalComparisonEnabled && historicalData && historicalData.length > 0 && simulatedDate && (
             <Line 
               type="monotone" 
               dataKey="Historical Data" 

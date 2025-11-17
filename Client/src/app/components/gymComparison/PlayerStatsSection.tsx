@@ -30,6 +30,7 @@ interface PlayerStatsSectionProps {
   setSimulatedDate: (date: Date | null) => void;
   monthValidationError?: string | null;
   onHistoricalDataFetched?: (data: HistoricalStat[]) => void;
+  onEnabledChange?: (enabled: boolean) => void;
 }
 
 export default function PlayerStatsSection({
@@ -47,6 +48,7 @@ export default function PlayerStatsSection({
   setSimulatedDate,
   monthValidationError,
   onHistoricalDataFetched,
+  onEnabledChange,
 }: PlayerStatsSectionProps) {
   // State for fetching stats at simulated date
   const [fetchStatsAtDate, setFetchStatsAtDate] = useState(() => {
@@ -261,6 +263,7 @@ export default function PlayerStatsSection({
         apiKey={apiKey}
         onHistoricalDataFetched={onHistoricalDataFetched}
         simulatedDate={simulatedDate}
+        onEnabledChange={onEnabledChange}
       />
     )}
     </>
