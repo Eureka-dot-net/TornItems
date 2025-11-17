@@ -222,17 +222,23 @@ export default function StatsChart({
       } else {
         // Multiple sections - assign value to appropriate section's data key
         // sectionBoundaries = [180, 360] means:
-        //   Section 0: days 1-180 (inclusive)
-        //   Section 1: days 180-360 (inclusive, overlapping at day 180 to connect lines)
+        //   Section 0: days 1-180
+        //   Section 1: days 181-360
         const day = dataPoint.day;
         
-        for (let sectionIdx = 0; sectionIdx < result.sectionBoundaries.length; sectionIdx++) {
-          const startDay = sectionIdx === 0 ? 1 : result.sectionBoundaries[sectionIdx - 1];
-          const endDay = result.sectionBoundaries[sectionIdx];
-          const lineKey = `${state.name}_section${sectionIdx}`;
-          
-          if (day >= startDay && day <= endDay) {
-            newPoint[lineKey] = statValue;
+        // Special handling for day 0 - assign to first section to avoid gap
+        if (day === 0) {
+          const lineKey = `${state.name}_section0`;
+          newPoint[lineKey] = statValue;
+        } else {
+          for (let sectionIdx = 0; sectionIdx < result.sectionBoundaries.length; sectionIdx++) {
+            const startDay = sectionIdx === 0 ? 1 : result.sectionBoundaries[sectionIdx - 1] + 1;
+            const endDay = result.sectionBoundaries[sectionIdx];
+            const lineKey = `${state.name}_section${sectionIdx}`;
+            
+            if (day >= startDay && day <= endDay) {
+              newPoint[lineKey] = statValue;
+            }
           }
         }
       }
@@ -251,10 +257,10 @@ export default function StatsChart({
     const referenceTimestamp = Math.floor(simulatedDateStart.getTime() / 1000);
     
     const historicalPoints = historicalData.map(stat => {
-      // Calculate days from the simulatedDate (which corresponds to day 0 - initial stats)
+      // Calculate days from the simulatedDate (which is day 1 in the simulation)
       const daysSinceReference = Math.round((stat.timestamp - referenceTimestamp) / (24 * 60 * 60));
-      // Don't add 1 - simulatedDate corresponds to day 0
-      const day = daysSinceReference;
+      // Add 1 because simulation starts at day 1, not day 0
+      const day = daysSinceReference + 1;
       return {
         day,
         'Historical Data': stat.totalstats,
@@ -308,8 +314,8 @@ export default function StatsChart({
               />
             );
           })}
-          {/* Historical data line (only show if historical data exists and is enabled) */}
-          {historicalData && historicalData.length > 0 && simulatedDate && (
+          {/* Historical data line (if present) */}
+          {historicalData && historicalData.length > 0 && (
             <Line 
               type="monotone" 
               dataKey="Historical Data" 

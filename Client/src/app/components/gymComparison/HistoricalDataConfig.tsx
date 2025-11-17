@@ -58,6 +58,13 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
   useEffect(() => { localStorage.setItem('historicalDataConfig_endDate', JSON.stringify(endDate ? endDate.toISOString() : null)); }, [endDate]);
   useEffect(() => { localStorage.setItem('historicalDataConfig_cachingMode', JSON.stringify(cachingMode)); }, [cachingMode]);
 
+  // Clear historical data when feature is disabled
+  useEffect(() => {
+    if (!enabled) {
+      onHistoricalDataFetched([]);
+    }
+  }, [enabled, onHistoricalDataFetched]);
+
   // Calculate estimates
   const calculateEstimates = () => {
     if (!startDate || !endDate) {
