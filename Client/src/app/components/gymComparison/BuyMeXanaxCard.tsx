@@ -21,6 +21,7 @@ export default function BuyMeXanaxCard() {
         <Typography variant="body2" sx={{ mb: 2, opacity: 0.85 }}>
           If this gym comparison tool has helped you optimize your training, consider buying me a Xanax in-game! 
           Your support helps keep this hobby project running and motivates me to add more features.
+          If you would prefer to remain anonymous please let me know. 
         </Typography>
         <Button
           variant="contained"
