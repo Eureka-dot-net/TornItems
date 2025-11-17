@@ -222,12 +222,12 @@ export default function StatsChart({
       } else {
         // Multiple sections - assign value to appropriate section's data key
         // sectionBoundaries = [180, 360] means:
-        //   Section 0: days 1-180
-        //   Section 1: days 181-360
+        //   Section 0: days 1-180 (inclusive)
+        //   Section 1: days 180-360 (inclusive, overlapping at day 180 to connect lines)
         const day = dataPoint.day;
         
         for (let sectionIdx = 0; sectionIdx < result.sectionBoundaries.length; sectionIdx++) {
-          const startDay = sectionIdx === 0 ? 1 : result.sectionBoundaries[sectionIdx - 1] + 1;
+          const startDay = sectionIdx === 0 ? 1 : result.sectionBoundaries[sectionIdx - 1];
           const endDay = result.sectionBoundaries[sectionIdx];
           const lineKey = `${state.name}_section${sectionIdx}`;
           
@@ -251,10 +251,10 @@ export default function StatsChart({
     const referenceTimestamp = Math.floor(simulatedDateStart.getTime() / 1000);
     
     const historicalPoints = historicalData.map(stat => {
-      // Calculate days from the simulatedDate (which is day 1 in the simulation)
+      // Calculate days from the simulatedDate (which corresponds to day 0 - initial stats)
       const daysSinceReference = Math.round((stat.timestamp - referenceTimestamp) / (24 * 60 * 60));
-      // Add 1 because simulation starts at day 1, not day 0
-      const day = daysSinceReference + 1;
+      // Don't add 1 - simulatedDate corresponds to day 0
+      const day = daysSinceReference;
       return {
         day,
         'Historical Data': stat.totalstats,
@@ -308,8 +308,8 @@ export default function StatsChart({
               />
             );
           })}
-          {/* Historical data line (if present) */}
-          {historicalData && historicalData.length > 0 && (
+          {/* Historical data line (only show if historical data exists and is enabled) */}
+          {historicalData && historicalData.length > 0 && simulatedDate && (
             <Line 
               type="monotone" 
               dataKey="Historical Data" 
