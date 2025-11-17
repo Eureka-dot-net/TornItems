@@ -21,9 +21,10 @@ interface HistoricalDataConfigProps {
   apiKey: string;
   onHistoricalDataFetched: (data: HistoricalStat[]) => void;
   simulatedDate: Date | null;
+  onEnabledChange?: (enabled: boolean) => void;
 }
 
-export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, simulatedDate }: HistoricalDataConfigProps) {
+export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, simulatedDate, onEnabledChange }: HistoricalDataConfigProps) {
   // Load from localStorage
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
     try {
@@ -58,12 +59,12 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
   useEffect(() => { localStorage.setItem('historicalDataConfig_endDate', JSON.stringify(endDate ? endDate.toISOString() : null)); }, [endDate]);
   useEffect(() => { localStorage.setItem('historicalDataConfig_cachingMode', JSON.stringify(cachingMode)); }, [cachingMode]);
 
-  // Clear historical data when feature is disabled
+  // Notify parent when enabled changes
   useEffect(() => {
-    if (!enabled) {
-      onHistoricalDataFetched([]);
+    if (onEnabledChange) {
+      onEnabledChange(enabled);
     }
-  }, [enabled, onHistoricalDataFetched]);
+  }, [enabled, onEnabledChange]);
 
   // Calculate estimates
   const calculateEstimates = () => {

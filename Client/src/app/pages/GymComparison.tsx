@@ -249,6 +249,7 @@ export default function GymComparison() {
   
   // Historical data state
   const [historicalData, setHistoricalData] = useState<HistoricalStat[]>([]);
+  const [historicalComparisonEnabled, setHistoricalComparisonEnabled] = useState(false);
   
   // Don't use the hook for auto-fetching, we'll fetch manually with the button
   
@@ -901,6 +902,7 @@ export default function GymComparison() {
             setSimulatedDate={setSimulatedDate}
             monthValidationError={monthValidationError}
             onHistoricalDataFetched={setHistoricalData}
+            onEnabledChange={setHistoricalComparisonEnabled}
           />
 
           <ComparisonSelector
@@ -947,6 +949,7 @@ export default function GymComparison() {
               itemPricesData={itemPricesData}
               historicalData={historicalData}
               simulatedDate={simulatedDate}
+              historicalComparisonEnabled={historicalComparisonEnabled}
             />
           )}
 
