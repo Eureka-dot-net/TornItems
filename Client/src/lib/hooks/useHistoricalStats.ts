@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import axios from 'axios';
 
 export interface HistoricalStat {
@@ -23,12 +23,22 @@ interface FetchHistoricalStatsParams {
   samplingFrequencyDays: number;
   onProgress?: (current: number, total: number) => void;
   timestampsToFetch?: number[]; // Optional: specific timestamps to fetch
+  signal?: AbortSignal; // Optional: for cancellation
 }
 
 export function useHistoricalStats() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<HistoricalStat[]>([]);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const cancelFetch = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsLoading(false);
+    }
+  }, []);
 
   const fetchHistoricalStats = useCallback(async ({
     apiKey,
@@ -37,9 +47,16 @@ export function useHistoricalStats() {
     samplingFrequencyDays,
     onProgress,
     timestampsToFetch,
+    signal,
   }: FetchHistoricalStatsParams): Promise<HistoricalStat[]> => {
     setIsLoading(true);
     setError(null);
+    
+    // Create abort controller if not provided
+    if (!signal) {
+      abortControllerRef.current = new AbortController();
+      signal = abortControllerRef.current.signal;
+    }
     
     try {
       // Calculate timestamps to fetch
@@ -70,6 +87,11 @@ export function useHistoricalStats() {
       const RATE_LIMIT_DELAY = 2000; // 2 seconds between requests = 30 requests/minute
       
       for (let i = 0; i < timestamps.length; i++) {
+        // Check if cancelled
+        if (signal?.aborted) {
+          throw new Error('Fetch cancelled by user');
+        }
+        
         const timestamp = timestamps[i];
         
         try {
@@ -80,6 +102,7 @@ export function useHistoricalStats() {
               timestamp,
               key: apiKey,
             },
+            signal, // Pass abort signal to axios
           });
           
           // Parse response
@@ -123,17 +146,26 @@ export function useHistoricalStats() {
       
       setData(results);
       setIsLoading(false);
+      abortControllerRef.current = null;
       return results;
     } catch (err) {
+      if (axios.isCancel(err) || (err instanceof Error && err.message === 'Fetch cancelled by user')) {
+        setError('Fetch cancelled');
+        setIsLoading(false);
+        abortControllerRef.current = null;
+        return [];
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch historical stats';
       setError(errorMessage);
       setIsLoading(false);
+      abortControllerRef.current = null;
       throw err;
     }
   }, []);
 
   return {
     fetchHistoricalStats,
+    cancelFetch,
     isLoading,
     error,
     data,

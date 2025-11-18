@@ -50,6 +50,15 @@ export default function PlayerStatsSection({
   onHistoricalDataFetched,
   onEnabledChange,
 }: PlayerStatsSectionProps) {
+  // Constants for date validation
+  const TORN_RELEASE_DATE = new Date('1997-10-27');
+  const getYesterday = () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(23, 59, 59, 999);
+    return yesterday;
+  };
+  
   // State for fetching stats at simulated date
   const [fetchStatsAtDate, setFetchStatsAtDate] = useState(() => {
     try {
@@ -203,6 +212,8 @@ export default function PlayerStatsSection({
               label="Start Date"
               value={simulatedDate}
               onChange={(newValue) => setSimulatedDate(newValue)}
+              minDate={TORN_RELEASE_DATE}
+              maxDate={getYesterday()}
               slotProps={{ 
                 textField: { 
                   size: 'small',
