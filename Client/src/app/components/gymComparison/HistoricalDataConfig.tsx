@@ -58,7 +58,7 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
   });
   const [endDate, setEndDate] = useState<Date | null>(() => {
     const saved = loadSavedValue<string | null>('endDate', null);
-    return saved ? new Date(saved) : new Date();
+    return saved ? new Date(saved) : getYesterday();
   });
   // Always fetch daily (samplingFrequencyDays = 1)
   const samplingFrequencyDays = 1;
@@ -261,10 +261,30 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
   };
 
   const formatTime = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 60) return `${seconds} seconds`;
+    
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
+    
+    // If less than an hour, show minutes and seconds
+    if (minutes < 60) {
+      if (remainingSeconds === 0) return `${minutes} minutes`;
+      return `${minutes} minutes ${remainingSeconds} seconds`;
+    }
+    
+    // If less than a day, show hours and minutes
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (hours < 24) {
+      if (remainingMinutes === 0) return `${hours} hours`;
+      return `${hours} hours ${remainingMinutes} minutes`;
+    }
+    
+    // Show days and hours
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+    if (remainingHours === 0) return `${days} days`;
+    return `${days} days ${remainingHours} hours`;
   };
 
   const handleClearStats = () => {
