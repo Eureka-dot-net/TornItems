@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import {
   Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   FormControl,
   FormControlLabel,
   LinearProgress,
@@ -25,6 +30,15 @@ interface HistoricalDataConfigProps {
 }
 
 export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, simulatedDate, onEnabledChange }: HistoricalDataConfigProps) {
+  // Constants for date validation
+  const TORN_RELEASE_DATE = new Date('1997-10-27');
+  const getYesterday = () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(23, 59, 59, 999);
+    return yesterday;
+  };
+  
   // Load from localStorage
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
     try {
@@ -44,14 +58,16 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
   });
   const [endDate, setEndDate] = useState<Date | null>(() => {
     const saved = loadSavedValue<string | null>('endDate', null);
-    return saved ? new Date(saved) : new Date();
+    return saved ? new Date(saved) : getYesterday();
   });
   // Always fetch daily (samplingFrequencyDays = 1)
   const samplingFrequencyDays = 1;
   const [cachingMode, setCachingMode] = useState<'store' | 'refetch'>(() => loadSavedValue('cachingMode', 'store'));
   const [fetchProgress, setFetchProgress] = useState<{ current: number; total: number } | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingFetch, setPendingFetch] = useState(false);
   
-  const { fetchHistoricalStats, isLoading, error } = useHistoricalStats();
+  const { fetchHistoricalStats, cancelFetch, isLoading, error } = useHistoricalStats();
 
   // Save to localStorage when values change
   useEffect(() => { localStorage.setItem('historicalDataConfig_enabled', JSON.stringify(enabled)); }, [enabled]);
@@ -153,8 +169,21 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
       return;
     }
     
+    // Check if start date is more than 2 months ago
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    
+    if (startDate < twoMonthsAgo && !pendingFetch) {
+      // Show confirmation dialog
+      setPendingFetch(true);
+      setShowConfirmDialog(true);
+      return;
+    }
+    
+    setPendingFetch(false);
+    
     try {
-      let dataToFetch: HistoricalStat[] = [];
+      const dataToFetch: HistoricalStat[] = [];
       const timestampsToFetch: number[] = [];
       
       // Calculate all timestamps we need
@@ -232,10 +261,64 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
   };
 
   const formatTime = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 60) return `${seconds} seconds`;
+    
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
+    
+    // If less than an hour, show minutes and seconds
+    if (minutes < 60) {
+      if (remainingSeconds === 0) return `${minutes} minutes`;
+      return `${minutes} minutes ${remainingSeconds} seconds`;
+    }
+    
+    // If less than a day, show hours and minutes
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (hours < 24) {
+      if (remainingMinutes === 0) return `${hours} hours`;
+      return `${hours} hours ${remainingMinutes} minutes`;
+    }
+    
+    // Show days and hours
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+    if (remainingHours === 0) return `${days} days`;
+    return `${days} days ${remainingHours} hours`;
+  };
+
+  const handleClearStats = () => {
+    // Clear all cached historical stats from localStorage
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith('historicalStat_')) {
+        localStorage.removeItem(key);
+      }
+    });
+    // Clear the displayed data
+    onHistoricalDataFetched([]);
+    setLastFetchedParams(null);
+  };
+
+  const handleCancelFetch = () => {
+    cancelFetch();
+    setFetchProgress(null);
+  };
+
+  const handleConfirmFetch = () => {
+    setShowConfirmDialog(false);
+    handleFetch();
+  };
+
+  const handleCancelDialog = () => {
+    setShowConfirmDialog(false);
+    setPendingFetch(false);
+  };
+
+  // Check if we have any cached stats
+  const hasCachedStats = () => {
+    const keys = Object.keys(localStorage);
+    return keys.some(key => key.startsWith('historicalStat_'));
   };
 
   if (!apiKey) {
@@ -268,6 +351,8 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
                 label="Start Date"
                 value={startDate}
                 onChange={(newValue) => setStartDate(newValue)}
+                minDate={TORN_RELEASE_DATE}
+                maxDate={getYesterday()}
                 slotProps={{ 
                   textField: { 
                     size: 'small',
@@ -279,6 +364,7 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
                 label="End Date"
                 value={endDate}
                 onChange={(newValue) => setEndDate(newValue)}
+                maxDate={getYesterday()}
                 slotProps={{ 
                   textField: { 
                     size: 'small',
@@ -319,7 +405,7 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
             </RadioGroup>
           </FormControl>
 
-          <Box>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button
               variant="contained"
               onClick={handleFetch}
@@ -327,8 +413,29 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
             >
               {isLoading ? 'Fetching...' : 'Fetch Historical Data'}
             </Button>
+            
+            {isLoading && (
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={handleCancelFetch}
+              >
+                Cancel
+              </Button>
+            )}
+            
+            {!isLoading && cachingMode === 'store' && hasCachedStats() && (
+              <Button
+                variant="outlined"
+                color="warning"
+                onClick={handleClearStats}
+              >
+                Clear Cached Stats
+              </Button>
+            )}
+            
             {isLoading && fetchProgress && (
-              <Box sx={{ mt: 2 }}>
+              <Box sx={{ mt: 2, width: '100%' }}>
                 <Typography variant="body2" color="text.secondary">
                   Fetching {fetchProgress.current} of {fetchProgress.total}...
                 </Typography>
@@ -347,6 +454,35 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
           )}
         </Box>
       )}
+      
+      {/* Confirmation Dialog for dates older than 2 months */}
+      <Dialog
+        open={showConfirmDialog}
+        onClose={handleCancelDialog}
+        aria-labelledby="confirm-dialog-title"
+        aria-describedby="confirm-dialog-description"
+      >
+        <DialogTitle id="confirm-dialog-title">
+          Warning: Long Fetch Time
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="confirm-dialog-description">
+            The start date you selected is more than 2 months in the past. 
+            Fetching historical data for this period will take approximately {formatTime(estimates.estimatedTime)} 
+            ({estimates.requestCount} API requests at 30 requests per minute).
+            <br /><br />
+            Are you sure you want to continue?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDialog} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmFetch} color="primary" variant="contained" autoFocus>
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 }
