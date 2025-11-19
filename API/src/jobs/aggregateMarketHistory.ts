@@ -518,9 +518,9 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
     // Fetch stock benefits from the dedicated table
     const { StockBenefit } = await import('../models/StockBenefit');
     const stockBenefits = await StockBenefit.find().lean();
-    const benefitsMap: Record<number, any> = {};
+    const benefitsMap: Record<string, any> = {};
     for (const benefit of stockBenefits) {
-      benefitsMap[benefit.stock_id] = {
+      benefitsMap[benefit.ticker] = {
         benefit_requirement: benefit.benefit_requirement,
         benefit_type: benefit.benefit_type,
         benefit_frequency: benefit.benefit_frequency,
@@ -631,8 +631,8 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
       const currentPrice = stock.currentPrice;
       const weekAgoPrice = stock.oldestPrice;
       
-      // Get benefit data from the benefits map
-      const benefit = benefitsMap[stockId];
+      // Get benefit data from the benefits map using ticker
+      const benefit = benefitsMap[ticker];
       const benefitRequirement = benefit?.benefit_requirement || stock.benefit_requirement || null;
       const benefitType = benefit?.benefit_type || null;
       const benefitFrequency = benefit?.benefit_frequency || null;
