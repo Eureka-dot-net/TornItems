@@ -1,15 +1,62 @@
-import { Box, Typography, CircularProgress, Alert, Paper, Grid, TableSortLabel, Chip, Link } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, Paper, Grid, TableSortLabel, Chip, Link, TextField, InputAdornment } from '@mui/material';
 import { useState, useMemo } from 'react';
 import { useStockRecommendations } from '../../lib/hooks/useStockRecommendations';
 import type { StockRecommendation } from '../../lib/types/stockRecommendations';
 
-type SortField = 'ticker' | 'name' | 'price' | 'change_7d_pct' | 'volatility_7d_pct' | 'score' | 'sell_score' | 'recommendation' | 'owned_shares' | 'unrealized_profit_value' | 'unrealized_profit_pct';
+type SortField = 'ticker' | 'name' | 'price' | 'change_7d_pct' | 'score' | 'sell_score' | 'recommendation' | 'owned_shares' | 'unrealized_profit_value' | 'unrealized_profit_pct' | 'benefit_description' | 'benefit_frequency' | 'yearly_roi' | 'daily_income';
 type SortOrder = 'asc' | 'desc';
 
 export default function Recommendations() {
     const { recommendationsData, recommendationsLoading, recommendationsError } = useStockRecommendations();
     const [sortField, setSortField] = useState<SortField>('score');
     const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+    const [extraMoney, setExtraMoney] = useState<number>(0);
+
+    // Calculate available money (money not locked in stock blocks)
+    const availableMoney = useMemo(() => {
+        if (!recommendationsData) return extraMoney;
+        
+        // Calculate total value locked in maintaining stock blocks
+        let lockedValue = 0;
+        for (const stock of recommendationsData) {
+            if (stock.benefit_blocks_owned > 0 && stock.benefit_requirement) {
+                // Calculate total shares needed for all owned blocks
+                let totalSharesForBlocks = 0;
+                for (let i = 1; i <= stock.benefit_blocks_owned; i++) {
+                    totalSharesForBlocks += stock.benefit_requirement * Math.pow(2, i - 1);
+                }
+                lockedValue += totalSharesForBlocks * stock.price;
+            }
+        }
+        
+        // Available money = extra money entered by user
+        // (We can't know user's total cash, so we just use the extra money input)
+        return extraMoney;
+    }, [recommendationsData, extraMoney]);
+
+    // Determine which stocks can be afforded with available money
+    const affordabilityMap = useMemo(() => {
+        if (!recommendationsData) return new Map<number, boolean>();
+        
+        const map = new Map<number, boolean>();
+        
+        for (const stock of recommendationsData) {
+            if (!stock.benefit_requirement) {
+                map.set(stock.stock_id, false);
+                continue;
+            }
+            
+            // Calculate shares needed for the next block
+            const nextBlockIndex = stock.benefit_blocks_owned + 1;
+            const sharesForNextBlock = stock.benefit_requirement * Math.pow(2, nextBlockIndex - 1);
+            const costForNextBlock = sharesForNextBlock * stock.price;
+            
+            // Can afford if available money >= cost for next block
+            map.set(stock.stock_id, availableMoney >= costForNextBlock);
+        }
+        
+        return map;
+    }, [recommendationsData, availableMoney]);
 
     // Sort the data based on current sort field and order
     const sortedData = useMemo(() => {
@@ -80,8 +127,8 @@ export default function Recommendations() {
         return value.toLocaleString('en-US', {
             style: 'currency',
             currency: 'USD',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
         });
     };
 
@@ -122,19 +169,33 @@ export default function Recommendations() {
                 Stock Recommendations
             </Typography>
 
-            <Typography variant="body1" gutterBottom>
-                Total Stocks: {recommendationsData.length}
-            </Typography>
+            <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
+                <Typography variant="body1">
+                    Total Stocks: {recommendationsData.length}
+                </Typography>
+                <TextField
+                    label="Extra Money Available"
+                    type="number"
+                    value={extraMoney}
+                    onChange={(e) => setExtraMoney(Math.max(0, parseFloat(e.target.value) || 0))}
+                    sx={{ width: 250 }}
+                    InputProps={{
+                        startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                    }}
+                    helperText="Enter extra money to highlight affordable stock blocks"
+                />
+            </Box>
 
             <Paper sx={{ mt: 3, p: 2 }}>
                 {/* Header Row */}
-                <Grid container spacing={2} sx={{
+                <Grid container spacing={1} sx={{
                     mb: 2,
                     pb: 2,
                     borderBottom: '2px solid #555',
-                    fontWeight: 'bold'
+                    fontWeight: 'bold',
+                    fontSize: '0.75rem'
                 }}>
-                    <Grid size={{ xs: 6, sm: 0.8 }}>
+                    <Grid size={{ xs: 6, sm: 0.6 }}>
                         <TableSortLabel
                             active={sortField === 'ticker'}
                             direction={sortField === 'ticker' ? sortOrder : 'asc'}
@@ -143,7 +204,7 @@ export default function Recommendations() {
                             Ticker
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 1.5 }}>
+                    <Grid size={{ xs: 6, sm: 1.2 }}>
                         <TableSortLabel
                             active={sortField === 'name'}
                             direction={sortField === 'name' ? sortOrder : 'asc'}
@@ -152,7 +213,7 @@ export default function Recommendations() {
                             Name
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 1 }}>
+                    <Grid size={{ xs: 6, sm: 0.8 }}>
                         <TableSortLabel
                             active={sortField === 'price'}
                             direction={sortField === 'price' ? sortOrder : 'asc'}
@@ -161,7 +222,7 @@ export default function Recommendations() {
                             Price
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 1 }}>
+                    <Grid size={{ xs: 6, sm: 0.8 }}>
                         <TableSortLabel
                             active={sortField === 'change_7d_pct'}
                             direction={sortField === 'change_7d_pct' ? sortOrder : 'asc'}
@@ -170,16 +231,7 @@ export default function Recommendations() {
                             7d Chg
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 0.8 }}>
-                        <TableSortLabel
-                            active={sortField === 'volatility_7d_pct'}
-                            direction={sortField === 'volatility_7d_pct' ? sortOrder : 'asc'}
-                            onClick={() => handleSort('volatility_7d_pct')}
-                        >
-                            Vol
-                        </TableSortLabel>
-                    </Grid>
-                    <Grid size={{ xs: 6, sm: 0.8 }}>
+                    <Grid size={{ xs: 6, sm: 0.6 }}>
                         <TableSortLabel
                             active={sortField === 'score'}
                             direction={sortField === 'score' ? sortOrder : 'asc'}
@@ -188,7 +240,7 @@ export default function Recommendations() {
                             Score
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 1.2 }}>
+                    <Grid size={{ xs: 6, sm: 1 }}>
                         <TableSortLabel
                             active={sortField === 'recommendation'}
                             direction={sortField === 'recommendation' ? sortOrder : 'asc'}
@@ -197,7 +249,7 @@ export default function Recommendations() {
                             Rec
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 0.8 }}>
+                    <Grid size={{ xs: 6, sm: 0.6 }}>
                         <TableSortLabel
                             active={sortField === 'owned_shares'}
                             direction={sortField === 'owned_shares' ? sortOrder : 'asc'}
@@ -206,7 +258,43 @@ export default function Recommendations() {
                             Owned
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 1.3 }}>
+                    <Grid size={{ xs: 6, sm: 1.8 }}>
+                        <TableSortLabel
+                            active={sortField === 'benefit_description'}
+                            direction={sortField === 'benefit_description' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('benefit_description')}
+                        >
+                            Benefit
+                        </TableSortLabel>
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 0.8 }}>
+                        <TableSortLabel
+                            active={sortField === 'benefit_frequency'}
+                            direction={sortField === 'benefit_frequency' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('benefit_frequency')}
+                        >
+                            Days
+                        </TableSortLabel>
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 0.8 }}>
+                        <TableSortLabel
+                            active={sortField === 'yearly_roi'}
+                            direction={sortField === 'yearly_roi' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('yearly_roi')}
+                        >
+                            Yearly ROI
+                        </TableSortLabel>
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 0.9 }}>
+                        <TableSortLabel
+                            active={sortField === 'daily_income'}
+                            direction={sortField === 'daily_income' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('daily_income')}
+                        >
+                            Daily Income
+                        </TableSortLabel>
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 1 }}>
                         <TableSortLabel
                             active={sortField === 'unrealized_profit_value'}
                             direction={sortField === 'unrealized_profit_value' ? sortOrder : 'asc'}
@@ -215,7 +303,7 @@ export default function Recommendations() {
                             Profit $
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 1 }}>
+                    <Grid size={{ xs: 6, sm: 0.8 }}>
                         <TableSortLabel
                             active={sortField === 'unrealized_profit_pct'}
                             direction={sortField === 'unrealized_profit_pct' ? sortOrder : 'asc'}
@@ -228,97 +316,139 @@ export default function Recommendations() {
 
                 {/* Data Rows */}
                 <Box sx={{ maxHeight: '600px', overflow: 'auto' }}>
-                    {sortedData.map((stock: StockRecommendation) => (
-                        <Grid
-                            container
-                            spacing={2}
-                            key={stock.stock_id}
-                            sx={{
-                                py: 1.5,
-                                borderBottom: '1px solid #333',
-                                '&:hover': {
-                                    backgroundColor: 'rgba(255, 255, 255, 0.05)'
-                                }
-                            }}
-                        >
-                            <Grid size={{ xs: 6, sm: 0.8 }}>
-                                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{stock.ticker}</Typography>
+                    {sortedData.map((stock: StockRecommendation) => {
+                        const canAfford = affordabilityMap.get(stock.stock_id) || false;
+                        
+                        return (
+                            <Grid
+                                container
+                                spacing={1}
+                                key={stock.stock_id}
+                                sx={{
+                                    py: 1.5,
+                                    borderBottom: '1px solid #333',
+                                    backgroundColor: canAfford ? 'rgba(76, 175, 80, 0.1)' : 'transparent',
+                                    '&:hover': {
+                                        backgroundColor: canAfford ? 'rgba(76, 175, 80, 0.2)' : 'rgba(255, 255, 255, 0.05)'
+                                    }
+                                }}
+                            >
+                                <Grid size={{ xs: 6, sm: 0.6 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>{stock.ticker}</Typography>
+                                </Grid>
+                                <Grid size={{ xs: 6, sm: 1.2 }}>
+                                    <Link
+                                        href={getTornStockUrl(stock.stock_id)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        sx={{ fontSize: '0.75rem' }}
+                                    >
+                                        <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>{stock.name}</Typography>
+                                    </Link>
+                                </Grid>
+                                <Grid size={{ xs: 6, sm: 0.8 }}>
+                                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>{formatCurrency(stock.price)}</Typography>
+                                </Grid>
+                                <Grid size={{ xs: 6, sm: 0.8 }}>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            fontSize: '0.75rem',
+                                            color: stock.change_7d_pct && stock.change_7d_pct > 0 ? '#4caf50' : stock.change_7d_pct && stock.change_7d_pct < 0 ? '#f44336' : 'inherit'
+                                        }}
+                                    >
+                                        {formatPercent(stock.change_7d_pct)}
+                                    </Typography>
+                                </Grid>
+                                <Grid size={{ xs: 6, sm: 0.6 }}>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            fontSize: '0.75rem',
+                                            color: stock.score && stock.score > 0 ? '#4caf50' : stock.score && stock.score < 0 ? '#f44336' : 'inherit',
+                                            fontWeight: 'bold'
+                                        }}
+                                    >
+                                        {formatNumber(stock.score)}
+                                    </Typography>
+                                </Grid>
+                                <Grid size={{ xs: 6, sm: 1 }}>
+                                    <Chip
+                                        label={stock.recommendation}
+                                        color={getRecommendationColor(stock.recommendation)}
+                                        size="small"
+                                        sx={{ fontSize: '0.65rem', height: '20px' }}
+                                    />
+                                </Grid>
+                                <Grid size={{ xs: 6, sm: 0.6 }}>
+                                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                                        {stock.owned_shares > 0 ? stock.owned_shares.toLocaleString() : '-'}
+                                    </Typography>
+                                </Grid>
+                                <Grid size={{ xs: 6, sm: 1.8 }}>
+                                    <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>
+                                        {stock.benefit_description || '-'}
+                                    </Typography>
+                                </Grid>
+                                <Grid size={{ xs: 6, sm: 0.8 }}>
+                                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                                        {stock.benefit_frequency ? `${stock.benefit_frequency}d` : stock.benefit_type === 'Passive' ? 'Passive' : '-'}
+                                    </Typography>
+                                </Grid>
+                                <Grid size={{ xs: 6, sm: 0.8 }}>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            fontSize: '0.75rem',
+                                            color: stock.yearly_roi && stock.yearly_roi > 0 ? '#4caf50' : 'inherit',
+                                            fontWeight: stock.yearly_roi ? 'bold' : 'normal'
+                                        }}
+                                    >
+                                        {stock.yearly_roi !== null ? `${stock.yearly_roi.toFixed(1)}%` : '-'}
+                                    </Typography>
+                                </Grid>
+                                <Grid size={{ xs: 6, sm: 0.9 }}>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            fontSize: '0.75rem',
+                                            color: stock.daily_income && stock.daily_income > 0 ? '#4caf50' : 'inherit',
+                                            fontWeight: stock.daily_income ? 'bold' : 'normal'
+                                        }}
+                                    >
+                                        {stock.daily_income !== null ? formatCurrency(stock.daily_income) : '-'}
+                                    </Typography>
+                                </Grid>
+                                <Grid size={{ xs: 6, sm: 1 }}>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            fontSize: '0.75rem',
+                                            color: stock.unrealized_profit_value && stock.unrealized_profit_value > 0 ? '#4caf50' : stock.unrealized_profit_value && stock.unrealized_profit_value < 0 ? '#f44336' : 'inherit',
+                                            fontWeight: stock.unrealized_profit_value !== null ? 'bold' : 'normal'
+                                        }}
+                                    >
+                                        {stock.unrealized_profit_value !== null ? formatCurrency(stock.unrealized_profit_value) : '-'}
+                                    </Typography>
+                                </Grid>
+                                <Grid size={{ xs: 6, sm: 0.8 }}>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            fontSize: '0.75rem',
+                                            color: stock.unrealized_profit_pct && stock.unrealized_profit_pct > 0 ? '#4caf50' : stock.unrealized_profit_pct && stock.unrealized_profit_pct < 0 ? '#f44336' : 'inherit',
+                                            fontWeight: stock.unrealized_profit_pct !== null && stock.unrealized_profit_pct !== undefined ? 'bold' : 'normal'
+                                        }}
+                                    >
+                                        {formatPercent(stock.unrealized_profit_pct)}
+                                    </Typography>
+                                </Grid>
                             </Grid>
-                            <Grid size={{ xs: 6, sm: 1.5 }}>
-                                <Link
-                                    href={getTornStockUrl(stock.stock_id)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    sx={{ fontSize: '0.875rem' }}
-                                >
-
-                                    <Typography variant="body2">{stock.name}</Typography>
-                                </Link>
-                            </Grid>
-                            <Grid size={{ xs: 6, sm: 1 }}>
-                                <Typography variant="body2">{formatCurrency(stock.price)}</Typography>
-                            </Grid>
-                            <Grid size={{ xs: 6, sm: 1 }}>
-                                <Typography
-                                    variant="body2"
-                                    sx={{
-                                        color: stock.change_7d_pct && stock.change_7d_pct > 0 ? '#4caf50' : stock.change_7d_pct && stock.change_7d_pct < 0 ? '#f44336' : 'inherit'
-                                    }}
-                                >
-                                    {formatPercent(stock.change_7d_pct)}
-                                </Typography>
-                            </Grid>
-                            <Grid size={{ xs: 6, sm: 1.2 }}>
-                                <Typography variant="body2">{formatNumber(stock.volatility_7d_pct)}</Typography>
-                            </Grid>
-                            <Grid size={{ xs: 6, sm: 0.8 }}>
-                                <Typography
-                                    variant="body2"
-                                    sx={{
-                                        color: stock.score && stock.score > 0 ? '#4caf50' : stock.score && stock.score < 0 ? '#f44336' : 'inherit',
-                                        fontWeight: 'bold'
-                                    }}
-                                >
-                                    {formatNumber(stock.score)}
-                                </Typography>
-                            </Grid>
-                            <Grid size={{ xs: 6, sm: 1.2 }}>
-                                <Chip
-                                    label={stock.recommendation}
-                                    color={getRecommendationColor(stock.recommendation)}
-                                    size="small"
-                                    sx={{ fontSize: '0.75rem' }}
-                                />
-                            </Grid>
-                            <Grid size={{ xs: 6, sm: 0.8 }}>
-                                <Typography variant="body2">{stock.owned_shares}</Typography>
-                            </Grid>
-                            <Grid size={{ xs: 6, sm: 1.3 }}>
-                                <Typography
-                                    variant="body2"
-                                    sx={{
-                                        color: stock.unrealized_profit_value && stock.unrealized_profit_value > 0 ? '#4caf50' : stock.unrealized_profit_value && stock.unrealized_profit_value < 0 ? '#f44336' : 'inherit',
-                                        fontWeight: stock.unrealized_profit_value !== null ? 'bold' : 'normal'
-                                    }}
-                                >
-                                    {stock.unrealized_profit_value !== null ? formatCurrency(stock.unrealized_profit_value) : '-'}
-                                </Typography>
-                            </Grid>
-                            <Grid size={{ xs: 6, sm: 1 }}>
-                                <Typography
-                                    variant="body2"
-                                    sx={{
-                                        color: stock.unrealized_profit_pct && stock.unrealized_profit_pct > 0 ? '#4caf50' : stock.unrealized_profit_pct && stock.unrealized_profit_pct < 0 ? '#f44336' : 'inherit',
-                                        fontWeight: stock.unrealized_profit_pct !== null && stock.unrealized_profit_pct !== undefined ? 'bold' : 'normal'
-                                    }}
-                                >
-                                    {formatPercent(stock.unrealized_profit_pct)}
-                                </Typography>
-                            </Grid>
-                        </Grid>
-                    ))}
+                        );
+                    })}
                 </Box>
             </Paper>
         </Box>
     );
 }
+

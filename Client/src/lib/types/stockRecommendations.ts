@@ -14,6 +14,14 @@ export interface StockRecommendation {
   unrealized_profit_pct: number | null;
   can_sell: boolean;
   max_shares_to_sell: number;
+  benefit_requirement: number | null;
+  benefit_blocks_owned: number;
+  benefit_type: string | null;
+  benefit_frequency: number | null;
+  benefit_description: string | null;
+  benefit_item_id: number | null;
+  daily_income: number | null;
+  yearly_roi: number | null;
 }
 
 export type StockRecommendationsData = StockRecommendation[];
