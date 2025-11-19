@@ -1611,42 +1611,25 @@ export async function fetchStockPrices(): Promise<void> {
     const timestamp = new Date();
     
     for (const [stockId, stockData] of Object.entries(stocks) as [string, any][]) {
-      // Extract benefit requirement if available
+      const stockIdNum = parseInt(stockId, 10);
+      
+      // Extract benefit requirement if available (still from API for reference)
       const benefit_requirement = (stockData.benefit && stockData.benefit.requirement) 
         ? stockData.benefit.requirement 
         : null;
       
       bulkOps.push({
-        updateOne: {
-          filter: { 
-            stock_id: parseInt(stockId, 10),
-            timestamp: timestamp
-          },
-          update: {
-            $set: {
-              stock_id: parseInt(stockId, 10),
-              ticker: stockData.acronym,
-              name: stockData.name,
-              price: stockData.current_price,
-              benefit_requirement: benefit_requirement,
-              timestamp: timestamp,
-            },
-            $setOnInsert: {
-              // These will only be set on first insert, not on updates
-              // They should be populated by seedStockBenefits script
-              benefit_type: null,
-              benefit_frequency: null,
-              benefit_description: null,
-              benefit_item_id: null,
-            }
-          },
-          upsert: true
-        }
+        stock_id: stockIdNum,
+        ticker: stockData.acronym,
+        name: stockData.name,
+        price: stockData.current_price,
+        benefit_requirement: benefit_requirement,
+        timestamp: timestamp,
       });
     }
 
     if (bulkOps.length > 0) {
-      await StockPriceSnapshot.bulkWrite(bulkOps);
+      await StockPriceSnapshot.insertMany(bulkOps);
       logInfo(`Successfully saved ${bulkOps.length} stock price snapshots to database`);
     } else {
       logInfo('No stocks to save');
