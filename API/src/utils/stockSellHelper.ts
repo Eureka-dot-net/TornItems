@@ -169,30 +169,45 @@ export async function calculateBestStockToSell(requiredAmount: number, userApiKe
     }
 
     // Filter stocks that have enough value to cover the cost
-    // AND won't lose their benefits after selling
+    // AND won't lose any stock block benefits after selling
     const affordableStocks = recommendations.filter(stock => {
       // Check if stock has enough value
       if (stock.total_value < requiredAmount) {
         return false;
       }
       
-      // If stock has a benefit with a requirement, check if we'd lose it
+      // If stock has a benefit with a requirement, check if we'd lose a block
       if (stock.benefit_requirement && stock.benefit_requirement > 0) {
-        // Only protect the benefit if we currently have it
-        const currentlyHasBenefit = stock.owned_shares >= stock.benefit_requirement;
+        // Calculate how many blocks user currently owns
+        let benefitBlocksOwned = 0;
+        if (stock.owned_shares >= stock.benefit_requirement) {
+          let totalSharesNeeded = 0;
+          let blockNum = 1;
+          while (totalSharesNeeded + (stock.benefit_requirement * Math.pow(2, blockNum - 1)) <= stock.owned_shares) {
+            totalSharesNeeded += stock.benefit_requirement * Math.pow(2, blockNum - 1);
+            blockNum++;
+          }
+          benefitBlocksOwned = blockNum - 1;
+        }
         
-        if (currentlyHasBenefit) {
+        if (benefitBlocksOwned > 0) {
+          // Calculate shares needed to maintain current blocks
+          let totalSharesForCurrentBlocks = 0;
+          for (let i = 1; i <= benefitBlocksOwned; i++) {
+            totalSharesForCurrentBlocks += stock.benefit_requirement * Math.pow(2, i - 1);
+          }
+          
           // Calculate how many shares would need to be sold
           const adjustedPrice = Math.max(stock.price - 0.1, 0.01);
           const sharesToSell = Math.ceil(requiredAmount / adjustedPrice);
           const sharesAfterSale = stock.owned_shares - sharesToSell;
           
-          // If selling would drop below the requirement, exclude this stock
-          if (sharesAfterSale < stock.benefit_requirement) {
+          // If selling would drop below shares needed for current blocks, exclude this stock
+          if (sharesAfterSale < totalSharesForCurrentBlocks) {
             return false;
           }
         }
-        // If we don't currently have the benefit, we can sell freely
+        // If we don't currently have any blocks, we can sell freely
       }
       
       return true;
