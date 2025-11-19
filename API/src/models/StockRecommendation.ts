@@ -28,6 +28,7 @@ export interface IStockRecommendation extends Document {
   current_yearly_roi: number | null; // Yearly ROI for currently owned blocks (null if owns 0 blocks)
   next_block_daily_income: number | null; // Daily income if buying next block
   next_block_yearly_roi: number | null; // Yearly ROI for next block purchase
+  next_block_cost: number | null; // Cost of just the next block (shares × price)
   date: string; // YYYY-MM-DD format
   timestamp: Date;
 }
@@ -60,6 +61,7 @@ const StockRecommendationSchema = new Schema<IStockRecommendation>({
   current_yearly_roi: { type: Number, default: null },
   next_block_daily_income: { type: Number, default: null },
   next_block_yearly_roi: { type: Number, default: null },
+  next_block_cost: { type: Number, default: null },
   date: { type: String, required: true },
   timestamp: { type: Date, required: true, default: Date.now },
 });

@@ -26,6 +26,7 @@ export interface StockRecommendation {
   current_yearly_roi: number | null;
   next_block_daily_income: number | null;
   next_block_yearly_roi: number | null;
+  next_block_cost: number | null;
 }
 
 export interface StockSummary {

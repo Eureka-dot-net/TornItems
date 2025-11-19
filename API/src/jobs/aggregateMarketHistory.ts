@@ -715,6 +715,7 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
       let currentYearlyRoi: number | null = null;
       let nextBlockDailyIncome: number | null = null;
       let nextBlockYearlyRoi: number | null = null;
+      let nextBlockCost: number | null = null;
 
       if (benefitType === 'Active' && benefitFrequency && benefitFrequency > 0 && benefitRequirement && benefitRequirement > 0) {
         // Parse benefit value from description
@@ -766,16 +767,18 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
             }
           }
 
-          // 3. Next block calculation: Show INCREMENTAL ROI for buying just the next block
+          // 3. Next block calculation: Show TOTAL ROI if user buys the next block
           const nextBlockNumber = benefitBlocksOwned + 1;
           
-          // Calculate incremental values - just for the next block, not total
-          const incrementalDailyIncome = benefitValue / benefitFrequency; // Just 1 more block's income
-          const incrementalCost = benefitRequirement * Math.pow(2, nextBlockNumber - 1) * currentPrice; // Cost of just that block
+          // Calculate cost of just the next block
+          const nextBlockShares = benefitRequirement * Math.pow(2, nextBlockNumber - 1);
+          nextBlockCost = nextBlockShares * currentPrice;
           
-          nextBlockDailyIncome = incrementalDailyIncome;
-          if (incrementalCost > 0) {
-            nextBlockYearlyRoi = ((incrementalDailyIncome * 365) / incrementalCost) * 100;
+          // Calculate total values - what you'd have if you owned nextBlockNumber blocks
+          nextBlockDailyIncome = (benefitValue * nextBlockNumber) / benefitFrequency; // Total income from all blocks
+          const nextBlockTotalInvestment = calculateBlocksCost(nextBlockNumber); // Total cost of all blocks
+          if (nextBlockTotalInvestment > 0) {
+            nextBlockYearlyRoi = ((nextBlockDailyIncome * 365) / nextBlockTotalInvestment) * 100;
           }
         }
       }
@@ -808,6 +811,7 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
         current_yearly_roi: currentYearlyRoi !== null ? parseFloat(currentYearlyRoi.toFixed(2)) : null,
         next_block_daily_income: nextBlockDailyIncome !== null ? parseFloat(nextBlockDailyIncome.toFixed(2)) : null,
         next_block_yearly_roi: nextBlockYearlyRoi !== null ? parseFloat(nextBlockYearlyRoi.toFixed(2)) : null,
+        next_block_cost: nextBlockCost !== null ? parseFloat(nextBlockCost.toFixed(2)) : null,
         date: currentDate,
         timestamp: now
       });

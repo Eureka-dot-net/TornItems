@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { useStockRecommendations, useStockSummary } from '../../lib/hooks/useStockRecommendations';
 import type { StockRecommendation } from '../../lib/types/stockRecommendations';
 
-type SortField = 'ticker' | 'name' | 'price' | 'change_7d_pct' | 'score' | 'sell_score' | 'recommendation' | 'owned_shares' | 'unrealized_profit_value' | 'unrealized_profit_pct' | 'benefit_description' | 'benefit_frequency' | 'yearly_roi' | 'daily_income' | 'current_yearly_roi' | 'current_daily_income' | 'next_block_yearly_roi' | 'next_block_daily_income';
+type SortField = 'ticker' | 'name' | 'price' | 'change_7d_pct' | 'score' | 'sell_score' | 'recommendation' | 'owned_shares' | 'unrealized_profit_value' | 'unrealized_profit_pct' | 'benefit_description' | 'benefit_frequency' | 'yearly_roi' | 'daily_income' | 'current_yearly_roi' | 'current_daily_income' | 'next_block_yearly_roi' | 'next_block_daily_income' | 'next_block_cost';
 type SortOrder = 'asc' | 'desc';
 
 export default function Recommendations() {
@@ -61,18 +61,11 @@ export default function Recommendations() {
         const map = new Map<number, boolean>();
         
         for (const stock of recommendationsData) {
-            if (!stock.benefit_requirement) {
-                map.set(stock.stock_id, false);
-                continue;
-            }
-            
-            // Calculate shares needed for the next block
-            const nextBlockIndex = stock.benefit_blocks_owned + 1;
-            const sharesForNextBlock = stock.benefit_requirement * Math.pow(2, nextBlockIndex - 1);
-            const costForNextBlock = sharesForNextBlock * stock.price;
+            // Use next_block_cost from API if available, otherwise can't afford
+            const costForNextBlock = stock.next_block_cost || 0;
             
             // Can afford if total available money >= cost for next block
-            map.set(stock.stock_id, stockMoneyInfo.totalAvailable >= costForNextBlock);
+            map.set(stock.stock_id, costForNextBlock > 0 && stockMoneyInfo.totalAvailable >= costForNextBlock);
         }
         
         return map;
@@ -361,7 +354,7 @@ export default function Recommendations() {
                             direction={sortField === 'yearly_roi' ? sortOrder : 'asc'}
                             onClick={() => handleSort('yearly_roi')}
                         >
-                            ROI (1blk)
+                            1 Blk ROI
                         </TableSortLabel>
                     </Grid>
                     <Grid size={{ xs: 6, sm: 0.9 }}>
@@ -370,7 +363,7 @@ export default function Recommendations() {
                             direction={sortField === 'daily_income' ? sortOrder : 'asc'}
                             onClick={() => handleSort('daily_income')}
                         >
-                            Income (1blk)
+                            1 Blk Income
                         </TableSortLabel>
                     </Grid>
                     <Grid size={{ xs: 6, sm: 0.8 }}>
@@ -407,6 +400,15 @@ export default function Recommendations() {
                             onClick={() => handleSort('next_block_daily_income')}
                         >
                             Next Income
+                        </TableSortLabel>
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 1 }}>
+                        <TableSortLabel
+                            active={sortField === 'next_block_cost'}
+                            direction={sortField === 'next_block_cost' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('next_block_cost')}
+                        >
+                            Next Cost
                         </TableSortLabel>
                     </Grid>
                     <Grid size={{ xs: 6, sm: 1 }}>
@@ -584,6 +586,18 @@ export default function Recommendations() {
                                         }}
                                     >
                                         {stock.next_block_daily_income !== null && stock.next_block_daily_income !== undefined ? formatCurrency(stock.next_block_daily_income) : '-'}
+                                    </Typography>
+                                </Grid>
+                                <Grid size={{ xs: 6, sm: 1 }}>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            fontSize: '0.875rem',
+                                            color: stock.next_block_cost && stock.next_block_cost > 0 ? 'warning.main' : 'inherit',
+                                            fontWeight: stock.next_block_cost ? 'bold' : 'normal'
+                                        }}
+                                    >
+                                        {stock.next_block_cost !== null && stock.next_block_cost !== undefined ? formatCurrency(stock.next_block_cost) : '-'}
                                     </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 1 }}>

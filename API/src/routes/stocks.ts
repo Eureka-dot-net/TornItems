@@ -128,7 +128,8 @@ router.get('/stocks/recommendations', async (_req: Request, res: Response): Prom
       current_daily_income: rec.current_daily_income,
       current_yearly_roi: rec.current_yearly_roi,
       next_block_daily_income: rec.next_block_daily_income,
-      next_block_yearly_roi: rec.next_block_yearly_roi
+      next_block_yearly_roi: rec.next_block_yearly_roi,
+      next_block_cost: rec.next_block_cost
     }));
 
     console.log(`Returning ${response.length} stock recommendations`);
