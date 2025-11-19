@@ -230,12 +230,15 @@ export default function Recommendations() {
     const formatAbbreviatedNumber = (value: number | null | undefined) => {
         if (value === null || value === undefined || value === 0) return '-';
         
-        if (value >= 1_000_000_000) {
-            return `${(value / 1_000_000_000).toFixed(1)}b`;
-        } else if (value >= 1_000_000) {
-            return `${(value / 1_000_000).toFixed(1)}m`;
-        } else if (value >= 1_000) {
-            return `${(value / 1_000).toFixed(1)}k`;
+        const absValue = Math.abs(value);
+        const sign = value < 0 ? '-' : '';
+        
+        if (absValue >= 1_000_000_000) {
+            return `${sign}${(absValue / 1_000_000_000).toFixed(1)}b`;
+        } else if (absValue >= 1_000_000) {
+            return `${sign}${(absValue / 1_000_000).toFixed(1)}m`;
+        } else if (absValue >= 1_000) {
+            return `${sign}${(absValue / 1_000).toFixed(1)}k`;
         }
         return value.toLocaleString();
     };
@@ -621,7 +624,7 @@ export default function Recommendations() {
                                             fontWeight: stock.next_block_daily_income ? 'bold' : 'normal'
                                         }}
                                     >
-                                        {stock.next_block_daily_income !== null && stock.next_block_daily_income !== undefined ? formatCurrency(stock.next_block_daily_income) : '-'}
+                                        {stock.next_block_daily_income !== null && stock.next_block_daily_income !== undefined ? `$${formatAbbreviatedNumber(stock.next_block_daily_income)}` : '-'}
                                     </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 0.9 }}>
@@ -633,7 +636,7 @@ export default function Recommendations() {
                                             fontWeight: stock.next_block_cost ? 'bold' : 'normal'
                                         }}
                                     >
-                                        {stock.next_block_cost !== null && stock.next_block_cost !== undefined ? formatCurrency(stock.next_block_cost) : '-'}
+                                        {stock.next_block_cost !== null && stock.next_block_cost !== undefined ? `$${formatAbbreviatedNumber(stock.next_block_cost)}` : '-'}
                                     </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 0.7 }}>
@@ -657,7 +660,7 @@ export default function Recommendations() {
                                             fontWeight: stock.current_daily_income ? 'bold' : 'normal'
                                         }}
                                     >
-                                        {stock.current_daily_income !== null && stock.current_daily_income !== undefined ? formatCurrency(stock.current_daily_income) : '-'}
+                                        {stock.current_daily_income !== null && stock.current_daily_income !== undefined ? `$${formatAbbreviatedNumber(stock.current_daily_income)}` : '-'}
                                     </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 0.8 }}>
@@ -669,7 +672,7 @@ export default function Recommendations() {
                                             fontWeight: stock.unrealized_profit_value !== null ? 'bold' : 'normal'
                                         }}
                                     >
-                                        {stock.unrealized_profit_value !== null && stock.unrealized_profit_value !== undefined ? formatCurrency(stock.unrealized_profit_value) : '-'}
+                                        {stock.unrealized_profit_value !== null && stock.unrealized_profit_value !== undefined ? `$${formatAbbreviatedNumber(stock.unrealized_profit_value)}` : '-'}
                                     </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 0.6 }}>
