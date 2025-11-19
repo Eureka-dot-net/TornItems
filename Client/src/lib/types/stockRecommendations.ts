@@ -22,6 +22,16 @@ export interface StockRecommendation {
   benefit_item_id: number | null;
   daily_income: number | null;
   yearly_roi: number | null;
+  current_daily_income: number | null;
+  current_yearly_roi: number | null;
+  next_block_daily_income: number | null;
+  next_block_yearly_roi: number | null;
+}
+
+export interface StockSummary {
+  total_current_daily_income: number;
+  stocks_with_benefits: number;
+  date: string;
 }
 
 export type StockRecommendationsData = StockRecommendation[];
