@@ -177,7 +177,7 @@ export default function Recommendations() {
                     label="Extra Money Available"
                     type="number"
                     value={extraMoney}
-                    onChange={(e) => setExtraMoney(Math.max(0, parseFloat(e.target.value) || 0))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setExtraMoney(Math.max(0, parseFloat(e.target.value) || 0))}
                     sx={{ width: 250 }}
                     InputProps={{
                         startAdornment: <InputAdornment position="start">$</InputAdornment>,
