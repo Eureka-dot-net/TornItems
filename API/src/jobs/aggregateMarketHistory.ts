@@ -515,6 +515,20 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
       };
     }
 
+    // Fetch stock benefits from the dedicated table
+    const { StockBenefit } = await import('../models/StockBenefit');
+    const stockBenefits = await StockBenefit.find().lean();
+    const benefitsMap: Record<number, any> = {};
+    for (const benefit of stockBenefits) {
+      benefitsMap[benefit.stock_id] = {
+        benefit_requirement: benefit.benefit_requirement,
+        benefit_type: benefit.benefit_type,
+        benefit_frequency: benefit.benefit_frequency,
+        benefit_description: benefit.benefit_description,
+        benefit_item_id: benefit.benefit_item_id
+      };
+    }
+
     // Use aggregation to get all data efficiently from snapshots
     const stockData = await StockPriceSnapshot.aggregate([
       {
@@ -534,10 +548,6 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
           oldestPrice: { $last: '$price' },
           prices: { $push: '$price' },
           benefit_requirement: { $first: '$benefit_requirement' },
-          benefit_type: { $first: '$benefit_type' },
-          benefit_frequency: { $first: '$benefit_frequency' },
-          benefit_description: { $first: '$benefit_description' },
-          benefit_item_id: { $first: '$benefit_item_id' },
           oldestTimestamp: { $last: '$timestamp' },
           newestTimestamp: { $first: '$timestamp' }
         }
@@ -598,9 +608,9 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
     }
 
     // Fetch item market prices for benefit calculations
-    const benefitItemIds = stockData
-      .filter(s => s.benefit_item_id)
-      .map(s => s.benefit_item_id);
+    const benefitItemIds = Object.values(benefitsMap)
+      .filter((b: any) => b.benefit_item_id)
+      .map((b: any) => b.benefit_item_id);
     
     const itemPricesMap: Record<number, number> = {};
     if (benefitItemIds.length > 0) {
@@ -620,11 +630,14 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
       const name = stock.name;
       const currentPrice = stock.currentPrice;
       const weekAgoPrice = stock.oldestPrice;
-      const benefitRequirement = stock.benefit_requirement;
-      const benefitType = stock.benefit_type;
-      const benefitFrequency = stock.benefit_frequency;
-      const benefitDescription = stock.benefit_description;
-      const benefitItemId = stock.benefit_item_id;
+      
+      // Get benefit data from the benefits map
+      const benefit = benefitsMap[stockId];
+      const benefitRequirement = benefit?.benefit_requirement || stock.benefit_requirement || null;
+      const benefitType = benefit?.benefit_type || null;
+      const benefitFrequency = benefit?.benefit_frequency || null;
+      const benefitDescription = benefit?.benefit_description || null;
+      const benefitItemId = benefit?.benefit_item_id || null;
 
       // Calculate 7-day change percentage
       let change_7d_pct: number | null = null;

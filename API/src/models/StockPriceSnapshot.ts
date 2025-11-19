@@ -6,10 +6,6 @@ export interface IStockPriceSnapshot extends Document {
   name: string;
   price: number;
   benefit_requirement?: number | null;
-  benefit_type?: string | null; // 'Active' or 'Passive'
-  benefit_frequency?: number | null; // days (7, 31, or null for passive)
-  benefit_description?: string | null; // e.g., "1x Six Pack of Alcohol" or "$80,000,000"
-  benefit_item_id?: number | null; // itemId if benefit is an item, null otherwise
   timestamp: Date;
 }
 
@@ -19,10 +15,6 @@ const StockPriceSnapshotSchema = new Schema<IStockPriceSnapshot>({
   name: { type: String, required: true },
   price: { type: Number, required: true },
   benefit_requirement: { type: Number, required: false, default: null },
-  benefit_type: { type: String, required: false, default: null },
-  benefit_frequency: { type: Number, required: false, default: null },
-  benefit_description: { type: String, required: false, default: null },
-  benefit_item_id: { type: Number, required: false, default: null },
   timestamp: { type: Date, required: true, default: Date.now },
 });
 
