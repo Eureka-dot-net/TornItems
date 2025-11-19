@@ -123,7 +123,8 @@ export default function Recommendations() {
         }
     };
 
-    const formatCurrency = (value: number) => {
+    const formatCurrency = (value: number | null | undefined) => {
+        if (value === null || value === undefined) return '-';
         return value.toLocaleString('en-US', {
             style: 'currency',
             currency: 'USD',
@@ -404,7 +405,7 @@ export default function Recommendations() {
                                             fontWeight: stock.yearly_roi ? 'bold' : 'normal'
                                         }}
                                     >
-                                        {stock.yearly_roi !== null ? `${stock.yearly_roi.toFixed(1)}%` : '-'}
+                                        {stock.yearly_roi !== null && stock.yearly_roi !== undefined ? `${stock.yearly_roi.toFixed(1)}%` : '-'}
                                     </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 0.9 }}>
@@ -416,7 +417,7 @@ export default function Recommendations() {
                                             fontWeight: stock.daily_income ? 'bold' : 'normal'
                                         }}
                                     >
-                                        {stock.daily_income !== null ? formatCurrency(stock.daily_income) : '-'}
+                                        {stock.daily_income !== null && stock.daily_income !== undefined ? formatCurrency(stock.daily_income) : '-'}
                                     </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 1 }}>
@@ -428,7 +429,7 @@ export default function Recommendations() {
                                             fontWeight: stock.unrealized_profit_value !== null ? 'bold' : 'normal'
                                         }}
                                     >
-                                        {stock.unrealized_profit_value !== null ? formatCurrency(stock.unrealized_profit_value) : '-'}
+                                        {stock.unrealized_profit_value !== null && stock.unrealized_profit_value !== undefined ? formatCurrency(stock.unrealized_profit_value) : '-'}
                                     </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 0.8 }}>
