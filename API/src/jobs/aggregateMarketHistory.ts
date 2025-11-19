@@ -766,12 +766,16 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
             }
           }
 
-          // 3. Next block calculation: Show ROI for buying the next block
-          const nextBlockCount = benefitBlocksOwned + 1;
-          nextBlockDailyIncome = (benefitValue * nextBlockCount) / benefitFrequency;
-          const nextBlockTotalInvestment = calculateBlocksCost(nextBlockCount);
-          if (nextBlockTotalInvestment > 0) {
-            nextBlockYearlyRoi = ((nextBlockDailyIncome * 365) / nextBlockTotalInvestment) * 100;
+          // 3. Next block calculation: Show INCREMENTAL ROI for buying just the next block
+          const nextBlockNumber = benefitBlocksOwned + 1;
+          
+          // Calculate incremental values - just for the next block, not total
+          const incrementalDailyIncome = benefitValue / benefitFrequency; // Just 1 more block's income
+          const incrementalCost = benefitRequirement * Math.pow(2, nextBlockNumber - 1) * currentPrice; // Cost of just that block
+          
+          nextBlockDailyIncome = incrementalDailyIncome;
+          if (incrementalCost > 0) {
+            nextBlockYearlyRoi = ((incrementalDailyIncome * 365) / incrementalCost) * 100;
           }
         }
       }
