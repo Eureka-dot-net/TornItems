@@ -71,6 +71,77 @@ export default function Recommendations() {
         return map;
     }, [recommendationsData, stockMoneyInfo]);
 
+    // Calculate stock swap suggestions
+    const swapSuggestion = useMemo(() => {
+        if (!recommendationsData || extraMoney === 0) return null;
+        
+        // Get stocks with ROI that the user owns
+        const ownedStocksWithROI = recommendationsData
+            .filter(s => s.owned_shares > 0 && s.next_block_yearly_roi && s.next_block_yearly_roi > 0)
+            .map(s => ({
+                ticker: s.ticker,
+                value: s.owned_shares * s.price,
+                currentROI: s.current_yearly_roi || 0,
+                currentIncome: s.current_daily_income || 0
+            }));
+        
+        // Get stocks the user doesn't own, sorted by next block ROI (descending)
+        const availableStocks = recommendationsData
+            .filter(s => s.owned_shares === 0 && s.next_block_yearly_roi && s.next_block_yearly_roi > 0 && s.next_block_cost)
+            .sort((a, b) => (b.next_block_yearly_roi || 0) - (a.next_block_yearly_roi || 0));
+        
+        if (ownedStocksWithROI.length === 0 || availableStocks.length === 0) return null;
+        
+        // Try each available stock starting from the best ROI
+        for (const targetStock of availableStocks) {
+            const targetCost = targetStock.next_block_cost || 0;
+            const totalAvailableWithExtra = stockMoneyInfo.availableInStocks + extraMoney;
+            
+            // Can we already afford it?
+            if (totalAvailableWithExtra >= targetCost) continue;
+            
+            // Try different combinations of owned stocks to sell
+            const moneyNeeded = targetCost - totalAvailableWithExtra;
+            let currentValue = 0;
+            const stocksToSell: string[] = [];
+            
+            // Sort owned stocks by value (ascending) to minimize sales
+            const sortedOwned = [...ownedStocksWithROI].sort((a, b) => a.value - b.value);
+            
+            for (const ownedStock of sortedOwned) {
+                if (currentValue >= moneyNeeded) break;
+                stocksToSell.push(ownedStock.ticker);
+                currentValue += ownedStock.value;
+            }
+            
+            // Check if we have enough money now
+            if (currentValue >= moneyNeeded) {
+                // Calculate the change in ROI and daily income
+                const soldStocksROI = ownedStocksWithROI
+                    .filter(s => stocksToSell.includes(s.ticker))
+                    .reduce((sum, s) => sum + s.currentROI, 0);
+                const soldStocksIncome = ownedStocksWithROI
+                    .filter(s => stocksToSell.includes(s.ticker))
+                    .reduce((sum, s) => sum + s.currentIncome, 0);
+                
+                const roiChange = (targetStock.next_block_yearly_roi || 0) - soldStocksROI;
+                const incomeChange = (targetStock.next_block_daily_income || 0) - soldStocksIncome;
+                
+                // Only suggest if it's an improvement
+                if (roiChange > 0 || incomeChange > 0) {
+                    return {
+                        sellTickers: stocksToSell,
+                        buyTicker: targetStock.ticker,
+                        roiChange,
+                        incomeChange
+                    };
+                }
+            }
+        }
+        
+        return null;
+    }, [recommendationsData, extraMoney, stockMoneyInfo]);
+
     // Sort the data based on current sort field and order
     const sortedData = useMemo(() => {
         if (!recommendationsData) return [];
@@ -154,6 +225,19 @@ export default function Recommendations() {
 
     const formatNumber = (value: number | null | undefined) => {
         return value !== null && value !== undefined ? value.toFixed(2) : '-';
+    };
+
+    const formatAbbreviatedNumber = (value: number | null | undefined) => {
+        if (value === null || value === undefined || value === 0) return '-';
+        
+        if (value >= 1_000_000_000) {
+            return `${(value / 1_000_000_000).toFixed(1)}b`;
+        } else if (value >= 1_000_000) {
+            return `${(value / 1_000_000).toFixed(1)}m`;
+        } else if (value >= 1_000) {
+            return `${(value / 1_000).toFixed(1)}k`;
+        }
+        return value.toLocaleString();
     };
 
     const getRecommendationColor = (recommendation: string): 'success' | 'info' | 'default' | 'warning' | 'error' => {
@@ -254,6 +338,24 @@ export default function Recommendations() {
                         </Typography>
                     </Box>
                 )}
+                {swapSuggestion && (
+                    <Box sx={{ mt: 2, p: 2, bgcolor: 'info.main', color: 'white', borderRadius: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                            💡 Investment Suggestion
+                        </Typography>
+                        <Typography variant="body2">
+                            If you sell <strong>{swapSuggestion.sellTickers.join(' and ')}</strong> you will have enough money to buy{' '}
+                            <strong>{swapSuggestion.buyTicker}</strong> which will{' '}
+                            {swapSuggestion.roiChange > 0 && (
+                                <>increase your ROI by <strong>{swapSuggestion.roiChange.toFixed(1)}%</strong></>
+                            )}
+                            {swapSuggestion.roiChange > 0 && swapSuggestion.incomeChange > 0 && ' and '}
+                            {swapSuggestion.incomeChange > 0 && (
+                                <>increase your daily income by <strong>{formatCurrency(swapSuggestion.incomeChange)}</strong></>
+                            )}
+                        </Typography>
+                    </Box>
+                )}
             </Paper>
 
             <Paper sx={{ mt: 3, p: 2, overflow: 'hidden' }}>
@@ -312,7 +414,7 @@ export default function Recommendations() {
                             Score
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 0.8 }}>
+                    <Grid size={{ xs: 6, sm: 0.6 }}>
                         <TableSortLabel
                             active={sortField === 'recommendation'}
                             direction={sortField === 'recommendation' ? sortOrder : 'asc'}
@@ -321,7 +423,7 @@ export default function Recommendations() {
                             Rec
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 0.5 }}>
+                    <Grid size={{ xs: 6, sm: 0.7 }}>
                         <TableSortLabel
                             active={sortField === 'owned_shares'}
                             direction={sortField === 'owned_shares' ? sortOrder : 'asc'}
@@ -475,7 +577,7 @@ export default function Recommendations() {
                                         {formatNumber(stock.score)}
                                     </Typography>
                                 </Grid>
-                                <Grid size={{ xs: 6, sm: 0.8 }}>
+                                <Grid size={{ xs: 6, sm: 0.6 }}>
                                     <Chip
                                         label={stock.recommendation}
                                         color={getRecommendationColor(stock.recommendation)}
@@ -483,9 +585,9 @@ export default function Recommendations() {
                                         sx={{ fontSize: '0.65rem', height: '20px' }}
                                     />
                                 </Grid>
-                                <Grid size={{ xs: 6, sm: 0.5 }}>
+                                <Grid size={{ xs: 6, sm: 0.7 }}>
                                     <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                                        {stock.owned_shares > 0 ? stock.owned_shares.toLocaleString() : '-'}
+                                        {stock.owned_shares > 0 ? formatAbbreviatedNumber(stock.owned_shares) : '-'}
                                     </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 1.5 }}>
