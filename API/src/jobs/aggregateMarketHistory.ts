@@ -737,26 +737,15 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
         }
 
         if (benefitValue > 0) {
-          // Calculate for owned blocks if user owns shares, otherwise calculate for 1 block (potential ROI)
-          const blocksToCalculate = benefitBlocksOwned > 0 ? benefitBlocksOwned : 1;
+          // ALWAYS calculate for 1 block to show potential ROI (this is a recommendation page)
+          const blocksToCalculate = 1;
           
           // Daily income = (benefit value * blocks) / frequency
           dailyIncome = (benefitValue * blocksToCalculate) / benefitFrequency;
           
-          // Yearly ROI = (daily income * 365) / (investment required)
-          // Calculate investment based on the number of blocks we're showing benefits for
-          let totalInvestment: number;
-          if (benefitBlocksOwned > 0) {
-            // User owns at least 1 block - calculate total cost of all blocks owned
-            let sharesForBlocks = 0;
-            for (let i = 1; i <= benefitBlocksOwned; i++) {
-              sharesForBlocks += benefitRequirement * Math.pow(2, i - 1);
-            }
-            totalInvestment = currentPrice * sharesForBlocks;
-          } else {
-            // User owns no blocks (or less than 1 block) - show cost for 1 block
-            totalInvestment = currentPrice * benefitRequirement;
-          }
+          // Yearly ROI = (daily income * 365) / (cost of 1 block)
+          // Always show ROI based on buying 1 block for fair comparison
+          const totalInvestment = currentPrice * benefitRequirement;
           
           if (totalInvestment > 0) {
             yearlyRoi = ((dailyIncome * 365) / totalInvestment) * 100;
