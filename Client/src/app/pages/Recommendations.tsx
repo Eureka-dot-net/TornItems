@@ -12,26 +12,45 @@ export default function Recommendations() {
     const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
     const [extraMoney, setExtraMoney] = useState<number>(0);
 
-    // Calculate available money (money not locked in stock blocks)
-    const availableMoney = useMemo(() => {
-        if (!recommendationsData) return extraMoney;
+    // Calculate money locked in stock blocks and available money
+    const stockMoneyInfo = useMemo(() => {
+        if (!recommendationsData) {
+            return {
+                totalValue: 0,
+                lockedInBenefits: 0,
+                availableInStocks: 0,
+                totalAvailable: extraMoney
+            };
+        }
         
-        // Calculate total value locked in maintaining stock blocks
+        let totalValue = 0;
         let lockedValue = 0;
+        
         for (const stock of recommendationsData) {
-            if (stock.benefit_blocks_owned > 0 && stock.benefit_requirement) {
-                // Calculate total shares needed for all owned blocks
-                let totalSharesForBlocks = 0;
-                for (let i = 1; i <= stock.benefit_blocks_owned; i++) {
-                    totalSharesForBlocks += stock.benefit_requirement * Math.pow(2, i - 1);
+            if (stock.owned_shares > 0) {
+                const stockValue = stock.owned_shares * stock.price;
+                totalValue += stockValue;
+                
+                if (stock.benefit_blocks_owned > 0 && stock.benefit_requirement) {
+                    // Calculate total shares needed for all owned blocks
+                    let totalSharesForBlocks = 0;
+                    for (let i = 1; i <= stock.benefit_blocks_owned; i++) {
+                        totalSharesForBlocks += stock.benefit_requirement * Math.pow(2, i - 1);
+                    }
+                    lockedValue += totalSharesForBlocks * stock.price;
                 }
-                lockedValue += totalSharesForBlocks * stock.price;
             }
         }
         
-        // Available money = extra money entered by user
-        // (We can't know user's total cash, so we just use the extra money input)
-        return extraMoney;
+        const availableInStocks = totalValue - lockedValue;
+        const totalAvailable = availableInStocks + extraMoney;
+        
+        return {
+            totalValue,
+            lockedInBenefits: lockedValue,
+            availableInStocks,
+            totalAvailable
+        };
     }, [recommendationsData, extraMoney]);
 
     // Determine which stocks can be afforded with available money
@@ -51,12 +70,12 @@ export default function Recommendations() {
             const sharesForNextBlock = stock.benefit_requirement * Math.pow(2, nextBlockIndex - 1);
             const costForNextBlock = sharesForNextBlock * stock.price;
             
-            // Can afford if available money >= cost for next block
-            map.set(stock.stock_id, availableMoney >= costForNextBlock);
+            // Can afford if total available money >= cost for next block
+            map.set(stock.stock_id, stockMoneyInfo.totalAvailable >= costForNextBlock);
         }
         
         return map;
-    }, [recommendationsData, availableMoney]);
+    }, [recommendationsData, stockMoneyInfo]);
 
     // Sort the data based on current sort field and order
     const sortedData = useMemo(() => {
@@ -166,35 +185,81 @@ export default function Recommendations() {
 
     return (
         <Box sx={{ width: '100%', p: 3 }}>
-            <Typography variant="h4" gutterBottom>
+            <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
                 Stock Recommendations
             </Typography>
 
-            <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
-                <Typography variant="body1">
-                    Total Stocks: {recommendationsData.length}
-                </Typography>
+            {/* Info Cards */}
+            <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <Paper sx={{ p: 2, flex: '1 1 200px', minWidth: '200px' }}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                        Total Stocks
+                    </Typography>
+                    <Typography variant="h5">
+                        {recommendationsData.length}
+                    </Typography>
+                </Paper>
+                
+                <Paper sx={{ p: 2, flex: '1 1 200px', minWidth: '200px' }}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                        Total Stock Value
+                    </Typography>
+                    <Typography variant="h6">
+                        {formatCurrency(stockMoneyInfo.totalValue)}
+                    </Typography>
+                </Paper>
+                
+                <Paper sx={{ p: 2, flex: '1 1 200px', minWidth: '200px' }}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                        Locked in Benefits
+                    </Typography>
+                    <Typography variant="h6" color="warning.main">
+                        {formatCurrency(stockMoneyInfo.lockedInBenefits)}
+                    </Typography>
+                </Paper>
+                
+                <Paper sx={{ p: 2, flex: '1 1 200px', minWidth: '200px', bgcolor: 'success.dark' }}>
+                    <Typography variant="subtitle2" color="success.light" gutterBottom>
+                        Available in Stocks
+                    </Typography>
+                    <Typography variant="h6" color="success.light" fontWeight="bold">
+                        {formatCurrency(stockMoneyInfo.availableInStocks)}
+                    </Typography>
+                </Paper>
+            </Box>
+
+            {/* Extra Money Input */}
+            <Paper sx={{ p: 2, mb: 3 }}>
                 <TextField
                     label="Extra Money Available"
                     type="number"
                     value={extraMoney}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setExtraMoney(Math.max(0, parseFloat(e.target.value) || 0))}
-                    sx={{ width: 250 }}
+                    sx={{ width: '100%', maxWidth: 400 }}
                     InputProps={{
                         startAdornment: <InputAdornment position="start">$</InputAdornment>,
                     }}
-                    helperText="Enter extra money to highlight affordable stock blocks"
+                    helperText="Enter extra cash to see which stock blocks you can afford"
                 />
-            </Box>
+                {extraMoney > 0 && (
+                    <Box sx={{ mt: 2 }}>
+                        <Typography variant="body2" color="text.secondary">
+                            Total Available (Stocks + Extra): <strong>{formatCurrency(stockMoneyInfo.totalAvailable)}</strong>
+                        </Typography>
+                    </Box>
+                )}
+            </Paper>
 
-            <Paper sx={{ mt: 3, p: 2 }}>
+            <Paper sx={{ mt: 3, p: 2, overflow: 'hidden' }}>
                 {/* Header Row */}
                 <Grid container spacing={1} sx={{
                     mb: 2,
                     pb: 2,
-                    borderBottom: '2px solid #555',
+                    borderBottom: '2px solid',
+                    borderColor: 'divider',
                     fontWeight: 'bold',
-                    fontSize: '0.75rem'
+                    fontSize: '0.875rem',
+                    bgcolor: 'action.hover'
                 }}>
                     <Grid size={{ xs: 6, sm: 0.6 }}>
                         <TableSortLabel
@@ -327,35 +392,38 @@ export default function Recommendations() {
                                 key={stock.stock_id}
                                 sx={{
                                     py: 1.5,
-                                    borderBottom: '1px solid #333',
-                                    backgroundColor: canAfford ? 'rgba(76, 175, 80, 0.1)' : 'transparent',
+                                    px: 1,
+                                    borderBottom: '1px solid',
+                                    borderColor: 'divider',
+                                    backgroundColor: canAfford ? 'success.dark' : 'transparent',
+                                    transition: 'background-color 0.2s',
                                     '&:hover': {
-                                        backgroundColor: canAfford ? 'rgba(76, 175, 80, 0.2)' : 'rgba(255, 255, 255, 0.05)'
+                                        backgroundColor: canAfford ? 'success.main' : 'action.hover'
                                     }
                                 }}
                             >
                                 <Grid size={{ xs: 6, sm: 0.6 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>{stock.ticker}</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>{stock.ticker}</Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 1.2 }}>
                                     <Link
                                         href={getTornStockUrl(stock.stock_id)}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        sx={{ fontSize: '0.75rem' }}
+                                        sx={{ fontSize: '0.875rem' }}
                                     >
-                                        <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>{stock.name}</Typography>
+                                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>{stock.name}</Typography>
                                     </Link>
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 0.8 }}>
-                                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>{formatCurrency(stock.price)}</Typography>
+                                    <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>{formatCurrency(stock.price)}</Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 0.8 }}>
                                     <Typography
                                         variant="body2"
                                         sx={{
-                                            fontSize: '0.75rem',
-                                            color: stock.change_7d_pct && stock.change_7d_pct > 0 ? '#4caf50' : stock.change_7d_pct && stock.change_7d_pct < 0 ? '#f44336' : 'inherit'
+                                            fontSize: '0.875rem',
+                                            color: stock.change_7d_pct && stock.change_7d_pct > 0 ? 'success.main' : stock.change_7d_pct && stock.change_7d_pct < 0 ? 'error.main' : 'inherit'
                                         }}
                                     >
                                         {formatPercent(stock.change_7d_pct)}
@@ -365,8 +433,8 @@ export default function Recommendations() {
                                     <Typography
                                         variant="body2"
                                         sx={{
-                                            fontSize: '0.75rem',
-                                            color: stock.score && stock.score > 0 ? '#4caf50' : stock.score && stock.score < 0 ? '#f44336' : 'inherit',
+                                            fontSize: '0.875rem',
+                                            color: stock.score && stock.score > 0 ? 'success.main' : stock.score && stock.score < 0 ? 'error.main' : 'inherit',
                                             fontWeight: 'bold'
                                         }}
                                     >
@@ -382,7 +450,7 @@ export default function Recommendations() {
                                     />
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 0.6 }}>
-                                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                                    <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
                                         {stock.owned_shares > 0 ? stock.owned_shares.toLocaleString() : '-'}
                                     </Typography>
                                 </Grid>
@@ -392,7 +460,7 @@ export default function Recommendations() {
                                     </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 0.8 }}>
-                                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                                    <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
                                         {stock.benefit_frequency ? `${stock.benefit_frequency}d` : stock.benefit_type === 'Passive' ? 'Passive' : '-'}
                                     </Typography>
                                 </Grid>
@@ -400,8 +468,8 @@ export default function Recommendations() {
                                     <Typography
                                         variant="body2"
                                         sx={{
-                                            fontSize: '0.75rem',
-                                            color: stock.yearly_roi && stock.yearly_roi > 0 ? '#4caf50' : 'inherit',
+                                            fontSize: '0.875rem',
+                                            color: stock.yearly_roi && stock.yearly_roi > 0 ? 'success.main' : 'inherit',
                                             fontWeight: stock.yearly_roi ? 'bold' : 'normal'
                                         }}
                                     >
@@ -412,8 +480,8 @@ export default function Recommendations() {
                                     <Typography
                                         variant="body2"
                                         sx={{
-                                            fontSize: '0.75rem',
-                                            color: stock.daily_income && stock.daily_income > 0 ? '#4caf50' : 'inherit',
+                                            fontSize: '0.875rem',
+                                            color: stock.daily_income && stock.daily_income > 0 ? 'success.main' : 'inherit',
                                             fontWeight: stock.daily_income ? 'bold' : 'normal'
                                         }}
                                     >
@@ -424,8 +492,8 @@ export default function Recommendations() {
                                     <Typography
                                         variant="body2"
                                         sx={{
-                                            fontSize: '0.75rem',
-                                            color: stock.unrealized_profit_value && stock.unrealized_profit_value > 0 ? '#4caf50' : stock.unrealized_profit_value && stock.unrealized_profit_value < 0 ? '#f44336' : 'inherit',
+                                            fontSize: '0.875rem',
+                                            color: stock.unrealized_profit_value && stock.unrealized_profit_value > 0 ? 'success.main' : stock.unrealized_profit_value && stock.unrealized_profit_value < 0 ? 'error.main' : 'inherit',
                                             fontWeight: stock.unrealized_profit_value !== null ? 'bold' : 'normal'
                                         }}
                                     >
@@ -436,8 +504,8 @@ export default function Recommendations() {
                                     <Typography
                                         variant="body2"
                                         sx={{
-                                            fontSize: '0.75rem',
-                                            color: stock.unrealized_profit_pct && stock.unrealized_profit_pct > 0 ? '#4caf50' : stock.unrealized_profit_pct && stock.unrealized_profit_pct < 0 ? '#f44336' : 'inherit',
+                                            fontSize: '0.875rem',
+                                            color: stock.unrealized_profit_pct && stock.unrealized_profit_pct > 0 ? 'success.main' : stock.unrealized_profit_pct && stock.unrealized_profit_pct < 0 ? 'error.main' : 'inherit',
                                             fontWeight: stock.unrealized_profit_pct !== null && stock.unrealized_profit_pct !== undefined ? 'bold' : 'normal'
                                         }}
                                     >
