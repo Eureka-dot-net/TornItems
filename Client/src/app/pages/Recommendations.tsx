@@ -267,7 +267,7 @@ export default function Recommendations() {
                     fontSize: '0.875rem',
                     bgcolor: 'action.hover'
                 }}>
-                    <Grid size={{ xs: 6, sm: 0.6 }}>
+                    <Grid size={{ xs: 6, sm: 0.5 }}>
                         <TableSortLabel
                             active={sortField === 'ticker'}
                             direction={sortField === 'ticker' ? sortOrder : 'asc'}
@@ -276,7 +276,7 @@ export default function Recommendations() {
                             Ticker
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 1.2 }}>
+                    <Grid size={{ xs: 6, sm: 1.0 }}>
                         <TableSortLabel
                             active={sortField === 'name'}
                             direction={sortField === 'name' ? sortOrder : 'asc'}
@@ -285,7 +285,7 @@ export default function Recommendations() {
                             Name
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 0.8 }}>
+                    <Grid size={{ xs: 6, sm: 0.6 }}>
                         <TableSortLabel
                             active={sortField === 'price'}
                             direction={sortField === 'price' ? sortOrder : 'asc'}
@@ -294,7 +294,7 @@ export default function Recommendations() {
                             Price
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 0.8 }}>
+                    <Grid size={{ xs: 6, sm: 0.6 }}>
                         <TableSortLabel
                             active={sortField === 'change_7d_pct'}
                             direction={sortField === 'change_7d_pct' ? sortOrder : 'asc'}
@@ -303,7 +303,7 @@ export default function Recommendations() {
                             7d Chg
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 0.6 }}>
+                    <Grid size={{ xs: 6, sm: 0.5 }}>
                         <TableSortLabel
                             active={sortField === 'score'}
                             direction={sortField === 'score' ? sortOrder : 'asc'}
@@ -312,7 +312,7 @@ export default function Recommendations() {
                             Score
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 1 }}>
+                    <Grid size={{ xs: 6, sm: 0.8 }}>
                         <TableSortLabel
                             active={sortField === 'recommendation'}
                             direction={sortField === 'recommendation' ? sortOrder : 'asc'}
@@ -321,7 +321,7 @@ export default function Recommendations() {
                             Rec
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 0.6 }}>
+                    <Grid size={{ xs: 6, sm: 0.5 }}>
                         <TableSortLabel
                             active={sortField === 'owned_shares'}
                             direction={sortField === 'owned_shares' ? sortOrder : 'asc'}
@@ -330,7 +330,7 @@ export default function Recommendations() {
                             Owned
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 1.8 }}>
+                    <Grid size={{ xs: 6, sm: 1.5 }}>
                         <TableSortLabel
                             active={sortField === 'benefit_description'}
                             direction={sortField === 'benefit_description' ? sortOrder : 'asc'}
@@ -339,7 +339,7 @@ export default function Recommendations() {
                             Benefit
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 0.8 }}>
+                    <Grid size={{ xs: 6, sm: 0.5 }}>
                         <TableSortLabel
                             active={sortField === 'benefit_frequency'}
                             direction={sortField === 'benefit_frequency' ? sortOrder : 'asc'}
@@ -348,25 +348,34 @@ export default function Recommendations() {
                             Days
                         </TableSortLabel>
                     </Grid>
+                    <Grid size={{ xs: 6, sm: 0.7 }}>
+                        <TableSortLabel
+                            active={sortField === 'next_block_yearly_roi'}
+                            direction={sortField === 'next_block_yearly_roi' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('next_block_yearly_roi')}
+                        >
+                            Next ROI
+                        </TableSortLabel>
+                    </Grid>
                     <Grid size={{ xs: 6, sm: 0.8 }}>
                         <TableSortLabel
-                            active={sortField === 'yearly_roi'}
-                            direction={sortField === 'yearly_roi' ? sortOrder : 'asc'}
-                            onClick={() => handleSort('yearly_roi')}
+                            active={sortField === 'next_block_daily_income'}
+                            direction={sortField === 'next_block_daily_income' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('next_block_daily_income')}
                         >
-                            1 Blk ROI
+                            Next Income
                         </TableSortLabel>
                     </Grid>
                     <Grid size={{ xs: 6, sm: 0.9 }}>
                         <TableSortLabel
-                            active={sortField === 'daily_income'}
-                            direction={sortField === 'daily_income' ? sortOrder : 'asc'}
-                            onClick={() => handleSort('daily_income')}
+                            active={sortField === 'next_block_cost'}
+                            direction={sortField === 'next_block_cost' ? sortOrder : 'asc'}
+                            onClick={() => handleSort('next_block_cost')}
                         >
-                            1 Blk Income
+                            Next Cost
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 0.8 }}>
+                    <Grid size={{ xs: 6, sm: 0.7 }}>
                         <TableSortLabel
                             active={sortField === 'current_yearly_roi'}
                             direction={sortField === 'current_yearly_roi' ? sortOrder : 'asc'}
@@ -375,7 +384,7 @@ export default function Recommendations() {
                             Current ROI
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 0.9 }}>
+                    <Grid size={{ xs: 6, sm: 0.8 }}>
                         <TableSortLabel
                             active={sortField === 'current_daily_income'}
                             direction={sortField === 'current_daily_income' ? sortOrder : 'asc'}
@@ -386,33 +395,6 @@ export default function Recommendations() {
                     </Grid>
                     <Grid size={{ xs: 6, sm: 0.8 }}>
                         <TableSortLabel
-                            active={sortField === 'next_block_yearly_roi'}
-                            direction={sortField === 'next_block_yearly_roi' ? sortOrder : 'asc'}
-                            onClick={() => handleSort('next_block_yearly_roi')}
-                        >
-                            Next ROI
-                        </TableSortLabel>
-                    </Grid>
-                    <Grid size={{ xs: 6, sm: 0.9 }}>
-                        <TableSortLabel
-                            active={sortField === 'next_block_daily_income'}
-                            direction={sortField === 'next_block_daily_income' ? sortOrder : 'asc'}
-                            onClick={() => handleSort('next_block_daily_income')}
-                        >
-                            Next Income
-                        </TableSortLabel>
-                    </Grid>
-                    <Grid size={{ xs: 6, sm: 1 }}>
-                        <TableSortLabel
-                            active={sortField === 'next_block_cost'}
-                            direction={sortField === 'next_block_cost' ? sortOrder : 'asc'}
-                            onClick={() => handleSort('next_block_cost')}
-                        >
-                            Next Cost
-                        </TableSortLabel>
-                    </Grid>
-                    <Grid size={{ xs: 6, sm: 1 }}>
-                        <TableSortLabel
                             active={sortField === 'unrealized_profit_value'}
                             direction={sortField === 'unrealized_profit_value' ? sortOrder : 'asc'}
                             onClick={() => handleSort('unrealized_profit_value')}
@@ -420,7 +402,7 @@ export default function Recommendations() {
                             Profit $
                         </TableSortLabel>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 0.8 }}>
+                    <Grid size={{ xs: 6, sm: 0.6 }}>
                         <TableSortLabel
                             active={sortField === 'unrealized_profit_pct'}
                             direction={sortField === 'unrealized_profit_pct' ? sortOrder : 'asc'}
@@ -454,10 +436,10 @@ export default function Recommendations() {
                                     }
                                 }}
                             >
-                                <Grid size={{ xs: 6, sm: 0.6 }}>
+                                <Grid size={{ xs: 6, sm: 0.5 }}>
                                     <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>{stock.ticker}</Typography>
                                 </Grid>
-                                <Grid size={{ xs: 6, sm: 1.2 }}>
+                                <Grid size={{ xs: 6, sm: 1.0 }}>
                                     <Link
                                         href={getTornStockUrl(stock.stock_id)}
                                         target="_blank"
@@ -467,10 +449,10 @@ export default function Recommendations() {
                                         <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>{stock.name}</Typography>
                                     </Link>
                                 </Grid>
-                                <Grid size={{ xs: 6, sm: 0.8 }}>
+                                <Grid size={{ xs: 6, sm: 0.6 }}>
                                     <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>{formatCurrency(stock.price)}</Typography>
                                 </Grid>
-                                <Grid size={{ xs: 6, sm: 0.8 }}>
+                                <Grid size={{ xs: 6, sm: 0.6 }}>
                                     <Typography
                                         variant="body2"
                                         sx={{
@@ -481,7 +463,7 @@ export default function Recommendations() {
                                         {formatPercent(stock.change_7d_pct)}
                                     </Typography>
                                 </Grid>
-                                <Grid size={{ xs: 6, sm: 0.6 }}>
+                                <Grid size={{ xs: 6, sm: 0.5 }}>
                                     <Typography
                                         variant="body2"
                                         sx={{
@@ -493,7 +475,7 @@ export default function Recommendations() {
                                         {formatNumber(stock.score)}
                                     </Typography>
                                 </Grid>
-                                <Grid size={{ xs: 6, sm: 1 }}>
+                                <Grid size={{ xs: 6, sm: 0.8 }}>
                                     <Chip
                                         label={stock.recommendation}
                                         color={getRecommendationColor(stock.recommendation)}
@@ -501,19 +483,31 @@ export default function Recommendations() {
                                         sx={{ fontSize: '0.65rem', height: '20px' }}
                                     />
                                 </Grid>
-                                <Grid size={{ xs: 6, sm: 0.6 }}>
+                                <Grid size={{ xs: 6, sm: 0.5 }}>
                                     <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
                                         {stock.owned_shares > 0 ? stock.owned_shares.toLocaleString() : '-'}
                                     </Typography>
                                 </Grid>
-                                <Grid size={{ xs: 6, sm: 1.8 }}>
+                                <Grid size={{ xs: 6, sm: 1.5 }}>
                                     <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>
                                         {stock.benefit_description || '-'}
                                     </Typography>
                                 </Grid>
-                                <Grid size={{ xs: 6, sm: 0.8 }}>
+                                <Grid size={{ xs: 6, sm: 0.5 }}>
                                     <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
                                         {stock.benefit_frequency ? `${stock.benefit_frequency}d` : stock.benefit_type === 'Passive' ? 'Passive' : '-'}
+                                    </Typography>
+                                </Grid>
+                                <Grid size={{ xs: 6, sm: 0.7 }}>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            fontSize: '0.875rem',
+                                            color: stock.next_block_yearly_roi && stock.next_block_yearly_roi > 0 ? 'info.main' : 'inherit',
+                                            fontWeight: stock.next_block_yearly_roi ? 'bold' : 'normal'
+                                        }}
+                                    >
+                                        {stock.next_block_yearly_roi !== null && stock.next_block_yearly_roi !== undefined ? `${stock.next_block_yearly_roi.toFixed(1)}%` : '-'}
                                     </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 0.8 }}>
@@ -521,11 +515,11 @@ export default function Recommendations() {
                                         variant="body2"
                                         sx={{
                                             fontSize: '0.875rem',
-                                            color: stock.yearly_roi && stock.yearly_roi > 0 ? 'success.main' : 'inherit',
-                                            fontWeight: stock.yearly_roi ? 'bold' : 'normal'
+                                            color: stock.next_block_daily_income && stock.next_block_daily_income > 0 ? 'info.main' : 'inherit',
+                                            fontWeight: stock.next_block_daily_income ? 'bold' : 'normal'
                                         }}
                                     >
-                                        {stock.yearly_roi !== null && stock.yearly_roi !== undefined ? `${stock.yearly_roi.toFixed(1)}%` : '-'}
+                                        {stock.next_block_daily_income !== null && stock.next_block_daily_income !== undefined ? formatCurrency(stock.next_block_daily_income) : '-'}
                                     </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6, sm: 0.9 }}>
@@ -533,14 +527,14 @@ export default function Recommendations() {
                                         variant="body2"
                                         sx={{
                                             fontSize: '0.875rem',
-                                            color: stock.daily_income && stock.daily_income > 0 ? 'success.main' : 'inherit',
-                                            fontWeight: stock.daily_income ? 'bold' : 'normal'
+                                            color: stock.next_block_cost && stock.next_block_cost > 0 ? 'warning.main' : 'inherit',
+                                            fontWeight: stock.next_block_cost ? 'bold' : 'normal'
                                         }}
                                     >
-                                        {stock.daily_income !== null && stock.daily_income !== undefined ? formatCurrency(stock.daily_income) : '-'}
+                                        {stock.next_block_cost !== null && stock.next_block_cost !== undefined ? formatCurrency(stock.next_block_cost) : '-'}
                                     </Typography>
                                 </Grid>
-                                <Grid size={{ xs: 6, sm: 0.8 }}>
+                                <Grid size={{ xs: 6, sm: 0.7 }}>
                                     <Typography
                                         variant="body2"
                                         sx={{
@@ -552,7 +546,7 @@ export default function Recommendations() {
                                         {stock.current_yearly_roi !== null && stock.current_yearly_roi !== undefined ? `${stock.current_yearly_roi.toFixed(1)}%` : '-'}
                                     </Typography>
                                 </Grid>
-                                <Grid size={{ xs: 6, sm: 0.9 }}>
+                                <Grid size={{ xs: 6, sm: 0.8 }}>
                                     <Typography
                                         variant="body2"
                                         sx={{
@@ -569,42 +563,6 @@ export default function Recommendations() {
                                         variant="body2"
                                         sx={{
                                             fontSize: '0.875rem',
-                                            color: stock.next_block_yearly_roi && stock.next_block_yearly_roi > 0 ? 'info.main' : 'inherit',
-                                            fontWeight: stock.next_block_yearly_roi ? 'bold' : 'normal'
-                                        }}
-                                    >
-                                        {stock.next_block_yearly_roi !== null && stock.next_block_yearly_roi !== undefined ? `${stock.next_block_yearly_roi.toFixed(1)}%` : '-'}
-                                    </Typography>
-                                </Grid>
-                                <Grid size={{ xs: 6, sm: 0.9 }}>
-                                    <Typography
-                                        variant="body2"
-                                        sx={{
-                                            fontSize: '0.875rem',
-                                            color: stock.next_block_daily_income && stock.next_block_daily_income > 0 ? 'info.main' : 'inherit',
-                                            fontWeight: stock.next_block_daily_income ? 'bold' : 'normal'
-                                        }}
-                                    >
-                                        {stock.next_block_daily_income !== null && stock.next_block_daily_income !== undefined ? formatCurrency(stock.next_block_daily_income) : '-'}
-                                    </Typography>
-                                </Grid>
-                                <Grid size={{ xs: 6, sm: 1 }}>
-                                    <Typography
-                                        variant="body2"
-                                        sx={{
-                                            fontSize: '0.875rem',
-                                            color: stock.next_block_cost && stock.next_block_cost > 0 ? 'warning.main' : 'inherit',
-                                            fontWeight: stock.next_block_cost ? 'bold' : 'normal'
-                                        }}
-                                    >
-                                        {stock.next_block_cost !== null && stock.next_block_cost !== undefined ? formatCurrency(stock.next_block_cost) : '-'}
-                                    </Typography>
-                                </Grid>
-                                <Grid size={{ xs: 6, sm: 1 }}>
-                                    <Typography
-                                        variant="body2"
-                                        sx={{
-                                            fontSize: '0.875rem',
                                             color: stock.unrealized_profit_value && stock.unrealized_profit_value > 0 ? 'success.main' : stock.unrealized_profit_value && stock.unrealized_profit_value < 0 ? 'error.main' : 'inherit',
                                             fontWeight: stock.unrealized_profit_value !== null ? 'bold' : 'normal'
                                         }}
@@ -612,7 +570,7 @@ export default function Recommendations() {
                                         {stock.unrealized_profit_value !== null && stock.unrealized_profit_value !== undefined ? formatCurrency(stock.unrealized_profit_value) : '-'}
                                     </Typography>
                                 </Grid>
-                                <Grid size={{ xs: 6, sm: 0.8 }}>
+                                <Grid size={{ xs: 6, sm: 0.6 }}>
                                     <Typography
                                         variant="body2"
                                         sx={{
