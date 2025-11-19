@@ -3,14 +3,8 @@
  * Run with: npx ts-node scripts/seedStockBenefits.ts
  */
 
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
 import { StockPriceSnapshot } from '../src/models/StockPriceSnapshot';
-
-// Load environment variables
-dotenv.config();
-
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/tornitems';
+import { connectDB } from '../src/config/db';
 
 // Stock benefit data based on the problem statement
 const STOCK_BENEFITS = [
@@ -53,9 +47,8 @@ const STOCK_BENEFITS = [
 
 async function seedStockBenefits() {
   try {
-    console.log('Connecting to MongoDB...');
-    await mongoose.connect(MONGODB_URI);
-    console.log('Connected to MongoDB');
+    await connectDB();
+    console.log('Connected to database');
 
     console.log('Updating stock benefit data...');
 
@@ -91,13 +84,11 @@ async function seedStockBenefits() {
     console.log(`  Stocks not found: ${notFound}`);
     console.log(`  Total stocks processed: ${STOCK_BENEFITS.length}`);
 
-    console.log('\nStock benefit data seeded successfully!');
+    console.log('\n✅ Stock benefit data seeded successfully!');
+    process.exit(0);
   } catch (error) {
-    console.error('Error seeding stock benefits:', error);
+    console.error('❌ Error seeding stock benefits:', error);
     process.exit(1);
-  } finally {
-    await mongoose.connection.close();
-    console.log('Database connection closed');
   }
 }
 

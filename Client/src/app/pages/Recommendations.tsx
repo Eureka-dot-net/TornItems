@@ -218,11 +218,11 @@ export default function Recommendations() {
                     </Typography>
                 </Paper>
                 
-                <Paper sx={{ p: 2, flex: '1 1 200px', minWidth: '200px', bgcolor: 'success.dark' }}>
-                    <Typography variant="subtitle2" color="success.light" gutterBottom>
+                <Paper sx={{ p: 2, flex: '1 1 200px', minWidth: '200px', border: 3, borderColor: 'success.main' }}>
+                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                         Available in Stocks
                     </Typography>
-                    <Typography variant="h6" color="success.light" fontWeight="bold">
+                    <Typography variant="h6" fontWeight="bold">
                         {formatCurrency(stockMoneyInfo.availableInStocks)}
                     </Typography>
                 </Paper>
@@ -395,10 +395,11 @@ export default function Recommendations() {
                                     px: 1,
                                     borderBottom: '1px solid',
                                     borderColor: 'divider',
-                                    backgroundColor: canAfford ? 'success.dark' : 'transparent',
-                                    transition: 'background-color 0.2s',
+                                    borderLeft: canAfford ? '4px solid' : 'none',
+                                    borderLeftColor: canAfford ? 'success.main' : 'transparent',
+                                    transition: 'border-color 0.2s',
                                     '&:hover': {
-                                        backgroundColor: canAfford ? 'success.main' : 'action.hover'
+                                        backgroundColor: 'action.hover'
                                     }
                                 }}
                             >
