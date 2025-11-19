@@ -724,7 +724,13 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
           }
           // Check if it's an item benefit
           else if (benefitItemId && itemPricesMap[benefitItemId]) {
-            benefitValue = itemPricesMap[benefitItemId];
+            // Extract quantity from description (e.g., "1x Six Pack of Alcohol" -> 1)
+            let quantity = 1;
+            const quantityMatch = benefitDescription.match(/^(\d+)x\s/);
+            if (quantityMatch) {
+              quantity = parseInt(quantityMatch[1], 10);
+            }
+            benefitValue = itemPricesMap[benefitItemId] * quantity;
           }
           // Check for special cases like "1000 Happy", "50 Nerve", "100 Energy", "100 Points"
           // These don't have direct monetary value, so skip them
