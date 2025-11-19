@@ -744,12 +744,17 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
           dailyIncome = (benefitValue * blocksToCalculate) / benefitFrequency;
           
           // Yearly ROI = (daily income * 365) / (investment required)
-          // If user owns shares, use their actual investment; otherwise use cost of 1 block
+          // Calculate investment based on the number of blocks we're showing benefits for
           let totalInvestment: number;
-          if (ownedShares > 0) {
-            totalInvestment = currentPrice * ownedShares;
+          if (benefitBlocksOwned > 0) {
+            // User owns at least 1 block - calculate total cost of all blocks owned
+            let sharesForBlocks = 0;
+            for (let i = 1; i <= benefitBlocksOwned; i++) {
+              sharesForBlocks += benefitRequirement * Math.pow(2, i - 1);
+            }
+            totalInvestment = currentPrice * sharesForBlocks;
           } else {
-            // Cost of 1 block = benefitRequirement shares * current price
+            // User owns no blocks (or less than 1 block) - show cost for 1 block
             totalInvestment = currentPrice * benefitRequirement;
           }
           
