@@ -1607,46 +1607,75 @@ export async function fetchStockPrices(): Promise<void> {
       return;
     }
 
+    // Get most recent snapshot for each stock to preserve benefit fields
+    const existingSnapshots = await StockPriceSnapshot.aggregate([
+      {
+        $sort: { stock_id: 1, timestamp: -1 }
+      },
+      {
+        $group: {
+          _id: '$stock_id',
+          ticker: { $first: '$ticker' },
+          benefit_type: { $first: '$benefit_type' },
+          benefit_frequency: { $first: '$benefit_frequency' },
+          benefit_description: { $first: '$benefit_description' },
+          benefit_item_id: { $first: '$benefit_item_id' }
+        }
+      }
+    ]);
+    
+    // Create a map for quick lookup
+    const benefitFieldsMap: Record<number, {
+      benefit_type: string | null;
+      benefit_frequency: number | null;
+      benefit_description: string | null;
+      benefit_item_id: number | null;
+    }> = {};
+    
+    for (const snapshot of existingSnapshots) {
+      benefitFieldsMap[snapshot._id] = {
+        benefit_type: snapshot.benefit_type,
+        benefit_frequency: snapshot.benefit_frequency,
+        benefit_description: snapshot.benefit_description,
+        benefit_item_id: snapshot.benefit_item_id
+      };
+    }
+
     const bulkOps: any[] = [];
     const timestamp = new Date();
     
     for (const [stockId, stockData] of Object.entries(stocks) as [string, any][]) {
+      const stockIdNum = parseInt(stockId, 10);
+      
       // Extract benefit requirement if available
       const benefit_requirement = (stockData.benefit && stockData.benefit.requirement) 
         ? stockData.benefit.requirement 
         : null;
       
+      // Get benefit fields from most recent snapshot, or default to null
+      const existingBenefitFields = benefitFieldsMap[stockIdNum] || {
+        benefit_type: null,
+        benefit_frequency: null,
+        benefit_description: null,
+        benefit_item_id: null
+      };
+      
       bulkOps.push({
-        updateOne: {
-          filter: { 
-            stock_id: parseInt(stockId, 10),
-            timestamp: timestamp
-          },
-          update: {
-            $set: {
-              stock_id: parseInt(stockId, 10),
-              ticker: stockData.acronym,
-              name: stockData.name,
-              price: stockData.current_price,
-              benefit_requirement: benefit_requirement,
-              timestamp: timestamp,
-            },
-            $setOnInsert: {
-              // These will only be set on first insert, not on updates
-              // They should be populated by seedStockBenefits script
-              benefit_type: null,
-              benefit_frequency: null,
-              benefit_description: null,
-              benefit_item_id: null,
-            }
-          },
-          upsert: true
-        }
+        stock_id: stockIdNum,
+        ticker: stockData.acronym,
+        name: stockData.name,
+        price: stockData.current_price,
+        benefit_requirement: benefit_requirement,
+        benefit_type: existingBenefitFields.benefit_type,
+        benefit_frequency: existingBenefitFields.benefit_frequency,
+        benefit_description: existingBenefitFields.benefit_description,
+        benefit_item_id: existingBenefitFields.benefit_item_id,
+        timestamp: timestamp,
       });
     }
 
     if (bulkOps.length > 0) {
-      await StockPriceSnapshot.bulkWrite(bulkOps);
+      await StockPriceSnapshot.insertMany(bulkOps);
       logInfo(`Successfully saved ${bulkOps.length} stock price snapshots to database`);
     } else {
       logInfo('No stocks to save');
