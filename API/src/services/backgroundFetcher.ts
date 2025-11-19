@@ -1617,17 +1617,36 @@ export async function fetchStockPrices(): Promise<void> {
         : null;
       
       bulkOps.push({
-        stock_id: parseInt(stockId, 10),
-        ticker: stockData.acronym,
-        name: stockData.name,
-        price: stockData.current_price,
-        benefit_requirement: benefit_requirement,
-        timestamp: timestamp,
+        updateOne: {
+          filter: { 
+            stock_id: parseInt(stockId, 10),
+            timestamp: timestamp
+          },
+          update: {
+            $set: {
+              stock_id: parseInt(stockId, 10),
+              ticker: stockData.acronym,
+              name: stockData.name,
+              price: stockData.current_price,
+              benefit_requirement: benefit_requirement,
+              timestamp: timestamp,
+            },
+            $setOnInsert: {
+              // These will only be set on first insert, not on updates
+              // They should be populated by seedStockBenefits script
+              benefit_type: null,
+              benefit_frequency: null,
+              benefit_description: null,
+              benefit_item_id: null,
+            }
+          },
+          upsert: true
+        }
       });
     }
 
     if (bulkOps.length > 0) {
-      await StockPriceSnapshot.insertMany(bulkOps);
+      await StockPriceSnapshot.bulkWrite(bulkOps);
       logInfo(`Successfully saved ${bulkOps.length} stock price snapshots to database`);
     } else {
       logInfo('No stocks to save');

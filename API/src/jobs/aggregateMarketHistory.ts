@@ -534,6 +534,10 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
           oldestPrice: { $last: '$price' },
           prices: { $push: '$price' },
           benefit_requirement: { $first: '$benefit_requirement' },
+          benefit_type: { $first: '$benefit_type' },
+          benefit_frequency: { $first: '$benefit_frequency' },
+          benefit_description: { $first: '$benefit_description' },
+          benefit_item_id: { $first: '$benefit_item_id' },
           oldestTimestamp: { $last: '$timestamp' },
           newestTimestamp: { $first: '$timestamp' }
         }
@@ -593,6 +597,21 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
       }
     }
 
+    // Fetch item market prices for benefit calculations
+    const benefitItemIds = stockData
+      .filter(s => s.benefit_item_id)
+      .map(s => s.benefit_item_id);
+    
+    const itemPricesMap: Record<number, number> = {};
+    if (benefitItemIds.length > 0) {
+      const items = await TornItem.find({ itemId: { $in: benefitItemIds } }).lean();
+      for (const item of items) {
+        if (item.market_price) {
+          itemPricesMap[item.itemId] = item.market_price;
+        }
+      }
+    }
+
     const recommendationsData = [];
 
     for (const stock of stockData) {
@@ -602,6 +621,10 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
       const currentPrice = stock.currentPrice;
       const weekAgoPrice = stock.oldestPrice;
       const benefitRequirement = stock.benefit_requirement;
+      const benefitType = stock.benefit_type;
+      const benefitFrequency = stock.benefit_frequency;
+      const benefitDescription = stock.benefit_description;
+      const benefitItemId = stock.benefit_item_id;
 
       // Calculate 7-day change percentage
       let change_7d_pct: number | null = null;
@@ -637,20 +660,73 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
         unrealizedProfitPct = ((currentPrice / avgBuyPrice) - 1) * 100;
       }
 
+      // Calculate how many stock blocks user owns using the 2x rule
+      // Each block requires double the shares of the previous block
+      // Block 1: benefitRequirement shares
+      // Block 2: 2 * benefitRequirement additional shares
+      // Block 3: 4 * benefitRequirement additional shares
+      // Total for n blocks: benefitRequirement * (2^n - 1)
+      let benefitBlocksOwned = 0;
+      if (benefitRequirement && benefitRequirement > 0 && ownedShares >= benefitRequirement) {
+        // Calculate how many blocks the user owns
+        let totalSharesNeeded = 0;
+        let blockNum = 1;
+        while (totalSharesNeeded + (benefitRequirement * Math.pow(2, blockNum - 1)) <= ownedShares) {
+          totalSharesNeeded += benefitRequirement * Math.pow(2, blockNum - 1);
+          blockNum++;
+        }
+        benefitBlocksOwned = blockNum - 1;
+      }
+
       // Calculate can_sell and max_shares_to_sell based on benefit preservation
+      // User can sell shares as long as they don't lose a block
       let canSell = ownedShares > 0;
       let maxSharesToSell = ownedShares;
 
-      if (ownedShares > 0 && benefitRequirement && benefitRequirement > 0) {
-        const currentlyHasBenefit = ownedShares >= benefitRequirement;
-        
-        if (currentlyHasBenefit) {
-          // User has the benefit, can only sell shares above the requirement
-          maxSharesToSell = Math.max(0, ownedShares - benefitRequirement);
-          // Can only sell if we have shares above the requirement
-          canSell = maxSharesToSell > 0;
+      if (ownedShares > 0 && benefitRequirement && benefitRequirement > 0 && benefitBlocksOwned > 0) {
+        // Calculate total shares needed to maintain current number of blocks
+        let totalSharesForCurrentBlocks = 0;
+        for (let i = 1; i <= benefitBlocksOwned; i++) {
+          totalSharesForCurrentBlocks += benefitRequirement * Math.pow(2, i - 1);
         }
-        // If we don't have the benefit, we can sell all shares freely
+        
+        // Can only sell shares above what's needed for current blocks
+        maxSharesToSell = Math.max(0, ownedShares - totalSharesForCurrentBlocks);
+        canSell = maxSharesToSell > 0;
+      }
+
+      // Calculate daily income and yearly ROI
+      let dailyIncome: number | null = null;
+      let yearlyRoi: number | null = null;
+
+      if (benefitType === 'Active' && benefitFrequency && benefitFrequency > 0 && benefitBlocksOwned > 0) {
+        // Parse benefit value from description
+        let benefitValue = 0;
+        
+        if (benefitDescription) {
+          // Check if it's a money benefit (starts with $)
+          const moneyMatch = benefitDescription.match(/\$([0-9,]+)/);
+          if (moneyMatch) {
+            benefitValue = parseFloat(moneyMatch[1].replace(/,/g, ''));
+          }
+          // Check if it's an item benefit
+          else if (benefitItemId && itemPricesMap[benefitItemId]) {
+            benefitValue = itemPricesMap[benefitItemId];
+          }
+          // Check for special cases like "1000 Happy", "50 Nerve", "100 Energy", "100 Points"
+          // These don't have direct monetary value, so skip them
+        }
+
+        if (benefitValue > 0) {
+          // Daily income = (benefit value * blocks owned) / frequency
+          dailyIncome = (benefitValue * benefitBlocksOwned) / benefitFrequency;
+          
+          // Yearly ROI = (daily income * 365) / (current stock value)
+          const totalInvestment = currentPrice * ownedShares;
+          if (totalInvestment > 0) {
+            yearlyRoi = ((dailyIncome * 365) / totalInvestment) * 100;
+          }
+        }
       }
 
       recommendationsData.push({
@@ -670,6 +746,13 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
         can_sell: canSell,
         max_shares_to_sell: maxSharesToSell,
         benefit_requirement: benefitRequirement,
+        benefit_blocks_owned: benefitBlocksOwned,
+        benefit_type: benefitType,
+        benefit_frequency: benefitFrequency,
+        benefit_description: benefitDescription,
+        benefit_item_id: benefitItemId,
+        daily_income: dailyIncome !== null ? parseFloat(dailyIncome.toFixed(2)) : null,
+        yearly_roi: yearlyRoi !== null ? parseFloat(yearlyRoi.toFixed(2)) : null,
         date: currentDate,
         timestamp: now
       });

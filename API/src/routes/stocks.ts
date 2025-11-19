@@ -58,7 +58,15 @@ router.get('/stocks/recommendations', async (_req: Request, res: Response): Prom
       unrealized_profit_value: rec.unrealized_profit_value,
       unrealized_profit_pct: rec.unrealized_profit_pct,
       can_sell: rec.can_sell,
-      max_shares_to_sell: rec.max_shares_to_sell
+      max_shares_to_sell: rec.max_shares_to_sell,
+      benefit_requirement: rec.benefit_requirement,
+      benefit_blocks_owned: rec.benefit_blocks_owned,
+      benefit_type: rec.benefit_type,
+      benefit_frequency: rec.benefit_frequency,
+      benefit_description: rec.benefit_description,
+      benefit_item_id: rec.benefit_item_id,
+      daily_income: rec.daily_income,
+      yearly_roi: rec.yearly_roi
     }));
 
     console.log(`Returning ${response.length} stock recommendations`);
@@ -133,7 +141,15 @@ router.get('/stocks/recommendations/top-sell', async (_req: Request, res: Respon
       unrealized_profit_value: topStock.unrealized_profit_value,
       unrealized_profit_pct: topStock.unrealized_profit_pct,
       can_sell: topStock.can_sell,
-      max_shares_to_sell: topStock.max_shares_to_sell
+      max_shares_to_sell: topStock.max_shares_to_sell,
+      benefit_requirement: topStock.benefit_requirement,
+      benefit_blocks_owned: topStock.benefit_blocks_owned,
+      benefit_type: topStock.benefit_type,
+      benefit_frequency: topStock.benefit_frequency,
+      benefit_description: topStock.benefit_description,
+      benefit_item_id: topStock.benefit_item_id,
+      daily_income: topStock.daily_income,
+      yearly_roi: topStock.yearly_roi
     };
 
     console.log(`Returning top stock to sell: ${topStock.ticker}`);

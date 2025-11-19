@@ -17,6 +17,13 @@ export interface IStockRecommendation extends Document {
   can_sell: boolean;
   max_shares_to_sell: number;
   benefit_requirement: number | null;
+  benefit_blocks_owned: number; // How many blocks user owns
+  benefit_type: string | null; // 'Active' or 'Passive'
+  benefit_frequency: number | null; // days (7, 31, or null for passive)
+  benefit_description: string | null;
+  benefit_item_id: number | null;
+  daily_income: number | null; // Daily income from benefit
+  yearly_roi: number | null; // Yearly ROI percentage
   date: string; // YYYY-MM-DD format
   timestamp: Date;
 }
@@ -38,6 +45,13 @@ const StockRecommendationSchema = new Schema<IStockRecommendation>({
   can_sell: { type: Boolean, required: true, default: false },
   max_shares_to_sell: { type: Number, required: true, default: 0 },
   benefit_requirement: { type: Number, default: null },
+  benefit_blocks_owned: { type: Number, required: true, default: 0 },
+  benefit_type: { type: String, default: null },
+  benefit_frequency: { type: Number, default: null },
+  benefit_description: { type: String, default: null },
+  benefit_item_id: { type: Number, default: null },
+  daily_income: { type: Number, default: null },
+  yearly_roi: { type: Number, default: null },
   date: { type: String, required: true },
   timestamp: { type: Date, required: true, default: Date.now },
 });
