@@ -767,18 +767,19 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
             }
           }
 
-          // 3. Next block calculation: Show TOTAL ROI if user buys the next block
+          // 3. Next block calculation: Show ROI and income for JUST the next block
           const nextBlockNumber = benefitBlocksOwned + 1;
           
           // Calculate cost of just the next block
           const nextBlockShares = benefitRequirement * Math.pow(2, nextBlockNumber - 1);
           nextBlockCost = nextBlockShares * currentPrice;
           
-          // Calculate total values - what you'd have if you owned nextBlockNumber blocks
-          nextBlockDailyIncome = (benefitValue * nextBlockNumber) / benefitFrequency; // Total income from all blocks
-          const nextBlockTotalInvestment = calculateBlocksCost(nextBlockNumber); // Total cost of all blocks
-          if (nextBlockTotalInvestment > 0) {
-            nextBlockYearlyRoi = ((nextBlockDailyIncome * 365) / nextBlockTotalInvestment) * 100;
+          // Calculate income for just the next block (1 item per frequency)
+          nextBlockDailyIncome = benefitValue / benefitFrequency;
+          
+          // Calculate ROI for just the next block
+          if (nextBlockCost > 0) {
+            nextBlockYearlyRoi = ((nextBlockDailyIncome * 365) / nextBlockCost) * 100;
           }
         }
       }
