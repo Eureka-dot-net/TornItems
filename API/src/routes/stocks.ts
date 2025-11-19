@@ -4,6 +4,64 @@ import { StockRecommendation } from '../models/StockRecommendation';
 
 const router = express.Router({ mergeParams: true });
 
+// GET /stocks/summary
+router.get('/stocks/summary', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    console.log('Fetching stock benefit summary...');
+
+    // Get today's date for fetching the latest aggregated data
+    const today = new Date().toISOString().split('T')[0];
+
+    // Fetch aggregated recommendations data (latest available, typically today)
+    const latestRecommendationDate = await StockRecommendation.findOne()
+      .sort({ date: -1 })
+      .select('date')
+      .lean();
+
+    const dateToFetch = latestRecommendationDate?.date || today;
+
+    // Fetch all recommendations for the latest date
+    const recommendations = await StockRecommendation.find({ date: dateToFetch })
+      .lean();
+
+    if (!recommendations || recommendations.length === 0) {
+      res.status(503).json({ 
+        error: 'No stock recommendations found. Background aggregation may still be initializing.' 
+      });
+      return;
+    }
+
+    // Calculate total current daily income from owned blocks
+    let totalCurrentDailyIncome = 0;
+    let stocksWithBenefits = 0;
+
+    for (const rec of recommendations) {
+      if (rec.current_daily_income && rec.current_daily_income > 0) {
+        totalCurrentDailyIncome += rec.current_daily_income;
+        stocksWithBenefits++;
+      }
+    }
+
+    const response = {
+      total_current_daily_income: parseFloat(totalCurrentDailyIncome.toFixed(2)),
+      stocks_with_benefits: stocksWithBenefits,
+      date: dateToFetch
+    };
+
+    console.log(`Total current daily income: $${totalCurrentDailyIncome.toFixed(2)} from ${stocksWithBenefits} stocks`);
+
+    res.json(response);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      console.error('Error:', err.message);
+    } else {
+      console.error('Unknown error');
+    }
+
+    res.status(500).json({ error: 'Failed to fetch stock benefit summary.' });
+  }
+});
+
 // GET /stocks/recommendations
 router.get('/stocks/recommendations', async (_req: Request, res: Response): Promise<void> => {
   try {
@@ -66,7 +124,12 @@ router.get('/stocks/recommendations', async (_req: Request, res: Response): Prom
       benefit_description: rec.benefit_description,
       benefit_item_id: rec.benefit_item_id,
       daily_income: rec.daily_income,
-      yearly_roi: rec.yearly_roi
+      yearly_roi: rec.yearly_roi,
+      current_daily_income: rec.current_daily_income,
+      current_yearly_roi: rec.current_yearly_roi,
+      next_block_daily_income: rec.next_block_daily_income,
+      next_block_yearly_roi: rec.next_block_yearly_roi,
+      next_block_cost: rec.next_block_cost
     }));
 
     console.log(`Returning ${response.length} stock recommendations`);

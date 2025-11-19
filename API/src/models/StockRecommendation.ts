@@ -22,8 +22,13 @@ export interface IStockRecommendation extends Document {
   benefit_frequency: number | null; // days (7, 31, or null for passive)
   benefit_description: string | null;
   benefit_item_id: number | null;
-  daily_income: number | null; // Daily income from benefit
-  yearly_roi: number | null; // Yearly ROI percentage
+  daily_income: number | null; // Daily income from benefit (for current blocks owned or 1 if none)
+  yearly_roi: number | null; // Yearly ROI percentage (for current blocks owned or 1 if none)
+  current_daily_income: number | null; // Daily income from currently owned blocks (null if owns 0 blocks)
+  current_yearly_roi: number | null; // Yearly ROI for currently owned blocks (null if owns 0 blocks)
+  next_block_daily_income: number | null; // Daily income if buying next block
+  next_block_yearly_roi: number | null; // Yearly ROI for next block purchase
+  next_block_cost: number | null; // Cost of just the next block (shares × price)
   date: string; // YYYY-MM-DD format
   timestamp: Date;
 }
@@ -52,6 +57,11 @@ const StockRecommendationSchema = new Schema<IStockRecommendation>({
   benefit_item_id: { type: Number, default: null },
   daily_income: { type: Number, default: null },
   yearly_roi: { type: Number, default: null },
+  current_daily_income: { type: Number, default: null },
+  current_yearly_roi: { type: Number, default: null },
+  next_block_daily_income: { type: Number, default: null },
+  next_block_yearly_roi: { type: Number, default: null },
+  next_block_cost: { type: Number, default: null },
   date: { type: String, required: true },
   timestamp: { type: Date, required: true, default: Date.now },
 });
