@@ -102,96 +102,74 @@ export default function Recommendations() {
     }, [recommendationsData]);
 
     // Calculate investment suggestions based on available money
-    // Key insight: Adding blocks to owned stocks ADDS income, buying new stocks REPLACES income from selling
+    // Algorithm: Find best use of total available money, comparing keeping current vs selling and buying new
     const investmentSuggestions = useMemo(() => {
         if (!recommendationsData || stockMoneyInfo.totalAvailable <= 0) return [];
         
-        // Calculate current income from Active stocks and identify what we own
+        // Calculate current income from Active stocks
         let currentIncomeFromActiveStocks = 0;
-        const ownedActiveTickers = new Set<string>();
-        
         for (const stock of recommendationsData) {
-            if (stock.owned_shares > 0 && stock.benefit_type === 'Active') {
-                ownedActiveTickers.add(stock.ticker);
-                if (stock.current_daily_income !== null && stock.current_daily_income !== undefined) {
-                    currentIncomeFromActiveStocks += stock.current_daily_income;
-                }
+            if (stock.owned_shares > 0 && stock.benefit_type === 'Active' && 
+                stock.current_daily_income !== null && stock.current_daily_income !== undefined) {
+                currentIncomeFromActiveStocks += stock.current_daily_income;
             }
         }
         
-        // Build candidates: prioritize adding to owned stocks over buying new ones
-        const ownedCandidates: any[] = [];
-        const newCandidates: any[] = [];
+        // Build candidates for "fresh start" scenario - use FIRST block data for all stocks
+        const candidates = recommendationsData
+            .filter(s => {
+                // Must have first block data (yearly_roi and daily_income, NOT next_block)
+                if (s.yearly_roi == null || s.daily_income == null) return false;
+                
+                // Calculate cost of first block
+                if (!s.benefit_requirement || s.benefit_requirement <= 0) return false;
+                const firstBlockCost = s.benefit_requirement * s.price;
+                
+                // Must be affordable and have positive cost
+                return firstBlockCost > 0 && stockMoneyInfo.totalAvailable >= firstBlockCost;
+            })
+            .map(s => {
+                const firstBlockCost = s.benefit_requirement! * s.price;
+                return {
+                    ticker: s.ticker,
+                    name: s.name,
+                    roi: s.yearly_roi!,
+                    income: s.daily_income!,
+                    cost: firstBlockCost,
+                    blockNumber: 1, // First block
+                    efficiency: s.daily_income! / firstBlockCost
+                };
+            });
         
-        for (const s of recommendationsData) {
-            if (s.next_block_yearly_roi == null || s.next_block_cost == null || s.next_block_daily_income == null) continue;
-            if (s.next_block_cost <= 0 || s.next_block_cost > stockMoneyInfo.totalAvailable) continue;
-            
-            const candidate = {
-                ticker: s.ticker,
-                name: s.name,
-                nextBlockROI: s.next_block_yearly_roi,
-                nextBlockIncome: s.next_block_daily_income,
-                nextBlockCost: s.next_block_cost,
-                blockNumber: (s.benefit_blocks_owned || 0) + 1,
-                efficiency: s.next_block_daily_income / s.next_block_cost
-            };
-            
-            if (ownedActiveTickers.has(s.ticker)) {
-                // This adds to existing income (pure addition)
-                ownedCandidates.push(candidate);
-            } else {
-                // This would require selling other stocks (replacement)
-                newCandidates.push(candidate);
-            }
-        }
+        if (candidates.length === 0) return [];
         
-        // Sort both lists by efficiency
-        ownedCandidates.sort((a, b) => b.efficiency - a.efficiency);
-        newCandidates.sort((a, b) => b.efficiency - a.efficiency);
+        // Sort by efficiency (daily income per dollar) descending
+        candidates.sort((a, b) => b.efficiency - a.efficiency);
         
-        // Strategy 1: Try adding blocks to owned stocks first (no selling needed if we have extra money)
-        const selected: any[] = [];
+        // Greedy knapsack: pick best combination of FIRST blocks
+        const selected: typeof candidates = [];
         let remainingBudget = stockMoneyInfo.totalAvailable;
-        let projectedIncome = currentIncomeFromActiveStocks;
         
-        // First, add blocks to owned stocks (these ADD to current income)
-        for (const candidate of ownedCandidates) {
-            if (candidate.nextBlockCost <= remainingBudget) {
-                selected.push({...candidate, isAddition: true});
-                remainingBudget -= candidate.nextBlockCost;
-                projectedIncome += candidate.nextBlockIncome;
+        for (const candidate of candidates) {
+            if (candidate.cost <= remainingBudget) {
+                selected.push(candidate);
+                remainingBudget -= candidate.cost;
             }
         }
         
-        // If we still have budget, try new stocks (would require selling everything)
-        if (remainingBudget > 0 && newCandidates.length > 0) {
-            // Option A: Keep current + additions
-            const optionAIncome = projectedIncome;
-            const optionASelected = [...selected];
-            
-            // Option B: Sell all and buy best new combination
-            const optionBSelected: any[] = [];
-            let optionBBudget = stockMoneyInfo.totalAvailable;
-            let optionBIncome = 0;
-            
-            for (const candidate of newCandidates) {
-                if (candidate.nextBlockCost <= optionBBudget) {
-                    optionBSelected.push(candidate);
-                    optionBBudget -= candidate.nextBlockCost;
-                    optionBIncome += candidate.nextBlockIncome;
-                }
-            }
-            
-            // Choose the better option
-            if (optionBIncome > optionAIncome) {
-                // Selling and buying new is better
-                return optionBSelected.sort((a, b) => b.nextBlockIncome - a.nextBlockIncome);
-            }
+        if (selected.length === 0) return [];
+        
+        // Calculate total income from suggestions
+        const suggestedIncome = selected.reduce((sum, s) => sum + s.income, 0);
+        
+        // Only show suggestions if they're better than or equal to current holdings
+        // (This ensures we never suggest something worse)
+        if (currentIncomeFromActiveStocks > 0 && suggestedIncome < currentIncomeFromActiveStocks) {
+            return []; // Current holdings are better
         }
         
-        // Return additions to owned stocks
-        return selected.sort((a, b) => b.nextBlockIncome - a.nextBlockIncome);
+        // Return sorted by income descending
+        return selected.sort((a, b) => b.income - a.income);
     }, [recommendationsData, stockMoneyInfo]);
 
     // Sort the data based on current sort field and order
@@ -399,7 +377,7 @@ export default function Recommendations() {
                             💡 Investment Suggestions
                         </Typography>
                         <Typography variant="body2" sx={{ mb: 1 }}>
-                            Optimal combination to maximize daily income within your budget: <strong>{formatCurrency(investmentSuggestions.reduce((sum, s) => sum + s.nextBlockIncome, 0))}/day</strong>
+                            Optimal combination to maximize daily income within your budget: <strong>{formatCurrency(investmentSuggestions.reduce((sum, s) => sum + s.income, 0))}/day</strong>
                         </Typography>
                         {currentActiveIncome > 0 && stockMoneyInfo.availableInStocks > 0 && (
                             <Box sx={{ mb: 1, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
@@ -407,13 +385,17 @@ export default function Recommendations() {
                                     Current income from Active stocks: <strong>{formatCurrency(currentActiveIncome)}/day</strong>
                                 </Typography>
                                 <Typography variant="body2" color={
-                                    investmentSuggestions.reduce((sum, s) => sum + s.nextBlockIncome, 0) > currentActiveIncome 
+                                    investmentSuggestions.reduce((sum, s) => sum + s.income, 0) > currentActiveIncome 
                                     ? 'success.main' 
+                                    : investmentSuggestions.reduce((sum, s) => sum + s.income, 0) === currentActiveIncome
+                                    ? 'info.main'
                                     : 'warning.main'
                                 }>
-                                    {investmentSuggestions.reduce((sum, s) => sum + s.nextBlockIncome, 0) > currentActiveIncome 
-                                        ? `✓ Net gain: ${formatCurrency(investmentSuggestions.reduce((sum, s) => sum + s.nextBlockIncome, 0) - currentActiveIncome)}/day` 
-                                        : `⚠ Net loss: ${formatCurrency(investmentSuggestions.reduce((sum, s) => sum + s.nextBlockIncome, 0) - currentActiveIncome)}/day`
+                                    {investmentSuggestions.reduce((sum, s) => sum + s.income, 0) > currentActiveIncome 
+                                        ? `✓ Net gain: ${formatCurrency(investmentSuggestions.reduce((sum, s) => sum + s.income, 0) - currentActiveIncome)}/day` 
+                                        : investmentSuggestions.reduce((sum, s) => sum + s.income, 0) === currentActiveIncome
+                                        ? `= Current holdings are optimal`
+                                        : `⚠ Net loss: ${formatCurrency(investmentSuggestions.reduce((sum, s) => sum + s.income, 0) - currentActiveIncome)}/day`
                                     }
                                 </Typography>
                             </Box>
@@ -422,12 +404,14 @@ export default function Recommendations() {
                             <Box key={suggestion.ticker} sx={{ mb: 1 }}>
                                 <Typography variant="body2">
                                     {index + 1}. <strong>{suggestion.ticker}</strong> ({suggestion.name}) - Block #{suggestion.blockNumber}
-                                    {' • '}ROI: <strong>{suggestion.nextBlockROI.toFixed(1)}%</strong>
-                                    {' • '}Income: <strong>{formatCurrency(suggestion.nextBlockIncome)}/day</strong>
-                                    {' • '}Cost: <strong>{formatCurrency(suggestion.nextBlockCost)}</strong>
+                                    {' • '}ROI: <strong>{suggestion.roi.toFixed(1)}%</strong>
+                                    {' • '}Income: <strong>{formatCurrency(suggestion.income)}/day</strong>
+                                    {' • '}Cost: <strong>{formatCurrency(suggestion.cost)}</strong>
                                 </Typography>
                             </Box>
                         ))}
+                    </Box>
+                )}
                     </Box>
                 )}
             </Paper>
