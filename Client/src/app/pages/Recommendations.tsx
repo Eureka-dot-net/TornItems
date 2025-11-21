@@ -108,10 +108,16 @@ export default function Recommendations() {
         
         // Calculate current income from Active stocks
         let currentIncomeFromActiveStocks = 0;
+        const currentHoldings = new Map<string, number>(); // ticker -> number of blocks owned
+        
         for (const stock of recommendationsData) {
-            if (stock.owned_shares > 0 && stock.benefit_type === 'Active' && 
-                stock.current_daily_income !== null && stock.current_daily_income !== undefined) {
-                currentIncomeFromActiveStocks += stock.current_daily_income;
+            if (stock.owned_shares > 0 && stock.benefit_type === 'Active') {
+                if (stock.benefit_blocks_owned && stock.benefit_blocks_owned > 0) {
+                    currentHoldings.set(stock.ticker, stock.benefit_blocks_owned);
+                }
+                if (stock.current_daily_income !== null && stock.current_daily_income !== undefined) {
+                    currentIncomeFromActiveStocks += stock.current_daily_income;
+                }
             }
         }
         
@@ -192,8 +198,65 @@ export default function Recommendations() {
             return []; // Current holdings are better
         }
         
-        // Return sorted by income descending
-        return selected.sort((a, b) => b.income - a.income);
+        // Calculate actions: Keep, Buy, Sell
+        const suggestedHoldings = new Map<string, number>();
+        for (const s of selected) {
+            suggestedHoldings.set(s.ticker, stockBlockCount.get(s.ticker) || 0);
+        }
+        
+        const actions: {
+            keep: Array<{ticker: string; name: string; blocks: number}>;
+            buy: Array<{ticker: string; name: string; blockNumber: number}>;
+            sell: Array<{ticker: string; name: string; blocks: number | 'all'}>;
+        } = {
+            keep: [],
+            buy: [],
+            sell: []
+        };
+        
+        // Find stocks to keep and buy
+        for (const [ticker, suggestedBlocks] of suggestedHoldings.entries()) {
+            const currentBlocks = currentHoldings.get(ticker) || 0;
+            const stockName = selected.find(s => s.ticker === ticker)?.name || ticker;
+            
+            if (currentBlocks > 0 && currentBlocks <= suggestedBlocks) {
+                // Keep current blocks
+                actions.keep.push({ ticker, name: stockName, blocks: currentBlocks });
+                
+                // Buy additional blocks if needed
+                for (let i = currentBlocks + 1; i <= suggestedBlocks; i++) {
+                    actions.buy.push({ ticker, name: stockName, blockNumber: i });
+                }
+            } else if (currentBlocks === 0) {
+                // Buy all blocks (new stock)
+                for (let i = 1; i <= suggestedBlocks; i++) {
+                    actions.buy.push({ ticker, name: stockName, blockNumber: i });
+                }
+            } else if (currentBlocks > suggestedBlocks) {
+                // Keep some blocks, sell the rest
+                if (suggestedBlocks > 0) {
+                    actions.keep.push({ ticker, name: stockName, blocks: suggestedBlocks });
+                    actions.sell.push({ ticker, name: stockName, blocks: currentBlocks - suggestedBlocks });
+                } else {
+                    actions.sell.push({ ticker, name: stockName, blocks: 'all' });
+                }
+            }
+        }
+        
+        // Find stocks to sell (not in suggestions but currently owned)
+        for (const [ticker] of currentHoldings.entries()) {
+            if (!suggestedHoldings.has(ticker)) {
+                const stock = recommendationsData.find((s: any) => s.ticker === ticker);
+                actions.sell.push({ 
+                    ticker, 
+                    name: stock?.name || ticker, 
+                    blocks: 'all' 
+                });
+            }
+        }
+        
+        // Return sorted by income descending, with actions attached
+        return selected.sort((a, b) => b.income - a.income).map(s => ({ ...s, actions }));
     }, [recommendationsData, stockMoneyInfo]);
 
     // Sort the data based on current sort field and order
@@ -424,6 +487,58 @@ export default function Recommendations() {
                                 </Typography>
                             </Box>
                         )}
+                        
+                        {/* Show recommended actions */}
+                        {investmentSuggestions.length > 0 && investmentSuggestions[0].actions && (
+                            <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                                <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                                    📋 Recommended Actions
+                                </Typography>
+                                
+                                {/* Keep */}
+                                {investmentSuggestions[0].actions.keep.length > 0 && (
+                                    <Box sx={{ mb: 1 }}>
+                                        <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'info.main', mb: 0.5 }}>
+                                            Keep:
+                                        </Typography>
+                                        {investmentSuggestions[0].actions.keep.map((item) => (
+                                            <Typography key={item.ticker} variant="body2" sx={{ ml: 2 }}>
+                                                • <strong>{item.ticker}</strong> ({item.name}) - {item.blocks} block{item.blocks > 1 ? 's' : ''}
+                                            </Typography>
+                                        ))}
+                                    </Box>
+                                )}
+                                
+                                {/* Buy */}
+                                {investmentSuggestions[0].actions.buy.length > 0 && (
+                                    <Box sx={{ mb: 1 }}>
+                                        <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'success.main', mb: 0.5 }}>
+                                            Buy:
+                                        </Typography>
+                                        {investmentSuggestions[0].actions.buy.map((item, idx) => (
+                                            <Typography key={`${item.ticker}-${idx}`} variant="body2" sx={{ ml: 2 }}>
+                                                • <strong>{item.ticker}</strong> ({item.name}) - Block #{item.blockNumber}
+                                            </Typography>
+                                        ))}
+                                    </Box>
+                                )}
+                                
+                                {/* Sell */}
+                                {investmentSuggestions[0].actions.sell.length > 0 && (
+                                    <Box sx={{ mb: 1 }}>
+                                        <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'error.main', mb: 0.5 }}>
+                                            Sell:
+                                        </Typography>
+                                        {investmentSuggestions[0].actions.sell.map((item) => (
+                                            <Typography key={item.ticker} variant="body2" sx={{ ml: 2 }}>
+                                                • <strong>{item.ticker}</strong> ({item.name}) - {item.blocks === 'all' ? 'All blocks' : `${item.blocks} block${typeof item.blocks === 'number' && item.blocks > 1 ? 's' : ''}`}
+                                            </Typography>
+                                        ))}
+                                    </Box>
+                                )}
+                            </Box>
+                        )}
+                        
                         {investmentSuggestions.map((suggestion, index) => (
                             <Box key={suggestion.ticker} sx={{ mb: 1 }}>
                                 <Typography variant="body2">
