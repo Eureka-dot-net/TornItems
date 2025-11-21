@@ -87,21 +87,24 @@ export default function Recommendations() {
         return map;
     }, [recommendationsData, stockMoneyInfo]);
 
+    // Calculate current daily income from Active stocks (that contribute to available money)
+    const currentActiveIncome = useMemo(() => {
+        if (!recommendationsData) return 0;
+        
+        let income = 0;
+        for (const stock of recommendationsData) {
+            if (stock.owned_shares > 0 && stock.benefit_type === 'Active' && 
+                stock.current_daily_income !== null && stock.current_daily_income !== undefined) {
+                income += stock.current_daily_income;
+            }
+        }
+        return income;
+    }, [recommendationsData]);
+
     // Calculate investment suggestions based on available money
     // Uses a greedy knapsack approach to maximize total daily income within budget
     const investmentSuggestions = useMemo(() => {
         if (!recommendationsData || stockMoneyInfo.totalAvailable <= 0) return [];
-        
-        // Calculate current daily income from Active stocks that would be sold
-        // (these are the stocks contributing to "available in stocks")
-        let currentIncomeFromAvailableStocks = 0;
-        for (const stock of recommendationsData) {
-            if (stock.owned_shares > 0 && stock.benefit_type === 'Active' && 
-                stock.current_daily_income !== null && stock.current_daily_income !== undefined) {
-                // This stock is Active and would be sold to fund new purchases
-                currentIncomeFromAvailableStocks += stock.current_daily_income;
-            }
-        }
         
         // Get all stocks with valid next block data
         const candidates = recommendationsData
@@ -137,15 +140,6 @@ export default function Recommendations() {
                 selected.push(candidate);
                 remainingBudget -= candidate.nextBlockCost;
             }
-        }
-        
-        // Calculate total income from suggestions
-        const suggestedIncome = selected.reduce((sum, s) => sum + s.nextBlockIncome, 0);
-        
-        // Only return suggestions if they result in a net increase in daily income
-        // If user has active stocks that would be sold, new income must exceed current income
-        if (currentIncomeFromAvailableStocks > 0 && suggestedIncome <= currentIncomeFromAvailableStocks) {
-            return []; // Don't suggest selling for less income
         }
         
         // Return the selected stocks sorted by daily income (descending) for display
@@ -359,6 +353,23 @@ export default function Recommendations() {
                         <Typography variant="body2" sx={{ mb: 1 }}>
                             Optimal combination to maximize daily income within your budget: <strong>{formatCurrency(investmentSuggestions.reduce((sum, s) => sum + s.nextBlockIncome, 0))}/day</strong>
                         </Typography>
+                        {currentActiveIncome > 0 && stockMoneyInfo.availableInStocks > 0 && (
+                            <Box sx={{ mb: 1, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
+                                <Typography variant="body2" color="text.secondary">
+                                    Current income from Active stocks: <strong>{formatCurrency(currentActiveIncome)}/day</strong>
+                                </Typography>
+                                <Typography variant="body2" color={
+                                    investmentSuggestions.reduce((sum, s) => sum + s.nextBlockIncome, 0) > currentActiveIncome 
+                                    ? 'success.main' 
+                                    : 'warning.main'
+                                }>
+                                    {investmentSuggestions.reduce((sum, s) => sum + s.nextBlockIncome, 0) > currentActiveIncome 
+                                        ? `✓ Net gain: ${formatCurrency(investmentSuggestions.reduce((sum, s) => sum + s.nextBlockIncome, 0) - currentActiveIncome)}/day` 
+                                        : `⚠ Net loss: ${formatCurrency(investmentSuggestions.reduce((sum, s) => sum + s.nextBlockIncome, 0) - currentActiveIncome)}/day`
+                                    }
+                                </Typography>
+                            </Box>
+                        )}
                         {investmentSuggestions.map((suggestion, index) => (
                             <Box key={suggestion.ticker} sx={{ mb: 1 }}>
                                 <Typography variant="body2">
