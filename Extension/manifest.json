@@ -85,11 +85,23 @@
         "injector-weaver-bazaar.js"
       ],
       "run_at": "document_idle"
+    },
+
+    {
+      "matches": [
+        "https://www.torn.com/page.php?sid=ItemMarket*"
+      ],
+      "js": [
+        "market-watch.js"
+      ],
+      "run_at": "document_idle"
     }
   ],
+
   "background": {
     "service_worker": "background.js"
   },
+
   "action": {
     "default_popup": "popup.html"
   }
