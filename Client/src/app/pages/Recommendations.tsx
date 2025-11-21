@@ -88,30 +88,48 @@ export default function Recommendations() {
     }, [recommendationsData, stockMoneyInfo]);
 
     // Calculate investment suggestions based on available money
+    // Uses a greedy knapsack approach to maximize total daily income within budget
     const investmentSuggestions = useMemo(() => {
-        if (!recommendationsData) return [];
+        if (!recommendationsData || stockMoneyInfo.totalAvailable <= 0) return [];
         
-        // Get all stocks with valid next block data, sorted by ROI (descending)
-        const affordableStocks = recommendationsData
+        // Get all stocks with valid next block data
+        const candidates = recommendationsData
             .filter(s => {
                 // Must have next block data
-                if (!s.next_block_yearly_roi || !s.next_block_cost) return false;
+                if (!s.next_block_yearly_roi || !s.next_block_cost || !s.next_block_daily_income) return false;
                 
-                // Check if we can afford the next block with available money
+                // Must be affordable individually
                 return stockMoneyInfo.totalAvailable >= s.next_block_cost;
             })
-            .sort((a, b) => (b.next_block_yearly_roi || 0) - (a.next_block_yearly_roi || 0));
+            .map(s => ({
+                ticker: s.ticker,
+                name: s.name,
+                nextBlockROI: s.next_block_yearly_roi!,
+                nextBlockIncome: s.next_block_daily_income!,
+                nextBlockCost: s.next_block_cost!,
+                blockNumber: (s.benefit_blocks_owned || 0) + 1,
+                // Efficiency: income per dollar spent
+                efficiency: s.next_block_daily_income! / s.next_block_cost!
+            }));
         
-        // Return top 5 suggestions
-        // At this point, all stocks have been filtered to have valid next_block data
-        return affordableStocks.slice(0, 5).map(s => ({
-            ticker: s.ticker,
-            name: s.name,
-            nextBlockROI: s.next_block_yearly_roi!,
-            nextBlockIncome: s.next_block_daily_income!,
-            nextBlockCost: s.next_block_cost!,
-            blockNumber: (s.benefit_blocks_owned || 0) + 1
-        }));
+        if (candidates.length === 0) return [];
+        
+        // Sort by efficiency (daily income per dollar) descending
+        candidates.sort((a, b) => b.efficiency - a.efficiency);
+        
+        // Greedy knapsack: pick stocks in order of efficiency until budget is exhausted
+        const selected: typeof candidates = [];
+        let remainingBudget = stockMoneyInfo.totalAvailable;
+        
+        for (const candidate of candidates) {
+            if (candidate.nextBlockCost <= remainingBudget) {
+                selected.push(candidate);
+                remainingBudget -= candidate.nextBlockCost;
+            }
+        }
+        
+        // Return the selected stocks sorted by daily income (descending) for display
+        return selected.sort((a, b) => b.nextBlockIncome - a.nextBlockIncome);
     }, [recommendationsData, stockMoneyInfo]);
 
     // Sort the data based on current sort field and order
@@ -319,7 +337,7 @@ export default function Recommendations() {
                             💡 Investment Suggestions
                         </Typography>
                         <Typography variant="body2" sx={{ mb: 1 }}>
-                            Based on your available money, you can afford these stock blocks with the highest ROI:
+                            Optimal combination to maximize daily income within your budget:
                         </Typography>
                         {investmentSuggestions.map((suggestion, index) => (
                             <Box key={suggestion.ticker} sx={{ mb: 1 }}>
