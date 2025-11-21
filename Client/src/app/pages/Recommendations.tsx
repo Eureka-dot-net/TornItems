@@ -102,7 +102,7 @@ export default function Recommendations() {
     }, [recommendationsData]);
 
     // Calculate investment suggestions based on available money
-    // Algorithm: Find best use of total available money, comparing keeping current vs selling and buying new
+    // Algorithm: Find best use of total available money using first blocks AND additional blocks
     const investmentSuggestions = useMemo(() => {
         if (!recommendationsData || stockMoneyInfo.totalAvailable <= 0) return [];
         
@@ -115,45 +115,70 @@ export default function Recommendations() {
             }
         }
         
-        // Build candidates for "fresh start" scenario - use FIRST block data for all stocks
-        const candidates = recommendationsData
-            .filter(s => {
-                // Must have first block data (yearly_roi and daily_income, NOT next_block)
-                if (s.yearly_roi == null || s.daily_income == null) return false;
-                
-                // Calculate cost of first block
-                if (!s.benefit_requirement || s.benefit_requirement <= 0) return false;
-                const firstBlockCost = s.benefit_requirement * s.price;
-                
-                // Must be affordable and have positive cost
-                return firstBlockCost > 0 && stockMoneyInfo.totalAvailable >= firstBlockCost;
-            })
-            .map(s => {
-                const firstBlockCost = s.benefit_requirement! * s.price;
-                return {
-                    ticker: s.ticker,
-                    name: s.name,
-                    roi: s.yearly_roi!,
-                    income: s.daily_income!,
-                    cost: firstBlockCost,
-                    blockNumber: 1, // First block
-                    efficiency: s.daily_income! / firstBlockCost
-                };
-            });
+        // Build ALL possible block purchases (first blocks AND additional blocks)
+        const allBlockCandidates: Array<{
+            ticker: string;
+            name: string;
+            roi: number;
+            income: number;
+            cost: number;
+            blockNumber: number;
+            efficiency: number;
+        }> = [];
         
-        if (candidates.length === 0) return [];
+        for (const s of recommendationsData) {
+            if (!s.benefit_requirement || s.benefit_requirement <= 0) continue;
+            
+            // Add first block
+            if (s.yearly_roi != null && s.daily_income != null) {
+                const firstBlockCost = s.benefit_requirement * s.price;
+                if (firstBlockCost > 0 && firstBlockCost <= stockMoneyInfo.totalAvailable) {
+                    allBlockCandidates.push({
+                        ticker: s.ticker,
+                        name: s.name,
+                        roi: s.yearly_roi,
+                        income: s.daily_income,
+                        cost: firstBlockCost,
+                        blockNumber: 1,
+                        efficiency: s.daily_income / firstBlockCost
+                    });
+                }
+            }
+            
+            // Add next block if it exists and is affordable
+            if (s.next_block_yearly_roi != null && s.next_block_daily_income != null && s.next_block_cost != null) {
+                if (s.next_block_cost > 0 && s.next_block_cost <= stockMoneyInfo.totalAvailable) {
+                    allBlockCandidates.push({
+                        ticker: s.ticker,
+                        name: s.name,
+                        roi: s.next_block_yearly_roi,
+                        income: s.next_block_daily_income,
+                        cost: s.next_block_cost,
+                        blockNumber: (s.benefit_blocks_owned || 0) + 1,
+                        efficiency: s.next_block_daily_income / s.next_block_cost
+                    });
+                }
+            }
+        }
+        
+        if (allBlockCandidates.length === 0) return [];
         
         // Sort by efficiency (daily income per dollar) descending
-        candidates.sort((a, b) => b.efficiency - a.efficiency);
+        allBlockCandidates.sort((a, b) => b.efficiency - a.efficiency);
         
-        // Greedy knapsack: pick best combination of FIRST blocks
-        const selected: typeof candidates = [];
+        // Greedy knapsack: pick best blocks (can pick multiple blocks of same stock)
+        const selected: typeof allBlockCandidates = [];
+        const stockBlockCount = new Map<string, number>(); // Track how many blocks of each stock
         let remainingBudget = stockMoneyInfo.totalAvailable;
         
-        for (const candidate of candidates) {
-            if (candidate.cost <= remainingBudget) {
+        for (const candidate of allBlockCandidates) {
+            const currentBlockCount = stockBlockCount.get(candidate.ticker) || 0;
+            
+            // Can only buy blocks sequentially (block 2 requires owning block 1, etc.)
+            if (candidate.blockNumber === currentBlockCount + 1 && candidate.cost <= remainingBudget) {
                 selected.push(candidate);
                 remainingBudget -= candidate.cost;
+                stockBlockCount.set(candidate.ticker, currentBlockCount + 1);
             }
         }
         
@@ -163,7 +188,6 @@ export default function Recommendations() {
         const suggestedIncome = selected.reduce((sum, s) => sum + s.income, 0);
         
         // Only show suggestions if they're better than or equal to current holdings
-        // (This ensures we never suggest something worse)
         if (currentIncomeFromActiveStocks > 0 && suggestedIncome < currentIncomeFromActiveStocks) {
             return []; // Current holdings are better
         }
