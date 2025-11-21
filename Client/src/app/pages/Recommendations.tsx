@@ -92,6 +92,16 @@ export default function Recommendations() {
     const investmentSuggestions = useMemo(() => {
         if (!recommendationsData || stockMoneyInfo.totalAvailable <= 0) return [];
         
+        // Calculate current daily income from Active stocks that would be sold
+        // (these are the stocks contributing to "available in stocks")
+        let currentIncomeFromAvailableStocks = 0;
+        for (const stock of recommendationsData) {
+            if (stock.owned_shares > 0 && stock.benefit_type === 'Active' && stock.current_daily_income) {
+                // This stock is Active and would be sold to fund new purchases
+                currentIncomeFromAvailableStocks += stock.current_daily_income;
+            }
+        }
+        
         // Get all stocks with valid next block data
         const candidates = recommendationsData
             .filter(s => {
@@ -126,6 +136,15 @@ export default function Recommendations() {
                 selected.push(candidate);
                 remainingBudget -= candidate.nextBlockCost;
             }
+        }
+        
+        // Calculate total income from suggestions
+        const suggestedIncome = selected.reduce((sum, s) => sum + s.nextBlockIncome, 0);
+        
+        // Only return suggestions if they result in a net increase in daily income
+        // If user has active stocks that would be sold, new income must exceed current income
+        if (currentIncomeFromAvailableStocks > 0 && suggestedIncome <= currentIncomeFromAvailableStocks) {
+            return []; // Don't suggest selling for less income
         }
         
         // Return the selected stocks sorted by daily income (descending) for display
