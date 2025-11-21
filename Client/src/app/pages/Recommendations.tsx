@@ -34,6 +34,7 @@ export default function Recommendations() {
                 totalValue += stockValue;
                 
                 // Check if this is a passive benefit stock (benefits like speed boosts, discounts, etc.)
+                // Only Passive stocks should have their shares locked for benefits
                 const isPassiveBenefit = stock.benefit_type === 'Passive';
                 
                 if (isPassiveBenefit && stock.benefit_blocks_owned > 0 && stock.benefit_requirement) {
@@ -50,6 +51,8 @@ export default function Recommendations() {
                     if (excessShares > 0) {
                         availableValue += excessShares * stock.price;
                     }
+                    // If excessShares is negative, it indicates data inconsistency
+                    // but we don't add negative value to availableValue
                 } else {
                     // For Active stocks (money/items) or stocks without benefit blocks, all value is available
                     availableValue += stockValue;
@@ -100,12 +103,13 @@ export default function Recommendations() {
             .sort((a, b) => (b.next_block_yearly_roi || 0) - (a.next_block_yearly_roi || 0));
         
         // Return top 5 suggestions
+        // At this point, all stocks have been filtered to have valid next_block data
         return affordableStocks.slice(0, 5).map(s => ({
             ticker: s.ticker,
             name: s.name,
-            nextBlockROI: s.next_block_yearly_roi || 0,
-            nextBlockIncome: s.next_block_daily_income || 0,
-            nextBlockCost: s.next_block_cost || 0,
+            nextBlockROI: s.next_block_yearly_roi!,
+            nextBlockIncome: s.next_block_daily_income!,
+            nextBlockCost: s.next_block_cost!,
             blockNumber: (s.benefit_blocks_owned || 0) + 1
         }));
     }, [recommendationsData, stockMoneyInfo]);
