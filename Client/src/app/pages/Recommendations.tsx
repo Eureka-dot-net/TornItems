@@ -95,11 +95,11 @@ export default function Recommendations() {
         // Get all stocks with valid next block data
         const candidates = recommendationsData
             .filter(s => {
-                // Must have next block data
-                if (!s.next_block_yearly_roi || !s.next_block_cost || !s.next_block_daily_income) return false;
+                // Must have next block data (explicit null/undefined checks to allow 0 values)
+                if (s.next_block_yearly_roi == null || s.next_block_cost == null || s.next_block_daily_income == null) return false;
                 
-                // Must be affordable individually
-                return stockMoneyInfo.totalAvailable >= s.next_block_cost;
+                // Must be affordable individually and have positive cost
+                return s.next_block_cost > 0 && stockMoneyInfo.totalAvailable >= s.next_block_cost;
             })
             .map(s => ({
                 ticker: s.ticker,
@@ -108,7 +108,7 @@ export default function Recommendations() {
                 nextBlockIncome: s.next_block_daily_income!,
                 nextBlockCost: s.next_block_cost!,
                 blockNumber: (s.benefit_blocks_owned || 0) + 1,
-                // Efficiency: income per dollar spent
+                // Efficiency: income per dollar spent (cost > 0 guaranteed by filter)
                 efficiency: s.next_block_daily_income! / s.next_block_cost!
             }));
         
