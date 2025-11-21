@@ -57,6 +57,7 @@ import ReportProblemCard from '../components/gymComparison/ReportProblemCard';
 import LoadSettingsButton from '../components/gymComparison/LoadSettingsButton';
 import SaveConfigurationButton from '../components/gymComparison/SaveConfigurationButton';
 import LoadConfigurationButton from '../components/gymComparison/LoadConfigurationButton';
+import ClearConfigurationButton from '../components/gymComparison/ClearConfigurationButton';
 import PlayerStatsSection from '../components/gymComparison/PlayerStatsSection';
 import ComparisonSelector from '../components/gymComparison/ComparisonSelector';
 import SectionedComparisonConfig from '../components/gymComparison/SectionedComparisonConfig';
@@ -836,6 +837,20 @@ export default function GymComparison() {
       exportGymComparisonData(exportData);
     }
   };
+
+  // Function to clear current configuration cache
+  const handleClearConfiguration = () => {
+    // Clear all gymComparison_* localStorage items except saved configurations
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith('gymComparison_') && key !== 'gymComparison_savedConfigurations') {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // Reload the page to reset all state
+    window.location.reload();
+  };
   
   return (
     <Box sx={{ width: '100%', p: { xs: 2, md: 3 } }}>
@@ -867,6 +882,7 @@ export default function GymComparison() {
         }}>
           <SaveConfigurationButton getCurrentSettings={getCurrentSettings} />
           <LoadConfigurationButton onLoadSettings={loadSettingsFromReport} />
+          <ClearConfigurationButton onClear={handleClearConfiguration} />
           <LoadSettingsButton onLoadSettings={loadSettingsFromReport} />
           {mode === 'future' && Object.keys(results).length > 0 && (
             <Button 
