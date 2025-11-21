@@ -436,8 +436,6 @@ export default function Recommendations() {
                         ))}
                     </Box>
                 )}
-                    </Box>
-                )}
             </Paper>
 
             <Paper sx={{ mt: 3, p: 2, overflow: 'hidden' }}>
