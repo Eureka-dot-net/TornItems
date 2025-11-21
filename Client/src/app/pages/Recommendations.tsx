@@ -102,47 +102,95 @@ export default function Recommendations() {
     }, [recommendationsData]);
 
     // Calculate investment suggestions based on available money
-    // Uses a greedy knapsack approach to maximize total daily income within budget
+    // Key insight: Adding blocks to owned stocks ADDS income, buying new stocks REPLACES income from selling
     const investmentSuggestions = useMemo(() => {
         if (!recommendationsData || stockMoneyInfo.totalAvailable <= 0) return [];
         
-        // Get all stocks with valid next block data
-        const candidates = recommendationsData
-            .filter(s => {
-                // Must have next block data (explicit null/undefined checks to allow 0 values)
-                if (s.next_block_yearly_roi == null || s.next_block_cost == null || s.next_block_daily_income == null) return false;
-                
-                // Must be affordable individually and have positive cost
-                return s.next_block_cost > 0 && stockMoneyInfo.totalAvailable >= s.next_block_cost;
-            })
-            .map(s => ({
-                ticker: s.ticker,
-                name: s.name,
-                nextBlockROI: s.next_block_yearly_roi!,
-                nextBlockIncome: s.next_block_daily_income!,
-                nextBlockCost: s.next_block_cost!,
-                blockNumber: (s.benefit_blocks_owned || 0) + 1,
-                // Efficiency: income per dollar spent (cost > 0 guaranteed by filter)
-                efficiency: s.next_block_daily_income! / s.next_block_cost!
-            }));
+        // Calculate current income from Active stocks and identify what we own
+        let currentIncomeFromActiveStocks = 0;
+        const ownedActiveTickers = new Set<string>();
         
-        if (candidates.length === 0) return [];
-        
-        // Sort by efficiency (daily income per dollar) descending
-        candidates.sort((a, b) => b.efficiency - a.efficiency);
-        
-        // Greedy knapsack: pick stocks in order of efficiency until budget is exhausted
-        const selected: typeof candidates = [];
-        let remainingBudget = stockMoneyInfo.totalAvailable;
-        
-        for (const candidate of candidates) {
-            if (candidate.nextBlockCost <= remainingBudget) {
-                selected.push(candidate);
-                remainingBudget -= candidate.nextBlockCost;
+        for (const stock of recommendationsData) {
+            if (stock.owned_shares > 0 && stock.benefit_type === 'Active') {
+                ownedActiveTickers.add(stock.ticker);
+                if (stock.current_daily_income !== null && stock.current_daily_income !== undefined) {
+                    currentIncomeFromActiveStocks += stock.current_daily_income;
+                }
             }
         }
         
-        // Return the selected stocks sorted by daily income (descending) for display
+        // Build candidates: prioritize adding to owned stocks over buying new ones
+        const ownedCandidates: any[] = [];
+        const newCandidates: any[] = [];
+        
+        for (const s of recommendationsData) {
+            if (s.next_block_yearly_roi == null || s.next_block_cost == null || s.next_block_daily_income == null) continue;
+            if (s.next_block_cost <= 0 || s.next_block_cost > stockMoneyInfo.totalAvailable) continue;
+            
+            const candidate = {
+                ticker: s.ticker,
+                name: s.name,
+                nextBlockROI: s.next_block_yearly_roi,
+                nextBlockIncome: s.next_block_daily_income,
+                nextBlockCost: s.next_block_cost,
+                blockNumber: (s.benefit_blocks_owned || 0) + 1,
+                efficiency: s.next_block_daily_income / s.next_block_cost
+            };
+            
+            if (ownedActiveTickers.has(s.ticker)) {
+                // This adds to existing income (pure addition)
+                ownedCandidates.push(candidate);
+            } else {
+                // This would require selling other stocks (replacement)
+                newCandidates.push(candidate);
+            }
+        }
+        
+        // Sort both lists by efficiency
+        ownedCandidates.sort((a, b) => b.efficiency - a.efficiency);
+        newCandidates.sort((a, b) => b.efficiency - a.efficiency);
+        
+        // Strategy 1: Try adding blocks to owned stocks first (no selling needed if we have extra money)
+        const selected: any[] = [];
+        let remainingBudget = stockMoneyInfo.totalAvailable;
+        let projectedIncome = currentIncomeFromActiveStocks;
+        
+        // First, add blocks to owned stocks (these ADD to current income)
+        for (const candidate of ownedCandidates) {
+            if (candidate.nextBlockCost <= remainingBudget) {
+                selected.push({...candidate, isAddition: true});
+                remainingBudget -= candidate.nextBlockCost;
+                projectedIncome += candidate.nextBlockIncome;
+            }
+        }
+        
+        // If we still have budget, try new stocks (would require selling everything)
+        if (remainingBudget > 0 && newCandidates.length > 0) {
+            // Option A: Keep current + additions
+            const optionAIncome = projectedIncome;
+            const optionASelected = [...selected];
+            
+            // Option B: Sell all and buy best new combination
+            const optionBSelected: any[] = [];
+            let optionBBudget = stockMoneyInfo.totalAvailable;
+            let optionBIncome = 0;
+            
+            for (const candidate of newCandidates) {
+                if (candidate.nextBlockCost <= optionBBudget) {
+                    optionBSelected.push(candidate);
+                    optionBBudget -= candidate.nextBlockCost;
+                    optionBIncome += candidate.nextBlockIncome;
+                }
+            }
+            
+            // Choose the better option
+            if (optionBIncome > optionAIncome) {
+                // Selling and buying new is better
+                return optionBSelected.sort((a, b) => b.nextBlockIncome - a.nextBlockIncome);
+            }
+        }
+        
+        // Return additions to owned stocks
         return selected.sort((a, b) => b.nextBlockIncome - a.nextBlockIncome);
     }, [recommendationsData, stockMoneyInfo]);
 
