@@ -337,7 +337,7 @@ export default function Recommendations() {
                             💡 Investment Suggestions
                         </Typography>
                         <Typography variant="body2" sx={{ mb: 1 }}>
-                            Optimal combination to maximize daily income within your budget:
+                            Optimal combination to maximize daily income within your budget: <strong>{formatCurrency(investmentSuggestions.reduce((sum, s) => sum + s.nextBlockIncome, 0))}/day</strong>
                         </Typography>
                         {investmentSuggestions.map((suggestion, index) => (
                             <Box key={suggestion.ticker} sx={{ mb: 1 }}>

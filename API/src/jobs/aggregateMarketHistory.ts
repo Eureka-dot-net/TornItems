@@ -783,6 +783,13 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
           }
         }
       }
+      
+      // For Passive stocks, calculate next_block_cost even without ROI/income
+      if (benefitType === 'Passive' && benefitRequirement && benefitRequirement > 0) {
+        const nextBlockNumber = benefitBlocksOwned + 1;
+        const nextBlockShares = benefitRequirement * Math.pow(2, nextBlockNumber - 1);
+        nextBlockCost = nextBlockShares * currentPrice;
+      }
 
       recommendationsData.push({
         stock_id: stockId,
