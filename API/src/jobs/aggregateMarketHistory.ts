@@ -518,9 +518,9 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
     // Fetch stock benefits from the dedicated table
     const { StockBenefit } = await import('../models/StockBenefit');
     const stockBenefits = await StockBenefit.find().lean();
-    const benefitsMap: Record<number, any> = {};
+    const benefitsMap: Record<string, any> = {};
     for (const benefit of stockBenefits) {
-      benefitsMap[benefit.stock_id] = {
+      benefitsMap[benefit.ticker] = {
         benefit_requirement: benefit.benefit_requirement,
         benefit_type: benefit.benefit_type,
         benefit_frequency: benefit.benefit_frequency,
@@ -631,8 +631,8 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
       const currentPrice = stock.currentPrice;
       const weekAgoPrice = stock.oldestPrice;
       
-      // Get benefit data from the benefits map
-      const benefit = benefitsMap[stockId];
+      // Get benefit data from the benefits map using ticker
+      const benefit = benefitsMap[ticker];
       const benefitRequirement = benefit?.benefit_requirement || stock.benefit_requirement || null;
       const benefitType = benefit?.benefit_type || null;
       const benefitFrequency = benefit?.benefit_frequency || null;
@@ -708,11 +708,16 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
         canSell = maxSharesToSell > 0;
       }
 
-      // Calculate daily income and yearly ROI
+      // Calculate daily income and yearly ROI for different scenarios
       let dailyIncome: number | null = null;
       let yearlyRoi: number | null = null;
+      let currentDailyIncome: number | null = null;
+      let currentYearlyRoi: number | null = null;
+      let nextBlockDailyIncome: number | null = null;
+      let nextBlockYearlyRoi: number | null = null;
+      let nextBlockCost: number | null = null;
 
-      if (benefitType === 'Active' && benefitFrequency && benefitFrequency > 0 && benefitBlocksOwned > 0) {
+      if (benefitType === 'Active' && benefitFrequency && benefitFrequency > 0 && benefitRequirement && benefitRequirement > 0) {
         // Parse benefit value from description
         let benefitValue = 0;
         
@@ -724,22 +729,66 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
           }
           // Check if it's an item benefit
           else if (benefitItemId && itemPricesMap[benefitItemId]) {
-            benefitValue = itemPricesMap[benefitItemId];
+            // Extract quantity from description (e.g., "1x Six Pack of Alcohol" -> 1)
+            let quantity = 1;
+            const quantityMatch = benefitDescription.match(/^(\d+)x\s/);
+            if (quantityMatch) {
+              quantity = parseInt(quantityMatch[1], 10);
+            }
+            benefitValue = itemPricesMap[benefitItemId] * quantity;
           }
           // Check for special cases like "1000 Happy", "50 Nerve", "100 Energy", "100 Points"
           // These don't have direct monetary value, so skip them
         }
 
         if (benefitValue > 0) {
-          // Daily income = (benefit value * blocks owned) / frequency
-          dailyIncome = (benefitValue * benefitBlocksOwned) / benefitFrequency;
+          // Helper function to calculate cost of N blocks using 2x rule
+          const calculateBlocksCost = (numBlocks: number): number => {
+            let totalShares = 0;
+            for (let i = 1; i <= numBlocks; i++) {
+              totalShares += benefitRequirement * Math.pow(2, i - 1);
+            }
+            return totalShares * currentPrice;
+          };
+
+          // 1. Default calculation: Always show for 1 block (for fair comparison)
+          dailyIncome = (benefitValue * 1) / benefitFrequency;
+          const investmentFor1Block = currentPrice * benefitRequirement;
+          if (investmentFor1Block > 0) {
+            yearlyRoi = ((dailyIncome * 365) / investmentFor1Block) * 100;
+          }
+
+          // 2. Current blocks owned calculation (only if user owns at least 1 block)
+          if (benefitBlocksOwned > 0) {
+            currentDailyIncome = (benefitValue * benefitBlocksOwned) / benefitFrequency;
+            const currentInvestment = calculateBlocksCost(benefitBlocksOwned);
+            if (currentInvestment > 0) {
+              currentYearlyRoi = ((currentDailyIncome * 365) / currentInvestment) * 100;
+            }
+          }
+
+          // 3. Next block calculation: Show ROI and income for JUST the next block
+          const nextBlockNumber = benefitBlocksOwned + 1;
           
-          // Yearly ROI = (daily income * 365) / (current stock value)
-          const totalInvestment = currentPrice * ownedShares;
-          if (totalInvestment > 0) {
-            yearlyRoi = ((dailyIncome * 365) / totalInvestment) * 100;
+          // Calculate cost of just the next block
+          const nextBlockShares = benefitRequirement * Math.pow(2, nextBlockNumber - 1);
+          nextBlockCost = nextBlockShares * currentPrice;
+          
+          // Calculate income for just the next block (1 item per frequency)
+          nextBlockDailyIncome = benefitValue / benefitFrequency;
+          
+          // Calculate ROI for just the next block
+          if (nextBlockCost > 0) {
+            nextBlockYearlyRoi = ((nextBlockDailyIncome * 365) / nextBlockCost) * 100;
           }
         }
+      }
+      
+      // For Passive stocks, calculate next_block_cost even without ROI/income
+      if (benefitType === 'Passive' && benefitRequirement && benefitRequirement > 0) {
+        const nextBlockNumber = benefitBlocksOwned + 1;
+        const nextBlockShares = benefitRequirement * Math.pow(2, nextBlockNumber - 1);
+        nextBlockCost = nextBlockShares * currentPrice;
       }
 
       recommendationsData.push({
@@ -766,6 +815,11 @@ async function aggregateStockRecommendations(currentDate: string): Promise<void>
         benefit_item_id: benefitItemId,
         daily_income: dailyIncome !== null ? parseFloat(dailyIncome.toFixed(2)) : null,
         yearly_roi: yearlyRoi !== null ? parseFloat(yearlyRoi.toFixed(2)) : null,
+        current_daily_income: currentDailyIncome !== null ? parseFloat(currentDailyIncome.toFixed(2)) : null,
+        current_yearly_roi: currentYearlyRoi !== null ? parseFloat(currentYearlyRoi.toFixed(2)) : null,
+        next_block_daily_income: nextBlockDailyIncome !== null ? parseFloat(nextBlockDailyIncome.toFixed(2)) : null,
+        next_block_yearly_roi: nextBlockYearlyRoi !== null ? parseFloat(nextBlockYearlyRoi.toFixed(2)) : null,
+        next_block_cost: nextBlockCost !== null ? parseFloat(nextBlockCost.toFixed(2)) : null,
         date: currentDate,
         timestamp: now
       });
