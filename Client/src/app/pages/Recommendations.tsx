@@ -96,7 +96,8 @@ export default function Recommendations() {
         // (these are the stocks contributing to "available in stocks")
         let currentIncomeFromAvailableStocks = 0;
         for (const stock of recommendationsData) {
-            if (stock.owned_shares > 0 && stock.benefit_type === 'Active' && stock.current_daily_income) {
+            if (stock.owned_shares > 0 && stock.benefit_type === 'Active' && 
+                stock.current_daily_income !== null && stock.current_daily_income !== undefined) {
                 // This stock is Active and would be sold to fund new purchases
                 currentIncomeFromAvailableStocks += stock.current_daily_income;
             }
