@@ -45,10 +45,7 @@ export default function HappyPerksWizardStep() {
 
   // State for base happy
   const [baseHappy, setBaseHappy] = useState<number>(() => 
-    loadSavedValue('baseHappy', DEFAULT_HAPPY)
-  );
-  const [knowsBaseHappy, setKnowsBaseHappy] = useState<'yes' | 'no' | null>(() => 
-    loadSavedValue<'yes' | 'no' | null>('knowsBaseHappy', null)
+    loadSavedValue('baseHappy', 0)
   );
 
   // State for perks - if API key exists, we can load from fetched data
@@ -56,8 +53,13 @@ export default function HappyPerksWizardStep() {
     loadSavedValue('perkPercs', { strength: 0, speed: 0, defense: 0, dexterity: 0 })
   );
   const [perksLoaded, setPerksLoaded] = useState<boolean>(false);
+  
+  // State to track if user knows their perks (only if no API key)
+  const [knowsPerks, setKnowsPerks] = useState<'yes' | 'no' | null>(() => 
+    loadSavedValue<'yes' | 'no' | null>('knowsPerks', null)
+  );
 
-  // State for manual perk questions (only if no API key)
+  // State for manual perk questions (only if no API key and user doesn't know perks)
   const [hasFactionSteadfast, setHasFactionSteadfast] = useState<'yes' | 'no' | null>(() => 
     loadSavedValue<'yes' | 'no' | null>('hasFactionSteadfast', null)
   );
@@ -85,12 +87,8 @@ export default function HappyPerksWizardStep() {
   }, [baseHappy]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_knowsBaseHappy', JSON.stringify(knowsBaseHappy));
-    // Set default happy if user doesn't know
-    if (knowsBaseHappy === 'no' && baseHappy === 0) {
-      setBaseHappy(DEFAULT_HAPPY);
-    }
-  }, [knowsBaseHappy, baseHappy]);
+    localStorage.setItem('gymWizard_knowsPerks', JSON.stringify(knowsPerks));
+  }, [knowsPerks]);
 
   useEffect(() => {
     localStorage.setItem('gymWizard_perkPercs', JSON.stringify(perkPercs));
@@ -139,8 +137,8 @@ export default function HappyPerksWizardStep() {
 
   // Calculate perk percentages from manual inputs (multiplicative)
   useEffect(() => {
-    if (!hasApiKey) {
-      // Only recalculate if we don't have API data
+    if (!hasApiKey && knowsPerks === 'no') {
+      // Only recalculate if we don't have API data and user doesn't know their perks
       const multipliers = {
         strength: 1,
         speed: 1,
@@ -186,7 +184,7 @@ export default function HappyPerksWizardStep() {
         dexterity: (multipliers.dexterity - 1) * 100
       });
     }
-  }, [hasApiKey, hasFactionSteadfast, steadfastBonuses, hasPrivatePool, hasBachelorSportScience, individualCourses]);
+  }, [hasApiKey, knowsPerks, hasFactionSteadfast, steadfastBonuses, hasPrivatePool, hasBachelorSportScience, individualCourses]);
 
   return (
     <Box>
@@ -213,64 +211,19 @@ export default function HappyPerksWizardStep() {
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
           Your current happy status is shown by the yellow bar in your Information sidebar with a timer 
-          next to it. We need the <strong>maximum value when you haven't used any boosters</strong>. 
-          {!hasApiKey && ' If you have TornTools installed, you can see this value on the gym page.'}
+          next to it. We need the <strong>maximum value when you haven't used any boosters</strong>.
         </Typography>
 
-        {!hasApiKey && (
-          <>
-            <RadioGroup
-              value={knowsBaseHappy || ''}
-              onChange={(e) => setKnowsBaseHappy(e.target.value as 'yes' | 'no')}
-            >
-              <FormControlLabel 
-                value="yes" 
-                control={<Radio />} 
-                label="I know my base happy value" 
-              />
-              <FormControlLabel 
-                value="no" 
-                control={<Radio />} 
-                label="I don't know my base happy (we'll use a default estimate)" 
-              />
-            </RadioGroup>
-
-            <Collapse in={knowsBaseHappy === 'yes'} timeout="auto">
-              <Box sx={{ mt: 2 }}>
-                <TextField
-                  label="Base Happy"
-                  type="number"
-                  value={baseHappy}
-                  onChange={(e) => setBaseHappy(Math.max(0, Math.min(99999, Number(e.target.value))))}
-                  fullWidth
-                  size="small"
-                  inputProps={{ min: 0, max: 99999, step: 1 }}
-                  helperText="Enter your base happy value (typically 500-5000)"
-                />
-              </Box>
-            </Collapse>
-
-            {knowsBaseHappy === 'no' && (
-              <Alert severity="info" sx={{ mt: 2 }}>
-                No problem! We'll use a reasonable default value of {DEFAULT_HAPPY} for calculations. 
-                You can adjust this later in the comparison tool if needed.
-              </Alert>
-            )}
-          </>
-        )}
-
-        {hasApiKey && (
-          <TextField
-            label="Base Happy"
-            type="number"
-            value={baseHappy}
-            onChange={(e) => setBaseHappy(Math.max(0, Math.min(99999, Number(e.target.value))))}
-            fullWidth
-            size="small"
-            inputProps={{ min: 0, max: 99999, step: 1 }}
-            helperText="Enter your base happy value (typically 500-5000)"
-          />
-        )}
+        <TextField
+          label="Base Happy"
+          type="number"
+          value={baseHappy || ''}
+          onChange={(e) => setBaseHappy(Math.max(0, Math.min(99999, Number(e.target.value))))}
+          fullWidth
+          size="small"
+          inputProps={{ min: 0, max: 99999, step: 1 }}
+          helperText="Enter your base happy value (typically ranges from 0 to 5025)"
+        />
       </Box>
 
       {/* Perks Section - Different flow if API key exists */}
@@ -326,13 +279,96 @@ export default function HappyPerksWizardStep() {
           </Alert>
         </Box>
       ) : (
-        // Manual perk questions - show only after happy question is answered
-        (knowsBaseHappy !== null || hasApiKey) && (
-          <>
-            {/* Question 2: Faction Steadfast */}
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                2. Are you in a faction with the Steadfast bonus?
+        // Manual perk flow - first ask if they know their perks
+        <>
+          {/* Question 2: Do you know your perks? */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              2. Do you know your gym perk percentages?
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              If you have TornTools installed, you can see these values on the gym page. 
+              Your gym perks come from faction bonuses, property perks, education courses, and other sources.
+            </Typography>
+            <RadioGroup
+              value={knowsPerks || ''}
+              onChange={(e) => setKnowsPerks(e.target.value as 'yes' | 'no')}
+            >
+              <FormControlLabel 
+                value="yes" 
+                control={<Radio />} 
+                label="Yes, I know my perk percentages" 
+              />
+              <FormControlLabel 
+                value="no" 
+                control={<Radio />} 
+                label="No, I need help calculating them" 
+              />
+            </RadioGroup>
+
+            {/* If user knows their perks, let them enter manually */}
+            <Collapse in={knowsPerks === 'yes'} timeout="auto">
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" color="text.secondary" paragraph>
+                  Enter your gym perk percentages for each stat:
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
+                  <TextField
+                    label="Strength Perk %"
+                    type="number"
+                    value={perkPercs.strength}
+                    onChange={(e) => setPerkPercs({
+                      ...perkPercs,
+                      strength: Math.max(0, Number(e.target.value))
+                    })}
+                    size="small"
+                    inputProps={{ min: 0, step: 0.1 }}
+                  />
+                  <TextField
+                    label="Speed Perk %"
+                    type="number"
+                    value={perkPercs.speed}
+                    onChange={(e) => setPerkPercs({
+                      ...perkPercs,
+                      speed: Math.max(0, Number(e.target.value))
+                    })}
+                    size="small"
+                    inputProps={{ min: 0, step: 0.1 }}
+                  />
+                  <TextField
+                    label="Defense Perk %"
+                    type="number"
+                    value={perkPercs.defense}
+                    onChange={(e) => setPerkPercs({
+                      ...perkPercs,
+                      defense: Math.max(0, Number(e.target.value))
+                    })}
+                    size="small"
+                    inputProps={{ min: 0, step: 0.1 }}
+                  />
+                  <TextField
+                    label="Dexterity Perk %"
+                    type="number"
+                    value={perkPercs.dexterity}
+                    onChange={(e) => setPerkPercs({
+                      ...perkPercs,
+                      dexterity: Math.max(0, Number(e.target.value))
+                    })}
+                    size="small"
+                    inputProps={{ min: 0, step: 0.1 }}
+                  />
+                </Box>
+              </Box>
+            </Collapse>
+          </Box>
+
+          {/* If user doesn't know their perks, ask detailed questions */}
+          {knowsPerks === 'no' && (
+            <>
+              {/* Question 3: Faction Steadfast */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  3. Are you in a faction with the Steadfast bonus?
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
                 The Steadfast upgrade provides stat-specific gym gain bonuses. If your faction has this, 
@@ -404,11 +440,11 @@ export default function HappyPerksWizardStep() {
               </Collapse>
             </Box>
 
-            {/* Question 3: Private Pool */}
+            {/* Question 4: Private Pool */}
             {hasFactionSteadfast !== null && (
               <Box sx={{ mb: 3 }}>
                 <Typography variant="h6" gutterBottom>
-                  3. Do you live in a property with a private pool?
+                  4. Do you live in a property with a private pool?
                 </Typography>
                 <Typography variant="body2" color="text.secondary" paragraph>
                   A private pool provides a +2% bonus to all gym stats.
@@ -431,11 +467,11 @@ export default function HappyPerksWizardStep() {
               </Box>
             )}
 
-            {/* Question 4: Education Courses */}
+            {/* Question 5: Education Courses */}
             {hasPrivatePool !== null && (
               <Box sx={{ mb: 3 }}>
                 <Typography variant="h6" gutterBottom>
-                  4. Do you have Bachelor of Sports Science?
+                  5. Do you have Bachelor of Sports Science?
                 </Typography>
                 <Typography variant="body2" color="text.secondary" paragraph>
                   Bachelor of Sports Science provides +2% to all gym stats. If you don't have this, 
