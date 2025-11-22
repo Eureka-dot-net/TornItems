@@ -75,7 +75,7 @@ export default function StatTargetRatiosWizardStep() {
 
   // When statRatio changes, reset dependent fields
   useEffect(() => {
-    if (statRatio !== 'defDex') {
+    if (statRatio !== 'defDex' && statRatio !== 'baldr' && statRatio !== 'hank') {
       setDefDexPrimaryStat(null);
     }
   }, [statRatio]);
@@ -204,14 +204,17 @@ export default function StatTargetRatiosWizardStep() {
         </Box>
       )}
 
-      {/* Question 3: Which def/dex stat? (only if defDex ratio selected) */}
-      {statRatio === 'defDex' && (
+      {/* Question 3: Which def/dex stat? (only if defDex, baldr, or hank ratio selected) */}
+      {(statRatio === 'defDex' || statRatio === 'baldr' || statRatio === 'hank') && (
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" gutterBottom>
             3. Which defensive stat do you train more heavily?
           </Typography>
           <Typography variant="body2" color="text.secondary" paragraph>
-            In a Defense/Dexterity build, you focus on one of these stats while not training the other at all.
+            {statRatio === 'defDex' 
+              ? "In a Defense/Dexterity build, you focus on one of these stats while not training the other at all."
+              : `In ${statRatio === 'baldr' ? "Baldr's" : "Hank's"} Ratio, you need to choose which defensive stat (Defense or Dexterity) you train more heavily. Both stats are still trained, but one receives more focus.`
+            }
           </Typography>
           <RadioGroup
             value={defDexPrimaryStat || ''}
@@ -220,12 +223,12 @@ export default function StatTargetRatiosWizardStep() {
             <FormControlLabel 
               value="defense" 
               control={<Radio />} 
-              label="Defense (I don't train Dexterity)" 
+              label={statRatio === 'defDex' ? "Defense (I don't train Dexterity)" : "Defense (higher priority)"} 
             />
             <FormControlLabel 
               value="dexterity" 
               control={<Radio />} 
-              label="Dexterity (I don't train Defense)" 
+              label={statRatio === 'defDex' ? "Dexterity (I don't train Defense)" : "Dexterity (higher priority)"} 
             />
           </RadioGroup>
         </Box>
@@ -235,7 +238,7 @@ export default function StatTargetRatiosWizardStep() {
       {(statRatio || hasBalancedBuild === 'yes') && (
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" gutterBottom>
-            {hasBalancedBuild === 'yes' ? '2' : statRatio === 'defDex' && defDexPrimaryStat ? '4' : '3'}. 
+            {hasBalancedBuild === 'yes' ? '2' : (statRatio === 'defDex' || statRatio === 'baldr' || statRatio === 'hank') && defDexPrimaryStat ? '4' : '3'}. 
             How do you decide which stat to train each day?
           </Typography>
           <Typography variant="body2" color="text.secondary" paragraph>
@@ -283,7 +286,7 @@ export default function StatTargetRatiosWizardStep() {
       {trainByPerks === 'perks' && (
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" gutterBottom>
-            {hasBalancedBuild === 'yes' ? '3' : statRatio === 'defDex' && defDexPrimaryStat ? '5' : '4'}. 
+            {hasBalancedBuild === 'yes' ? '3' : (statRatio === 'defDex' || statRatio === 'baldr' || statRatio === 'hank') && defDexPrimaryStat ? '5' : '4'}. 
             When do you plan to start balancing your stats according to your target ratio?
           </Typography>
           <Typography variant="body2" color="text.secondary" paragraph>
@@ -335,8 +338,8 @@ export default function StatTargetRatiosWizardStep() {
           <Typography variant="body2">
             <strong>Build Type:</strong>{' '}
             {hasBalancedBuild === 'yes' ? 'Balanced' : 
-             statRatio === 'baldr' ? "Baldr's Ratio" :
-             statRatio === 'hank' ? "Hank's Ratio" :
+             statRatio === 'baldr' ? `Baldr's Ratio (${defDexPrimaryStat === 'defense' ? 'Defense' : defDexPrimaryStat === 'dexterity' ? 'Dexterity' : 'Defense'} focus)` :
+             statRatio === 'hank' ? `Hank's Ratio (${defDexPrimaryStat === 'defense' ? 'Defense' : defDexPrimaryStat === 'dexterity' ? 'Dexterity' : 'Defense'} focus)` :
              statRatio === 'defDex' ? `Defense/Dexterity Build (${defDexPrimaryStat === 'defense' ? 'Defense' : 'Dexterity'} focus)` :
              'Custom'}
           </Typography>

@@ -17,14 +17,14 @@ export function convertWizardSelectionsToStatWeights(
     return { strength: 1, speed: 1, defense: 1, dexterity: 1 };
   }
 
-  // Baldr's ratio - default to defense as primary (most common)
+  // Baldr's ratio - use selected primary stat
   if (statRatio === 'baldr') {
-    return getBaldrsRatio('defense');
+    return getBaldrsRatio(defDexPrimaryStat || 'defense');
   }
 
-  // Hank's ratio - default to defense as primary (most common)
+  // Hank's ratio - use selected primary stat
   if (statRatio === 'hank') {
-    return getHanksRatio('defense');
+    return getHanksRatio(defDexPrimaryStat || 'defense');
   }
 
   // Def/Dex build
