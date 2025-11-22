@@ -32,6 +32,7 @@ interface PlayerStatsSectionProps {
   onHistoricalDataFetched?: (data: HistoricalStat[]) => void;
   onEnabledChange?: (enabled: boolean) => void;
   hideApiKeySection?: boolean;
+  hideApiKeyAlert?: boolean;
 }
 
 export default function PlayerStatsSection({
@@ -51,6 +52,7 @@ export default function PlayerStatsSection({
   onHistoricalDataFetched,
   onEnabledChange,
   hideApiKeySection = false,
+  hideApiKeyAlert = false,
 }: PlayerStatsSectionProps) {
   // Constants for date validation
   const TORN_RELEASE_DATE = new Date('1997-10-27');
@@ -174,12 +176,14 @@ export default function PlayerStatsSection({
       {/* API Key Section - Only show if not hidden */}
       {!hideApiKeySection && (
         <Box sx={{ mb: 3 }}>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Optional: Enter a Limited API Key to auto-fetch your stats, or fill them in manually below. Get one from{' '}
-            <a href="https://www.torn.com/preferences.php#tab=api" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
-              Torn Settings → API Key
-            </a>
-          </Alert>
+          {!hideApiKeyAlert && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Optional: Enter a Limited API Key to auto-fetch your stats, or fill them in manually below. Get one from{' '}
+              <a href="https://www.torn.com/preferences.php#tab=api" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                Torn Settings → API Key
+              </a>
+            </Alert>
+          )}
           
           <Box sx={{ display: 'flex', gap: 1 }}>
             <TextField

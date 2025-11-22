@@ -143,7 +143,25 @@ export default function ApiKeyWizardStep() {
         <FormControlLabel 
           value="yes" 
           control={<Radio />} 
-          label="I'm comfortable providing a Limited API key (Recommended - Quick and Easy)" 
+          label={
+            <Box>
+              <Typography variant="body1">
+                I'm comfortable providing a Limited API key (Recommended - Quick and Easy)
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Get a Limited API key from{' '}
+                <a 
+                  href="https://www.torn.com/preferences.php#tab=api" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ color: 'inherit', textDecoration: 'underline' }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Torn Settings → API Key
+                </a>
+              </Typography>
+            </Box>
+          }
         />
         <FormControlLabel 
           value="no" 
@@ -177,6 +195,7 @@ export default function ApiKeyWizardStep() {
             simulatedDate={simulatedDate}
             setSimulatedDate={setSimulatedDate}
             hideApiKeySection={apiKeyPreference === 'no'}
+            hideApiKeyAlert={apiKeyPreference === 'yes'}
           />
         </Box>
       </Collapse>

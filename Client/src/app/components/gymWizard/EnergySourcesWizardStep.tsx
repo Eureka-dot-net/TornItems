@@ -189,8 +189,8 @@ export default function EnergySourcesWizardStep() {
               How many Xanax do you use per day?
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Xanax refills your energy bar. Each one provides {maxEnergy} energy. Enter 0 if 
-              you don't use Xanax for training.
+              Each Xanax provides 250 additional energy (it doesn't refill your bar, but adds to it). 
+              Enter 0 if you don't use Xanax for training.
             </Typography>
             <TextField
               type="number"
