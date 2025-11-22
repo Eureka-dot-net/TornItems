@@ -3,6 +3,7 @@ import { Box, Typography, Paper, Button, Stepper, Step, StepLabel, StepButton } 
 import { useNavigate } from 'react-router-dom';
 import ApiKeyWizardStep from '../components/gymWizard/ApiKeyWizardStep';
 import EnergySourcesWizardStep from '../components/gymWizard/EnergySourcesWizardStep';
+import HappyPerksWizardStep from '../components/gymWizard/HappyPerksWizardStep';
 import StatTargetRatiosWizardStep from '../components/gymWizard/StatTargetRatiosWizardStep';
 import { 
   convertWizardSelectionsToStatWeights, 
@@ -23,6 +24,7 @@ import {
 const wizardSteps = [
   { label: 'Player Stats', description: 'Set up your player stats' },
   { label: 'Energy Sources', description: 'Configure your energy sources' },
+  { label: 'Happy & Perks', description: 'Configure your base happy and gym perks' },
   { label: 'Stat Target Ratios', description: 'Configure your stat training strategy' },
   // Future steps will be added here
 ];
@@ -43,7 +45,9 @@ export default function GymWizard() {
       'hoursPlayedPerDay',
       'xanaxPerDay',
       'hasPointsRefill',
-      'daysSkippedPerMonth'
+      'daysSkippedPerMonth',
+      'baseHappy',
+      'perkPercs'
     ];
     
     wizardKeys.forEach(key => {
@@ -138,7 +142,8 @@ export default function GymWizard() {
       <Paper sx={{ p: 3, mb: 3, minHeight: '400px' }}>
         {activeStep === 0 && <ApiKeyWizardStep />}
         {activeStep === 1 && <EnergySourcesWizardStep />}
-        {activeStep === 2 && <StatTargetRatiosWizardStep />}
+        {activeStep === 2 && <HappyPerksWizardStep />}
+        {activeStep === 3 && <StatTargetRatiosWizardStep />}
         {/* Future wizard steps will be added here */}
       </Paper>
 
