@@ -32,11 +32,14 @@ export default function GymWizard() {
         localStorage.setItem(`gymComparison_${key}`, wizardValue);
       }
     });
+    
+    // Set flag to indicate user completed wizard (not skipped)
+    localStorage.setItem('gymComparison_fromWizard', 'true');
   };
 
   const handleNext = () => {
     if (activeStep === wizardSteps.length - 1) {
-      // Last step - copy wizard data and go to gym comparison
+      // Last step - copy wizard data, set wizard flag, and go to gym comparison
       copyWizardDataToGymComparison();
       navigate('/gymComparison');
     } else {
@@ -50,6 +53,7 @@ export default function GymWizard() {
 
   const handleSkip = () => {
     // Skip wizard and go directly to gym comparison
+    // Don't set the wizard flag - user is advanced
     navigate('/gymComparison');
   };
 

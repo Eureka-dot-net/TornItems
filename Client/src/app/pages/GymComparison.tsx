@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -8,8 +8,12 @@ import {
   Switch,
   Alert,
   Paper,
+  Collapse,
+  IconButton,
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import {
   simulateGymProgression,
   type SimulationInputs,
@@ -249,9 +253,31 @@ export default function GymComparison() {
   const [showCosts, setShowCosts] = useState<boolean>(() => loadSavedValue('showCosts', false));
   const [isLoadingGymStats, setIsLoadingGymStats] = useState<boolean>(false);
   
+  // State for collapsing fixed options
+  const [showFixedOptions, setShowFixedOptions] = useState<boolean>(() => {
+    // Check if user came from wizard
+    const fromWizard = localStorage.getItem('gymComparison_fromWizard') === 'true';
+    // If from wizard, hide options by default; otherwise show them
+    return !fromWizard;
+  });
+  
+  // Ref for scrolling to results
+  const resultsRef = useRef<HTMLDivElement>(null);
+  
   // Historical data state
   const [historicalData, setHistoricalData] = useState<HistoricalStat[]>([]);
   const [historicalComparisonEnabled, setHistoricalComparisonEnabled] = useState(false);
+  
+  // Check if user came from wizard and scroll to results when data is ready
+  useEffect(() => {
+    const fromWizard = localStorage.getItem('gymComparison_fromWizard') === 'true';
+    if (fromWizard && Object.keys(results).length > 0 && resultsRef.current) {
+      // Scroll to results section
+      resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Clear the flag so it doesn't happen again on refresh
+      localStorage.removeItem('gymComparison_fromWizard');
+    }
+  }, [results]);
   
   // Don't use the hook for auto-fetching, we'll fetch manually with the button
   
@@ -904,23 +930,39 @@ export default function GymComparison() {
 
       {mode === 'future' && (
         <>
-          <PlayerStatsSection
-            apiKey={apiKey}
-            setApiKey={setApiKey}
-            initialStats={initialStats}
-            setInitialStats={setInitialStats}
-            currentGymIndex={currentGymIndex}
-            setCurrentGymIndex={setCurrentGymIndex}
-            months={months}
-            setMonths={handleMonthsChange}
-            isLoadingGymStats={isLoadingGymStats}
-            handleFetchStats={handleFetchStats}
-            simulatedDate={simulatedDate}
-            setSimulatedDate={setSimulatedDate}
-            monthValidationError={monthValidationError}
-            onHistoricalDataFetched={setHistoricalData}
-            onEnabledChange={setHistoricalComparisonEnabled}
-          />
+          {/* Fixed Options Section with collapsible toggle */}
+          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="h6">
+              {showFixedOptions ? 'Hide' : 'Show'} Configuration Options
+            </Typography>
+            <IconButton 
+              onClick={() => setShowFixedOptions(!showFixedOptions)}
+              size="small"
+              aria-label={showFixedOptions ? 'hide options' : 'show options'}
+            >
+              {showFixedOptions ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </IconButton>
+          </Box>
+
+          <Collapse in={showFixedOptions}>
+            <PlayerStatsSection
+              apiKey={apiKey}
+              setApiKey={setApiKey}
+              initialStats={initialStats}
+              setInitialStats={setInitialStats}
+              currentGymIndex={currentGymIndex}
+              setCurrentGymIndex={setCurrentGymIndex}
+              months={months}
+              setMonths={handleMonthsChange}
+              isLoadingGymStats={isLoadingGymStats}
+              handleFetchStats={handleFetchStats}
+              simulatedDate={simulatedDate}
+              setSimulatedDate={setSimulatedDate}
+              monthValidationError={monthValidationError}
+              onHistoricalDataFetched={setHistoricalData}
+              onEnabledChange={setHistoricalComparisonEnabled}
+            />
+          </Collapse>
 
           <ComparisonSelector
             comparisonStates={comparisonStates}
@@ -949,25 +991,27 @@ export default function GymComparison() {
 
           {/* Results Section */}
           {Object.keys(results).length > 0 && (
-            <ResultsSection
-              chartData={chartData}
-              comparisonStates={comparisonStates.map(state => ({
-                id: state.id,
-                name: state.name,
-                diabetesDayEnabled: state.sections.some(s => s.diabetesDayEnabled),
-                edvdJumpEnabled: state.sections.some(s => s.edvdJumpEnabled),
-                statDriftPercent: state.sections[0]?.statDriftPercent,
-                balanceAfterGymIndex: state.sections[0]?.balanceAfterGymIndex,
-              }))}
-              results={results}
-              initialStats={initialStats}
-              months={months}
-              showCosts={showCosts}
-              itemPricesData={itemPricesData}
-              historicalData={historicalData}
-              simulatedDate={simulatedDate}
-              historicalComparisonEnabled={historicalComparisonEnabled}
-            />
+            <Box ref={resultsRef}>
+              <ResultsSection
+                chartData={chartData}
+                comparisonStates={comparisonStates.map(state => ({
+                  id: state.id,
+                  name: state.name,
+                  diabetesDayEnabled: state.sections.some(s => s.diabetesDayEnabled),
+                  edvdJumpEnabled: state.sections.some(s => s.edvdJumpEnabled),
+                  statDriftPercent: state.sections[0]?.statDriftPercent,
+                  balanceAfterGymIndex: state.sections[0]?.balanceAfterGymIndex,
+                }))}
+                results={results}
+                initialStats={initialStats}
+                months={months}
+                showCosts={showCosts}
+                itemPricesData={itemPricesData}
+                historicalData={historicalData}
+                simulatedDate={simulatedDate}
+                historicalComparisonEnabled={historicalComparisonEnabled}
+              />
+            </Box>
           )}
 
 
