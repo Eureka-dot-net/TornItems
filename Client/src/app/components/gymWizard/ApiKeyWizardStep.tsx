@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import PlayerStatsSection from '../gymComparison/PlayerStatsSection';
 import { agent } from '../../../lib/api/agent';
+import { type GymStatsResponse } from '../../../lib/hooks/useGymStats';
 
 /**
  * ApiKeyWizardStep Component
@@ -86,11 +87,7 @@ export default function ApiKeyWizardStep() {
   const handleFetchStats = async () => {
     setIsLoadingGymStats(true);
     try {
-      const response = await agent.get<{
-        battlestats: { strength: number; speed: number; defense: number; dexterity: number };
-        activeGym: number;
-        perkPercs: { strength: number; speed: number; defense: number; dexterity: number };
-      }>(`/gym/stats?apiKey=${encodeURIComponent(apiKey)}`);
+      const response = await agent.get<GymStatsResponse>(`/gym/stats?apiKey=${encodeURIComponent(apiKey)}`);
       const data = response.data;
       
       // Update the values with fetched data
