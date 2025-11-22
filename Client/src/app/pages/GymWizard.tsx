@@ -3,6 +3,12 @@ import { Box, Typography, Paper, Button, Stepper, Step, StepLabel, StepButton } 
 import { useNavigate } from 'react-router-dom';
 import ApiKeyWizardStep from '../components/gymWizard/ApiKeyWizardStep';
 import EnergySourcesWizardStep from '../components/gymWizard/EnergySourcesWizardStep';
+import StatTargetRatiosWizardStep from '../components/gymWizard/StatTargetRatiosWizardStep';
+import { 
+  convertWizardSelectionsToStatWeights, 
+  convertTrainByPerksToStatDrift,
+  convertBalanceAfterGymToGymIndex 
+} from '../../lib/utils/wizardHelpers';
 
 /**
  * GymWizard Container Component
@@ -17,6 +23,7 @@ import EnergySourcesWizardStep from '../components/gymWizard/EnergySourcesWizard
 const wizardSteps = [
   { label: 'Player Stats', description: 'Set up your player stats' },
   { label: 'Energy Sources', description: 'Configure your energy sources' },
+  { label: 'Stat Target Ratios', description: 'Configure your stat training strategy' },
   // Future steps will be added here
 ];
 
@@ -45,6 +52,36 @@ export default function GymWizard() {
         localStorage.setItem(`gymComparison_${key}`, wizardValue);
       }
     });
+    
+    // Convert and copy stat ratio selections
+    try {
+      const hasBalancedBuild = JSON.parse(localStorage.getItem('gymWizard_hasBalancedBuild') || 'null');
+      const statRatio = JSON.parse(localStorage.getItem('gymWizard_statRatio') || 'null');
+      const defDexPrimaryStat = JSON.parse(localStorage.getItem('gymWizard_defDexPrimaryStat') || 'null');
+      const trainByPerks = JSON.parse(localStorage.getItem('gymWizard_trainByPerks') || 'null');
+      const balanceAfterGym = JSON.parse(localStorage.getItem('gymWizard_balanceAfterGym') || 'null');
+
+      // Convert to stat weights
+      const statWeights = convertWizardSelectionsToStatWeights(hasBalancedBuild, statRatio, defDexPrimaryStat);
+      
+      // Convert to stat drift percentage
+      const statDriftPercent = convertTrainByPerksToStatDrift(trainByPerks);
+      
+      // Convert to balance after gym index
+      const balanceAfterGymIndex = convertBalanceAfterGymToGymIndex(balanceAfterGym);
+      
+      // Set ignorePerksForGymSelection based on trainByPerks
+      const ignorePerksForGymSelection = trainByPerks === 'balanced';
+
+      // Store the converted values for the first section of the first comparison state
+      // These will be used when initializing the gym comparison
+      localStorage.setItem('gymComparison_wizardStatWeights', JSON.stringify(statWeights));
+      localStorage.setItem('gymComparison_wizardStatDriftPercent', JSON.stringify(statDriftPercent));
+      localStorage.setItem('gymComparison_wizardBalanceAfterGymIndex', JSON.stringify(balanceAfterGymIndex));
+      localStorage.setItem('gymComparison_wizardIgnorePerksForGymSelection', JSON.stringify(ignorePerksForGymSelection));
+    } catch (err) {
+      console.error('Failed to convert wizard stat ratio selections:', err);
+    }
     
     // Set flag to indicate user completed wizard (not skipped)
     localStorage.setItem('gymComparison_fromWizard', 'true');
@@ -101,6 +138,7 @@ export default function GymWizard() {
       <Paper sx={{ p: 3, mb: 3, minHeight: '400px' }}>
         {activeStep === 0 && <ApiKeyWizardStep />}
         {activeStep === 1 && <EnergySourcesWizardStep />}
+        {activeStep === 2 && <StatTargetRatiosWizardStep />}
         {/* Future wizard steps will be added here */}
       </Paper>
 

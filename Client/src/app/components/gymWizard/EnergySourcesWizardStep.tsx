@@ -86,8 +86,15 @@ export default function EnergySourcesWizardStep() {
       
       <Typography variant="body1" paragraph>
         Let's set up how much energy you have available for training each day. This helps us 
-        calculate realistic gym gains based on your playing style.
+        calculate realistic gym gains based on your <strong>current training regime</strong>.
       </Typography>
+
+      <Alert severity="info" sx={{ mb: 3 }}>
+        <Typography variant="body2">
+          Note: We're asking about your <strong>current approach</strong> to training, not what you're 
+          planning to do in the future. The simulator will help you compare different strategies later.
+        </Typography>
+      </Alert>
 
       {/* Subscriber Question */}
       <Box sx={{ mb: 3 }}>

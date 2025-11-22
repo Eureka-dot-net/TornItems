@@ -119,6 +119,13 @@ export default function ApiKeyWizardStep() {
 
       <Alert severity="info" sx={{ mb: 3 }}>
         <Typography variant="body2" fontWeight="bold" gutterBottom>
+          About This Wizard
+        </Typography>
+        <Typography variant="body2" paragraph>
+          This wizard will first ask about your <strong>current training approach</strong> and stats. 
+          Later, you'll be able to compare different strategies and see how they would perform.
+        </Typography>
+        <Typography variant="body2" fontWeight="bold" gutterBottom>
           About API Keys and Privacy
         </Typography>
         <Typography variant="body2" paragraph>

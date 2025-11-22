@@ -189,6 +189,12 @@ export default function GymComparison() {
     const totalDays = loadedMonths * 30;
     
     if (savedStates.length === 0) {
+      // Check if wizard values exist
+      const wizardStatWeights = loadSavedValue<StatWeights | null>('wizardStatWeights', null);
+      const wizardStatDriftPercent = loadSavedValue<number | null>('wizardStatDriftPercent', null);
+      const wizardBalanceAfterGymIndex = loadSavedValue<number | null>('wizardBalanceAfterGymIndex', null);
+      const wizardIgnorePerksForGymSelection = loadSavedValue<boolean | null>('wizardIgnorePerksForGymSelection', null);
+
       // No saved states, create default state with new format
       return [{
         id: '1',
@@ -197,7 +203,7 @@ export default function GymComparison() {
           id: '1',
           startDay: 1,
           endDay: totalDays,
-          statWeights: DEFAULT_STAT_WEIGHTS,
+          statWeights: wizardStatWeights || DEFAULT_STAT_WEIGHTS,
           hoursPlayedPerDay: DEFAULT_HOURS_PER_DAY,
           xanaxPerDay: DEFAULT_XANAX_PER_DAY,
           hasPointsRefill: true,
@@ -234,9 +240,9 @@ export default function GymComparison() {
           candleShopStars: DEFAULT_CANDLE_SHOP_STARS,
           happy: DEFAULT_HAPPY,
           daysSkippedPerMonth: 0,
-          statDriftPercent: 0,
-          balanceAfterGymIndex: 19,
-          ignorePerksForGymSelection: false,
+          statDriftPercent: wizardStatDriftPercent ?? 0,
+          balanceAfterGymIndex: wizardBalanceAfterGymIndex ?? 19,
+          ignorePerksForGymSelection: wizardIgnorePerksForGymSelection ?? false,
           islandCostPerDay: DEFAULT_ISLAND_COST_PER_DAY,
         }],
         showIndividualStats: false,
