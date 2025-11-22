@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Box, Typography, Paper, Button, Stepper, Step, StepLabel, StepButton } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ApiKeyWizardStep from '../components/gymWizard/ApiKeyWizardStep';
+import EnergySourcesWizardStep from '../components/gymWizard/EnergySourcesWizardStep';
 
 /**
  * GymWizard Container Component
@@ -15,6 +16,7 @@ import ApiKeyWizardStep from '../components/gymWizard/ApiKeyWizardStep';
 
 const wizardSteps = [
   { label: 'Player Stats', description: 'Set up your player stats' },
+  { label: 'Energy Sources', description: 'Configure your energy sources' },
   // Future steps will be added here
 ];
 
@@ -24,7 +26,18 @@ export default function GymWizard() {
 
   // Function to copy wizard data to gym comparison localStorage
   const copyWizardDataToGymComparison = () => {
-    const wizardKeys = ['apiKey', 'initialStats', 'currentGymIndex', 'months', 'simulatedDate'];
+    const wizardKeys = [
+      'apiKey', 
+      'initialStats', 
+      'currentGymIndex', 
+      'months', 
+      'simulatedDate',
+      'maxEnergy',
+      'hoursPlayedPerDay',
+      'xanaxPerDay',
+      'hasPointsRefill',
+      'daysSkippedPerMonth'
+    ];
     
     wizardKeys.forEach(key => {
       const wizardValue = localStorage.getItem(`gymWizard_${key}`);
@@ -87,6 +100,7 @@ export default function GymWizard() {
       {/* Wizard step content */}
       <Paper sx={{ p: 3, mb: 3, minHeight: '400px' }}>
         {activeStep === 0 && <ApiKeyWizardStep />}
+        {activeStep === 1 && <EnergySourcesWizardStep />}
         {/* Future wizard steps will be added here */}
       </Paper>
 

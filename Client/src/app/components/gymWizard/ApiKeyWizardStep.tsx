@@ -152,6 +152,14 @@ export default function ApiKeyWizardStep() {
         />
       </RadioGroup>
 
+      {/* Show helpful message for manual entry before the stats fields */}
+      {apiKeyPreference === 'no' && (
+        <Alert severity="info" sx={{ mt: 2 }}>
+          No problem! You can manually enter your battle stats in the fields below. 
+          You can find your stats on your Torn profile page.
+        </Alert>
+      )}
+
       {/* Show stats input based on preference */}
       <Collapse in={apiKeyPreference !== null} timeout="auto">
         <Box sx={{ mt: 3 }}>
@@ -172,13 +180,6 @@ export default function ApiKeyWizardStep() {
           />
         </Box>
       </Collapse>
-
-      {apiKeyPreference === 'no' && (
-        <Alert severity="info" sx={{ mt: 2 }}>
-          No problem! You can manually enter your battle stats in the fields below. 
-          You can find your stats on your Torn profile page.
-        </Alert>
-      )}
     </Box>
   );
 }
