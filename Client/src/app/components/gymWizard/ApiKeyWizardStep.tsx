@@ -1,0 +1,186 @@
+import { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Alert,
+  Collapse,
+} from '@mui/material';
+import PlayerStatsSection from '../gymComparison/PlayerStatsSection';
+import { agent } from '../../../lib/api/agent';
+
+/**
+ * ApiKeyWizardStep Component
+ * 
+ * This wizard step helps users understand whether they want to provide an API key
+ * or enter their stats manually. It provides clear explanations for new users.
+ */
+
+interface Stats {
+  strength: number;
+  speed: number;
+  defense: number;
+  dexterity: number;
+}
+
+const DEFAULT_INITIAL_STATS = {
+  strength: 0,
+  speed: 0,
+  defense: 0,
+  dexterity: 0,
+};
+
+export default function ApiKeyWizardStep() {
+  // Load saved preferences from localStorage
+  const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
+    try {
+      const saved = localStorage.getItem(`gymWizard_${key}`);
+      return saved ? JSON.parse(saved) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  };
+
+  const [apiKeyPreference, setApiKeyPreference] = useState<'yes' | 'no' | null>(() => 
+    loadSavedValue<'yes' | 'no' | null>('apiKeyPreference', null)
+  );
+  const [apiKey, setApiKey] = useState<string>(() => loadSavedValue('apiKey', ''));
+  const [initialStats, setInitialStats] = useState<Stats>(() => 
+    loadSavedValue('initialStats', DEFAULT_INITIAL_STATS)
+  );
+  const [currentGymIndex, setCurrentGymIndex] = useState<number>(() => loadSavedValue('currentGymIndex', 0));
+  const [months, setMonths] = useState<number>(() => loadSavedValue('months', 6));
+  const [simulatedDate, setSimulatedDate] = useState<Date | null>(() => {
+    const saved = loadSavedValue<string | null>('simulatedDate', null);
+    return saved ? new Date(saved) : null;
+  });
+  const [isLoadingGymStats, setIsLoadingGymStats] = useState<boolean>(false);
+
+  // Save values to localStorage
+  useEffect(() => {
+    localStorage.setItem('gymWizard_apiKeyPreference', JSON.stringify(apiKeyPreference));
+  }, [apiKeyPreference]);
+
+  useEffect(() => {
+    localStorage.setItem('gymWizard_apiKey', JSON.stringify(apiKey));
+  }, [apiKey]);
+
+  useEffect(() => {
+    localStorage.setItem('gymWizard_initialStats', JSON.stringify(initialStats));
+  }, [initialStats]);
+
+  useEffect(() => {
+    localStorage.setItem('gymWizard_currentGymIndex', JSON.stringify(currentGymIndex));
+  }, [currentGymIndex]);
+
+  useEffect(() => {
+    localStorage.setItem('gymWizard_months', JSON.stringify(months));
+  }, [months]);
+
+  useEffect(() => {
+    localStorage.setItem('gymWizard_simulatedDate', JSON.stringify(simulatedDate ? simulatedDate.toISOString() : null));
+  }, [simulatedDate]);
+
+  const handleFetchStats = async () => {
+    setIsLoadingGymStats(true);
+    try {
+      const response = await agent.get<{
+        battlestats: { strength: number; speed: number; defense: number; dexterity: number };
+        activeGym: number;
+        perkPercs: { strength: number; speed: number; defense: number; dexterity: number };
+      }>(`/gym/stats?apiKey=${encodeURIComponent(apiKey)}`);
+      const data = response.data;
+      
+      // Update the values with fetched data
+      setInitialStats({
+        strength: data.battlestats.strength,
+        speed: data.battlestats.speed,
+        defense: data.battlestats.defense,
+        dexterity: data.battlestats.dexterity,
+      });
+      setCurrentGymIndex(Math.max(0, data.activeGym - 1));
+    } catch (err) {
+      console.error('Failed to fetch gym stats:', err);
+    } finally {
+      setIsLoadingGymStats(false);
+    }
+  };
+
+  return (
+    <Box>
+      <Typography variant="h5" gutterBottom>
+        Let's Get Started with Your Player Stats
+      </Typography>
+      
+      <Typography variant="body1" paragraph>
+        To compare gym training options, we need to know your current battle stats. 
+        You can either provide a limited API key to automatically fetch this information, 
+        or enter it manually.
+      </Typography>
+
+      <Alert severity="info" sx={{ mb: 3 }}>
+        <Typography variant="body2" fontWeight="bold" gutterBottom>
+          About API Keys and Privacy
+        </Typography>
+        <Typography variant="body2" paragraph>
+          Your API key is <strong>never stored on any server</strong>. It is only kept in your browser's 
+          local storage and used to fetch your stats directly from Torn's API. The data never 
+          leaves your browser except to communicate with Torn's servers.
+        </Typography>
+        <Typography variant="body2">
+          A "Limited" API key is recommended - it can only read basic information and cannot 
+          perform any actions on your account.
+        </Typography>
+      </Alert>
+
+      <Typography variant="h6" gutterBottom>
+        How would you like to provide your stats?
+      </Typography>
+
+      <RadioGroup
+        value={apiKeyPreference || ''}
+        onChange={(e) => setApiKeyPreference(e.target.value as 'yes' | 'no')}
+      >
+        <FormControlLabel 
+          value="yes" 
+          control={<Radio />} 
+          label="I'm comfortable providing a Limited API key (Recommended - Quick and Easy)" 
+        />
+        <FormControlLabel 
+          value="no" 
+          control={<Radio />} 
+          label="I prefer to enter my stats manually" 
+        />
+      </RadioGroup>
+
+      {/* Show stats input based on preference */}
+      <Collapse in={apiKeyPreference !== null} timeout="auto">
+        <Box sx={{ mt: 3 }}>
+          <PlayerStatsSection
+            apiKey={apiKey}
+            setApiKey={setApiKey}
+            initialStats={initialStats}
+            setInitialStats={setInitialStats}
+            currentGymIndex={currentGymIndex}
+            setCurrentGymIndex={setCurrentGymIndex}
+            months={months}
+            setMonths={setMonths}
+            isLoadingGymStats={isLoadingGymStats}
+            handleFetchStats={handleFetchStats}
+            simulatedDate={simulatedDate}
+            setSimulatedDate={setSimulatedDate}
+          />
+        </Box>
+      </Collapse>
+
+      {apiKeyPreference === 'no' && (
+        <Alert severity="info" sx={{ mt: 2 }}>
+          No problem! You can manually enter your battle stats in the fields below. 
+          You can find your stats on your Torn profile page.
+        </Alert>
+      )}
+    </Box>
+  );
+}
