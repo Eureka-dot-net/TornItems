@@ -168,6 +168,7 @@ export default function ApiKeyWizardStep() {
             handleFetchStats={handleFetchStats}
             simulatedDate={simulatedDate}
             setSimulatedDate={setSimulatedDate}
+            hideApiKeySection={apiKeyPreference === 'no'}
           />
         </Box>
       </Collapse>

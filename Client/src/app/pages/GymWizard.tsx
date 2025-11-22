@@ -22,9 +22,22 @@ export default function GymWizard() {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
 
+  // Function to copy wizard data to gym comparison localStorage
+  const copyWizardDataToGymComparison = () => {
+    const wizardKeys = ['apiKey', 'initialStats', 'currentGymIndex', 'months', 'simulatedDate'];
+    
+    wizardKeys.forEach(key => {
+      const wizardValue = localStorage.getItem(`gymWizard_${key}`);
+      if (wizardValue) {
+        localStorage.setItem(`gymComparison_${key}`, wizardValue);
+      }
+    });
+  };
+
   const handleNext = () => {
     if (activeStep === wizardSteps.length - 1) {
-      // Last step - go to gym comparison
+      // Last step - copy wizard data and go to gym comparison
+      copyWizardDataToGymComparison();
       navigate('/gymComparison');
     } else {
       setActiveStep((prevStep) => prevStep + 1);

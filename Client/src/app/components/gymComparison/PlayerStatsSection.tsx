@@ -31,6 +31,7 @@ interface PlayerStatsSectionProps {
   monthValidationError?: string | null;
   onHistoricalDataFetched?: (data: HistoricalStat[]) => void;
   onEnabledChange?: (enabled: boolean) => void;
+  hideApiKeySection?: boolean;
 }
 
 export default function PlayerStatsSection({
@@ -49,6 +50,7 @@ export default function PlayerStatsSection({
   monthValidationError,
   onHistoricalDataFetched,
   onEnabledChange,
+  hideApiKeySection = false,
 }: PlayerStatsSectionProps) {
   // Constants for date validation
   const TORN_RELEASE_DATE = new Date('1997-10-27');
@@ -132,29 +134,68 @@ export default function PlayerStatsSection({
         </Alert>
       )}
       
-      {/* API Key Section - Full width block */}
-      <Box sx={{ mb: 3 }}>
-        <Alert severity="info" sx={{ mb: 2 }}>
-          Optional: Enter a Limited API Key to auto-fetch your stats, or fill them in manually below. Get one from{' '}
-          <a href="https://www.torn.com/preferences.php#tab=api" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
-            Torn Settings → API Key
-          </a>
-        </Alert>
-        
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <TextField
-            label="Torn API Key"
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            size="small"
-            sx={{ flex: 1 }}
-          />
-          <Button variant="outlined" onClick={handleEnhancedFetch} disabled={isLoadingGymStats || !apiKey.trim()}>
-            {isLoadingGymStats ? <CircularProgress size={20} /> : 'Fetch'}
-          </Button>
+      {/* Start Date + Checkbox - Top section */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <DatePicker
+              label="Start Date"
+              value={simulatedDate}
+              onChange={(newValue) => setSimulatedDate(newValue)}
+              minDate={TORN_RELEASE_DATE}
+              maxDate={getYesterday()}
+              slotProps={{ 
+                textField: { 
+                  size: 'small',
+                  fullWidth: true,
+                  helperText: 'Sets the start date for the graph and Diabetes Day calculations (Nov 13-15).'
+                } 
+              }}
+            />
+          </LocalizationProvider>
+        </Grid>
+        {!hideApiKeySection && (
+          <Grid size={{ xs: 12, md: 6 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={fetchStatsAtDate}
+                  onChange={(e) => setFetchStatsAtDate(e.target.checked)}
+                  size="small"
+                />
+              }
+              label="Fetch starting stats at this date"
+              sx={{ mt: 1 }}
+            />
+          </Grid>
+        )}
+      </Grid>
+      
+      {/* API Key Section - Only show if not hidden */}
+      {!hideApiKeySection && (
+        <Box sx={{ mb: 3 }}>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Optional: Enter a Limited API Key to auto-fetch your stats, or fill them in manually below. Get one from{' '}
+            <a href="https://www.torn.com/preferences.php#tab=api" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+              Torn Settings → API Key
+            </a>
+          </Alert>
+          
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <TextField
+              label="Torn API Key"
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              size="small"
+              sx={{ flex: 1 }}
+            />
+            <Button variant="outlined" onClick={handleEnhancedFetch} disabled={isLoadingGymStats || !apiKey.trim()}>
+              {isLoadingGymStats ? <CircularProgress size={20} /> : 'Fetch'}
+            </Button>
+          </Box>
         </Box>
-      </Box>
+      )}
       
       {/* Starting Stats - Four fields in one row */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -200,41 +241,6 @@ export default function PlayerStatsSection({
             size="small" 
             fullWidth
             inputProps={{ step: 'any', min: 0 }} 
-          />
-        </Grid>
-      </Grid>
-      
-      {/* Start Date + Checkbox - Same row */}
-      <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <DatePicker
-              label="Start Date"
-              value={simulatedDate}
-              onChange={(newValue) => setSimulatedDate(newValue)}
-              minDate={TORN_RELEASE_DATE}
-              maxDate={getYesterday()}
-              slotProps={{ 
-                textField: { 
-                  size: 'small',
-                  fullWidth: true,
-                  helperText: 'Sets the start date for the graph and Diabetes Day calculations (Nov 13-15).'
-                } 
-              }}
-            />
-          </LocalizationProvider>
-        </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={fetchStatsAtDate}
-                onChange={(e) => setFetchStatsAtDate(e.target.checked)}
-                size="small"
-              />
-            }
-            label="Fetch starting stats at this date"
-            sx={{ mt: 1 }}
           />
         </Grid>
       </Grid>
