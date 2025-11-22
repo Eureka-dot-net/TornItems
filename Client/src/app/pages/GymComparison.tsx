@@ -182,10 +182,11 @@ export default function GymComparison() {
     return saved ? new Date(saved) : null;
   });
   
-  // Comparison states
+  // Comparison states - use the actual loaded months value for initialization
   const [comparisonStates, setComparisonStates] = useState<ComparisonState[]>(() => {
     const savedStates = loadSavedValue<unknown[]>('comparisonStates', []);
-    const totalDays = DEFAULT_SIMULATION_MONTHS * 30;
+    const loadedMonths = loadSavedValue<number>('months', DEFAULT_SIMULATION_MONTHS);
+    const totalDays = loadedMonths * 30;
     
     if (savedStates.length === 0) {
       // No saved states, create default state with new format
@@ -962,32 +963,32 @@ export default function GymComparison() {
               onHistoricalDataFetched={setHistoricalData}
               onEnabledChange={setHistoricalComparisonEnabled}
             />
-          </Collapse>
 
-          <ComparisonSelector
-            comparisonStates={comparisonStates}
-            activeTabIndex={activeTabIndex}
-            setActiveTabIndex={setActiveTabIndex}
-            handleAddState={handleAddState}
-            maxStatesReached={comparisonStates.length >= MAX_COMPARISON_STATES}
-          />
-
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-
-          {activeState && (
-            <SectionedComparisonConfig
-              activeState={activeState}
-              updateState={updateState}
-              handleRemoveState={handleRemoveState}
-              handleCopyState={handleCopyState}
-              canRemoveState={comparisonStates.length > 1}
-              showCosts={showCosts}
-              itemPricesData={itemPricesData}
-              result={results[activeState.id]}
-              initialStats={initialStats}
-              months={months}
+            <ComparisonSelector
+              comparisonStates={comparisonStates}
+              activeTabIndex={activeTabIndex}
+              setActiveTabIndex={setActiveTabIndex}
+              handleAddState={handleAddState}
+              maxStatesReached={comparisonStates.length >= MAX_COMPARISON_STATES}
             />
-          )}
+
+            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+            {activeState && (
+              <SectionedComparisonConfig
+                activeState={activeState}
+                updateState={updateState}
+                handleRemoveState={handleRemoveState}
+                handleCopyState={handleCopyState}
+                canRemoveState={comparisonStates.length > 1}
+                showCosts={showCosts}
+                itemPricesData={itemPricesData}
+                result={results[activeState.id]}
+                initialStats={initialStats}
+                months={months}
+              />
+            )}
+          </Collapse>
 
           {/* Results Section */}
           {Object.keys(results).length > 0 && (
