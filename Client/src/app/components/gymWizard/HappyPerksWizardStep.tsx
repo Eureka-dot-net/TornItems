@@ -10,6 +10,9 @@ import {
   Collapse,
   Checkbox,
 } from '@mui/material';
+import { agent } from '../../../lib/api/agent';
+import { type GymStatsResponse } from '../../../lib/hooks/useGymStats';
+import { DEFAULT_HAPPY } from '../../../lib/constants/gymConstants';
 
 /**
  * HappyPerksWizardStep Component
@@ -42,7 +45,7 @@ export default function HappyPerksWizardStep() {
 
   // State for base happy
   const [baseHappy, setBaseHappy] = useState<number>(() => 
-    loadSavedValue('baseHappy', 0)
+    loadSavedValue('baseHappy', DEFAULT_HAPPY)
   );
   const [knowsBaseHappy, setKnowsBaseHappy] = useState<'yes' | 'no' | null>(() => 
     loadSavedValue<'yes' | 'no' | null>('knowsBaseHappy', null)
@@ -52,6 +55,7 @@ export default function HappyPerksWizardStep() {
   const [perkPercs, setPerkPercs] = useState<PerkPercs>(() => 
     loadSavedValue('perkPercs', { strength: 0, speed: 0, defense: 0, dexterity: 0 })
   );
+  const [perksLoaded, setPerksLoaded] = useState<boolean>(false);
 
   // State for manual perk questions (only if no API key)
   const [hasFactionSteadfast, setHasFactionSteadfast] = useState<'yes' | 'no' | null>(() => 
@@ -82,7 +86,11 @@ export default function HappyPerksWizardStep() {
 
   useEffect(() => {
     localStorage.setItem('gymWizard_knowsBaseHappy', JSON.stringify(knowsBaseHappy));
-  }, [knowsBaseHappy]);
+    // Set default happy if user doesn't know
+    if (knowsBaseHappy === 'no' && baseHappy === 0) {
+      setBaseHappy(DEFAULT_HAPPY);
+    }
+  }, [knowsBaseHappy, baseHappy]);
 
   useEffect(() => {
     localStorage.setItem('gymWizard_perkPercs', JSON.stringify(perkPercs));
@@ -107,6 +115,27 @@ export default function HappyPerksWizardStep() {
   useEffect(() => {
     localStorage.setItem('gymWizard_individualCourses', JSON.stringify(individualCourses));
   }, [individualCourses]);
+
+  // Fetch perks from API if API key exists and we haven't loaded them yet
+  useEffect(() => {
+    const fetchPerks = async () => {
+      if (hasApiKey && !perksLoaded) {
+        try {
+          const response = await agent.get<GymStatsResponse>(`/gym/stats?apiKey=${encodeURIComponent(apiKey)}`);
+          const data = response.data;
+          
+          // Update perk percs with fetched data
+          setPerkPercs(data.perkPercs);
+          setPerksLoaded(true);
+        } catch (err) {
+          console.error('Failed to fetch perks from API:', err);
+          // Don't set perksLoaded to true on error, so user can try again
+        }
+      }
+    };
+
+    fetchPerks();
+  }, [hasApiKey, apiKey, perksLoaded]);
 
   // Calculate perk percentages from manual inputs (multiplicative)
   useEffect(() => {
@@ -223,7 +252,7 @@ export default function HappyPerksWizardStep() {
 
             {knowsBaseHappy === 'no' && (
               <Alert severity="info" sx={{ mt: 2 }}>
-                No problem! We'll use a reasonable default value of 5000 for calculations. 
+                No problem! We'll use a reasonable default value of {DEFAULT_HAPPY} for calculations. 
                 You can adjust this later in the comparison tool if needed.
               </Alert>
             )}
@@ -512,7 +541,7 @@ export default function HappyPerksWizardStep() {
                   </Typography>
                 </Box>
                 <Typography variant="body2" sx={{ mt: 1 }}>
-                  Note: These calculations don't include job bonuses, as those will be asked in the next section.
+                  Note: These calculations don't include job bonuses or other temporary effects.
                 </Typography>
               </Alert>
             )}

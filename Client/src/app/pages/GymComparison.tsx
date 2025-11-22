@@ -194,6 +194,8 @@ export default function GymComparison() {
       const wizardStatDriftPercent = loadSavedValue<number | null>('wizardStatDriftPercent', null);
       const wizardBalanceAfterGymIndex = loadSavedValue<number | null>('wizardBalanceAfterGymIndex', null);
       const wizardIgnorePerksForGymSelection = loadSavedValue<boolean | null>('wizardIgnorePerksForGymSelection', null);
+      const wizardPerkPercs = loadSavedValue<{ strength: number; speed: number; defense: number; dexterity: number } | null>('perkPercs', null);
+      const wizardBaseHappy = loadSavedValue<number | null>('baseHappy', null);
 
       // No saved states, create default state with new format
       return [{
@@ -208,7 +210,7 @@ export default function GymComparison() {
           xanaxPerDay: DEFAULT_XANAX_PER_DAY,
           hasPointsRefill: true,
           maxEnergy: MAX_ENERGY_DEFAULT,
-          perkPercs: DEFAULT_PERK_PERCS,
+          perkPercs: wizardPerkPercs || DEFAULT_PERK_PERCS,
           edvdJumpEnabled: false,
           edvdJumpFrequency: DEFAULT_EDVD_FREQUENCY_DAYS,
           edvdJumpDvds: DEFAULT_EDVD_DVDS,
@@ -238,7 +240,7 @@ export default function GymComparison() {
           diabetesDayLogoClick: false,
           companyBenefitKey: COMPANY_BENEFIT_TYPES.NONE,
           candleShopStars: DEFAULT_CANDLE_SHOP_STARS,
-          happy: DEFAULT_HAPPY,
+          happy: wizardBaseHappy ?? DEFAULT_HAPPY,
           daysSkippedPerMonth: 0,
           statDriftPercent: wizardStatDriftPercent ?? 0,
           balanceAfterGymIndex: wizardBalanceAfterGymIndex ?? 19,
