@@ -3,6 +3,17 @@
  * Calculates stat gains over time accounting for gym unlocks and company benefits
  */
 
+// Energy item mapping for energy drinks and FHC
+const ENERGY_ITEM_MAP: Record<number, number> = {
+  985: 5,   // Small Energy Drink
+  986: 10,  // Energy Drink
+  987: 15,  // Large Energy Drink
+  530: 20,  // X-Large Energy Drink
+  532: 25,  // XX-Large Energy Drink
+  533: 30,  // XXX-Large Energy Drink
+  367: 0,   // FHC - special case, refills energy bar
+};
+
 export interface Gym {
   name: string;
   displayName: string;
@@ -958,17 +969,7 @@ export function simulateGymProgression(
       
       // Add energy from energy cans/FHC if enabled (they're used during the jump)
       if (inputs.energyJump?.enabled) {
-        const energyItemMap: Record<number, number> = {
-          985: 5,
-          986: 10,
-          987: 15,
-          530: 20,
-          532: 25,
-          533: 30,
-          367: 0, // FHC - special case, refills energy bar
-        };
-        
-        const energyPerItem = energyItemMap[inputs.energyJump.itemId];
+        const energyPerItem = ENERGY_ITEM_MAP[inputs.energyJump.itemId];
         
         if (energyPerItem !== undefined) {
           let extraEnergy = 0;
@@ -1098,18 +1099,7 @@ export function simulateGymProgression(
     // Energy Jump - add extra energy per day from energy items
     // Skip on candy jump days since energy cans/FHC are already included in the candy jump
     if (inputs.energyJump?.enabled && !shouldPerformEdvdJump && !isDiabetesDayJump && !isCandyJumpDay && !isSkipped) {
-      // Map item IDs to energy values
-      const energyItemMap: Record<number, number> = {
-        985: 5,
-        986: 10,
-        987: 15,
-        530: 20,
-        532: 25,
-        533: 30,
-        367: 0, // FHC - special case, refills energy bar
-      };
-      
-      const energyPerItem = energyItemMap[inputs.energyJump.itemId];
+      const energyPerItem = ENERGY_ITEM_MAP[inputs.energyJump.itemId];
       
       if (energyPerItem === undefined) {
         throw new Error(`Invalid energy item ID: ${inputs.energyJump.itemId}`);

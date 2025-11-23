@@ -215,7 +215,7 @@ export default function CandyJumpWizardSubStep() {
       {(drugUsed === 'xanax' || drugUsed === 'ecstasy') && xanaxPerDay > 0 && (
         <Box sx={{ mb: 3, ml: 3 }}>
           <Typography variant="body2" color="text.secondary" paragraph>
-            You indicated you use {xanaxPerDay} xanax per day normally.
+            You indicated you use {xanaxPerDay} xanax per day for training normally.
           </Typography>
           <FormControlLabel
             control={
@@ -226,7 +226,7 @@ export default function CandyJumpWizardSubStep() {
             }
             label={drugUsed === 'xanax' 
               ? "This xanax is already included in my daily xanax count"
-              : "This ecstasy replaces one of my daily xanax"}
+              : "This ecstasy replaces one of my daily xanax (counts toward 3 drug limit)"}
           />
         </Box>
       )}
