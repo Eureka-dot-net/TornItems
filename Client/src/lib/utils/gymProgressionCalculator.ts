@@ -1594,6 +1594,7 @@ export function simulateGymProgression(
         isDiabetesDayJump,
         diabetesDayJumpGains,
         trainingDetails: Object.keys(dailyTrainingDetails).length > 0 ? dailyTrainingDetails : undefined,
+        trainingSessions: trainingSessions.length > 0 ? trainingSessions : undefined,
         notes: dailyNotes.length > 0 ? dailyNotes : undefined,
       };
       
