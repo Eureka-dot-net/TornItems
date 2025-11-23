@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Box, Typography, Paper, Button, Stepper, Step, StepLabel, StepButton } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ApiKeyWizardStep from '../components/gymWizard/ApiKeyWizardStep';
@@ -46,7 +46,7 @@ export default function GymWizard() {
   });
 
   // Load training selections from localStorage on mount
-  useState(() => {
+  useEffect(() => {
     try {
       const saved = localStorage.getItem('gymWizard_trainingRegimeSelections');
       if (saved) {
@@ -55,7 +55,7 @@ export default function GymWizard() {
     } catch {
       // Ignore parse errors
     }
-  });
+  }, []);
 
   // Build dynamic sub-steps based on selections
   const getSubStepsForTrainingRegime = useCallback(() => {
@@ -287,7 +287,7 @@ export default function GymWizard() {
           <Button
             variant="outlined"
             onClick={handleBack}
-            disabled={activeStep === 0 && !isInSubStep}
+            disabled={activeStep === 0 && subStepIndex === 0}
           >
             Previous
           </Button>
