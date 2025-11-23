@@ -12,7 +12,6 @@ import {
 } from '@mui/material';
 import { agent } from '../../../lib/api/agent';
 import { type GymStatsResponse } from '../../../lib/hooks/useGymStats';
-import { DEFAULT_HAPPY } from '../../../lib/constants/gymConstants';
 
 /**
  * HappyPerksWizardStep Component
@@ -369,15 +368,15 @@ export default function HappyPerksWizardStep() {
               <Box sx={{ mb: 3 }}>
                 <Typography variant="h6" gutterBottom>
                   3. Are you in a faction with the Steadfast bonus?
-              </Typography>
-              <Typography variant="body2" color="text.secondary" paragraph>
-                The Steadfast upgrade provides stat-specific gym gain bonuses. If your faction has this, 
-                you'll see bonuses like "+5% strength gym gains" for each stat.
-              </Typography>
-              <RadioGroup
-                value={hasFactionSteadfast || ''}
-                onChange={(e) => setHasFactionSteadfast(e.target.value as 'yes' | 'no')}
-              >
+                </Typography>
+                <Typography variant="body2" color="text.secondary" paragraph>
+                  The Steadfast upgrade provides stat-specific gym gain bonuses. If your faction has this, 
+                  you'll see bonuses like "+5% strength gym gains" for each stat.
+                </Typography>
+                <RadioGroup
+                  value={hasFactionSteadfast || ''}
+                  onChange={(e) => setHasFactionSteadfast(e.target.value as 'yes' | 'no')}
+                >
                 <FormControlLabel 
                   value="yes" 
                   control={<Radio />} 
@@ -582,7 +581,8 @@ export default function HappyPerksWizardStep() {
               </Alert>
             )}
           </>
-        )
+          )}
+        </>
       )}
     </Box>
   );
