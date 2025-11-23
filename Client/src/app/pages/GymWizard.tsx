@@ -1,10 +1,15 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Box, Typography, Paper, Button, Stepper, Step, StepLabel, StepButton } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ApiKeyWizardStep from '../components/gymWizard/ApiKeyWizardStep';
 import EnergySourcesWizardStep from '../components/gymWizard/EnergySourcesWizardStep';
 import HappyPerksWizardStep from '../components/gymWizard/HappyPerksWizardStep';
 import StatTargetRatiosWizardStep from '../components/gymWizard/StatTargetRatiosWizardStep';
+import TrainingRegimeWizardStep, { type TrainingRegimeSelections } from '../components/gymWizard/TrainingRegimeWizardStep';
+import EdvdJumpWizardSubStep from '../components/gymWizard/EdvdJumpWizardSubStep';
+import CandyJumpWizardSubStep from '../components/gymWizard/CandyJumpWizardSubStep';
+import EnergyJumpWizardSubStep from '../components/gymWizard/EnergyJumpWizardSubStep';
+import FhcJumpWizardSubStep from '../components/gymWizard/FhcJumpWizardSubStep';
 import { 
   convertWizardSelectionsToStatWeights, 
   convertTrainByPerksToStatDrift,
@@ -21,17 +26,78 @@ import {
  * making it easier for new users to understand and use the tool.
  */
 
-const wizardSteps = [
+const baseWizardSteps = [
   { label: 'Player Stats', description: 'Set up your player stats' },
   { label: 'Energy Sources', description: 'Configure your energy sources' },
   { label: 'Happy & Perks', description: 'Configure your base happy and gym perks' },
   { label: 'Stat Target Ratios', description: 'Configure your stat training strategy' },
-  // Future steps will be added here
+  { label: 'Training Regime', description: 'Configure your training methods' },
 ];
 
 export default function GymWizard() {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
+  const [subStepIndex, setSubStepIndex] = useState(0);
+  const [trainingSelections, setTrainingSelections] = useState<TrainingRegimeSelections>({
+    edvd: false,
+    candy: false,
+    energy: false,
+    fhc: false,
+  });
+
+  // Load training selections from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('gymWizard_trainingRegimeSelections');
+      if (saved) {
+        setTrainingSelections(JSON.parse(saved));
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }, []);
+
+  // Build dynamic sub-steps based on selections
+  const getSubStepsForTrainingRegime = useCallback(() => {
+    const subSteps: Array<{ key: string; label: string; component: React.ReactElement }> = [];
+    
+    if (trainingSelections.edvd) {
+      subSteps.push({
+        key: 'edvd',
+        label: 'eDVD Configuration',
+        component: <EdvdJumpWizardSubStep />,
+      });
+    }
+    
+    if (trainingSelections.candy) {
+      subSteps.push({
+        key: 'candy',
+        label: 'Candy Configuration',
+        component: <CandyJumpWizardSubStep />,
+      });
+    }
+    
+    if (trainingSelections.energy) {
+      subSteps.push({
+        key: 'energy',
+        label: 'Energy Configuration',
+        component: <EnergyJumpWizardSubStep />,
+      });
+    }
+    
+    if (trainingSelections.fhc) {
+      subSteps.push({
+        key: 'fhc',
+        label: 'FHC Configuration',
+        component: <FhcJumpWizardSubStep />,
+      });
+    }
+    
+    return subSteps;
+  }, [trainingSelections]);
+
+  const subSteps = getSubStepsForTrainingRegime();
+  const isInSubStep = activeStep === 4 && subSteps.length > 0 && subStepIndex < subSteps.length;
 
   // Function to copy wizard data to gym comparison localStorage
   const copyWizardDataToGymComparison = () => {
@@ -92,17 +158,66 @@ export default function GymWizard() {
   };
 
   const handleNext = () => {
-    if (activeStep === wizardSteps.length - 1) {
+    // If we're on the training regime step (step 4)
+    if (activeStep === 4) {
+      // If we're in a sub-step
+      if (isInSubStep) {
+        // Move to next sub-step
+        if (subStepIndex < subSteps.length - 1) {
+          setSubStepIndex(subStepIndex + 1);
+          return;
+        } else {
+          // Finished all sub-steps, move to next main step (or finish)
+          setSubStepIndex(0);
+          // No more main steps after training regime, so finish
+          copyWizardDataToGymComparison();
+          navigate('/gymComparison');
+          return;
+        }
+      } else {
+        // Just finished the training regime selection page
+        // If there are sub-steps, go to first sub-step
+        if (subSteps.length > 0) {
+          setSubStepIndex(0);
+          // Stay on step 4 but now show sub-step
+          setActiveStep(4);
+          return;
+        } else {
+          // No sub-steps selected, finish wizard
+          copyWizardDataToGymComparison();
+          navigate('/gymComparison');
+          return;
+        }
+      }
+    }
+    
+    // For other steps, just move to next step
+    if (activeStep === baseWizardSteps.length - 1) {
       // Last step - copy wizard data, set wizard flag, and go to gym comparison
       copyWizardDataToGymComparison();
       navigate('/gymComparison');
     } else {
       setActiveStep((prevStep) => prevStep + 1);
+      setSubStepIndex(0); // Reset sub-step when moving to new main step
     }
   };
 
   const handleBack = () => {
-    setActiveStep((prevStep) => prevStep - 1);
+    // If we're in a sub-step
+    if (isInSubStep) {
+      if (subStepIndex > 0) {
+        // Go to previous sub-step
+        setSubStepIndex(subStepIndex - 1);
+      } else {
+        // Go back to training regime selection (stay on step 4 but exit sub-steps)
+        setSubStepIndex(0);
+        // Force re-render by not changing activeStep
+      }
+    } else {
+      // Normal navigation
+      setActiveStep((prevStep) => prevStep - 1);
+      setSubStepIndex(0);
+    }
   };
 
   const handleSkip = () => {
@@ -113,7 +228,12 @@ export default function GymWizard() {
 
   const handleStepClick = (stepIndex: number) => {
     setActiveStep(stepIndex);
+    setSubStepIndex(0); // Reset sub-step when jumping to a different main step
   };
+
+  const handleTrainingSelectionsChange = useCallback((selections: TrainingRegimeSelections) => {
+    setTrainingSelections(selections);
+  }, []);
 
   return (
     <Box sx={{ width: '100%', p: { xs: 2, md: 3 } }}>
@@ -128,10 +248,13 @@ export default function GymWizard() {
       {/* Stepper for navigation */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stepper activeStep={activeStep} nonLinear>
-          {wizardSteps.map((step, index) => (
+          {baseWizardSteps.map((step, index) => (
             <Step key={step.label}>
               <StepButton onClick={() => handleStepClick(index)}>
-                <StepLabel>{step.label}</StepLabel>
+                <StepLabel>
+                  {step.label}
+                  {index === 4 && isInSubStep && ` (${subStepIndex + 1}/${subSteps.length})`}
+                </StepLabel>
               </StepButton>
             </Step>
           ))}
@@ -144,7 +267,10 @@ export default function GymWizard() {
         {activeStep === 1 && <EnergySourcesWizardStep />}
         {activeStep === 2 && <HappyPerksWizardStep />}
         {activeStep === 3 && <StatTargetRatiosWizardStep />}
-        {/* Future wizard steps will be added here */}
+        {activeStep === 4 && !isInSubStep && (
+          <TrainingRegimeWizardStep onSelectionsChange={handleTrainingSelectionsChange} />
+        )}
+        {activeStep === 4 && isInSubStep && subSteps[subStepIndex]?.component}
       </Paper>
 
       {/* Navigation buttons */}
@@ -161,7 +287,7 @@ export default function GymWizard() {
           <Button
             variant="outlined"
             onClick={handleBack}
-            disabled={activeStep === 0}
+            disabled={activeStep === 0 && subStepIndex === 0}
           >
             Previous
           </Button>
@@ -169,7 +295,10 @@ export default function GymWizard() {
             variant="contained"
             onClick={handleNext}
           >
-            {activeStep === wizardSteps.length - 1 ? 'Finish' : 'Next'}
+            {(activeStep === baseWizardSteps.length - 1 && !isInSubStep && subSteps.length === 0) || 
+             (isInSubStep && subStepIndex === subSteps.length - 1)
+              ? 'Finish'
+              : 'Next'}
           </Button>
         </Box>
       </Box>
