@@ -1654,8 +1654,8 @@ export function simulateGymProgression(
             trainSuccessful = true;
             
             // Track training details
-            // For eDVD/DD jump days, track separately for jump and post-jump phases
-            if (isJumpDay && (shouldPerformEdvdJump || isDiabetesDayJump)) {
+            // For eDVD/DD/Stacked Candy jump days, track separately for jump and post-jump phases
+            if (isJumpDay && (shouldPerformEdvdJump || isDiabetesDayJump || shouldPerformStackedCandyJump)) {
               if (remainingJumpEnergy > 0) {
                 // This training is part of the jump phase
                 if (!jumpTrainingDetails[selectedStat]) {
