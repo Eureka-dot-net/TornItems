@@ -1459,6 +1459,11 @@ export function simulateGymProgression(
         trainableStats = trainableStats.filter(stat => edvdStatsToTrain.has(stat));
       }
       
+      // If this is a Stacked Candy jump with stat-based limit, only train stats in stackedCandyStatsToTrain
+      if (shouldPerformStackedCandyJump && stackedCandyStatsToTrain !== null) {
+        trainableStats = trainableStats.filter(stat => stackedCandyStatsToTrain.has(stat));
+      }
+      
       if (trainableStats.length === 0) {
         // No stats to train
         break;
@@ -1820,6 +1825,80 @@ export function simulateGymProgression(
       edvdJumpTotalGains.dexterity += edvdGains.dexterity;
     }
     
+    // Calculate Stacked Candy jump gains if this was a stacked candy jump day
+    if (shouldPerformStackedCandyJump && statsBeforeTraining) {
+      const stackedCandyGains = {
+        strength: Math.round(stats.strength - statsBeforeTraining.strength),
+        speed: Math.round(stats.speed - statsBeforeTraining.speed),
+        defense: Math.round(stats.defense - statsBeforeTraining.defense),
+        dexterity: Math.round(stats.dexterity - statsBeforeTraining.dexterity),
+      };
+      
+      // Add detailed breakdown of jump vs post-jump gains
+      if (statsBeforeJump && statsAfterJump) {
+        const jumpOnlyGains = {
+          strength: Math.round(statsAfterJump.strength - statsBeforeJump.strength),
+          speed: Math.round(statsAfterJump.speed - statsBeforeJump.speed),
+          defense: Math.round(statsAfterJump.defense - statsBeforeJump.defense),
+          dexterity: Math.round(statsAfterJump.dexterity - statsBeforeJump.dexterity),
+        };
+        const postJumpGains = {
+          strength: Math.round(stats.strength - statsAfterJump.strength),
+          speed: Math.round(stats.speed - statsAfterJump.speed),
+          defense: Math.round(stats.defense - statsAfterJump.defense),
+          dexterity: Math.round(stats.dexterity - statsAfterJump.dexterity),
+        };
+        const jumpTotal = jumpOnlyGains.strength + jumpOnlyGains.speed + jumpOnlyGains.defense + jumpOnlyGains.dexterity;
+        const postJumpTotal = postJumpGains.strength + postJumpGains.speed + postJumpGains.defense + postJumpGains.dexterity;
+        
+        // Calculate the happiness used during the jump
+        const candyHappinessMap: Record<number, number> = {
+          310: 25, 36: 35, 528: 75, 529: 100, 151: 150,
+        };
+        const baseCandyHappy = candyHappinessMap[inputs.stackedCandyJump!.itemId];
+        let effectiveCandyHappy = baseCandyHappy;
+        if (inputs.stackedCandyJump!.factionBenefitPercent && inputs.stackedCandyJump!.factionBenefitPercent > 0) {
+          effectiveCandyHappy = baseCandyHappy * (1 + inputs.stackedCandyJump!.factionBenefitPercent / 100);
+        }
+        const candyQuantity = inputs.stackedCandyJump!.quantity;
+        const jumpHappy = (inputs.happy + effectiveCandyHappy * candyQuantity) * 2;
+        
+        dailyNotes.push(`Stacked Candy jump gains: +${Math.round(jumpTotal).toLocaleString()} total stats at happy ${Math.round(jumpHappy).toLocaleString()}`);
+        dailyNotes.push(`Post-Stacked Candy training gains: +${Math.round(postJumpTotal).toLocaleString()} total stats at normal happy`);
+        
+        // Add training sessions for separate row display
+        trainingSessions.push({
+          type: 'edvd_jump', // Reuse edvd_jump type for consistency in display
+          happy: Math.round(jumpHappy),
+          strength: Math.round(statsAfterJump.strength),
+          speed: Math.round(statsAfterJump.speed),
+          defense: Math.round(statsAfterJump.defense),
+          dexterity: Math.round(statsAfterJump.dexterity),
+          trainingDetails: Object.keys(jumpTrainingDetails).length > 0 ? jumpTrainingDetails : undefined,
+          notes: [`Stacked Candy jump: Used ${candyQuantity} candies at happy ${Math.round(jumpHappy).toLocaleString()}`],
+        });
+        
+        if (postJumpTotal > 0) {
+          trainingSessions.push({
+            type: 'regular',
+            happy: inputs.happy,
+            strength: Math.round(stats.strength),
+            speed: Math.round(stats.speed),
+            defense: Math.round(stats.defense),
+            dexterity: Math.round(stats.dexterity),
+            trainingDetails: Object.keys(postJumpTrainingDetails).length > 0 ? postJumpTrainingDetails : undefined,
+            notes: [`Post-Stacked Candy training at normal happy (${inputs.happy.toLocaleString()})`],
+          });
+        }
+      }
+      
+      // Add to total Stacked Candy gains
+      stackedCandyJumpTotalGains.strength += stackedCandyGains.strength;
+      stackedCandyJumpTotalGains.speed += stackedCandyGains.speed;
+      stackedCandyJumpTotalGains.defense += stackedCandyGains.defense;
+      stackedCandyJumpTotalGains.dexterity += stackedCandyGains.dexterity;
+    }
+    
     // Calculate candy jump gains if this was a candy jump day
     if (isCandyJumpDay && statsBeforeCandy && statsAfterCandy) {
       const candyJumpGains = {
@@ -1966,6 +2045,7 @@ export function simulateGymProgression(
   
   // Calculate cost information if prices are available
   let edvdJumpCosts: { totalJumps: number; costPerJump: number; totalCost: number } | undefined;
+  let stackedCandyJumpCosts: { totalJumps: number; costPerJump: number; totalCost: number } | undefined;
   let xanaxCosts: { totalCost: number } | undefined;
   let pointsRefillCosts: { totalCost: number } | undefined;
   let candyJumpCosts: { totalDays: number; costPerDay: number; totalCost: number } | undefined;
@@ -1986,7 +2066,25 @@ export function simulateGymProgression(
       };
     }
     
-    // Calculate xanax costs (daily usage, not including EDVD jumps)
+    // Calculate Stacked Candy jump costs
+    if (inputs.stackedCandyJump?.enabled && inputs.itemPrices.xanaxPrice !== null && 
+        inputs.itemPrices.ecstasyPrice !== null && inputs.itemPrices.candyPrices) {
+      const candyPrice = inputs.itemPrices.candyPrices[inputs.stackedCandyJump.itemId as keyof typeof inputs.itemPrices.candyPrices];
+      
+      if (candyPrice !== null && candyPrice !== undefined) {
+        const costPerJump = (inputs.stackedCandyJump.quantity * candyPrice) + 
+                            (4 * inputs.itemPrices.xanaxPrice) + 
+                            inputs.itemPrices.ecstasyPrice;
+        
+        stackedCandyJumpCosts = {
+          totalJumps: stackedCandyJumpsPerformed,
+          costPerJump,
+          totalCost: costPerJump * stackedCandyJumpsPerformed,
+        };
+      }
+    }
+    
+    // Calculate xanax costs (daily usage, not including EDVD/Stacked Candy jumps)
     if (inputs.xanaxPerDay > 0 && inputs.itemPrices.xanaxPrice !== null) {
       xanaxCosts = {
         totalCost: inputs.itemPrices.xanaxPrice * inputs.xanaxPerDay * totalDays,
@@ -2092,6 +2190,21 @@ export function simulateGymProgression(
         speed: edvdJumpTotalGains.speed,
         defense: edvdJumpTotalGains.defense,
         dexterity: edvdJumpTotalGains.dexterity,
+      },
+    } : undefined,
+    stackedCandyJumpCosts,
+    stackedCandyJumpGains: inputs.stackedCandyJump?.enabled && stackedCandyJumpsPerformed > 0 ? {
+      averagePerJump: {
+        strength: stackedCandyJumpTotalGains.strength / stackedCandyJumpsPerformed,
+        speed: stackedCandyJumpTotalGains.speed / stackedCandyJumpsPerformed,
+        defense: stackedCandyJumpTotalGains.defense / stackedCandyJumpsPerformed,
+        dexterity: stackedCandyJumpTotalGains.dexterity / stackedCandyJumpsPerformed,
+      },
+      totalGains: {
+        strength: stackedCandyJumpTotalGains.strength,
+        speed: stackedCandyJumpTotalGains.speed,
+        defense: stackedCandyJumpTotalGains.defense,
+        dexterity: stackedCandyJumpTotalGains.dexterity,
       },
     } : undefined,
     xanaxCosts,
