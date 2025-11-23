@@ -1,6 +1,7 @@
 import { Grid } from '@mui/material';
 import EdvdJumpConfig from './EdvdJumpConfig';
 import CandyJumpConfig from './CandyJumpConfig';
+import StackedCandyJumpConfig from './StackedCandyJumpConfig';
 import EnergyJumpConfig from './EnergyJumpConfig';
 import LossReviveConfig from './LossReviveConfig';
 
@@ -23,6 +24,16 @@ interface StatJumpsSectionProps {
   candyJumpDrugUsed: 'none' | 'xanax' | 'ecstasy';
   candyJumpDrugAlreadyIncluded: boolean;
   candyJumpUsePointRefill: boolean;
+
+  // Stacked Candy Jump
+  stackedCandyJumpEnabled: boolean;
+  stackedCandyJumpFrequency: number;
+  stackedCandyJumpItemId: number;
+  stackedCandyJumpQuantity: number;
+  stackedCandyJumpFactionBenefit: number;
+  stackedCandyJumpLimit: 'indefinite' | 'count' | 'stat';
+  stackedCandyJumpCount: number;
+  stackedCandyJumpStatTarget: number;
 
   // Energy Jump
   energyJumpEnabled: boolean;
@@ -63,6 +74,14 @@ interface StatJumpsSectionProps {
     candyJumpDrugUsed?: 'none' | 'xanax' | 'ecstasy';
     candyJumpDrugAlreadyIncluded?: boolean;
     candyJumpUsePointRefill?: boolean;
+    stackedCandyJumpEnabled?: boolean;
+    stackedCandyJumpFrequency?: number;
+    stackedCandyJumpItemId?: number;
+    stackedCandyJumpQuantity?: number;
+    stackedCandyJumpFactionBenefit?: number;
+    stackedCandyJumpLimit?: 'indefinite' | 'count' | 'stat';
+    stackedCandyJumpCount?: number;
+    stackedCandyJumpStatTarget?: number;
     energyJumpEnabled?: boolean;
     energyJumpItemId?: number;
     energyJumpQuantity?: number;
@@ -79,7 +98,7 @@ export default function StatJumpsSection(props: StatJumpsSectionProps) {
   return (
     <Grid container spacing={2}>
       {/* EDVD Jumps Column */}
-      <Grid size={{ xs: 12, md: 3 }}>
+      <Grid size={{ xs: 12, md: 6, lg: 2.4 }}>
         <EdvdJumpConfig
           enabled={props.edvdJumpEnabled}
           frequency={props.edvdJumpFrequency}
@@ -88,12 +107,13 @@ export default function StatJumpsSection(props: StatJumpsSectionProps) {
           count={props.edvdJumpCount}
           statTarget={props.edvdJumpStatTarget}
           adultNovelties={props.edvdJumpAdultNovelties}
+          stackedCandyJumpEnabled={props.stackedCandyJumpEnabled}
           onUpdate={props.onUpdate}
         />
       </Grid>
 
       {/* Candy Jumps Column */}
-      <Grid size={{ xs: 12, md: 3 }}>
+      <Grid size={{ xs: 12, md: 6, lg: 2.4 }}>
         <CandyJumpConfig
           enabled={props.candyJumpEnabled}
           frequencyDays={props.candyJumpFrequencyDays}
@@ -112,8 +132,25 @@ export default function StatJumpsSection(props: StatJumpsSectionProps) {
         />
       </Grid>
 
+      {/* Stacked Candy Jumps Column */}
+      <Grid size={{ xs: 12, md: 6, lg: 2.4 }}>
+        <StackedCandyJumpConfig
+          enabled={props.stackedCandyJumpEnabled}
+          frequency={props.stackedCandyJumpFrequency}
+          itemId={props.stackedCandyJumpItemId}
+          quantity={props.stackedCandyJumpQuantity}
+          factionBenefit={props.stackedCandyJumpFactionBenefit}
+          limit={props.stackedCandyJumpLimit}
+          count={props.stackedCandyJumpCount}
+          statTarget={props.stackedCandyJumpStatTarget}
+          showCosts={props.showCosts}
+          itemPricesData={props.itemPricesData}
+          onUpdate={props.onUpdate}
+        />
+      </Grid>
+
       {/* Energy Jumps Column */}
-      <Grid size={{ xs: 12, md: 3 }}>
+      <Grid size={{ xs: 12, md: 6, lg: 2.4 }}>
         <EnergyJumpConfig
           enabled={props.energyJumpEnabled}
           itemId={props.energyJumpItemId}
@@ -127,7 +164,7 @@ export default function StatJumpsSection(props: StatJumpsSectionProps) {
       </Grid>
 
       {/* Loss/Revive Column */}
-      <Grid size={{ xs: 12, md: 3 }}>
+      <Grid size={{ xs: 12, md: 6, lg: 2.4 }}>
         <LossReviveConfig
           enabled={props.lossReviveEnabled}
           numberPerDay={props.lossReviveNumberPerDay}

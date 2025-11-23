@@ -33,6 +33,14 @@ export interface TrainingSection {
   candyJumpDrugUsed: 'none' | 'xanax' | 'ecstasy'; // Which drug is used with candy
   candyJumpDrugAlreadyIncluded: boolean; // If xanax/ecstasy is used, is it already counted in daily drug use?
   candyJumpUsePointRefill: boolean; // Does user use point refill during candy jump?
+  stackedCandyJumpEnabled: boolean;
+  stackedCandyJumpFrequency: number;
+  stackedCandyJumpItemId: number;
+  stackedCandyJumpQuantity: number;
+  stackedCandyJumpFactionBenefit: number;
+  stackedCandyJumpLimit: 'indefinite' | 'count' | 'stat';
+  stackedCandyJumpCount: number;
+  stackedCandyJumpStatTarget: number;
   energyJumpEnabled: boolean;
   energyJumpItemId: number;
   energyJumpQuantity: number;
@@ -164,6 +172,16 @@ export function simulateWithSections(
         drugUsed: section.candyJumpDrugUsed,
         drugAlreadyIncluded: section.candyJumpDrugAlreadyIncluded,
         usePointRefill: section.candyJumpUsePointRefill,
+      } : undefined,
+      stackedCandyJump: section.stackedCandyJumpEnabled ? {
+        enabled: true,
+        frequencyDays: section.stackedCandyJumpFrequency,
+        itemId: section.stackedCandyJumpItemId,
+        quantity: section.stackedCandyJumpQuantity,
+        factionBenefitPercent: section.stackedCandyJumpFactionBenefit,
+        limit: section.stackedCandyJumpLimit,
+        count: section.stackedCandyJumpCount,
+        statTarget: section.stackedCandyJumpStatTarget,
       } : undefined,
       energyJump: section.energyJumpEnabled ? {
         enabled: true,

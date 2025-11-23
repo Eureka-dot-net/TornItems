@@ -44,6 +44,14 @@ interface TrainingSection {
   candyJumpDrugUsed: 'none' | 'xanax' | 'ecstasy';
   candyJumpDrugAlreadyIncluded: boolean;
   candyJumpUsePointRefill: boolean;
+  stackedCandyJumpEnabled: boolean;
+  stackedCandyJumpFrequency: number;
+  stackedCandyJumpItemId: number;
+  stackedCandyJumpQuantity: number;
+  stackedCandyJumpFactionBenefit: number;
+  stackedCandyJumpLimit: 'indefinite' | 'count' | 'stat';
+  stackedCandyJumpCount: number;
+  stackedCandyJumpStatTarget: number;
   energyJumpEnabled: boolean;
   energyJumpItemId: number;
   energyJumpQuantity: number;
@@ -562,6 +570,14 @@ export default function SectionedComparisonConfig({
                 candyJumpDrugUsed={section.candyJumpDrugUsed}
                 candyJumpDrugAlreadyIncluded={section.candyJumpDrugAlreadyIncluded}
                 candyJumpUsePointRefill={section.candyJumpUsePointRefill}
+                stackedCandyJumpEnabled={section.stackedCandyJumpEnabled}
+                stackedCandyJumpFrequency={section.stackedCandyJumpFrequency}
+                stackedCandyJumpItemId={section.stackedCandyJumpItemId}
+                stackedCandyJumpQuantity={section.stackedCandyJumpQuantity}
+                stackedCandyJumpFactionBenefit={section.stackedCandyJumpFactionBenefit}
+                stackedCandyJumpLimit={section.stackedCandyJumpLimit}
+                stackedCandyJumpCount={section.stackedCandyJumpCount}
+                stackedCandyJumpStatTarget={section.stackedCandyJumpStatTarget}
                 energyJumpEnabled={section.energyJumpEnabled}
                 energyJumpItemId={section.energyJumpItemId}
                 energyJumpQuantity={section.energyJumpQuantity}

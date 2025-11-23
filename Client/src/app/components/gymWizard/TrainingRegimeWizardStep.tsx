@@ -19,6 +19,7 @@ import {
 export interface TrainingRegimeSelections {
   edvd: boolean;
   candy: boolean;
+  stackedCandy: boolean;
   energy: boolean;
   fhc: boolean;
 }
@@ -42,6 +43,7 @@ export default function TrainingRegimeWizardStep({ onSelectionsChange }: Trainin
     loadSavedValue('trainingRegimeSelections', {
       edvd: false,
       candy: false,
+      stackedCandy: false,
       energy: false,
       fhc: false,
     })
@@ -121,10 +123,29 @@ export default function TrainingRegimeWizardStep({ onSelectionsChange }: Trainin
           label={
             <Box>
               <Typography variant="body1">
-                <strong>Candy Jumps</strong>
+                <strong>Half Candy Jumps</strong>
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Using Happiness candies to boost your happy level for enhanced training gains
+                Using Happiness candies to boost your happy level for enhanced training gains (without stacking xanax)
+              </Typography>
+            </Box>
+          }
+        />
+
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={selections.stackedCandy}
+              onChange={handleCheckboxChange('stackedCandy')}
+            />
+          }
+          label={
+            <Box>
+              <Typography variant="body1">
+                <strong>Stacked Candy Jumps</strong>
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Like eDVD jumps but using candies instead - stacks xanax and uses candies for happiness boost
               </Typography>
             </Box>
           }
