@@ -10,6 +10,7 @@ import {
 import { DataGrid, type GridColDef, type GridRowsProp } from '@mui/x-data-grid';
 import { Link as RouterLink } from 'react-router-dom';
 import { type IndividualComparisonExportData } from '../../lib/utils/exportHelpers';
+import { convertSnapshotsToTrainingRows } from '../../lib/utils/trainingDataHelpers';
 
 export default function TrainingBreakdown() {
   const [trainingData, setTrainingData] = useState<IndividualComparisonExportData | null>(null);
@@ -51,96 +52,14 @@ export default function TrainingBreakdown() {
     return Math.max(1, diffDays + 1);
   }, [startDate]);
 
-  // Prepare grid rows
+  // Prepare grid rows using shared helper function
   const rows: GridRowsProp = useMemo(() => {
     if (!trainingData) return [];
-
-    // Add day 0 (initial stats)
-    const initialTotal = 
-      trainingData.initialStats.strength +
-      trainingData.initialStats.speed +
-      trainingData.initialStats.defense +
-      trainingData.initialStats.dexterity;
-
-    const initialRow = {
-      id: 0,
-      day: 0,
-      strength: trainingData.initialStats.strength,
-      speed: trainingData.initialStats.speed,
-      defense: trainingData.initialStats.defense,
-      dexterity: trainingData.initialStats.dexterity,
-      total: initialTotal,
-      strengthTraining: '',
-      speedTraining: '',
-      defenseTraining: '',
-      dexterityTraining: '',
-      notes: 'Starting stats',
-    };
-
-    const dailyRows: any[] = [];
     
-    trainingData.dailySnapshots.forEach((snapshot) => {
-      const total = snapshot.strength + snapshot.speed + snapshot.defense + snapshot.dexterity;
-
-      // Format training details
-      const formatTraining = (stat: 'strength' | 'speed' | 'defense' | 'dexterity') => {
-        if (snapshot.trainingDetails && snapshot.trainingDetails[stat]) {
-          const details = snapshot.trainingDetails[stat]!;
-          return `${details.energy} energy at ${details.gym}`;
-        }
-        return '';
-      };
-
-      // Check if this day has training sessions (jump + post-jump)
-      if (snapshot.trainingSessions && snapshot.trainingSessions.length > 0) {
-        // Create separate rows for each training session
-        snapshot.trainingSessions.forEach((session, sessionIndex) => {
-          const sessionFormatTraining = (stat: 'strength' | 'speed' | 'defense' | 'dexterity') => {
-            if (session.trainingDetails && session.trainingDetails[stat]) {
-              const details = session.trainingDetails[stat]!;
-              return `${details.energy} energy at ${details.gym}`;
-            }
-            return '';
-          };
-
-          // Each row shows the stats after that training session completes
-          dailyRows.push({
-            id: `${snapshot.day}-${sessionIndex}`,
-            day: sessionIndex === 0 ? snapshot.day : '', // Only show day number on first row
-            strength: session.strength || '',
-            speed: session.speed || '',
-            defense: session.defense || '',
-            dexterity: session.dexterity || '',
-            total: session.strength && session.speed && session.defense && session.dexterity 
-              ? session.strength + session.speed + session.defense + session.dexterity 
-              : '',
-            strengthTraining: sessionFormatTraining('strength'),
-            speedTraining: sessionFormatTraining('speed'),
-            defenseTraining: sessionFormatTraining('defense'),
-            dexterityTraining: sessionFormatTraining('dexterity'),
-            notes: session.notes ? session.notes.join('; ') : '',
-          });
-        });
-      } else {
-        // Regular day with no separate sessions
-        dailyRows.push({
-          id: snapshot.day,
-          day: snapshot.day,
-          strength: snapshot.strength,
-          speed: snapshot.speed,
-          defense: snapshot.defense,
-          dexterity: snapshot.dexterity,
-          total,
-          strengthTraining: formatTraining('strength'),
-          speedTraining: formatTraining('speed'),
-          defenseTraining: formatTraining('defense'),
-          dexterityTraining: formatTraining('dexterity'),
-          notes: snapshot.notes ? snapshot.notes.join('; ') : '',
-        });
-      }
-    });
-
-    return [initialRow, ...dailyRows];
+    return convertSnapshotsToTrainingRows(
+      trainingData.dailySnapshots,
+      trainingData.initialStats
+    );
   }, [trainingData]);
 
   // Define columns
@@ -182,6 +101,13 @@ export default function TrainingBreakdown() {
     {
       field: 'total',
       headerName: 'Total',
+      width: 140,
+      type: 'number',
+      valueFormatter: (value: number) => value.toLocaleString(),
+    },
+    {
+      field: 'totalEnergyUsed',
+      headerName: 'Total Energy Used',
       width: 140,
       type: 'number',
       valueFormatter: (value: number) => value.toLocaleString(),
