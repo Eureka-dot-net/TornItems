@@ -107,6 +107,7 @@ export default function StatJumpsSection(props: StatJumpsSectionProps) {
           count={props.edvdJumpCount}
           statTarget={props.edvdJumpStatTarget}
           adultNovelties={props.edvdJumpAdultNovelties}
+          stackedCandyJumpEnabled={props.stackedCandyJumpEnabled}
           onUpdate={props.onUpdate}
         />
       </Grid>

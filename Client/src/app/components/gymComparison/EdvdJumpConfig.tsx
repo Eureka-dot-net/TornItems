@@ -6,6 +6,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Alert,
 } from '@mui/material';
 
 interface EdvdJumpConfigProps {
@@ -16,6 +17,7 @@ interface EdvdJumpConfigProps {
   count: number;
   statTarget: number;
   adultNovelties: boolean;
+  stackedCandyJumpEnabled?: boolean; // Optional prop to check for conflict
   onUpdate: (updates: {
     edvdJumpEnabled?: boolean;
     edvdJumpFrequency?: number;
@@ -35,6 +37,7 @@ export default function EdvdJumpConfig({
   count,
   statTarget,
   adultNovelties,
+  stackedCandyJumpEnabled,
   onUpdate,
 }: EdvdJumpConfigProps) {
   return (
@@ -49,6 +52,12 @@ export default function EdvdJumpConfig({
         }
         label="EDVD Jumps"
       />
+
+      {enabled && stackedCandyJumpEnabled && (
+        <Alert severity="warning" sx={{ mt: 1, mb: 2 }}>
+          Both eDVD and Stacked Candy jumps are enabled. eDVD jumps will take priority if scheduled on the same day.
+        </Alert>
+      )}
 
       {enabled && (
         <>

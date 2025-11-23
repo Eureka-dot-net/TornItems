@@ -670,10 +670,12 @@ export function simulateGymProgression(
     let edvdStatsToTrain: Set<keyof typeof stats> | null = null;
     
     // Check if Stacked Candy jump should be performed
-    let shouldPerformStackedCandyJump = inputs.stackedCandyJump?.enabled && day === nextStackedCandyJumpDay && !isSkipped;
+    // Priority: eDVD jumps take priority over stacked candy jumps on the same day
+    let shouldPerformStackedCandyJump = inputs.stackedCandyJump?.enabled && day === nextStackedCandyJumpDay && !isSkipped && !shouldPerformEdvdJump;
     
     // Check if this is the day before a Stacked Candy jump (for stacking)
-    const isDayBeforeStackedCandyJump = inputs.stackedCandyJump?.enabled && day === nextStackedCandyJumpDay - 1 && !isSkipped;
+    // Don't stack if eDVD jump is happening on this day or the next day
+    const isDayBeforeStackedCandyJump = inputs.stackedCandyJump?.enabled && day === nextStackedCandyJumpDay - 1 && !isSkipped && !shouldPerformEdvdJump && day !== nextEdvdJumpDay - 1;
     
     // Track which stats should be trained during this Stacked Candy jump (for 'stat' limit mode)
     let stackedCandyStatsToTrain: Set<keyof typeof stats> | null = null;
@@ -1039,13 +1041,20 @@ export function simulateGymProgression(
         proposedNextStackedCandyDay++;
       }
       
-      // Also make sure eDVD jumps don't conflict with stacked candy jumps
-      if (inputs.edvdJump?.enabled && Math.abs(nextEdvdJumpDay - proposedNextStackedCandyDay) < 2) {
-        // Move eDVD jump to avoid conflict
-        nextEdvdJumpDay++;
+      nextStackedCandyJumpDay = proposedNextStackedCandyDay;
+    } else if (inputs.stackedCandyJump?.enabled && day === nextStackedCandyJumpDay && shouldPerformEdvdJump) {
+      // Stacked candy jump was skipped because eDVD jump took priority on this day
+      // Reschedule the stacked candy jump for the next available day
+      let proposedNextStackedCandyDay = day + 1;
+      
+      // Make sure rescheduled jump doesn't conflict with DD or eDVD jumps
+      while (diabetesDayJumpDays.some(ddDay => Math.abs(proposedNextStackedCandyDay - ddDay) < 2) ||
+             (inputs.edvdJump?.enabled && Math.abs(proposedNextStackedCandyDay - nextEdvdJumpDay) < 2)) {
+        proposedNextStackedCandyDay++;
       }
       
       nextStackedCandyJumpDay = proposedNextStackedCandyDay;
+      dailyNotes.push(`Stacked Candy jump rescheduled due to eDVD jump priority (moved to day ${proposedNextStackedCandyDay})`);
     }
     
     // Check if this is a Diabetes Day jump
