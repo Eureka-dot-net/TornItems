@@ -6,6 +6,7 @@
 import type { DailySnapshot } from './exportHelpers';
 
 export interface TrainingRow {
+  id: string | number;
   day: number | string;
   strength: number | string;
   speed: number | string;
@@ -83,6 +84,7 @@ export function convertSnapshotsToTrainingRows(
     initialStats.dexterity;
 
   rows.push({
+    id: 0,
     day: 0,
     strength: initialStats.strength,
     speed: initialStats.speed,
@@ -106,6 +108,7 @@ export function convertSnapshotsToTrainingRows(
         const totalEnergy = calculateTotalEnergy(session.trainingDetails);
         
         rows.push({
+          id: `${snapshot.day}-${sessionIndex}`,
           day: sessionIndex === 0 ? snapshot.day : '', // Only show day number on first row
           strength: session.strength ?? '',
           speed: session.speed ?? '',
@@ -128,6 +131,7 @@ export function convertSnapshotsToTrainingRows(
       const totalEnergy = calculateTotalEnergy(snapshot.trainingDetails);
       
       rows.push({
+        id: snapshot.day,
         day: snapshot.day,
         strength: snapshot.strength,
         speed: snapshot.speed,
