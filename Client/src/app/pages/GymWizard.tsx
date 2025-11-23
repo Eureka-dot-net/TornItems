@@ -114,7 +114,8 @@ export default function GymWizard() {
     const wizardKeys = [
       'apiKey', 
       'initialStats', 
-      'currentGymIndex', 
+      'currentGymIndex',
+      'gymProgressPercent',
       'months', 
       'simulatedDate',
       'maxEnergy',

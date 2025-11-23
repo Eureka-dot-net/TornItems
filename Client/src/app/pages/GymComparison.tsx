@@ -189,6 +189,7 @@ export default function GymComparison() {
     loadSavedValue('initialStats', DEFAULT_INITIAL_STATS)
   );
   const [currentGymIndex, setCurrentGymIndex] = useState<number>(() => loadSavedValue('currentGymIndex', 0));
+  const [gymProgressPercent, setGymProgressPercent] = useState<number>(() => loadSavedValue('gymProgressPercent', 0));
   const [months, setMonths] = useState<number>(() => loadSavedValue('months', DEFAULT_SIMULATION_MONTHS));
   const [simulatedDate, setSimulatedDate] = useState<Date | null>(() => {
     const saved = loadSavedValue<string | null>('simulatedDate', null);
@@ -361,6 +362,7 @@ export default function GymComparison() {
   useEffect(() => { localStorage.setItem('gymComparison_initialStats', JSON.stringify(initialStats)); }, [initialStats]);
   useEffect(() => { localStorage.setItem('gymComparison_simulatedDate', JSON.stringify(simulatedDate ? simulatedDate.toISOString() : null)); }, [simulatedDate]);
   useEffect(() => { localStorage.setItem('gymComparison_currentGymIndex', JSON.stringify(currentGymIndex)); }, [currentGymIndex]);
+  useEffect(() => { localStorage.setItem('gymComparison_gymProgressPercent', JSON.stringify(gymProgressPercent)); }, [gymProgressPercent]);
   useEffect(() => { localStorage.setItem('gymComparison_months', JSON.stringify(months)); }, [months]);
   useEffect(() => { localStorage.setItem('gymComparison_comparisonStates', JSON.stringify(comparisonStates)); }, [comparisonStates]);
   
@@ -994,6 +996,8 @@ export default function GymComparison() {
               setInitialStats={setInitialStats}
               currentGymIndex={currentGymIndex}
               setCurrentGymIndex={setCurrentGymIndex}
+              gymProgressPercent={gymProgressPercent}
+              setGymProgressPercent={setGymProgressPercent}
               months={months}
               setMonths={handleMonthsChange}
               isLoadingGymStats={isLoadingGymStats}

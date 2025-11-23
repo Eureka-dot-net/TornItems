@@ -50,6 +50,7 @@ export default function ApiKeyWizardStep() {
     loadSavedValue('initialStats', DEFAULT_INITIAL_STATS)
   );
   const [currentGymIndex, setCurrentGymIndex] = useState<number>(() => loadSavedValue('currentGymIndex', 0));
+  const [gymProgressPercent, setGymProgressPercent] = useState<number>(() => loadSavedValue('gymProgressPercent', 0));
   const [months, setMonths] = useState<number>(() => loadSavedValue('months', 12));
   const [simulatedDate, setSimulatedDate] = useState<Date | null>(() => {
     const saved = loadSavedValue<string | null>('simulatedDate', null);
@@ -73,6 +74,10 @@ export default function ApiKeyWizardStep() {
   useEffect(() => {
     localStorage.setItem('gymWizard_currentGymIndex', JSON.stringify(currentGymIndex));
   }, [currentGymIndex]);
+
+  useEffect(() => {
+    localStorage.setItem('gymWizard_gymProgressPercent', JSON.stringify(gymProgressPercent));
+  }, [gymProgressPercent]);
 
   useEffect(() => {
     localStorage.setItem('gymWizard_months', JSON.stringify(months));
@@ -199,6 +204,8 @@ export default function ApiKeyWizardStep() {
             setInitialStats={setInitialStats}
             currentGymIndex={currentGymIndex}
             setCurrentGymIndex={setCurrentGymIndex}
+            gymProgressPercent={gymProgressPercent}
+            setGymProgressPercent={setGymProgressPercent}
             months={months}
             setMonths={setMonths}
             isLoadingGymStats={isLoadingGymStats}

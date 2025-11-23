@@ -33,6 +33,8 @@ interface PlayerStatsSectionProps {
   onEnabledChange?: (enabled: boolean) => void;
   hideApiKeySection?: boolean;
   hideApiKeyAlert?: boolean;
+  gymProgressPercent?: number;
+  setGymProgressPercent?: (percent: number) => void;
 }
 
 export default function PlayerStatsSection({
@@ -53,6 +55,8 @@ export default function PlayerStatsSection({
   onEnabledChange,
   hideApiKeySection = false,
   hideApiKeyAlert = false,
+  gymProgressPercent,
+  setGymProgressPercent,
 }: PlayerStatsSectionProps) {
   // Constants for date validation
   const TORN_RELEASE_DATE = new Date('1997-10-27');
@@ -275,6 +279,23 @@ export default function PlayerStatsSection({
             </Select>
           </FormControl>
         </Grid>
+        {gymProgressPercent !== undefined && setGymProgressPercent && (
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField 
+              label="Current Gym Progress (%)" 
+              type="number" 
+              value={gymProgressPercent ?? ''} 
+              onChange={(e) => {
+                const value = e.target.value === '' ? 0 : Number(e.target.value);
+                setGymProgressPercent(Math.max(0, Math.min(100, value)));
+              }}
+              size="small" 
+              fullWidth
+              inputProps={{ step: 'any', min: 0, max: 100 }}
+              helperText="Progress toward unlocking next gym (0-100%). Find this on your gym page in Torn."
+            />
+          </Grid>
+        )}
       </Grid>
     </Paper>
     
