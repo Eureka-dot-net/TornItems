@@ -44,6 +44,14 @@ interface TrainingSection {
   candyJumpDrugUsed: 'none' | 'xanax' | 'ecstasy';
   candyJumpDrugAlreadyIncluded: boolean;
   candyJumpUsePointRefill: boolean;
+  stackedCandyJumpEnabled: boolean;
+  stackedCandyJumpFrequency: number;
+  stackedCandyJumpItemId: number;
+  stackedCandyJumpQuantity: number;
+  stackedCandyJumpFactionBenefit: number;
+  stackedCandyJumpLimit: 'indefinite' | 'count' | 'stat';
+  stackedCandyJumpCount: number;
+  stackedCandyJumpStatTarget: number;
   energyJumpEnabled: boolean;
   energyJumpItemId: number;
   energyJumpQuantity: number;

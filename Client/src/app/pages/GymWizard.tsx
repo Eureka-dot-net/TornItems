@@ -8,6 +8,7 @@ import StatTargetRatiosWizardStep from '../components/gymWizard/StatTargetRatios
 import TrainingRegimeWizardStep, { type TrainingRegimeSelections } from '../components/gymWizard/TrainingRegimeWizardStep';
 import EdvdJumpWizardSubStep from '../components/gymWizard/EdvdJumpWizardSubStep';
 import CandyJumpWizardSubStep from '../components/gymWizard/CandyJumpWizardSubStep';
+import StackedCandyJumpWizardSubStep from '../components/gymWizard/StackedCandyJumpWizardSubStep';
 import EnergyJumpWizardSubStep from '../components/gymWizard/EnergyJumpWizardSubStep';
 import FhcJumpWizardSubStep from '../components/gymWizard/FhcJumpWizardSubStep';
 import { 
@@ -41,6 +42,7 @@ export default function GymWizard() {
   const [trainingSelections, setTrainingSelections] = useState<TrainingRegimeSelections>({
     edvd: false,
     candy: false,
+    stackedCandy: false,
     energy: false,
     fhc: false,
   });
@@ -72,8 +74,16 @@ export default function GymWizard() {
     if (trainingSelections.candy) {
       subSteps.push({
         key: 'candy',
-        label: 'Candy Configuration',
+        label: 'Half Candy Configuration',
         component: <CandyJumpWizardSubStep />,
+      });
+    }
+    
+    if (trainingSelections.stackedCandy) {
+      subSteps.push({
+        key: 'stackedCandy',
+        label: 'Stacked Candy Configuration',
+        component: <StackedCandyJumpWizardSubStep />,
       });
     }
     
