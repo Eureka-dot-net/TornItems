@@ -284,9 +284,10 @@ export default function PlayerStatsSection({
             <TextField 
               label="Current Gym Progress (%)" 
               type="number" 
-              value={gymProgressPercent ?? ''} 
+              value={gymProgressPercent} 
               onChange={(e) => {
-                const value = e.target.value === '' ? 0 : Number(e.target.value);
+                const numValue = Number(e.target.value);
+                const value = e.target.value === '' || isNaN(numValue) ? 0 : numValue;
                 setGymProgressPercent(Math.max(0, Math.min(100, value)));
               }}
               size="small" 
