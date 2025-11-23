@@ -14,6 +14,15 @@ const ENERGY_ITEM_MAP: Record<number, number> = {
   367: 0,   // FHC - special case, refills energy bar
 };
 
+// Candy happiness mapping
+const CANDY_HAPPINESS_MAP: Record<number, number> = {
+  310: 25,  // Happy 25
+  36: 35,   // Happy 35
+  528: 75,  // Happy 75
+  529: 100, // Happy 100
+  151: 150, // Happy 150
+};
+
 export interface Gym {
   name: string;
   displayName: string;
@@ -980,17 +989,8 @@ export function simulateGymProgression(
       // Jump energy: exactly 1150 energy
       jumpEnergy = 1150;
       
-      // Candy happiness map
-      const candyHappinessMap: Record<number, number> = {
-        310: 25,  // Happy 25
-        36: 35,   // Happy 35
-        528: 75,  // Happy 75
-        529: 100, // Happy 100
-        151: 150, // Happy 150
-      };
-      
       // Get base candy happiness
-      const baseCandyHappy = candyHappinessMap[inputs.stackedCandyJump.itemId];
+      const baseCandyHappy = CANDY_HAPPINESS_MAP[inputs.stackedCandyJump.itemId];
       if (!baseCandyHappy) {
         throw new Error(`Invalid candy item ID: ${inputs.stackedCandyJump.itemId}`);
       }
@@ -1212,16 +1212,8 @@ export function simulateGymProgression(
     
     // Handle candy jump if enabled and not on an EDVD or DD jump day
     if (isCandyJumpDay && inputs.candyJump && !shouldPerformEdvdJump && !isDiabetesDayJump && !isSkipped) {
-      // Map item IDs to happiness values
-      const candyHappinessMap: Record<number, number> = {
-        310: 25,
-        36: 35,
-        528: 75,
-        529: 100,
-        151: 150,
-      };
-      
-      const candyHappy = candyHappinessMap[inputs.candyJump.itemId];
+      // Get candy happiness value
+      const candyHappy = CANDY_HAPPINESS_MAP[inputs.candyJump.itemId];
       
       if (!candyHappy) {
         throw new Error(`Invalid candy item ID: ${inputs.candyJump.itemId}`);
@@ -1852,10 +1844,7 @@ export function simulateGymProgression(
         const postJumpTotal = postJumpGains.strength + postJumpGains.speed + postJumpGains.defense + postJumpGains.dexterity;
         
         // Calculate the happiness used during the jump
-        const candyHappinessMap: Record<number, number> = {
-          310: 25, 36: 35, 528: 75, 529: 100, 151: 150,
-        };
-        const baseCandyHappy = candyHappinessMap[inputs.stackedCandyJump!.itemId];
+        const baseCandyHappy = CANDY_HAPPINESS_MAP[inputs.stackedCandyJump!.itemId];
         let effectiveCandyHappy = baseCandyHappy;
         if (inputs.stackedCandyJump!.factionBenefitPercent && inputs.stackedCandyJump!.factionBenefitPercent > 0) {
           effectiveCandyHappy = baseCandyHappy * (1 + inputs.stackedCandyJump!.factionBenefitPercent / 100);
@@ -1917,14 +1906,7 @@ export function simulateGymProgression(
       const postCandyTotal = postCandyGains.strength + postCandyGains.speed + postCandyGains.defense + postCandyGains.dexterity;
       
       // Calculate the happy used during candy jump
-      const candyHappinessMap: Record<number, number> = {
-        310: 25,
-        36: 35,
-        528: 75,
-        529: 100,
-        151: 150,
-      };
-      const candyHappy = candyHappinessMap[inputs.candyJump!.itemId];
+      const candyHappy = CANDY_HAPPINESS_MAP[inputs.candyJump!.itemId];
       const candyQuantity = inputs.candyJump!.quantity || 48;
       let effectiveCandyHappy = candyHappy;
       if (inputs.candyJump!.factionBenefitPercent && inputs.candyJump!.factionBenefitPercent > 0) {
