@@ -31,20 +31,15 @@ export default function FhcJumpWizardSubStep() {
   };
 
   const [quantity, setQuantity] = useState<number>(() => 
-    loadSavedValue('fhcJumpQuantity', DEFAULT_FHC_QUANTITY)
-  );
-  const [factionBenefit, setFactionBenefit] = useState<number>(() => 
-    loadSavedValue('fhcJumpFactionBenefit', 0)
+    loadSavedValue('fhcQuantity', DEFAULT_FHC_QUANTITY)
   );
 
-  // Save values to localStorage
-  // Note: FHC shares the same storage keys as energy jumps since it's technically an energy item
+  // Save values to localStorage - using fhc prefix to separate from energy drinks
   useEffect(() => {
-    localStorage.setItem('gymWizard_energyJumpEnabled', JSON.stringify(true));
-    localStorage.setItem('gymWizard_energyJumpItemId', JSON.stringify(ENERGY_ITEM_IDS.FHC));
-    localStorage.setItem('gymWizard_energyJumpQuantity', JSON.stringify(quantity));
-    localStorage.setItem('gymWizard_energyJumpFactionBenefit', JSON.stringify(factionBenefit));
-  }, [quantity, factionBenefit]);
+    localStorage.setItem('gymWizard_fhcEnabled', JSON.stringify(true));
+    localStorage.setItem('gymWizard_fhcItemId', JSON.stringify(ENERGY_ITEM_IDS.FHC));
+    localStorage.setItem('gymWizard_fhcQuantity', JSON.stringify(quantity));
+  }, [quantity]);
 
   return (
     <Box>
@@ -63,43 +58,35 @@ export default function FhcJumpWizardSubStep() {
           regardless of your maximum energy. This is different from energy drinks which only add a
           fixed amount.
         </Typography>
+        <Typography variant="body2" paragraph>
+          <strong>Cooldown:</strong> FHCs have a 6-hour cooldown. Without specialized job perks, 
+          the maximum you can use is <strong>4 FHCs per day</strong>.
+        </Typography>
         <Typography variant="body2">
-          FHCs are particularly valuable if you have a high maximum energy level, as they provide more
-          value than standard energy drinks in that case.
+          <strong>Note:</strong> FHCs are not affected by faction bonuses.
         </Typography>
       </Alert>
 
-      <TextField
-        label="How many FHCs do you use per day?"
-        type="number"
-        value={quantity}
-        onChange={(e) => setQuantity(validateNumericInput(e.target.value, DEFAULT_FHC_QUANTITY, 1))}
-        fullWidth
-        margin="normal"
-        helperText="Enter the number of FHCs you use each day for training"
-        inputProps={{ step: 1, min: 1 }}
-      />
-
-      <TextField
-        label="Faction benefit percentage (if applicable)"
-        type="number"
-        value={factionBenefit}
-        onChange={(e) => setFactionBenefit(validateNumericInput(e.target.value, 0, 0))}
-        fullWidth
-        margin="normal"
-        helperText="Some faction perks provide additional energy benefits. Enter 0 if you don't have any."
-        inputProps={{ step: 1, min: 0 }}
-      />
-
-      <Alert severity="warning" sx={{ mt: 3, mb: 2 }}>
-        <Typography variant="body2">
-          <strong>Note:</strong> If you selected both "Energy Cans" and "FHC", we'll use the FHC configuration
-          since you completed this step last. If you want to use regular energy drinks instead, go back and
-          uncheck FHC on the previous page.
+      {/* Quantity */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          How many FHCs do you use per day?
         </Typography>
-      </Alert>
+        <Typography variant="body2" color="text.secondary" paragraph>
+          Enter the number of FHCs you use each day for training (maximum 4 without specialized perks).
+        </Typography>
+        <TextField
+          type="number"
+          value={quantity}
+          onChange={(e) => setQuantity(validateNumericInput(e.target.value, DEFAULT_FHC_QUANTITY, 1))}
+          fullWidth
+          size="small"
+          inputProps={{ step: 1, min: 1, max: 4 }}
+          helperText="Enter a value between 1 and 4"
+        />
+      </Box>
 
-      <Alert severity="success" sx={{ mt: 2 }}>
+      <Alert severity="success" sx={{ mt: 3 }}>
         <Typography variant="body2">
           Your FHC configuration has been saved. Click Next to continue.
         </Typography>

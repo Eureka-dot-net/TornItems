@@ -35,21 +35,21 @@ export default function EnergyJumpWizardSubStep() {
   };
 
   const [itemId, setItemId] = useState<number>(() => 
-    loadSavedValue('energyJumpItemId', ENERGY_ITEM_IDS.ENERGY_10)
+    loadSavedValue('energyDrinkItemId', ENERGY_ITEM_IDS.ENERGY_10)
   );
   const [quantity, setQuantity] = useState<number>(() => 
-    loadSavedValue('energyJumpQuantity', DEFAULT_ENERGY_DRINK_QUANTITY)
+    loadSavedValue('energyDrinkQuantity', DEFAULT_ENERGY_DRINK_QUANTITY)
   );
   const [factionBenefit, setFactionBenefit] = useState<number>(() => 
-    loadSavedValue('energyJumpFactionBenefit', 0)
+    loadSavedValue('energyDrinkFactionBenefit', 0)
   );
 
-  // Save values to localStorage
+  // Save values to localStorage - using energyDrink prefix to separate from FHC
   useEffect(() => {
-    localStorage.setItem('gymWizard_energyJumpEnabled', JSON.stringify(true));
-    localStorage.setItem('gymWizard_energyJumpItemId', JSON.stringify(itemId));
-    localStorage.setItem('gymWizard_energyJumpQuantity', JSON.stringify(quantity));
-    localStorage.setItem('gymWizard_energyJumpFactionBenefit', JSON.stringify(factionBenefit));
+    localStorage.setItem('gymWizard_energyDrinkEnabled', JSON.stringify(true));
+    localStorage.setItem('gymWizard_energyDrinkItemId', JSON.stringify(itemId));
+    localStorage.setItem('gymWizard_energyDrinkQuantity', JSON.stringify(quantity));
+    localStorage.setItem('gymWizard_energyDrinkFactionBenefit', JSON.stringify(factionBenefit));
   }, [itemId, quantity, factionBenefit]);
 
   return (
@@ -64,49 +64,75 @@ export default function EnergyJumpWizardSubStep() {
       </Typography>
 
       <Alert severity="info" sx={{ mb: 3 }}>
-        <Typography variant="body2">
+        <Typography variant="body2" paragraph>
           <strong>What are energy drinks?</strong> Energy drinks (Energy Cans) restore some of your energy bar,
           allowing you to do additional training sessions. Different types provide different amounts of energy.
         </Typography>
+        <Typography variant="body2">
+          <strong>Cooldown:</strong> Energy drinks have a 2-hour cooldown. Without specialized job perks, 
+          the maximum you can use is <strong>12 energy drinks per day</strong>.
+        </Typography>
       </Alert>
 
-      <FormControl fullWidth margin="normal">
-        <InputLabel>What type of energy drink do you use?</InputLabel>
-        <Select
-          value={itemId}
-          label="What type of energy drink do you use?"
-          onChange={(e) => setItemId(Number(e.target.value))}
-        >
-          <MenuItem value={ENERGY_ITEM_IDS.ENERGY_5}>Energy Drink (5 Energy)</MenuItem>
-          <MenuItem value={ENERGY_ITEM_IDS.ENERGY_10}>Energy Drink (10 Energy)</MenuItem>
-          <MenuItem value={ENERGY_ITEM_IDS.ENERGY_15}>Energy Drink (15 Energy)</MenuItem>
-          <MenuItem value={ENERGY_ITEM_IDS.ENERGY_20}>Energy Drink (20 Energy)</MenuItem>
-          <MenuItem value={ENERGY_ITEM_IDS.ENERGY_25}>Energy Drink (25 Energy)</MenuItem>
-          <MenuItem value={ENERGY_ITEM_IDS.ENERGY_30}>Energy Drink (30 Energy)</MenuItem>
-        </Select>
-      </FormControl>
+      {/* Energy Drink Type */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          What type of energy drink do you use?
+        </Typography>
+        <FormControl fullWidth>
+          <InputLabel>Energy Drink Type</InputLabel>
+          <Select
+            value={itemId}
+            label="Energy Drink Type"
+            onChange={(e) => setItemId(Number(e.target.value))}
+          >
+            <MenuItem value={ENERGY_ITEM_IDS.ENERGY_5}>Energy Drink (5 Energy)</MenuItem>
+            <MenuItem value={ENERGY_ITEM_IDS.ENERGY_10}>Energy Drink (10 Energy)</MenuItem>
+            <MenuItem value={ENERGY_ITEM_IDS.ENERGY_15}>Energy Drink (15 Energy)</MenuItem>
+            <MenuItem value={ENERGY_ITEM_IDS.ENERGY_20}>Energy Drink (20 Energy)</MenuItem>
+            <MenuItem value={ENERGY_ITEM_IDS.ENERGY_25}>Energy Drink (25 Energy)</MenuItem>
+            <MenuItem value={ENERGY_ITEM_IDS.ENERGY_30}>Energy Drink (30 Energy)</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
 
-      <TextField
-        label="How many energy drinks do you use per day?"
-        type="number"
-        value={quantity}
-        onChange={(e) => setQuantity(validateNumericInput(e.target.value, DEFAULT_ENERGY_DRINK_QUANTITY, 1))}
-        fullWidth
-        margin="normal"
-        helperText="Enter the number of energy drinks you consume each day"
-        inputProps={{ step: 1, min: 1 }}
-      />
+      {/* Quantity */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          How many energy drinks do you use per day?
+        </Typography>
+        <Typography variant="body2" color="text.secondary" paragraph>
+          Enter the number of energy drinks you consume each day (maximum 12 without specialized perks).
+        </Typography>
+        <TextField
+          type="number"
+          value={quantity}
+          onChange={(e) => setQuantity(validateNumericInput(e.target.value, DEFAULT_ENERGY_DRINK_QUANTITY, 1))}
+          fullWidth
+          size="small"
+          inputProps={{ step: 1, min: 1, max: 12 }}
+          helperText="Enter a value between 1 and 12"
+        />
+      </Box>
 
-      <TextField
-        label="Faction benefit percentage (if applicable)"
-        type="number"
-        value={factionBenefit}
-        onChange={(e) => setFactionBenefit(validateNumericInput(e.target.value, 0, 0))}
-        fullWidth
-        margin="normal"
-        helperText="Some faction perks provide additional energy benefits. Enter 0 if you don't have any."
-        inputProps={{ step: 1, min: 0 }}
-      />
+      {/* Faction Benefit */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Do you have any faction bonuses that boost energy drink effectiveness?
+        </Typography>
+        <Typography variant="body2" color="text.secondary" paragraph>
+          Some faction perks provide additional percentage bonuses to energy gained. Enter 0 if you don't have any.
+        </Typography>
+        <TextField
+          type="number"
+          value={factionBenefit}
+          onChange={(e) => setFactionBenefit(validateNumericInput(e.target.value, 0, 0))}
+          fullWidth
+          size="small"
+          inputProps={{ step: 1, min: 0 }}
+          helperText="Enter percentage bonus (e.g., 10 for 10% bonus)"
+        />
+      </Box>
 
       <Alert severity="success" sx={{ mt: 3 }}>
         <Typography variant="body2">
