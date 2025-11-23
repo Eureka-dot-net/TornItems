@@ -1212,8 +1212,8 @@ export function simulateGymProgression(
       dexterity?: { gym: string; energy: number; };
     } = {};
     
-    // Track stats before training for DD jumps and eDVD jumps (for total gains calculation)
-    const statsBeforeTraining = (isDiabetesDayJump || shouldPerformEdvdJump) ? { ...stats } : undefined;
+    // Track stats before training for DD jumps, eDVD jumps, and stacked candy jumps (for total gains calculation)
+    const statsBeforeTraining = (isDiabetesDayJump || shouldPerformEdvdJump || shouldPerformStackedCandyJump) ? { ...stats } : undefined;
     
     // Track stats before and after candy jump (for split gains calculation)
     const statsBeforeCandy = isCandyJumpDay && !shouldPerformEdvdJump && !isDiabetesDayJump && !isSkipped ? { ...stats } : undefined;
