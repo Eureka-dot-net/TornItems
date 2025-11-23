@@ -193,13 +193,9 @@ export default function GymComparison() {
     // This prevents validation errors where old saved states have endDay values that exceed
     // the new totalDays from the wizard. Without this check, users get an error like
     // "Section dates exceed the total duration" when coming from the wizard.
-    const fromWizard = loadSavedValue<string | null>('fromWizard', null);
+    // The fromWizard flag is set by the wizard and cleared by the useEffect below after scrolling.
+    const fromWizard = localStorage.getItem('gymComparison_fromWizard') === 'true';
     const shouldUseSavedStates = savedStates.length > 0 && !fromWizard;
-    
-    // Clear the fromWizard flag after reading it once
-    if (fromWizard) {
-      localStorage.removeItem('gymComparison_fromWizard');
-    }
     
     if (!shouldUseSavedStates) {
       // Check if wizard values exist
