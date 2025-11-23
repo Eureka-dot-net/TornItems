@@ -75,10 +75,13 @@ export interface SimulationInputs {
   };
   candyJump?: {
     enabled: boolean;
+    frequencyDays: number; // How often candy jump is performed (every X days, default 1)
     itemId: number; // 310 (25 happy), 36 (35 happy), 528 (75 happy), 529 (100 happy), 151 (150 happy)
-    useEcstasy: boolean; // If true, double happiness after candy
-    quantity: number; // Number of candies used per day (default 48)
+    quantity: number; // Number of candies used per jump (default 48)
     factionBenefitPercent?: number; // % increase in happiness from chocolate faction benefits
+    drugUsed: 'none' | 'xanax' | 'ecstasy'; // Which drug is used with the candy jump
+    xanaxAlreadyIncluded: boolean; // If xanax, is it already included in daily xanax count?
+    usePointRefill: boolean; // Does user use a point refill during the candy jump?
   };
   energyJump?: {
     enabled: boolean;
@@ -671,6 +674,23 @@ export function simulateGymProgression(
     
     const maxEnergyValue = inputs.maxEnergy || 150;
     
+    // Check if this is a candy jump day based on frequency
+    const isCandyJumpDay = inputs.candyJump?.enabled && 
+      (day - 1) % inputs.candyJump.frequencyDays === 0;
+    
+    // Adjust energy for candy jump days if needed
+    if (isCandyJumpDay && inputs.candyJump && !isSkipped) {
+      // If xanax is used during candy jump AND it's NOT already included in daily xanax, add extra 250
+      if (inputs.candyJump.drugUsed === 'xanax' && !inputs.candyJump.xanaxAlreadyIncluded) {
+        energyAvailableToday += 250;
+      }
+      
+      // If point refill is used during candy jump AND user doesn't normally do point refills, add extra maxEnergy
+      if (inputs.candyJump.usePointRefill && !inputs.hasPointsRefill) {
+        energyAvailableToday += maxEnergyValue;
+      }
+    }
+    
     // Track if this is a jump day and the energy split between jump and post-jump training
     let jumpEnergy = 0; // Energy to train at boosted happy
     let postJumpEnergy = 0; // Energy to train at normal happy after the jump
@@ -902,7 +922,7 @@ export function simulateGymProgression(
     const statsBeforeTraining = (isDiabetesDayJump || shouldPerformEdvdJump) ? { ...stats } : undefined;
     
     // Handle candy jump if enabled and not on an EDVD or DD jump day
-    if (inputs.candyJump?.enabled && !shouldPerformEdvdJump && !isDiabetesDayJump && !isSkipped) {
+    if (isCandyJumpDay && inputs.candyJump && !shouldPerformEdvdJump && !isDiabetesDayJump && !isSkipped) {
       // Map item IDs to happiness values
       const candyHappinessMap: Record<number, number> = {
         310: 25,
@@ -919,20 +939,18 @@ export function simulateGymProgression(
       }
       
       // Calculate energy to use for candy jump
-      // Base: maxEnergy (150 or 100), +maxEnergy if points refill, +250 if at least one xanax, +150 more if both points and xanax
+      // Start with base energy
       let candyEnergy = maxEnergyValue; // 150 or 100 based on maxEnergy setting
       
-      if (inputs.hasPointsRefill && inputs.xanaxPerDay >= 1) {
-        // Both points and xanax: 550 total (150 base + 150 points + 250 xanax)
-        candyEnergy = maxEnergyValue + maxEnergyValue + 250;
-      } else if (inputs.xanaxPerDay >= 1) {
-        // Xanax but no points: 400 total (150 base + 250 xanax)
-        candyEnergy = maxEnergyValue + 250;
-      } else if (inputs.hasPointsRefill) {
-        // Points but no xanax: 300 total (150 base + 150 points)
-        candyEnergy = maxEnergyValue + maxEnergyValue;
+      // Add point refill if user indicated they use it during candy jump
+      if (inputs.candyJump.usePointRefill) {
+        candyEnergy += maxEnergyValue; // Add another energy bar
       }
-      // else: just base maxEnergyValue
+      
+      // Add xanax energy if user uses xanax with candy jump
+      if (inputs.candyJump.drugUsed === 'xanax') {
+        candyEnergy += 250;
+      }
       
       // Make sure we don't use more energy than available
       const energyToUse = Math.min(candyEnergy, remainingEnergy);
@@ -947,9 +965,9 @@ export function simulateGymProgression(
       }
       
       // Calculate total happiness: base happy + (effective candy happy * quantity)
-      // If ecstasy is enabled, double the total happiness
+      // If ecstasy is used, double the total happiness
       let candyTrainHappy = inputs.happy + (effectiveCandyHappy * candyQuantity);
-      if (inputs.candyJump.useEcstasy) {
+      if (inputs.candyJump.drugUsed === 'ecstasy') {
         candyTrainHappy = candyTrainHappy * 2;
       }
       
@@ -962,7 +980,9 @@ export function simulateGymProgression(
         151: 'Jawbreaker',
       };
       const candyName = candyNames[inputs.candyJump.itemId] || 'candies';
-      dailyNotes.push(`Used ${candyQuantity} ${candyName}${inputs.candyJump.useEcstasy ? ' + Ecstasy' : ''}`);
+      const drugNote = inputs.candyJump.drugUsed === 'xanax' ? ' + Xanax' : 
+                       inputs.candyJump.drugUsed === 'ecstasy' ? ' + Ecstasy' : '';
+      dailyNotes.push(`Half Candy Jump: ${candyQuantity} ${candyName}${drugNote}`);
       
       // Train with candy happiness for the allocated energy
       let candyRemainingEnergy = energyToUse;
@@ -1512,9 +1532,14 @@ export function simulateGymProgression(
         const candyQuantity = inputs.candyJump.quantity || 48;
         let costPerDay = candyQuantity * candyPrice;
         
-        // Add ecstasy cost if enabled
-        if (inputs.candyJump.useEcstasy && inputs.itemPrices.candyEcstasyPrice !== null) {
+        // Add ecstasy cost if using ecstasy
+        if (inputs.candyJump.drugUsed === 'ecstasy' && inputs.itemPrices.candyEcstasyPrice !== null) {
           costPerDay += inputs.itemPrices.candyEcstasyPrice;
+        }
+        
+        // Add xanax cost if using xanax and it's not already included in daily xanax
+        if (inputs.candyJump.drugUsed === 'xanax' && !inputs.candyJump.xanaxAlreadyIncluded && inputs.itemPrices.xanaxPrice !== null) {
+          costPerDay += inputs.itemPrices.xanaxPrice;
         }
         
         candyJumpCosts = {

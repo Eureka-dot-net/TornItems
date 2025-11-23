@@ -31,10 +31,13 @@ interface ComparisonState {
   edvdJumpStatTarget: number;
   edvdJumpAdultNovelties: boolean;
   candyJumpEnabled: boolean;
+  candyJumpFrequencyDays: number;
   candyJumpItemId: number;
-  candyJumpUseEcstasy: boolean;
   candyJumpQuantity: number;
   candyJumpFactionBenefit: number;
+  candyJumpDrugUsed: 'none' | 'xanax' | 'ecstasy';
+  candyJumpXanaxAlreadyIncluded: boolean;
+  candyJumpUsePointRefill: boolean;
   energyJumpEnabled: boolean;
   energyJumpItemId: number;
   energyJumpQuantity: number;
@@ -297,10 +300,13 @@ export default function ComparisonConfigSection({
         edvdJumpStatTarget={activeState.edvdJumpStatTarget}
         edvdJumpAdultNovelties={activeState.edvdJumpAdultNovelties}
         candyJumpEnabled={activeState.candyJumpEnabled}
+        candyJumpFrequencyDays={activeState.candyJumpFrequencyDays}
         candyJumpItemId={activeState.candyJumpItemId}
-        candyJumpUseEcstasy={activeState.candyJumpUseEcstasy}
         candyJumpQuantity={activeState.candyJumpQuantity}
         candyJumpFactionBenefit={activeState.candyJumpFactionBenefit}
+        candyJumpDrugUsed={activeState.candyJumpDrugUsed}
+        candyJumpXanaxAlreadyIncluded={activeState.candyJumpXanaxAlreadyIncluded}
+        candyJumpUsePointRefill={activeState.candyJumpUsePointRefill}
         energyJumpEnabled={activeState.energyJumpEnabled}
         energyJumpItemId={activeState.energyJumpItemId}
         energyJumpQuantity={activeState.energyJumpQuantity}
