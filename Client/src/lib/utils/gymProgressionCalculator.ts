@@ -947,6 +947,21 @@ export function simulateGymProgression(
     const statsBeforeJump = isJumpDay ? { ...stats } : undefined;
     let statsAfterJump: typeof stats | undefined;
     
+    // Track training details separately for jump and post-jump phases (for eDVD/DD jumps)
+    const jumpTrainingDetails: {
+      strength?: { gym: string; energy: number; };
+      speed?: { gym: string; energy: number; };
+      defense?: { gym: string; energy: number; };
+      dexterity?: { gym: string; energy: number; };
+    } = {};
+    
+    const postJumpTrainingDetails: {
+      strength?: { gym: string; energy: number; };
+      speed?: { gym: string; energy: number; };
+      defense?: { gym: string; energy: number; };
+      dexterity?: { gym: string; energy: number; };
+    } = {};
+    
     // Track stats before training for DD jumps and eDVD jumps (for total gains calculation)
     const statsBeforeTraining = (isDiabetesDayJump || shouldPerformEdvdJump) ? { ...stats } : undefined;
     
@@ -1395,7 +1410,25 @@ export function simulateGymProgression(
             
             trainSuccessful = true;
             
-            // Track training details (regular training)
+            // Track training details
+            // For eDVD/DD jump days, track separately for jump and post-jump phases
+            if (isJumpDay && (shouldPerformEdvdJump || isDiabetesDayJump)) {
+              if (remainingJumpEnergy > 0) {
+                // This training is part of the jump phase
+                if (!jumpTrainingDetails[selectedStat]) {
+                  jumpTrainingDetails[selectedStat] = { gym: gym.displayName, energy: 0 };
+                }
+                jumpTrainingDetails[selectedStat]!.energy += gym.energyPerTrain;
+              } else if (remainingPostJumpEnergy > 0) {
+                // This training is part of the post-jump phase
+                if (!postJumpTrainingDetails[selectedStat]) {
+                  postJumpTrainingDetails[selectedStat] = { gym: gym.displayName, energy: 0 };
+                }
+                postJumpTrainingDetails[selectedStat]!.energy += gym.energyPerTrain;
+              }
+            }
+            
+            // Always track in daily details for backward compatibility
             if (!dailyTrainingDetails[selectedStat]) {
               dailyTrainingDetails[selectedStat] = { gym: gym.displayName, energy: 0 };
             }
@@ -1445,6 +1478,23 @@ export function simulateGymProgression(
         const postJumpTotal = postJumpGains.strength + postJumpGains.speed + postJumpGains.defense + postJumpGains.dexterity;
         dailyNotes.push(`DD jump gains: +${Math.round(jumpTotal).toLocaleString()} total stats at happy 99,999`);
         dailyNotes.push(`Post-DD training gains: +${Math.round(postJumpTotal).toLocaleString()} total stats at normal happy`);
+        
+        // Add training sessions for separate row display
+        trainingSessions.push({
+          type: 'dd_jump',
+          happy: 99999,
+          trainingDetails: Object.keys(jumpTrainingDetails).length > 0 ? jumpTrainingDetails : undefined,
+          notes: [`DD jump at happy 99,999`],
+        });
+        
+        if (postJumpTotal > 0) {
+          trainingSessions.push({
+            type: 'regular',
+            happy: inputs.happy,
+            trainingDetails: Object.keys(postJumpTrainingDetails).length > 0 ? postJumpTrainingDetails : undefined,
+            notes: [`Post-DD training at normal happy (${inputs.happy.toLocaleString()})`],
+          });
+        }
       }
       
       // Store individual jump gains
@@ -1491,6 +1541,23 @@ export function simulateGymProgression(
         const jumpHappy = (inputs.happy + dvdHappinessPerDvd * inputs.edvdJump!.dvdsUsed) * 2;
         dailyNotes.push(`eDVD jump gains: +${Math.round(jumpTotal).toLocaleString()} total stats at happy ${jumpHappy.toLocaleString()}`);
         dailyNotes.push(`Post-eDVD training gains: +${Math.round(postJumpTotal).toLocaleString()} total stats at normal happy`);
+        
+        // Add training sessions for separate row display
+        trainingSessions.push({
+          type: 'edvd_jump',
+          happy: Math.round(jumpHappy),
+          trainingDetails: Object.keys(jumpTrainingDetails).length > 0 ? jumpTrainingDetails : undefined,
+          notes: [`eDVD jump: Used ${inputs.edvdJump!.dvdsUsed} DVD${inputs.edvdJump!.dvdsUsed > 1 ? 's' : ''}, 1 Ecstasy${inputs.edvdJump!.adultNovelties ? ' (with 10★ Adult Novelties)' : ''} at happy ${jumpHappy.toLocaleString()}`],
+        });
+        
+        if (postJumpTotal > 0) {
+          trainingSessions.push({
+            type: 'regular',
+            happy: inputs.happy,
+            trainingDetails: Object.keys(postJumpTrainingDetails).length > 0 ? postJumpTrainingDetails : undefined,
+            notes: [`Post-eDVD training at normal happy (${inputs.happy.toLocaleString()})`],
+          });
+        }
       }
       
       // Add to total eDVD gains
@@ -1539,7 +1606,45 @@ export function simulateGymProgression(
       dailyNotes.push(`Half candy jump gains: +${Math.round(candyJumpTotal).toLocaleString()} total stats at happy ${Math.round(candyTrainHappy).toLocaleString()}`);
       if (postCandyTotal > 0) {
         dailyNotes.push(`Post-candy training gains: +${Math.round(postCandyTotal).toLocaleString()} total stats at normal happy (${inputs.happy.toLocaleString()})`);
+        
+        // Add post-candy training session
+        // Find the candy jump session that was already added
+        const candyJumpSession = trainingSessions.find(s => s.type === 'candy_jump');
+        const candyJumpDetails = candyJumpSession?.trainingDetails || {};
+        
+        // Calculate post-candy training details by subtracting candy jump details from daily details
+        const postCandyTrainingDetails: {
+          strength?: { gym: string; energy: number; };
+          speed?: { gym: string; energy: number; };
+          defense?: { gym: string; energy: number; };
+          dexterity?: { gym: string; energy: number; };
+        } = {};
+        
+        for (const stat of ['strength', 'speed', 'defense', 'dexterity'] as const) {
+          if (dailyTrainingDetails[stat] && candyJumpDetails[stat]) {
+            const totalEnergy = dailyTrainingDetails[stat]!.energy;
+            const candyEnergy = candyJumpDetails[stat]!.energy;
+            if (totalEnergy > candyEnergy) {
+              postCandyTrainingDetails[stat] = {
+                gym: dailyTrainingDetails[stat]!.gym,
+                energy: totalEnergy - candyEnergy,
+              };
+            }
+          } else if (dailyTrainingDetails[stat] && !candyJumpDetails[stat]) {
+            // All this stat's training was post-candy
+            postCandyTrainingDetails[stat] = dailyTrainingDetails[stat];
+          }
+        }
+        
+        trainingSessions.push({
+          type: 'regular',
+          happy: inputs.happy,
+          trainingDetails: Object.keys(postCandyTrainingDetails).length > 0 ? postCandyTrainingDetails : undefined,
+          notes: [`Post-candy training at normal happy (${inputs.happy.toLocaleString()})`],
+        });
       }
+      
+      // Note: candy jump sessions are added in the candy jump section above
     }
     
     // Take snapshot every day to show accurate daily progression
