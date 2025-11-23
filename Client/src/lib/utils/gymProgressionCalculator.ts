@@ -1068,14 +1068,6 @@ export function simulateGymProgression(
       }
       
       // Add candy jump note
-      const candyNames: Record<number, string> = {
-        310: 'Box of Bon Bons',
-        36: 'Box of Chocolate Bars',
-        528: 'Box of Extra Fine Chocolates',
-        529: 'Box of Luxury Chocolates',
-        151: 'Jawbreaker',
-      };
-      const candyName = candyNames[inputs.candyJump.itemId] || 'candies';
       const drugNote = inputs.candyJump.drugUsed === 'xanax' ? ' + Xanax' : 
                        inputs.candyJump.drugUsed === 'ecstasy' ? ' + Ecstasy' : '';
       
@@ -1176,7 +1168,7 @@ export function simulateGymProgression(
         defense: Math.round(statsAfterCandy.defense),
         dexterity: Math.round(statsAfterCandy.dexterity),
         trainingDetails: Object.keys(candyJumpTrainingDetails).length > 0 ? candyJumpTrainingDetails : undefined,
-        notes: [`Half Candy Jump: ${candyQuantity} ${candyName}${drugNote} at happy ${Math.round(candyTrainHappy).toLocaleString()}`],
+        notes: [`Half Candy Jump: ${candyQuantity} x ${candyHappy} happy candy${drugNote} at happy ${Math.round(candyTrainHappy).toLocaleString()}`],
       });
       
       candyJumpDaysPerformed++;
