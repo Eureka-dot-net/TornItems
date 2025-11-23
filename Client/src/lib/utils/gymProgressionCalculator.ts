@@ -160,6 +160,23 @@ export interface DailySnapshot {
     defense?: { gym: string; energy: number; };
     dexterity?: { gym: string; energy: number; };
   };
+  // Support for multiple training sessions per day (e.g., candy jump + regular training)
+  trainingSessions?: Array<{
+    type: 'candy_jump' | 'regular' | 'edvd_jump' | 'dd_jump';
+    happy?: number; // Happiness level during this session
+    // Stats after this training session completes
+    strength?: number;
+    speed?: number;
+    defense?: number;
+    dexterity?: number;
+    trainingDetails?: {
+      strength?: { gym: string; energy: number; };
+      speed?: { gym: string; energy: number; };
+      defense?: { gym: string; energy: number; };
+      dexterity?: { gym: string; energy: number; };
+    };
+    notes?: string[];
+  }>;
   // General notes for the day
   notes?: string[];
 }
@@ -1148,6 +1165,10 @@ export function simulateGymProgression(
       trainingSessions.push({
         type: 'candy_jump',
         happy: Math.round(candyTrainHappy),
+        strength: Math.round(statsAfterCandy.strength),
+        speed: Math.round(statsAfterCandy.speed),
+        defense: Math.round(statsAfterCandy.defense),
+        dexterity: Math.round(statsAfterCandy.dexterity),
         trainingDetails: Object.keys(candyJumpTrainingDetails).length > 0 ? candyJumpTrainingDetails : undefined,
         notes: [`Half Candy Jump: ${candyQuantity} ${candyName}${drugNote} at happy ${Math.round(candyTrainHappy).toLocaleString()}`],
       });
@@ -1483,6 +1504,10 @@ export function simulateGymProgression(
         trainingSessions.push({
           type: 'dd_jump',
           happy: 99999,
+          strength: Math.round(statsAfterJump.strength),
+          speed: Math.round(statsAfterJump.speed),
+          defense: Math.round(statsAfterJump.defense),
+          dexterity: Math.round(statsAfterJump.dexterity),
           trainingDetails: Object.keys(jumpTrainingDetails).length > 0 ? jumpTrainingDetails : undefined,
           notes: [`DD jump at happy 99,999`],
         });
@@ -1491,6 +1516,10 @@ export function simulateGymProgression(
           trainingSessions.push({
             type: 'regular',
             happy: inputs.happy,
+            strength: Math.round(stats.strength),
+            speed: Math.round(stats.speed),
+            defense: Math.round(stats.defense),
+            dexterity: Math.round(stats.dexterity),
             trainingDetails: Object.keys(postJumpTrainingDetails).length > 0 ? postJumpTrainingDetails : undefined,
             notes: [`Post-DD training at normal happy (${inputs.happy.toLocaleString()})`],
           });
@@ -1546,6 +1575,10 @@ export function simulateGymProgression(
         trainingSessions.push({
           type: 'edvd_jump',
           happy: Math.round(jumpHappy),
+          strength: Math.round(statsAfterJump.strength),
+          speed: Math.round(statsAfterJump.speed),
+          defense: Math.round(statsAfterJump.defense),
+          dexterity: Math.round(statsAfterJump.dexterity),
           trainingDetails: Object.keys(jumpTrainingDetails).length > 0 ? jumpTrainingDetails : undefined,
           notes: [`eDVD jump: Used ${inputs.edvdJump!.dvdsUsed} DVD${inputs.edvdJump!.dvdsUsed > 1 ? 's' : ''}, 1 Ecstasy${inputs.edvdJump!.adultNovelties ? ' (with 10★ Adult Novelties)' : ''} at happy ${jumpHappy.toLocaleString()}`],
         });
@@ -1554,6 +1587,10 @@ export function simulateGymProgression(
           trainingSessions.push({
             type: 'regular',
             happy: inputs.happy,
+            strength: Math.round(stats.strength),
+            speed: Math.round(stats.speed),
+            defense: Math.round(stats.defense),
+            dexterity: Math.round(stats.dexterity),
             trainingDetails: Object.keys(postJumpTrainingDetails).length > 0 ? postJumpTrainingDetails : undefined,
             notes: [`Post-eDVD training at normal happy (${inputs.happy.toLocaleString()})`],
           });
@@ -1639,6 +1676,10 @@ export function simulateGymProgression(
         trainingSessions.push({
           type: 'regular',
           happy: inputs.happy,
+          strength: Math.round(stats.strength),
+          speed: Math.round(stats.speed),
+          defense: Math.round(stats.defense),
+          dexterity: Math.round(stats.dexterity),
           trainingDetails: Object.keys(postCandyTrainingDetails).length > 0 ? postCandyTrainingDetails : undefined,
           notes: [`Post-candy training at normal happy (${inputs.happy.toLocaleString()})`],
         });

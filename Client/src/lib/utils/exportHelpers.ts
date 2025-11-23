@@ -20,6 +20,11 @@ export interface DailySnapshot {
   trainingSessions?: Array<{
     type: 'candy_jump' | 'regular' | 'edvd_jump' | 'dd_jump';
     happy?: number; // Happiness level during this session
+    // Stats after this training session completes
+    strength?: number;
+    speed?: number;
+    defense?: number;
+    dexterity?: number;
     trainingDetails?: {
       strength?: { gym: string; energy: number; };
       speed?: { gym: string; energy: number; };

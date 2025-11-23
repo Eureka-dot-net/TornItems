@@ -103,16 +103,17 @@ export default function TrainingBreakdown() {
             return '';
           };
 
-          // For the first session, use the actual stats; for subsequent sessions, use empty stats
-          // This makes the display cleaner - only the first row shows final stats for the day
+          // Each row shows the stats after that training session completes
           dailyRows.push({
             id: `${snapshot.day}-${sessionIndex}`,
             day: sessionIndex === 0 ? snapshot.day : '', // Only show day number on first row
-            strength: sessionIndex === 0 ? snapshot.strength : '',
-            speed: sessionIndex === 0 ? snapshot.speed : '',
-            defense: sessionIndex === 0 ? snapshot.defense : '',
-            dexterity: sessionIndex === 0 ? snapshot.dexterity : '',
-            total: sessionIndex === 0 ? total : '',
+            strength: session.strength || '',
+            speed: session.speed || '',
+            defense: session.defense || '',
+            dexterity: session.dexterity || '',
+            total: session.strength && session.speed && session.defense && session.dexterity 
+              ? session.strength + session.speed + session.defense + session.dexterity 
+              : '',
             strengthTraining: sessionFormatTraining('strength'),
             speedTraining: sessionFormatTraining('speed'),
             defenseTraining: sessionFormatTraining('defense'),
