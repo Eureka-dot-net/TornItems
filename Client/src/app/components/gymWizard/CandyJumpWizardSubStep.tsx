@@ -50,8 +50,8 @@ export default function CandyJumpWizardSubStep() {
     const saved = loadSavedValue<'none' | 'xanax' | 'ecstasy' | null>('candyJumpDrugUsed', null);
     return saved;
   });
-  const [xanaxAlreadyIncluded, setXanaxAlreadyIncluded] = useState<boolean>(() => 
-    loadSavedValue('candyJumpXanaxAlreadyIncluded', true)
+  const [drugAlreadyIncluded, setDrugAlreadyIncluded] = useState<boolean>(() => 
+    loadSavedValue('candyJumpDrugAlreadyIncluded', true)
   );
   const [usePointRefill, setUsePointRefill] = useState<boolean | null>(() => {
     const saved = loadSavedValue<boolean | null>('candyJumpUsePointRefill', null);
@@ -75,9 +75,9 @@ export default function CandyJumpWizardSubStep() {
     localStorage.setItem('gymWizard_candyJumpQuantity', JSON.stringify(quantity));
     localStorage.setItem('gymWizard_candyJumpFactionBenefit', JSON.stringify(factionBenefit));
     localStorage.setItem('gymWizard_candyJumpDrugUsed', JSON.stringify(drugUsed || 'none'));
-    localStorage.setItem('gymWizard_candyJumpXanaxAlreadyIncluded', JSON.stringify(xanaxAlreadyIncluded));
+    localStorage.setItem('gymWizard_candyJumpDrugAlreadyIncluded', JSON.stringify(drugAlreadyIncluded));
     localStorage.setItem('gymWizard_candyJumpUsePointRefill', JSON.stringify(usePointRefill ?? hasPointsRefill));
-  }, [frequencyDays, itemId, quantity, factionBenefit, drugUsed, xanaxAlreadyIncluded, usePointRefill, hasPointsRefill]);
+  }, [frequencyDays, itemId, quantity, factionBenefit, drugUsed, drugAlreadyIncluded, usePointRefill, hasPointsRefill]);
 
   return (
     <Box>
@@ -211,8 +211,8 @@ export default function CandyJumpWizardSubStep() {
         </Box>
       )}
 
-      {/* If Xanax selected, ask if already included */}
-      {drugUsed === 'xanax' && (
+      {/* If Xanax or Ecstasy selected, ask if already included (only if user has xanax per day > 0) */}
+      {(drugUsed === 'xanax' || drugUsed === 'ecstasy') && xanaxPerDay > 0 && (
         <Box sx={{ mb: 3, ml: 3 }}>
           <Typography variant="body2" color="text.secondary" paragraph>
             You indicated you use {xanaxPerDay} xanax per day normally.
@@ -220,11 +220,13 @@ export default function CandyJumpWizardSubStep() {
           <FormControlLabel
             control={
               <Switch
-                checked={xanaxAlreadyIncluded}
-                onChange={(e) => setXanaxAlreadyIncluded(e.target.checked)}
+                checked={drugAlreadyIncluded}
+                onChange={(e) => setDrugAlreadyIncluded(e.target.checked)}
               />
             }
-            label="This xanax is already included in my daily xanax count"
+            label={drugUsed === 'xanax' 
+              ? "This xanax is already included in my daily xanax count"
+              : "This ecstasy replaces one of my daily xanax"}
           />
         </Box>
       )}

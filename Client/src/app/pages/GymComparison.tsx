@@ -121,7 +121,7 @@ export default function GymComparison() {
       // Migrate old candyJumpUseEcstasy field to new drugUsed field
       candyJumpDrugUsed: (state.candyJumpDrugUsed as 'none' | 'xanax' | 'ecstasy') || 
                          ((state.candyJumpUseEcstasy as boolean) ? 'ecstasy' : 'none'),
-      candyJumpXanaxAlreadyIncluded: (state.candyJumpXanaxAlreadyIncluded as boolean) ?? true,
+      candyJumpDrugAlreadyIncluded: (state.candyJumpDrugAlreadyIncluded as boolean) ?? true,
       candyJumpUsePointRefill: (state.candyJumpUsePointRefill as boolean) ?? (state.hasPointsRefill as boolean) ?? true,
       energyJumpEnabled: (state.energyJumpEnabled as boolean) || false,
       energyJumpItemId: (state.energyJumpItemId as number) || ENERGY_ITEM_IDS.ENERGY_5,
@@ -238,7 +238,7 @@ export default function GymComparison() {
           candyJumpQuantity: DEFAULT_CANDY_QUANTITY,
           candyJumpFactionBenefit: 0,
           candyJumpDrugUsed: 'none',
-          candyJumpXanaxAlreadyIncluded: true,
+          candyJumpDrugAlreadyIncluded: true,
           candyJumpUsePointRefill: true,
           energyJumpEnabled: false,
           energyJumpItemId: ENERGY_ITEM_IDS.ENERGY_5,

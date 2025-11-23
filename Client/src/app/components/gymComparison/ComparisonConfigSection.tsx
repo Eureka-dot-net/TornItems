@@ -36,7 +36,7 @@ interface ComparisonState {
   candyJumpQuantity: number;
   candyJumpFactionBenefit: number;
   candyJumpDrugUsed: 'none' | 'xanax' | 'ecstasy';
-  candyJumpXanaxAlreadyIncluded: boolean;
+  candyJumpDrugAlreadyIncluded: boolean;
   candyJumpUsePointRefill: boolean;
   energyJumpEnabled: boolean;
   energyJumpItemId: number;
@@ -305,7 +305,7 @@ export default function ComparisonConfigSection({
         candyJumpQuantity={activeState.candyJumpQuantity}
         candyJumpFactionBenefit={activeState.candyJumpFactionBenefit}
         candyJumpDrugUsed={activeState.candyJumpDrugUsed}
-        candyJumpXanaxAlreadyIncluded={activeState.candyJumpXanaxAlreadyIncluded}
+        candyJumpDrugAlreadyIncluded={activeState.candyJumpDrugAlreadyIncluded}
         candyJumpUsePointRefill={activeState.candyJumpUsePointRefill}
         energyJumpEnabled={activeState.energyJumpEnabled}
         energyJumpItemId={activeState.energyJumpItemId}

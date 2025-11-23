@@ -31,7 +31,7 @@ export interface TrainingSection {
   candyJumpQuantity: number;
   candyJumpFactionBenefit: number;
   candyJumpDrugUsed: 'none' | 'xanax' | 'ecstasy'; // Which drug is used with candy
-  candyJumpXanaxAlreadyIncluded: boolean; // If xanax is used, is it already counted in daily xanax?
+  candyJumpDrugAlreadyIncluded: boolean; // If xanax/ecstasy is used, is it already counted in daily drug use?
   candyJumpUsePointRefill: boolean; // Does user use point refill during candy jump?
   energyJumpEnabled: boolean;
   energyJumpItemId: number;
@@ -162,7 +162,7 @@ export function simulateWithSections(
         quantity: section.candyJumpQuantity,
         factionBenefitPercent: section.candyJumpFactionBenefit,
         drugUsed: section.candyJumpDrugUsed,
-        xanaxAlreadyIncluded: section.candyJumpXanaxAlreadyIncluded,
+        drugAlreadyIncluded: section.candyJumpDrugAlreadyIncluded,
         usePointRefill: section.candyJumpUsePointRefill,
       } : undefined,
       energyJump: section.energyJumpEnabled ? {

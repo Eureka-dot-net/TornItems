@@ -42,7 +42,7 @@ interface TrainingSection {
   candyJumpQuantity: number;
   candyJumpFactionBenefit: number;
   candyJumpDrugUsed: 'none' | 'xanax' | 'ecstasy';
-  candyJumpXanaxAlreadyIncluded: boolean;
+  candyJumpDrugAlreadyIncluded: boolean;
   candyJumpUsePointRefill: boolean;
   energyJumpEnabled: boolean;
   energyJumpItemId: number;
@@ -560,7 +560,7 @@ export default function SectionedComparisonConfig({
                 candyJumpQuantity={section.candyJumpQuantity}
                 candyJumpFactionBenefit={section.candyJumpFactionBenefit}
                 candyJumpDrugUsed={section.candyJumpDrugUsed}
-                candyJumpXanaxAlreadyIncluded={section.candyJumpXanaxAlreadyIncluded}
+                candyJumpDrugAlreadyIncluded={section.candyJumpDrugAlreadyIncluded}
                 candyJumpUsePointRefill={section.candyJumpUsePointRefill}
                 energyJumpEnabled={section.energyJumpEnabled}
                 energyJumpItemId={section.energyJumpItemId}

@@ -26,7 +26,7 @@ interface CandyJumpConfigProps {
   quantity: number;
   factionBenefit: number;
   drugUsed: 'none' | 'xanax' | 'ecstasy';
-  xanaxAlreadyIncluded: boolean;
+  drugAlreadyIncluded: boolean;
   usePointRefill: boolean;
   hasPointsRefill: boolean;
   xanaxPerDay: number;
@@ -42,7 +42,7 @@ interface CandyJumpConfigProps {
     candyJumpQuantity?: number;
     candyJumpFactionBenefit?: number;
     candyJumpDrugUsed?: 'none' | 'xanax' | 'ecstasy';
-    candyJumpXanaxAlreadyIncluded?: boolean;
+    candyJumpDrugAlreadyIncluded?: boolean;
     candyJumpUsePointRefill?: boolean;
   }) => void;
 }
@@ -54,7 +54,7 @@ export default function CandyJumpConfig({
   quantity,
   factionBenefit,
   drugUsed,
-  xanaxAlreadyIncluded,
+  drugAlreadyIncluded,
   usePointRefill,
   hasPointsRefill,
   xanaxPerDay,
@@ -181,7 +181,7 @@ export default function CandyJumpConfig({
             </RadioGroup>
           </Box>
 
-          {drugUsed === 'xanax' && (
+          {(drugUsed === 'xanax' || drugUsed === 'ecstasy') && xanaxPerDay > 0 && (
             <Box sx={{ mt: 1, mb: 1, ml: 3 }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 You use {xanaxPerDay} xanax per day normally.
@@ -189,12 +189,14 @@ export default function CandyJumpConfig({
               <FormControlLabel
                 control={
                   <Switch
-                    checked={xanaxAlreadyIncluded}
-                    onChange={(e) => onUpdate({ candyJumpXanaxAlreadyIncluded: e.target.checked })}
+                    checked={drugAlreadyIncluded}
+                    onChange={(e) => onUpdate({ candyJumpDrugAlreadyIncluded: e.target.checked })}
                     size="small"
                   />
                 }
-                label="This xanax is already included in my daily xanax count"
+                label={drugUsed === 'xanax' 
+                  ? "This xanax is already included in my daily xanax count"
+                  : "This ecstasy replaces one of my daily xanax"}
               />
             </Box>
           )}
@@ -222,9 +224,9 @@ export default function CandyJumpConfig({
             {showCosts && itemPricesData && itemPricesData.prices[itemId] !== null && (() => {
               const candyPrice = itemPricesData.prices[itemId]!;
               let costPerJump = quantity * candyPrice;
-              if (drugUsed === 'ecstasy' && itemPricesData.prices[CONSUMABLE_ITEM_IDS.ECSTASY_CANDY] !== null) {
+              if (drugUsed === 'ecstasy' && !drugAlreadyIncluded && itemPricesData.prices[CONSUMABLE_ITEM_IDS.ECSTASY_CANDY] !== null) {
                 costPerJump += itemPricesData.prices[CONSUMABLE_ITEM_IDS.ECSTASY_CANDY]!;
-              } else if (drugUsed === 'xanax' && !xanaxAlreadyIncluded && itemPricesData.prices[CONSUMABLE_ITEM_IDS.XANAX] !== null) {
+              } else if (drugUsed === 'xanax' && !drugAlreadyIncluded && itemPricesData.prices[CONSUMABLE_ITEM_IDS.XANAX] !== null) {
                 costPerJump += itemPricesData.prices[CONSUMABLE_ITEM_IDS.XANAX]!;
               }
               return ` costing ${formatCurrency(costPerJump)} per jump`;

@@ -21,7 +21,7 @@ interface StatJumpsSectionProps {
   candyJumpQuantity: number;
   candyJumpFactionBenefit: number;
   candyJumpDrugUsed: 'none' | 'xanax' | 'ecstasy';
-  candyJumpXanaxAlreadyIncluded: boolean;
+  candyJumpDrugAlreadyIncluded: boolean;
   candyJumpUsePointRefill: boolean;
 
   // Energy Jump
@@ -61,7 +61,7 @@ interface StatJumpsSectionProps {
     candyJumpQuantity?: number;
     candyJumpFactionBenefit?: number;
     candyJumpDrugUsed?: 'none' | 'xanax' | 'ecstasy';
-    candyJumpXanaxAlreadyIncluded?: boolean;
+    candyJumpDrugAlreadyIncluded?: boolean;
     candyJumpUsePointRefill?: boolean;
     energyJumpEnabled?: boolean;
     energyJumpItemId?: number;
@@ -101,7 +101,7 @@ export default function StatJumpsSection(props: StatJumpsSectionProps) {
           quantity={props.candyJumpQuantity}
           factionBenefit={props.candyJumpFactionBenefit}
           drugUsed={props.candyJumpDrugUsed}
-          xanaxAlreadyIncluded={props.candyJumpXanaxAlreadyIncluded}
+          drugAlreadyIncluded={props.candyJumpDrugAlreadyIncluded}
           usePointRefill={props.candyJumpUsePointRefill}
           hasPointsRefill={props.hasPointsRefill}
           xanaxPerDay={props.xanaxPerDay}

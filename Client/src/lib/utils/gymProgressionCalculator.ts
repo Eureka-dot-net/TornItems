@@ -80,7 +80,7 @@ export interface SimulationInputs {
     quantity: number; // Number of candies used per jump (default 48)
     factionBenefitPercent?: number; // % increase in happiness from chocolate faction benefits
     drugUsed: 'none' | 'xanax' | 'ecstasy'; // Which drug is used with the candy jump
-    xanaxAlreadyIncluded: boolean; // If xanax, is it already included in daily xanax count?
+    drugAlreadyIncluded: boolean; // If xanax/ecstasy, is it already included in daily drug count?
     usePointRefill: boolean; // Does user use a point refill during the candy jump?
   };
   energyJump?: {
@@ -680,9 +680,13 @@ export function simulateGymProgression(
     
     // Adjust energy for candy jump days if needed
     if (isCandyJumpDay && inputs.candyJump && !isSkipped) {
-      // If xanax is used during candy jump AND it's NOT already included in daily xanax, add extra 250
-      if (inputs.candyJump.drugUsed === 'xanax' && !inputs.candyJump.xanaxAlreadyIncluded) {
+      // If drug is used during candy jump AND it's NOT already included in daily drug use, add extra energy
+      if (inputs.candyJump.drugUsed === 'xanax' && !inputs.candyJump.drugAlreadyIncluded) {
         energyAvailableToday += 250;
+      }
+      if (inputs.candyJump.drugUsed === 'ecstasy' && !inputs.candyJump.drugAlreadyIncluded) {
+        // Ecstasy doesn't add energy, but we need to account for it in drug limits
+        // No energy adjustment needed
       }
       
       // If point refill is used during candy jump AND user doesn't normally do point refills, add extra maxEnergy
@@ -952,6 +956,41 @@ export function simulateGymProgression(
         candyEnergy += 250;
       }
       
+      // Add energy from energy cans/FHC if enabled (they're used during the jump)
+      if (inputs.energyJump?.enabled) {
+        const energyItemMap: Record<number, number> = {
+          985: 5,
+          986: 10,
+          987: 15,
+          530: 20,
+          532: 25,
+          533: 30,
+          367: 0, // FHC - special case, refills energy bar
+        };
+        
+        const energyPerItem = energyItemMap[inputs.energyJump.itemId];
+        
+        if (energyPerItem !== undefined) {
+          let extraEnergy = 0;
+          const energyQuantity = inputs.energyJump.quantity || 24;
+          
+          if (inputs.energyJump.itemId === 367) {
+            // FHC refills energy bar - use maxEnergy value
+            extraEnergy = maxEnergyValue * energyQuantity;
+          } else {
+            // Regular energy items
+            extraEnergy = energyPerItem * energyQuantity;
+          }
+          
+          // Apply faction benefit percentage increase
+          if (inputs.energyJump.factionBenefitPercent > 0) {
+            extraEnergy = extraEnergy * (1 + inputs.energyJump.factionBenefitPercent / 100);
+          }
+          
+          candyEnergy += extraEnergy;
+        }
+      }
+      
       // Make sure we don't use more energy than available
       const energyToUse = Math.min(candyEnergy, remainingEnergy);
       
@@ -1057,7 +1096,8 @@ export function simulateGymProgression(
     }
     
     // Energy Jump - add extra energy per day from energy items
-    if (inputs.energyJump?.enabled && !shouldPerformEdvdJump && !isDiabetesDayJump && !isSkipped) {
+    // Skip on candy jump days since energy cans/FHC are already included in the candy jump
+    if (inputs.energyJump?.enabled && !shouldPerformEdvdJump && !isDiabetesDayJump && !isCandyJumpDay && !isSkipped) {
       // Map item IDs to energy values
       const energyItemMap: Record<number, number> = {
         985: 5,
@@ -1532,13 +1572,13 @@ export function simulateGymProgression(
         const candyQuantity = inputs.candyJump.quantity || 48;
         let costPerDay = candyQuantity * candyPrice;
         
-        // Add ecstasy cost if using ecstasy
-        if (inputs.candyJump.drugUsed === 'ecstasy' && inputs.itemPrices.candyEcstasyPrice !== null) {
+        // Add ecstasy cost if using ecstasy and it's not already included
+        if (inputs.candyJump.drugUsed === 'ecstasy' && !inputs.candyJump.drugAlreadyIncluded && inputs.itemPrices.candyEcstasyPrice !== null) {
           costPerDay += inputs.itemPrices.candyEcstasyPrice;
         }
         
-        // Add xanax cost if using xanax and it's not already included in daily xanax
-        if (inputs.candyJump.drugUsed === 'xanax' && !inputs.candyJump.xanaxAlreadyIncluded && inputs.itemPrices.xanaxPrice !== null) {
+        // Add xanax cost if using xanax and it's not already counted
+        if (inputs.candyJump.drugUsed === 'xanax' && !inputs.candyJump.drugAlreadyIncluded && inputs.itemPrices.xanaxPrice !== null) {
           costPerDay += inputs.itemPrices.xanaxPrice;
         }
         
