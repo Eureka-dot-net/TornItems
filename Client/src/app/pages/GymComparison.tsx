@@ -222,7 +222,7 @@ export default function GymComparison() {
       // No saved states or coming from wizard, create default state with new format
       return [{
         id: '1',
-        name: 'State 1',
+        name: fromWizard ? 'Current' : 'State 1',
         sections: [{
           id: '1',
           startDay: 1,

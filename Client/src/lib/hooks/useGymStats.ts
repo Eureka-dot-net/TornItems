@@ -16,6 +16,7 @@ export interface GymStatsResponse {
     defense: number;
     dexterity: number;
   };
+  baseHappy: number | null;
 }
 
 export function useGymStats(apiKey: string | null) {

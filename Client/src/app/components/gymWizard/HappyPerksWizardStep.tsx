@@ -113,7 +113,7 @@ export default function HappyPerksWizardStep() {
     localStorage.setItem('gymWizard_individualCourses', JSON.stringify(individualCourses));
   }, [individualCourses]);
 
-  // Fetch perks from API if API key exists and we haven't loaded them yet
+  // Fetch perks and base happy from API if API key exists and we haven't loaded them yet
   useEffect(() => {
     const fetchPerks = async () => {
       if (hasApiKey && !perksLoaded) {
@@ -123,6 +123,12 @@ export default function HappyPerksWizardStep() {
           
           // Update perk percs with fetched data
           setPerkPercs(data.perkPercs);
+          
+          // Auto-fill base happy if available
+          if (data.baseHappy !== null && data.baseHappy !== undefined) {
+            setBaseHappy(data.baseHappy);
+          }
+          
           setPerksLoaded(true);
         } catch (err) {
           console.error('Failed to fetch perks from API:', err);
@@ -212,6 +218,14 @@ export default function HappyPerksWizardStep() {
           Your current happy status is shown by the yellow bar in your Information sidebar with a timer 
           next to it. We need the <strong>maximum value when you haven't used any boosters</strong>.
         </Typography>
+
+        {hasApiKey && perksLoaded && baseHappy > 0 && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              Your base happy has been pre-filled from your API data. Please review and adjust if needed.
+            </Typography>
+          </Alert>
+        )}
 
         <TextField
           label="Base Happy"

@@ -17,7 +17,7 @@ export async function fetchGymStats(apiKey: string) {
     logInfo('Fetching gym stats from Torn API');
     
     const response = await axios.get<TornGymStatsResponse>(
-      `https://api.torn.com/v2/user?selections=battlestats,gym,perks&key=${apiKey}`
+      `https://api.torn.com/v2/user?selections=battlestats,gym,perks,bars&key=${apiKey}`
     );
     
     // Log the API call
