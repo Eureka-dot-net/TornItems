@@ -138,6 +138,7 @@ export interface SimulationInputs {
   };
 }
 
+// DailySnapshot interface - includes training session tracking for jump days
 export interface DailySnapshot {
   day: number;
   strength: number;
@@ -590,6 +591,11 @@ export function simulateGymProgression(
     const trainingSessions: Array<{
       type: 'candy_jump' | 'regular' | 'edvd_jump' | 'dd_jump';
       happy?: number;
+      // Stats after this training session completes
+      strength?: number;
+      speed?: number;
+      defense?: number;
+      dexterity?: number;
       trainingDetails?: {
         strength?: { gym: string; energy: number; };
         speed?: { gym: string; energy: number; };

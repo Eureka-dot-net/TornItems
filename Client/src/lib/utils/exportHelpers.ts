@@ -1,5 +1,6 @@
 /**
  * Export helpers for gym comparison data
+ * Updated to support training session tracking with stat snapshots
  */
 
 export interface DailySnapshot {
@@ -10,6 +11,13 @@ export interface DailySnapshot {
   dexterity: number;
   currentGym: string;
   energySpentOnGymUnlock: number;
+  isDiabetesDayJump?: boolean; // Marks if this day had a DD jump
+  diabetesDayJumpGains?: {
+    strength: number;
+    speed: number;
+    defense: number;
+    dexterity: number;
+  };
   trainingDetails?: {
     strength?: { gym: string; energy: number; };
     speed?: { gym: string; energy: number; };
