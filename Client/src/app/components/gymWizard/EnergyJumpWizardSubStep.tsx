@@ -107,7 +107,7 @@ export default function EnergyJumpWizardSubStep() {
         <TextField
           type="number"
           value={quantity}
-          onChange={(e) => setQuantity(validateNumericInput(e.target.value, DEFAULT_ENERGY_DRINK_QUANTITY, 1))}
+          onChange={(e) => setQuantity(validateNumericInput(e.target.value, DEFAULT_ENERGY_DRINK_QUANTITY, 1, 12))}
           fullWidth
           size="small"
           inputProps={{ step: 1, min: 1, max: 12 }}

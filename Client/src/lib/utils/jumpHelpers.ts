@@ -57,15 +57,21 @@ export function calculateCandyHappiness(
 }
 
 /**
- * Validate numeric input and ensure minimum value
+ * Validate numeric input and ensure minimum and optional maximum value
  */
 export function validateNumericInput(
   value: string,
   defaultValue: number,
-  minValue: number = 0
+  minValue: number = 0,
+  maxValue?: number
 ): number {
   if (value === '') {
     return defaultValue;
   }
-  return Math.max(minValue, Number(value));
+  const numValue = Number(value);
+  const clampedMin = Math.max(minValue, numValue);
+  if (maxValue !== undefined) {
+    return Math.min(maxValue, clampedMin);
+  }
+  return clampedMin;
 }

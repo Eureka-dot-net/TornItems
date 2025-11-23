@@ -36,9 +36,11 @@ export default function CandyJumpWizardSubStep() {
   const [itemId, setItemId] = useState<number>(() => 
     loadSavedValue('candyJumpItemId', CANDY_ITEM_IDS.HAPPY_75)
   );
-  const [useEcstasy, setUseEcstasy] = useState<'yes' | 'no' | null>(() => 
-    loadSavedValue<'yes' | 'no' | null>('candyJumpUseEcstasy', null)
-  );
+  const [useEcstasy, setUseEcstasy] = useState<'yes' | 'no' | null>(() => {
+    const saved = loadSavedValue<boolean | null>('candyJumpUseEcstasy', null);
+    if (saved === null) return null;
+    return saved ? 'yes' : 'no';
+  });
   const [quantity, setQuantity] = useState<number>(() => 
     loadSavedValue('candyJumpQuantity', DEFAULT_CANDY_QUANTITY)
   );
@@ -109,7 +111,7 @@ export default function CandyJumpWizardSubStep() {
         <TextField
           type="number"
           value={quantity}
-          onChange={(e) => setQuantity(validateNumericInput(e.target.value, DEFAULT_CANDY_QUANTITY, 1))}
+          onChange={(e) => setQuantity(validateNumericInput(e.target.value, DEFAULT_CANDY_QUANTITY, 1, 48))}
           fullWidth
           size="small"
           inputProps={{ step: 1, min: 1, max: 48 }}
@@ -126,7 +128,7 @@ export default function CandyJumpWizardSubStep() {
           Ecstasy doubles the happiness gained from candies, making your training significantly more effective.
         </Typography>
         <RadioGroup
-          value={useEcstasy || ''}
+          value={useEcstasy === null ? '' : useEcstasy}
           onChange={(e) => setUseEcstasy(e.target.value as 'yes' | 'no')}
         >
           <FormControlLabel 

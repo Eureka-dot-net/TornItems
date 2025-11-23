@@ -78,7 +78,7 @@ export default function FhcJumpWizardSubStep() {
         <TextField
           type="number"
           value={quantity}
-          onChange={(e) => setQuantity(validateNumericInput(e.target.value, DEFAULT_FHC_QUANTITY, 1))}
+          onChange={(e) => setQuantity(validateNumericInput(e.target.value, DEFAULT_FHC_QUANTITY, 1, 4))}
           fullWidth
           size="small"
           inputProps={{ step: 1, min: 1, max: 4 }}
