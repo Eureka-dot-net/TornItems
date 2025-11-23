@@ -3,6 +3,8 @@
  * Updated to support training session tracking with stat snapshots
  */
 
+import { convertSnapshotsToTrainingRows, calculateTotalEnergy } from './trainingDataHelpers';
+
 export interface DailySnapshot {
   day: number;
   strength: number;
@@ -201,7 +203,7 @@ export function exportToIncrementalCSV(data: ExportData): string {
   lines.push('');
   
   // Build header row for incremental data
-  // Format: Day | Comparison 1 - Strength | Speed | Defense | Dexterity | Total | Comparison 2 - Strength | ... | Total | Historical - Strength | ...
+  // Format: Day | Comparison 1 - Strength | Speed | Defense | Dexterity | Total | Total Energy | Comparison 2 - Strength | ... | Total | Total Energy | Historical - Strength | ...
   const headerParts = ['Day'];
   data.comparisonStates.forEach(state => {
     headerParts.push(`${state.name} - Strength`);
@@ -209,6 +211,7 @@ export function exportToIncrementalCSV(data: ExportData): string {
     headerParts.push(`${state.name} - Defense`);
     headerParts.push(`${state.name} - Dexterity`);
     headerParts.push(`${state.name} - Total`);
+    headerParts.push(`${state.name} - Total Energy`);
   });
   
   // Add historical data columns if present
@@ -231,6 +234,7 @@ export function exportToIncrementalCSV(data: ExportData): string {
     day0Parts.push(String(data.initialStats.dexterity));
     const stateTotal = data.initialStats.strength + data.initialStats.speed + data.initialStats.defense + data.initialStats.dexterity;
     day0Parts.push(String(stateTotal));
+    day0Parts.push('0'); // Total energy used on day 0
   });
   
   // Add historical data for day 0 if present
@@ -260,17 +264,31 @@ export function exportToIncrementalCSV(data: ExportData): string {
           const def = Math.round(snapshot.defense);
           const dex = Math.round(snapshot.dexterity);
           const stateTotal = str + spd + def + dex;
+          
+          // Calculate total energy used - consider trainingSessions if present
+          let totalEnergy = 0;
+          if (snapshot.trainingSessions && snapshot.trainingSessions.length > 0) {
+            // Sum energy from all training sessions
+            snapshot.trainingSessions.forEach(session => {
+              totalEnergy += calculateTotalEnergy(session.trainingDetails);
+            });
+          } else {
+            // Use trainingDetails
+            totalEnergy = calculateTotalEnergy(snapshot.trainingDetails);
+          }
+          
           dayParts.push(String(str));
           dayParts.push(String(spd));
           dayParts.push(String(def));
           dayParts.push(String(dex));
           dayParts.push(String(stateTotal));
+          dayParts.push(String(totalEnergy));
         } else {
           // If no data for this state, use empty
-          dayParts.push('', '', '', '', '');
+          dayParts.push('', '', '', '', '', '');
         }
       } else {
-        dayParts.push('', '', '', '', '');
+        dayParts.push('', '', '', '', '', '');
       }
     });
     
@@ -453,47 +471,33 @@ export function exportIndividualComparisonToCSV(data: IndividualComparisonExport
   // Daily Stats with Training Details
   lines.push('Daily Stats with Training Details');
   
-  // Build header - includes day, stats, totals, training details for each stat, and notes
+  // Build header - includes day, stats, totals, total energy used, training details for each stat, and notes
   const headerParts = [
     'Day',
-    'Strength', 'Speed', 'Defense', 'Dexterity', 'Total',
+    'Strength', 'Speed', 'Defense', 'Dexterity', 'Total', 'Total Energy Used',
     'Strength Training', 'Speed Training', 'Defense Training', 'Dexterity Training',
     'Notes'
   ];
   lines.push(headerParts.join(','));
   
-  // Add day 0 (initial stats)
-  const day0Total = data.initialStats.strength + data.initialStats.speed + data.initialStats.defense + data.initialStats.dexterity;
-  lines.push(`0,${data.initialStats.strength},${data.initialStats.speed},${data.initialStats.defense},${data.initialStats.dexterity},${day0Total},,,,,"Starting stats"`);
+  // Use shared helper function to convert snapshots to rows
+  const trainingRows = convertSnapshotsToTrainingRows(data.dailySnapshots, data.initialStats);
   
-  // Add daily data
-  data.dailySnapshots.forEach(snapshot => {
-    const total = snapshot.strength + snapshot.speed + snapshot.defense + snapshot.dexterity;
-    
-    // Format training details for each stat
-    const statNames = ['strength', 'speed', 'defense', 'dexterity'] as const;
-    const trainingInfo = statNames.map(stat => {
-      if (snapshot.trainingDetails && snapshot.trainingDetails[stat]) {
-        const details = snapshot.trainingDetails[stat]!;
-        return `"Trained ${stat} for ${details.energy} energy at ${details.gym}"`;
-      }
-      return '';
-    });
-    
-    // Format notes
-    const notesStr = snapshot.notes && snapshot.notes.length > 0 
-      ? `"${snapshot.notes.join('; ')}"` 
-      : '';
-    
+  // Export each row
+  trainingRows.forEach(row => {
     const rowParts = [
-      String(snapshot.day),
-      String(snapshot.strength),
-      String(snapshot.speed),
-      String(snapshot.defense),
-      String(snapshot.dexterity),
-      String(total),
-      ...trainingInfo,
-      notesStr
+      String(row.day),
+      String(row.strength),
+      String(row.speed),
+      String(row.defense),
+      String(row.dexterity),
+      String(row.total),
+      String(row.totalEnergyUsed),
+      row.strengthTraining ? `"${row.strengthTraining}"` : '',
+      row.speedTraining ? `"${row.speedTraining}"` : '',
+      row.defenseTraining ? `"${row.defenseTraining}"` : '',
+      row.dexterityTraining ? `"${row.dexterityTraining}"` : '',
+      row.notes ? `"${row.notes}"` : ''
     ];
     
     lines.push(rowParts.join(','));
