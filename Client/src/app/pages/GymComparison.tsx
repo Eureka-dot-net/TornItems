@@ -188,14 +188,25 @@ export default function GymComparison() {
     const loadedMonths = loadSavedValue<number>('months', DEFAULT_SIMULATION_MONTHS);
     const totalDays = loadedMonths * 30;
     
-    if (savedStates.length === 0) {
+    // IMPORTANT: When coming from wizard, we need to ignore any previously saved comparison states
+    // and create fresh states with the correct endDay matching the wizard's months value.
+    // This prevents validation errors where old saved states have endDay values that exceed
+    // the new totalDays from the wizard. Without this check, users get an error like
+    // "Section dates exceed the total duration" when coming from the wizard.
+    // The fromWizard flag is set by the wizard and cleared by the useEffect below after scrolling.
+    const fromWizard = localStorage.getItem('gymComparison_fromWizard') === 'true';
+    const shouldUseSavedStates = savedStates.length > 0 && !fromWizard;
+    
+    if (!shouldUseSavedStates) {
       // Check if wizard values exist
       const wizardStatWeights = loadSavedValue<StatWeights | null>('wizardStatWeights', null);
       const wizardStatDriftPercent = loadSavedValue<number | null>('wizardStatDriftPercent', null);
       const wizardBalanceAfterGymIndex = loadSavedValue<number | null>('wizardBalanceAfterGymIndex', null);
       const wizardIgnorePerksForGymSelection = loadSavedValue<boolean | null>('wizardIgnorePerksForGymSelection', null);
+      const wizardPerkPercs = loadSavedValue<{ strength: number; speed: number; defense: number; dexterity: number } | null>('perkPercs', null);
+      const wizardBaseHappy = loadSavedValue<number | null>('baseHappy', null);
 
-      // No saved states, create default state with new format
+      // No saved states or coming from wizard, create default state with new format
       return [{
         id: '1',
         name: 'State 1',
@@ -208,7 +219,7 @@ export default function GymComparison() {
           xanaxPerDay: DEFAULT_XANAX_PER_DAY,
           hasPointsRefill: true,
           maxEnergy: MAX_ENERGY_DEFAULT,
-          perkPercs: DEFAULT_PERK_PERCS,
+          perkPercs: wizardPerkPercs || DEFAULT_PERK_PERCS,
           edvdJumpEnabled: false,
           edvdJumpFrequency: DEFAULT_EDVD_FREQUENCY_DAYS,
           edvdJumpDvds: DEFAULT_EDVD_DVDS,
@@ -238,7 +249,7 @@ export default function GymComparison() {
           diabetesDayLogoClick: false,
           companyBenefitKey: COMPANY_BENEFIT_TYPES.NONE,
           candleShopStars: DEFAULT_CANDLE_SHOP_STARS,
-          happy: DEFAULT_HAPPY,
+          happy: wizardBaseHappy ?? DEFAULT_HAPPY,
           daysSkippedPerMonth: 0,
           statDriftPercent: wizardStatDriftPercent ?? 0,
           balanceAfterGymIndex: wizardBalanceAfterGymIndex ?? 19,
