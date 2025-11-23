@@ -1,5 +1,6 @@
 /**
  * Export helpers for gym comparison data
+ * Updated to support training session tracking with stat snapshots
  */
 
 export interface DailySnapshot {
@@ -10,12 +11,36 @@ export interface DailySnapshot {
   dexterity: number;
   currentGym: string;
   energySpentOnGymUnlock: number;
+  isDiabetesDayJump?: boolean; // Marks if this day had a DD jump
+  diabetesDayJumpGains?: {
+    strength: number;
+    speed: number;
+    defense: number;
+    dexterity: number;
+  };
   trainingDetails?: {
     strength?: { gym: string; energy: number; };
     speed?: { gym: string; energy: number; };
     defense?: { gym: string; energy: number; };
     dexterity?: { gym: string; energy: number; };
   };
+  // Support for multiple training sessions per day (e.g., candy jump + regular training)
+  trainingSessions?: Array<{
+    type: 'candy_jump' | 'regular' | 'edvd_jump' | 'dd_jump';
+    happy?: number; // Happiness level during this session
+    // Stats after this training session completes
+    strength?: number;
+    speed?: number;
+    defense?: number;
+    dexterity?: number;
+    trainingDetails?: {
+      strength?: { gym: string; energy: number; };
+      speed?: { gym: string; energy: number; };
+      defense?: { gym: string; energy: number; };
+      dexterity?: { gym: string; energy: number; };
+    };
+    notes?: string[];
+  }>;
   notes?: string[];
 }
 

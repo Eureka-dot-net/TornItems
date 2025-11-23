@@ -16,10 +16,13 @@ interface StatJumpsSectionProps {
 
   // Candy Jump
   candyJumpEnabled: boolean;
+  candyJumpFrequencyDays: number;
   candyJumpItemId: number;
-  candyJumpUseEcstasy: boolean;
   candyJumpQuantity: number;
   candyJumpFactionBenefit: number;
+  candyJumpDrugUsed: 'none' | 'xanax' | 'ecstasy';
+  candyJumpDrugAlreadyIncluded: boolean;
+  candyJumpUsePointRefill: boolean;
 
   // Energy Jump
   energyJumpEnabled: boolean;
@@ -53,10 +56,13 @@ interface StatJumpsSectionProps {
     edvdJumpStatTarget?: number;
     edvdJumpAdultNovelties?: boolean;
     candyJumpEnabled?: boolean;
+    candyJumpFrequencyDays?: number;
     candyJumpItemId?: number;
-    candyJumpUseEcstasy?: boolean;
     candyJumpQuantity?: number;
     candyJumpFactionBenefit?: number;
+    candyJumpDrugUsed?: 'none' | 'xanax' | 'ecstasy';
+    candyJumpDrugAlreadyIncluded?: boolean;
+    candyJumpUsePointRefill?: boolean;
     energyJumpEnabled?: boolean;
     energyJumpItemId?: number;
     energyJumpQuantity?: number;
@@ -90,10 +96,13 @@ export default function StatJumpsSection(props: StatJumpsSectionProps) {
       <Grid size={{ xs: 12, md: 3 }}>
         <CandyJumpConfig
           enabled={props.candyJumpEnabled}
+          frequencyDays={props.candyJumpFrequencyDays}
           itemId={props.candyJumpItemId}
-          useEcstasy={props.candyJumpUseEcstasy}
           quantity={props.candyJumpQuantity}
           factionBenefit={props.candyJumpFactionBenefit}
+          drugUsed={props.candyJumpDrugUsed}
+          drugAlreadyIncluded={props.candyJumpDrugAlreadyIncluded}
+          usePointRefill={props.candyJumpUsePointRefill}
           hasPointsRefill={props.hasPointsRefill}
           xanaxPerDay={props.xanaxPerDay}
           maxEnergy={props.maxEnergy}

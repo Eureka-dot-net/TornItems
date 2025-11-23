@@ -77,7 +77,9 @@ export default function TrainingBreakdown() {
       notes: 'Starting stats',
     };
 
-    const dailyRows = trainingData.dailySnapshots.map((snapshot) => {
+    const dailyRows: any[] = [];
+    
+    trainingData.dailySnapshots.forEach((snapshot) => {
       const total = snapshot.strength + snapshot.speed + snapshot.defense + snapshot.dexterity;
 
       // Format training details
@@ -89,20 +91,53 @@ export default function TrainingBreakdown() {
         return '';
       };
 
-      return {
-        id: snapshot.day,
-        day: snapshot.day,
-        strength: snapshot.strength,
-        speed: snapshot.speed,
-        defense: snapshot.defense,
-        dexterity: snapshot.dexterity,
-        total,
-        strengthTraining: formatTraining('strength'),
-        speedTraining: formatTraining('speed'),
-        defenseTraining: formatTraining('defense'),
-        dexterityTraining: formatTraining('dexterity'),
-        notes: snapshot.notes ? snapshot.notes.join('; ') : '',
-      };
+      // Check if this day has training sessions (jump + post-jump)
+      if (snapshot.trainingSessions && snapshot.trainingSessions.length > 0) {
+        // Create separate rows for each training session
+        snapshot.trainingSessions.forEach((session, sessionIndex) => {
+          const sessionFormatTraining = (stat: 'strength' | 'speed' | 'defense' | 'dexterity') => {
+            if (session.trainingDetails && session.trainingDetails[stat]) {
+              const details = session.trainingDetails[stat]!;
+              return `${details.energy} energy at ${details.gym}`;
+            }
+            return '';
+          };
+
+          // Each row shows the stats after that training session completes
+          dailyRows.push({
+            id: `${snapshot.day}-${sessionIndex}`,
+            day: sessionIndex === 0 ? snapshot.day : '', // Only show day number on first row
+            strength: session.strength || '',
+            speed: session.speed || '',
+            defense: session.defense || '',
+            dexterity: session.dexterity || '',
+            total: session.strength && session.speed && session.defense && session.dexterity 
+              ? session.strength + session.speed + session.defense + session.dexterity 
+              : '',
+            strengthTraining: sessionFormatTraining('strength'),
+            speedTraining: sessionFormatTraining('speed'),
+            defenseTraining: sessionFormatTraining('defense'),
+            dexterityTraining: sessionFormatTraining('dexterity'),
+            notes: session.notes ? session.notes.join('; ') : '',
+          });
+        });
+      } else {
+        // Regular day with no separate sessions
+        dailyRows.push({
+          id: snapshot.day,
+          day: snapshot.day,
+          strength: snapshot.strength,
+          speed: snapshot.speed,
+          defense: snapshot.defense,
+          dexterity: snapshot.dexterity,
+          total,
+          strengthTraining: formatTraining('strength'),
+          speedTraining: formatTraining('speed'),
+          defenseTraining: formatTraining('defense'),
+          dexterityTraining: formatTraining('dexterity'),
+          notes: snapshot.notes ? snapshot.notes.join('; ') : '',
+        });
+      }
     });
 
     return [initialRow, ...dailyRows];

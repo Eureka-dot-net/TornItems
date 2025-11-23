@@ -11,6 +11,7 @@ import {
   FormControlLabel,
   Radio,
   Alert,
+  Switch,
 } from '@mui/material';
 import { CANDY_ITEM_IDS, DEFAULT_CANDY_QUANTITY } from '../../../lib/constants/gymConstants';
 import { validateNumericInput } from '../../../lib/utils/jumpHelpers';
@@ -18,7 +19,7 @@ import { validateNumericInput } from '../../../lib/utils/jumpHelpers';
 /**
  * CandyJumpWizardSubStep Component
  * 
- * This sub-step helps users configure their candy jump training.
+ * This sub-step helps users configure their half candy jump training.
  * It asks questions in an easy-to-understand format for basic users.
  */
 
@@ -33,34 +34,55 @@ export default function CandyJumpWizardSubStep() {
     }
   };
 
+  const [frequencyDays, setFrequencyDays] = useState<number>(() => 
+    loadSavedValue('candyJumpFrequencyDays', 1)
+  );
   const [itemId, setItemId] = useState<number>(() => 
     loadSavedValue('candyJumpItemId', CANDY_ITEM_IDS.HAPPY_75)
   );
-  const [useEcstasy, setUseEcstasy] = useState<'yes' | 'no' | null>(() => {
-    const saved = loadSavedValue<boolean | null>('candyJumpUseEcstasy', null);
-    if (saved === null) return null;
-    return saved ? 'yes' : 'no';
-  });
   const [quantity, setQuantity] = useState<number>(() => 
     loadSavedValue('candyJumpQuantity', DEFAULT_CANDY_QUANTITY)
   );
   const [factionBenefit, setFactionBenefit] = useState<number>(() => 
     loadSavedValue('candyJumpFactionBenefit', 0)
   );
+  const [drugUsed, setDrugUsed] = useState<'none' | 'xanax' | 'ecstasy' | null>(() => {
+    const saved = loadSavedValue<'none' | 'xanax' | 'ecstasy' | null>('candyJumpDrugUsed', null);
+    return saved;
+  });
+  const [drugAlreadyIncluded, setDrugAlreadyIncluded] = useState<boolean>(() => 
+    loadSavedValue('candyJumpDrugAlreadyIncluded', true)
+  );
+  const [usePointRefill, setUsePointRefill] = useState<boolean | null>(() => {
+    const saved = loadSavedValue<boolean | null>('candyJumpUsePointRefill', null);
+    const hasPointsRefill = loadSavedValue<boolean>('hasPointsRefill', true);
+    // If user already does point refills, default to true
+    if (saved === null && hasPointsRefill) {
+      return true;
+    }
+    return saved;
+  });
+
+  // Load xanax per day for display
+  const xanaxPerDay = loadSavedValue<number>('xanaxPerDay', 0);
+  const hasPointsRefill = loadSavedValue<boolean>('hasPointsRefill', true);
 
   // Save values to localStorage
   useEffect(() => {
     localStorage.setItem('gymWizard_candyJumpEnabled', JSON.stringify(true));
+    localStorage.setItem('gymWizard_candyJumpFrequencyDays', JSON.stringify(frequencyDays));
     localStorage.setItem('gymWizard_candyJumpItemId', JSON.stringify(itemId));
-    localStorage.setItem('gymWizard_candyJumpUseEcstasy', JSON.stringify(useEcstasy === 'yes'));
     localStorage.setItem('gymWizard_candyJumpQuantity', JSON.stringify(quantity));
     localStorage.setItem('gymWizard_candyJumpFactionBenefit', JSON.stringify(factionBenefit));
-  }, [itemId, useEcstasy, quantity, factionBenefit]);
+    localStorage.setItem('gymWizard_candyJumpDrugUsed', JSON.stringify(drugUsed || 'none'));
+    localStorage.setItem('gymWizard_candyJumpDrugAlreadyIncluded', JSON.stringify(drugAlreadyIncluded));
+    localStorage.setItem('gymWizard_candyJumpUsePointRefill', JSON.stringify(usePointRefill ?? hasPointsRefill));
+  }, [frequencyDays, itemId, quantity, factionBenefit, drugUsed, drugAlreadyIncluded, usePointRefill, hasPointsRefill]);
 
   return (
     <Box>
       <Typography variant="h5" gutterBottom>
-        Configure Your Candy Jump Training
+        Configure Your Half Candy Jump Training
       </Typography>
 
       <Typography variant="body1" paragraph>
@@ -70,14 +92,34 @@ export default function CandyJumpWizardSubStep() {
 
       <Alert severity="info" sx={{ mb: 3 }}>
         <Typography variant="body2" paragraph>
-          <strong>What is a candy jump?</strong> By consuming happiness-boosting candies before training,
-          you temporarily increase your happy level. Higher happiness means better gains from each gym session.
+          <strong>What is a Half Candy Jump?</strong> A frequent jump done without stacking xanax. 
+          By consuming happiness-boosting candies before training, you temporarily increase your happy level. 
+          Higher happiness means better gains from each gym session.
         </Typography>
         <Typography variant="body2">
           <strong>Cooldown:</strong> Candies have a 30-minute cooldown. Without specialized job perks, 
           the maximum you can use is <strong>48 candies per day</strong>.
         </Typography>
       </Alert>
+
+      {/* Jump Frequency */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          How often do you do this jump?
+        </Typography>
+        <Typography variant="body2" color="text.secondary" paragraph>
+          Most users do it every day, but some do it every 2-3 days due to funding issues.
+        </Typography>
+        <TextField
+          type="number"
+          value={frequencyDays}
+          onChange={(e) => setFrequencyDays(validateNumericInput(e.target.value, 1, 1))}
+          fullWidth
+          size="small"
+          inputProps={{ step: 1, min: 1 }}
+          helperText="Enter number of days between jumps (1 = every day, 2 = every other day, etc.)"
+        />
+      </Box>
 
       {/* Candy Type */}
       <Box sx={{ mb: 3 }}>
@@ -103,10 +145,10 @@ export default function CandyJumpWizardSubStep() {
       {/* Quantity */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6" gutterBottom>
-          How many candies do you use per day?
+          How many candies do you use per jump?
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
-          Enter the number of candies you consume each day for training (maximum 48 without specialized perks).
+          Enter the number of candies you consume each jump (maximum 48 without specialized perks).
         </Typography>
         <TextField
           type="number"
@@ -119,39 +161,14 @@ export default function CandyJumpWizardSubStep() {
         />
       </Box>
 
-      {/* Ecstasy Question */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Do you use Ecstasy with your candies?
-        </Typography>
-        <Typography variant="body2" color="text.secondary" paragraph>
-          Ecstasy doubles the happiness gained from candies, making your training significantly more effective.
-        </Typography>
-        <RadioGroup
-          value={useEcstasy === null ? '' : useEcstasy}
-          onChange={(e) => setUseEcstasy(e.target.value as 'yes' | 'no')}
-        >
-          <FormControlLabel 
-            value="yes" 
-            control={<Radio />} 
-            label="Yes, I use Ecstasy with my candies" 
-          />
-          <FormControlLabel 
-            value="no" 
-            control={<Radio />} 
-            label="No, I don't use Ecstasy" 
-          />
-        </RadioGroup>
-      </Box>
-
-      {/* Faction Benefit - only show after Ecstasy question is answered */}
-      {useEcstasy !== null && (
+      {/* Faction Benefit - only show after quantity is set */}
+      {quantity > 0 && (
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" gutterBottom>
-            Do you have any faction bonuses that boost candy effectiveness?
+            Faction perks (% increase in happiness)
           </Typography>
           <Typography variant="body2" color="text.secondary" paragraph>
-            Some faction perks provide additional percentage bonuses. Enter 0 if you don't have any.
+            Some faction perks provide additional percentage bonuses to candy happiness. Enter 0 if you don't have any.
           </Typography>
           <TextField
             type="number"
@@ -165,10 +182,88 @@ export default function CandyJumpWizardSubStep() {
         </Box>
       )}
 
-      {useEcstasy !== null && (
+      {/* Drug Question */}
+      {quantity > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Which drug do you use with your candies? (You can only use one)
+          </Typography>
+          <RadioGroup
+            value={drugUsed === null ? '' : drugUsed}
+            onChange={(e) => setDrugUsed(e.target.value as 'none' | 'xanax' | 'ecstasy')}
+          >
+            <FormControlLabel 
+              value="xanax" 
+              control={<Radio />} 
+              label="Xanax (Extra 250 energy during the jump)" 
+            />
+            <FormControlLabel 
+              value="ecstasy" 
+              control={<Radio />} 
+              label="Ecstasy (Doubles happiness)" 
+            />
+            <FormControlLabel 
+              value="none" 
+              control={<Radio />} 
+              label="None" 
+            />
+          </RadioGroup>
+        </Box>
+      )}
+
+      {/* If Xanax or Ecstasy selected, ask if already included (only if user has xanax per day > 0) */}
+      {(drugUsed === 'xanax' || drugUsed === 'ecstasy') && xanaxPerDay > 0 && (
+        <Box sx={{ mb: 3, ml: 3 }}>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            You indicated you use {xanaxPerDay} xanax per day for training normally.
+          </Typography>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={drugAlreadyIncluded}
+                onChange={(e) => setDrugAlreadyIncluded(e.target.checked)}
+              />
+            }
+            label={drugUsed === 'xanax' 
+              ? "This xanax is already included in my daily xanax count"
+              : "This ecstasy replaces one of my daily xanax (counts toward 3 drug limit)"}
+          />
+        </Box>
+      )}
+
+      {/* Point refill question - only if user doesn't normally do point refills */}
+      {drugUsed !== null && !hasPointsRefill && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Do you use a point refill during the jump?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            Point refills give you an extra 150 energy (or 100 if you have 100 max energy).
+          </Typography>
+          <RadioGroup
+            value={usePointRefill === null ? '' : (usePointRefill ? 'yes' : 'no')}
+            onChange={(e) => setUsePointRefill(e.target.value === 'yes')}
+          >
+            <FormControlLabel value="yes" control={<Radio />} label="Yes, I use a point refill during the jump" />
+            <FormControlLabel value="no" control={<Radio />} label="No, I don't use a point refill" />
+          </RadioGroup>
+        </Box>
+      )}
+
+      {/* Note about energy cans and FHC */}
+      {drugUsed !== null && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <Typography variant="body2">
+            <strong>Energy Cans and FHC:</strong> If you use energy cans or Feathery Hotel Coupons (FHC) during your jumps, 
+            this is configured in the Energy Jump section.
+          </Typography>
+        </Alert>
+      )}
+
+      {(drugUsed !== null && (hasPointsRefill || usePointRefill !== null)) && (
         <Alert severity="success" sx={{ mt: 3 }}>
           <Typography variant="body2">
-            Your candy jump configuration has been saved. Click Next to continue.
+            Your half candy jump configuration has been saved. Click Next to continue.
           </Typography>
         </Alert>
       )}
