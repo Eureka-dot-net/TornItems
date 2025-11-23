@@ -16,6 +16,18 @@ export interface DailySnapshot {
     defense?: { gym: string; energy: number; };
     dexterity?: { gym: string; energy: number; };
   };
+  // Support for multiple training sessions per day (e.g., candy jump + regular training)
+  trainingSessions?: Array<{
+    type: 'candy_jump' | 'regular' | 'edvd_jump' | 'dd_jump';
+    happy?: number; // Happiness level during this session
+    trainingDetails?: {
+      strength?: { gym: string; energy: number; };
+      speed?: { gym: string; energy: number; };
+      defense?: { gym: string; energy: number; };
+      dexterity?: { gym: string; energy: number; };
+    };
+    notes?: string[];
+  }>;
   notes?: string[];
 }
 

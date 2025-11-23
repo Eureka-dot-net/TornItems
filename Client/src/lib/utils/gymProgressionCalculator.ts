@@ -568,6 +568,20 @@ export function simulateGymProgression(
       defense?: { gym: string; energy: number; };
       dexterity?: { gym: string; energy: number; };
     } = {};
+    
+    // Track training sessions separately (candy jump vs regular)
+    const trainingSessions: Array<{
+      type: 'candy_jump' | 'regular' | 'edvd_jump' | 'dd_jump';
+      happy?: number;
+      trainingDetails?: {
+        strength?: { gym: string; energy: number; };
+        speed?: { gym: string; energy: number; };
+        defense?: { gym: string; energy: number; };
+        dexterity?: { gym: string; energy: number; };
+      };
+      notes?: string[];
+    }> = [];
+    
     const dailyNotes: string[] = [];
     
     // Check if this is a skipped day (war, vacation, etc.)
@@ -936,6 +950,10 @@ export function simulateGymProgression(
     // Track stats before training for DD jumps and eDVD jumps (for total gains calculation)
     const statsBeforeTraining = (isDiabetesDayJump || shouldPerformEdvdJump) ? { ...stats } : undefined;
     
+    // Track stats before and after candy jump (for split gains calculation)
+    const statsBeforeCandy = isCandyJumpDay && !shouldPerformEdvdJump && !isDiabetesDayJump && !isSkipped ? { ...stats } : undefined;
+    let statsAfterCandy: typeof stats | undefined;
+    
     // Handle candy jump if enabled and not on an EDVD or DD jump day
     if (isCandyJumpDay && inputs.candyJump && !shouldPerformEdvdJump && !isDiabetesDayJump && !isSkipped) {
       // Map item IDs to happiness values
@@ -1022,7 +1040,14 @@ export function simulateGymProgression(
       const candyName = candyNames[inputs.candyJump.itemId] || 'candies';
       const drugNote = inputs.candyJump.drugUsed === 'xanax' ? ' + Xanax' : 
                        inputs.candyJump.drugUsed === 'ecstasy' ? ' + Ecstasy' : '';
-      dailyNotes.push(`Half Candy Jump: ${candyQuantity} ${candyName}${drugNote}`);
+      
+      // Track candy jump training separately
+      const candyJumpTrainingDetails: {
+        strength?: { gym: string; energy: number; };
+        speed?: { gym: string; energy: number; };
+        defense?: { gym: string; energy: number; };
+        dexterity?: { gym: string; energy: number; };
+      } = {};
       
       // Train with candy happiness for the allocated energy
       let candyRemainingEnergy = energyToUse;
@@ -1077,7 +1102,15 @@ export function simulateGymProgression(
               remainingEnergy -= gym.energyPerTrain;
               trainSuccessful = true;
               
-              // Track training details (candy jump training)
+              // Track candy jump training details separately
+              if (!candyJumpTrainingDetails[selectedStat]) {
+                candyJumpTrainingDetails[selectedStat] = { gym: gym.displayName, energy: 0 };
+              }
+              if (candyJumpTrainingDetails[selectedStat]) {
+                candyJumpTrainingDetails[selectedStat]!.energy += gym.energyPerTrain;
+              }
+              
+              // Also track in daily details for backward compatibility
               if (!dailyTrainingDetails[selectedStat]) {
                 dailyTrainingDetails[selectedStat] = { gym: gym.displayName, energy: 0 };
               }
@@ -1092,6 +1125,17 @@ export function simulateGymProgression(
         
         if (!trainSuccessful) break;
       }
+      
+      // Save stats after candy jump for split gains calculation
+      statsAfterCandy = { ...stats };
+      
+      // Add candy jump session to trainingSessions
+      trainingSessions.push({
+        type: 'candy_jump',
+        happy: Math.round(candyTrainHappy),
+        trainingDetails: Object.keys(candyJumpTrainingDetails).length > 0 ? candyJumpTrainingDetails : undefined,
+        notes: [`Half Candy Jump: ${candyQuantity} ${candyName}${drugNote} at happy ${Math.round(candyTrainHappy).toLocaleString()}`],
+      });
       
       candyJumpDaysPerformed++;
     }
@@ -1454,6 +1498,48 @@ export function simulateGymProgression(
       edvdJumpTotalGains.speed += edvdGains.speed;
       edvdJumpTotalGains.defense += edvdGains.defense;
       edvdJumpTotalGains.dexterity += edvdGains.dexterity;
+    }
+    
+    // Calculate candy jump gains if this was a candy jump day
+    if (isCandyJumpDay && statsBeforeCandy && statsAfterCandy) {
+      const candyJumpGains = {
+        strength: Math.round(statsAfterCandy.strength - statsBeforeCandy.strength),
+        speed: Math.round(statsAfterCandy.speed - statsBeforeCandy.speed),
+        defense: Math.round(statsAfterCandy.defense - statsBeforeCandy.defense),
+        dexterity: Math.round(statsAfterCandy.dexterity - statsBeforeCandy.dexterity),
+      };
+      const postCandyGains = {
+        strength: Math.round(stats.strength - statsAfterCandy.strength),
+        speed: Math.round(stats.speed - statsAfterCandy.speed),
+        defense: Math.round(stats.defense - statsAfterCandy.defense),
+        dexterity: Math.round(stats.dexterity - statsAfterCandy.dexterity),
+      };
+      const candyJumpTotal = candyJumpGains.strength + candyJumpGains.speed + candyJumpGains.defense + candyJumpGains.dexterity;
+      const postCandyTotal = postCandyGains.strength + postCandyGains.speed + postCandyGains.defense + postCandyGains.dexterity;
+      
+      // Calculate the happy used during candy jump
+      const candyHappinessMap: Record<number, number> = {
+        310: 25,
+        36: 35,
+        528: 75,
+        529: 100,
+        151: 150,
+      };
+      const candyHappy = candyHappinessMap[inputs.candyJump!.itemId];
+      const candyQuantity = inputs.candyJump!.quantity || 48;
+      let effectiveCandyHappy = candyHappy;
+      if (inputs.candyJump!.factionBenefitPercent && inputs.candyJump!.factionBenefitPercent > 0) {
+        effectiveCandyHappy = candyHappy * (1 + inputs.candyJump!.factionBenefitPercent / 100);
+      }
+      let candyTrainHappy = inputs.happy + (effectiveCandyHappy * candyQuantity);
+      if (inputs.candyJump!.drugUsed === 'ecstasy') {
+        candyTrainHappy = candyTrainHappy * 2;
+      }
+      
+      dailyNotes.push(`Half candy jump gains: +${Math.round(candyJumpTotal).toLocaleString()} total stats at happy ${Math.round(candyTrainHappy).toLocaleString()}`);
+      if (postCandyTotal > 0) {
+        dailyNotes.push(`Post-candy training gains: +${Math.round(postCandyTotal).toLocaleString()} total stats at normal happy (${inputs.happy.toLocaleString()})`);
+      }
     }
     
     // Take snapshot every day to show accurate daily progression
