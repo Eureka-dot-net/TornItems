@@ -219,7 +219,7 @@ export default function HappyPerksWizardStep() {
           next to it. We need the <strong>maximum value when you haven't used any boosters</strong>.
         </Typography>
 
-        {hasApiKey && perksLoaded && baseHappy > 0 && (
+        {hasApiKey && perksLoaded && baseHappy !== null && baseHappy !== undefined && baseHappy > 0 && (
           <Alert severity="success" sx={{ mb: 2 }}>
             <Typography variant="body2">
               Your base happy has been pre-filled from your API data. Please review and adjust if needed.
