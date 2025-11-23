@@ -307,6 +307,14 @@ export default function ComparisonConfigSection({
         candyJumpDrugUsed={activeState.candyJumpDrugUsed}
         candyJumpDrugAlreadyIncluded={activeState.candyJumpDrugAlreadyIncluded}
         candyJumpUsePointRefill={activeState.candyJumpUsePointRefill}
+        stackedCandyJumpEnabled={activeState.stackedCandyJumpEnabled}
+        stackedCandyJumpFrequency={activeState.stackedCandyJumpFrequency}
+        stackedCandyJumpItemId={activeState.stackedCandyJumpItemId}
+        stackedCandyJumpQuantity={activeState.stackedCandyJumpQuantity}
+        stackedCandyJumpFactionBenefit={activeState.stackedCandyJumpFactionBenefit}
+        stackedCandyJumpLimit={activeState.stackedCandyJumpLimit}
+        stackedCandyJumpCount={activeState.stackedCandyJumpCount}
+        stackedCandyJumpStatTarget={activeState.stackedCandyJumpStatTarget}
         energyJumpEnabled={activeState.energyJumpEnabled}
         energyJumpItemId={activeState.energyJumpItemId}
         energyJumpQuantity={activeState.energyJumpQuantity}
