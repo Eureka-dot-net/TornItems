@@ -10,8 +10,7 @@ import {
   Collapse,
   Checkbox,
 } from '@mui/material';
-import { agent } from '../../../lib/api/agent';
-import { type GymStatsResponse } from '../../../lib/hooks/useGymStats';
+import { fetchGymStatsFromTorn, calculatePerkPercentages } from '../../../lib/utils/tornApiHelpers';
 
 /**
  * HappyPerksWizardStep Component
@@ -113,16 +112,25 @@ export default function HappyPerksWizardStep() {
     localStorage.setItem('gymWizard_individualCourses', JSON.stringify(individualCourses));
   }, [individualCourses]);
 
-  // Fetch perks from API if API key exists and we haven't loaded them yet
+  // Fetch perks and base happy from API if API key exists and we haven't loaded them yet
   useEffect(() => {
     const fetchPerks = async () => {
       if (hasApiKey && !perksLoaded) {
         try {
-          const response = await agent.get<GymStatsResponse>(`/gym/stats?apiKey=${encodeURIComponent(apiKey)}`);
-          const data = response.data;
+          // Use shared helper to fetch directly from Torn API with perks
+          const data = await fetchGymStatsFromTorn(apiKey, true);
+          
+          // Calculate perk percentages using shared helper
+          const perkPercentages = calculatePerkPercentages(data);
           
           // Update perk percs with fetched data
-          setPerkPercs(data.perkPercs);
+          setPerkPercs(perkPercentages);
+          
+          // Auto-fill base happy if available
+          if (data.bars?.happy?.maximum) {
+            setBaseHappy(data.bars.happy.maximum);
+          }
+          
           setPerksLoaded(true);
         } catch (err) {
           console.error('Failed to fetch perks from API:', err);
@@ -212,6 +220,14 @@ export default function HappyPerksWizardStep() {
           Your current happy status is shown by the yellow bar in your Information sidebar with a timer 
           next to it. We need the <strong>maximum value when you haven't used any boosters</strong>.
         </Typography>
+
+        {hasApiKey && perksLoaded && baseHappy !== null && baseHappy !== undefined && baseHappy > 0 && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              Your base happy has been pre-filled from your API data. Please review and adjust if needed.
+            </Typography>
+          </Alert>
+        )}
 
         <TextField
           label="Base Happy"

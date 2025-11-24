@@ -879,6 +879,13 @@ export function simulateGymProgression(
         // No energy adjustment needed
       }
       
+      // If ecstasy is used AND it IS already included (replaces one of daily xanax), subtract xanax energy
+      // because the xanax energy is already in dailyEnergy but is being replaced by ecstasy which adds no energy
+      if (inputs.candyJump.drugUsed === 'ecstasy' && inputs.candyJump.drugAlreadyIncluded) {
+        // Subtract the xanax energy that's already in dailyEnergy since it's being replaced by ecstasy
+        energyAvailableToday -= 250;
+      }
+      
       // If point refill is used during candy jump AND user doesn't normally do point refills, add extra maxEnergy
       if (inputs.candyJump.usePointRefill && !inputs.hasPointsRefill) {
         energyAvailableToday += maxEnergyValue;

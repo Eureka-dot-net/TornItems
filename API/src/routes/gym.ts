@@ -100,7 +100,8 @@ router.get('/stats', async (req: Request, res: Response) => {
         total: data.battlestats.total
       },
       activeGym: data.active_gym,
-      perkPercs: perkPercs
+      perkPercs: perkPercs,
+      baseHappy: data.bars?.happy.maximum || null
     });
   } catch (error) {
     logError('Error fetching gym stats', error instanceof Error ? error : new Error(String(error)));

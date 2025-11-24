@@ -19,12 +19,11 @@ import {
   type SimulationInputs,
   type SimulationResult,
 } from '../../lib/utils/gymProgressionCalculator';
-import { type GymStatsResponse } from '../../lib/hooks/useGymStats';
 import { type HistoricalStat } from '../../lib/hooks/useHistoricalStats';
 import { useItemPrices } from '../../lib/hooks/useItemPrices';
 import { getCompanyBenefit, type StatWeights } from '../../lib/utils/gymHelpers';
 import { simulateWithSections, type TrainingSection } from '../../lib/utils/sectionSimulator';
-import { agent } from '../../lib/api/agent';
+import { fetchGymStatsFromTorn, calculatePerkPercentages } from '../../lib/utils/tornApiHelpers';
 import {
   CANDY_ITEM_IDS,
   ENERGY_ITEM_IDS,
@@ -189,7 +188,9 @@ export default function GymComparison() {
     loadSavedValue('initialStats', DEFAULT_INITIAL_STATS)
   );
   const [currentGymIndex, setCurrentGymIndex] = useState<number>(() => loadSavedValue('currentGymIndex', 0));
+  const [gymProgressPercent, setGymProgressPercent] = useState<number>(() => loadSavedValue('gymProgressPercent', 0));
   const [months, setMonths] = useState<number>(() => loadSavedValue('months', DEFAULT_SIMULATION_MONTHS));
+  const [durationUnit, setDurationUnit] = useState<'days' | 'weeks' | 'months'>(() => loadSavedValue('durationUnit', 'months'));
   const [simulatedDate, setSimulatedDate] = useState<Date | null>(() => {
     const saved = loadSavedValue<string | null>('simulatedDate', null);
     return saved ? new Date(saved) : null;
@@ -222,7 +223,7 @@ export default function GymComparison() {
       // No saved states or coming from wizard, create default state with new format
       return [{
         id: '1',
-        name: 'State 1',
+        name: fromWizard ? 'Current' : 'State 1',
         sections: [{
           id: '1',
           startDay: 1,
@@ -361,7 +362,9 @@ export default function GymComparison() {
   useEffect(() => { localStorage.setItem('gymComparison_initialStats', JSON.stringify(initialStats)); }, [initialStats]);
   useEffect(() => { localStorage.setItem('gymComparison_simulatedDate', JSON.stringify(simulatedDate ? simulatedDate.toISOString() : null)); }, [simulatedDate]);
   useEffect(() => { localStorage.setItem('gymComparison_currentGymIndex', JSON.stringify(currentGymIndex)); }, [currentGymIndex]);
+  useEffect(() => { localStorage.setItem('gymComparison_gymProgressPercent', JSON.stringify(gymProgressPercent)); }, [gymProgressPercent]);
   useEffect(() => { localStorage.setItem('gymComparison_months', JSON.stringify(months)); }, [months]);
+  useEffect(() => { localStorage.setItem('gymComparison_durationUnit', JSON.stringify(durationUnit)); }, [durationUnit]);
   useEffect(() => { localStorage.setItem('gymComparison_comparisonStates', JSON.stringify(comparisonStates)); }, [comparisonStates]);
   
   // Auto-simulate when data changes
@@ -393,9 +396,9 @@ export default function GymComparison() {
       return;
     }
     
-    // Validate that it's a reasonable value
-    if (!newMonths || newMonths < 1 || !Number.isFinite(newMonths)) {
-      setMonthValidationError('Please enter a valid duration (at least 1 month).');
+    // Validate that it's a reasonable value (at least 1 day, which is 1/30 of a month)
+    if (!newMonths || newMonths < (1/30) || !Number.isFinite(newMonths)) {
+      setMonthValidationError('Please enter a valid duration (at least 1 day).');
       setResults({});
       return;
     }
@@ -506,29 +509,50 @@ export default function GymComparison() {
     
     try {
       setIsLoadingGymStats(true);
-      const response = await agent.get<GymStatsResponse>(`/gym/stats?apiKey=${encodeURIComponent(apiKey)}`);
-      const data = response.data;
+      // Use shared helper to fetch directly from Torn API with perks
+      const data = await fetchGymStatsFromTorn(apiKey, true);
+      
+      // Calculate perk percentages using shared helper
+      const perkPercs = calculatePerkPercentages(data);
       
       // Update the values with fetched data
       setInitialStats({
-        strength: data.battlestats.strength,
-        speed: data.battlestats.speed,
-        defense: data.battlestats.defense,
-        dexterity: data.battlestats.dexterity,
+        strength: data.battlestats.strength.value,
+        speed: data.battlestats.speed.value,
+        defense: data.battlestats.defense.value,
+        dexterity: data.battlestats.dexterity.value,
       });
-      setCurrentGymIndex(Math.max(0, data.activeGym - 1));
+      setCurrentGymIndex(Math.max(0, data.active_gym - 1));
       
       // Update manual mode perk percs
-      setManualPerkPercs(data.perkPercs);
+      setManualPerkPercs(perkPercs);
       
-      // Update perk percs in all sections of all comparison states
-      setComparisonStates((prev) => prev.map((state) => ({
-        ...state,
-        sections: state.sections.map(section => ({
-          ...section,
-          perkPercs: data.perkPercs,
-        })),
-      })));
+      // Auto-fill base happy if available
+      if (data.bars?.happy?.maximum) {
+        const baseHappy = data.bars.happy.maximum;
+        
+        // Update base happy in all sections of all comparison states
+        setComparisonStates((prev) => prev.map((state) => ({
+          ...state,
+          sections: state.sections.map(section => ({
+            ...section,
+            happy: baseHappy,
+            perkPercs: perkPercs,
+          })),
+        })));
+        
+        // Also update manual mode happy
+        setManualHappy(baseHappy);
+      } else {
+        // Just update perk percs if no base happy
+        setComparisonStates((prev) => prev.map((state) => ({
+          ...state,
+          sections: state.sections.map(section => ({
+            ...section,
+            perkPercs: perkPercs,
+          })),
+        })));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch gym stats');
     } finally {
@@ -637,9 +661,9 @@ export default function GymComparison() {
         const result = simulateGymProgression(AVAILABLE_GYMS, inputs);
         setResults({ manual: result });
       } else {
-        // Validate months value
-        if (!months || months < 1 || !Number.isFinite(months)) {
-          setError('Please enter a valid duration (at least 1 month)');
+        // Validate months value (at least 1 day, which is 1/30 of a month)
+        if (!months || months < (1/30) || !Number.isFinite(months)) {
+          setError('Please enter a valid duration (at least 1 day)');
           setResults({});
           return;
         }
@@ -994,8 +1018,12 @@ export default function GymComparison() {
               setInitialStats={setInitialStats}
               currentGymIndex={currentGymIndex}
               setCurrentGymIndex={setCurrentGymIndex}
+              gymProgressPercent={gymProgressPercent}
+              setGymProgressPercent={setGymProgressPercent}
               months={months}
               setMonths={handleMonthsChange}
+              durationUnit={durationUnit}
+              setDurationUnit={setDurationUnit}
               isLoadingGymStats={isLoadingGymStats}
               handleFetchStats={handleFetchStats}
               simulatedDate={simulatedDate}

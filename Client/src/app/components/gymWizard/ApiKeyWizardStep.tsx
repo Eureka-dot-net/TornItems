@@ -9,8 +9,7 @@ import {
   Collapse,
 } from '@mui/material';
 import PlayerStatsSection from '../gymComparison/PlayerStatsSection';
-import { agent } from '../../../lib/api/agent';
-import { type GymStatsResponse } from '../../../lib/hooks/useGymStats';
+import { fetchGymStatsFromTorn } from '../../../lib/utils/tornApiHelpers';
 
 /**
  * ApiKeyWizardStep Component
@@ -52,7 +51,8 @@ export default function ApiKeyWizardStep() {
     loadSavedValue('initialStats', DEFAULT_INITIAL_STATS)
   );
   const [currentGymIndex, setCurrentGymIndex] = useState<number>(() => loadSavedValue('currentGymIndex', 0));
-  const [months, setMonths] = useState<number>(() => loadSavedValue('months', 6));
+  const [gymProgressPercent, setGymProgressPercent] = useState<number>(() => loadSavedValue('gymProgressPercent', 0));
+  const [months, setMonths] = useState<number>(() => loadSavedValue('months', 12));
   const [simulatedDate, setSimulatedDate] = useState<Date | null>(() => {
     const saved = loadSavedValue<string | null>('simulatedDate', null);
     return saved ? new Date(saved) : null;
@@ -77,6 +77,10 @@ export default function ApiKeyWizardStep() {
   }, [currentGymIndex]);
 
   useEffect(() => {
+    localStorage.setItem('gymWizard_gymProgressPercent', JSON.stringify(gymProgressPercent));
+  }, [gymProgressPercent]);
+
+  useEffect(() => {
     localStorage.setItem('gymWizard_months', JSON.stringify(months));
   }, [months]);
 
@@ -87,17 +91,17 @@ export default function ApiKeyWizardStep() {
   const handleFetchStats = async () => {
     setIsLoadingGymStats(true);
     try {
-      const response = await agent.get<GymStatsResponse>(`/gym/stats?apiKey=${encodeURIComponent(apiKey)}`);
-      const data = response.data;
+      // Use shared helper to fetch directly from Torn API
+      const data = await fetchGymStatsFromTorn(apiKey);
       
       // Update the values with fetched data
       setInitialStats({
-        strength: data.battlestats.strength,
-        speed: data.battlestats.speed,
-        defense: data.battlestats.defense,
-        dexterity: data.battlestats.dexterity,
+        strength: data.battlestats.strength.value,
+        speed: data.battlestats.speed.value,
+        defense: data.battlestats.defense.value,
+        dexterity: data.battlestats.dexterity.value,
       });
-      setCurrentGymIndex(Math.max(0, data.activeGym - 1));
+      setCurrentGymIndex(Math.max(0, data.active_gym - 1));
     } catch (err) {
       console.error('Failed to fetch gym stats:', err);
     } finally {
@@ -195,6 +199,8 @@ export default function ApiKeyWizardStep() {
             setInitialStats={setInitialStats}
             currentGymIndex={currentGymIndex}
             setCurrentGymIndex={setCurrentGymIndex}
+            gymProgressPercent={gymProgressPercent}
+            setGymProgressPercent={setGymProgressPercent}
             months={months}
             setMonths={setMonths}
             isLoadingGymStats={isLoadingGymStats}

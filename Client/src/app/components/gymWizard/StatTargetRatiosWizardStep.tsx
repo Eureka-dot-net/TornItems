@@ -306,7 +306,7 @@ export default function StatTargetRatiosWizardStep() {
                     When I reach Cha Cha's gym
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Cha Cha's (gym #20) is the first of the elite gyms with 7.3 gym dots
+                    Cha Cha's (gym #20) is where the first specialized gym is unlocked
                   </Typography>
                 </Box>
               }

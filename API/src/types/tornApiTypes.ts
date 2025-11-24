@@ -104,7 +104,7 @@ export interface TornGymResponse {
 }
 
 /**
- * Combined response from /v2/user?selections=battlestats,gym,perks
+ * Combined response from /v2/user?selections=battlestats,gym,perks,bars
  */
 export interface TornGymStatsResponse {
   active_gym: number;
@@ -139,6 +139,16 @@ export interface TornGymStatsResponse {
   book_perks: string[];
   stock_perks: string[];
   merit_perks: string[];
+  bars?: {
+    happy: {
+      current: number;
+      maximum: number;
+      increment: number;
+      interval: number;
+      tick_time: number;
+      full_time: number;
+    };
+  };
 }
 
 /**
