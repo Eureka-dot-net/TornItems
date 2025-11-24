@@ -9,8 +9,7 @@ import {
   Collapse,
 } from '@mui/material';
 import PlayerStatsSection from '../gymComparison/PlayerStatsSection';
-import { agent } from '../../../lib/api/agent';
-import { type GymStatsResponse } from '../../../lib/hooks/useGymStats';
+import { fetchGymStatsFromTorn } from '../../../lib/utils/tornApiHelpers';
 
 /**
  * ApiKeyWizardStep Component
@@ -92,18 +91,17 @@ export default function ApiKeyWizardStep() {
   const handleFetchStats = async () => {
     setIsLoadingGymStats(true);
     try {
-      // Use server API to fetch stats (includes perks calculation and base happy)
-      const response = await agent.get<GymStatsResponse>(`/gym/stats?apiKey=${encodeURIComponent(apiKey)}`);
-      const data = response.data;
+      // Use shared helper to fetch directly from Torn API
+      const data = await fetchGymStatsFromTorn(apiKey);
       
       // Update the values with fetched data
       setInitialStats({
-        strength: data.battlestats.strength,
-        speed: data.battlestats.speed,
-        defense: data.battlestats.defense,
-        dexterity: data.battlestats.dexterity,
+        strength: data.battlestats.strength.value,
+        speed: data.battlestats.speed.value,
+        defense: data.battlestats.defense.value,
+        dexterity: data.battlestats.dexterity.value,
       });
-      setCurrentGymIndex(Math.max(0, data.activeGym - 1));
+      setCurrentGymIndex(Math.max(0, data.active_gym - 1));
     } catch (err) {
       console.error('Failed to fetch gym stats:', err);
     } finally {

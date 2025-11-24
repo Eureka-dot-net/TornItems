@@ -19,12 +19,11 @@ import {
   type SimulationInputs,
   type SimulationResult,
 } from '../../lib/utils/gymProgressionCalculator';
-import { type GymStatsResponse } from '../../lib/hooks/useGymStats';
 import { type HistoricalStat } from '../../lib/hooks/useHistoricalStats';
 import { useItemPrices } from '../../lib/hooks/useItemPrices';
 import { getCompanyBenefit, type StatWeights } from '../../lib/utils/gymHelpers';
 import { simulateWithSections, type TrainingSection } from '../../lib/utils/sectionSimulator';
-import { agent } from '../../lib/api/agent';
+import { fetchGymStatsFromTorn, calculatePerkPercentages } from '../../lib/utils/tornApiHelpers';
 import {
   CANDY_ITEM_IDS,
   ENERGY_ITEM_IDS,
@@ -510,42 +509,47 @@ export default function GymComparison() {
     
     try {
       setIsLoadingGymStats(true);
-      const response = await agent.get<GymStatsResponse>(`/gym/stats?apiKey=${encodeURIComponent(apiKey)}`);
-      const data = response.data;
+      // Use shared helper to fetch directly from Torn API with perks
+      const data = await fetchGymStatsFromTorn(apiKey, true);
+      
+      // Calculate perk percentages using shared helper
+      const perkPercs = calculatePerkPercentages(data);
       
       // Update the values with fetched data
       setInitialStats({
-        strength: data.battlestats.strength,
-        speed: data.battlestats.speed,
-        defense: data.battlestats.defense,
-        dexterity: data.battlestats.dexterity,
+        strength: data.battlestats.strength.value,
+        speed: data.battlestats.speed.value,
+        defense: data.battlestats.defense.value,
+        dexterity: data.battlestats.dexterity.value,
       });
-      setCurrentGymIndex(Math.max(0, data.activeGym - 1));
+      setCurrentGymIndex(Math.max(0, data.active_gym - 1));
       
       // Update manual mode perk percs
-      setManualPerkPercs(data.perkPercs);
+      setManualPerkPercs(perkPercs);
       
       // Auto-fill base happy if available
-      if (data.baseHappy !== null && data.baseHappy !== undefined) {
+      if (data.bars?.happy?.maximum) {
+        const baseHappy = data.bars.happy.maximum;
+        
         // Update base happy in all sections of all comparison states
         setComparisonStates((prev) => prev.map((state) => ({
           ...state,
           sections: state.sections.map(section => ({
             ...section,
-            happy: data.baseHappy!,
-            perkPercs: data.perkPercs,
+            happy: baseHappy,
+            perkPercs: perkPercs,
           })),
         })));
         
         // Also update manual mode happy
-        setManualHappy(data.baseHappy);
+        setManualHappy(baseHappy);
       } else {
         // Just update perk percs if no base happy
         setComparisonStates((prev) => prev.map((state) => ({
           ...state,
           sections: state.sections.map(section => ({
             ...section,
-            perkPercs: data.perkPercs,
+            perkPercs: perkPercs,
           })),
         })));
       }

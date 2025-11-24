@@ -10,8 +10,7 @@ import {
   Collapse,
   Checkbox,
 } from '@mui/material';
-import { agent } from '../../../lib/api/agent';
-import { type GymStatsResponse } from '../../../lib/hooks/useGymStats';
+import { fetchGymStatsFromTorn, calculatePerkPercentages } from '../../../lib/utils/tornApiHelpers';
 
 /**
  * HappyPerksWizardStep Component
@@ -118,15 +117,18 @@ export default function HappyPerksWizardStep() {
     const fetchPerks = async () => {
       if (hasApiKey && !perksLoaded) {
         try {
-          const response = await agent.get<GymStatsResponse>(`/gym/stats?apiKey=${encodeURIComponent(apiKey)}`);
-          const data = response.data;
+          // Use shared helper to fetch directly from Torn API with perks
+          const data = await fetchGymStatsFromTorn(apiKey, true);
+          
+          // Calculate perk percentages using shared helper
+          const perkPercentages = calculatePerkPercentages(data);
           
           // Update perk percs with fetched data
-          setPerkPercs(data.perkPercs);
+          setPerkPercs(perkPercentages);
           
           // Auto-fill base happy if available
-          if (data.baseHappy !== null && data.baseHappy !== undefined) {
-            setBaseHappy(data.baseHappy);
+          if (data.bars?.happy?.maximum) {
+            setBaseHappy(data.bars.happy.maximum);
           }
           
           setPerksLoaded(true);
