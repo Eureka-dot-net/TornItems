@@ -396,9 +396,9 @@ export default function GymComparison() {
       return;
     }
     
-    // Validate that it's a reasonable value
-    if (!newMonths || newMonths < 1 || !Number.isFinite(newMonths)) {
-      setMonthValidationError('Please enter a valid duration (at least 1 month).');
+    // Validate that it's a reasonable value (at least 1 day, which is 1/30 of a month)
+    if (!newMonths || newMonths < (1/30) || !Number.isFinite(newMonths)) {
+      setMonthValidationError('Please enter a valid duration (at least 1 day).');
       setResults({});
       return;
     }
@@ -661,9 +661,9 @@ export default function GymComparison() {
         const result = simulateGymProgression(AVAILABLE_GYMS, inputs);
         setResults({ manual: result });
       } else {
-        // Validate months value
-        if (!months || months < 1 || !Number.isFinite(months)) {
-          setError('Please enter a valid duration (at least 1 month)');
+        // Validate months value (at least 1 day, which is 1/30 of a month)
+        if (!months || months < (1/30) || !Number.isFinite(months)) {
+          setError('Please enter a valid duration (at least 1 day)');
           setResults({});
           return;
         }
