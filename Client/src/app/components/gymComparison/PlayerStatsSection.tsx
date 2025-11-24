@@ -35,6 +35,8 @@ interface PlayerStatsSectionProps {
   hideApiKeyAlert?: boolean;
   gymProgressPercent?: number;
   setGymProgressPercent?: (percent: number) => void;
+  durationUnit?: 'days' | 'weeks' | 'months';
+  setDurationUnit?: (unit: 'days' | 'weeks' | 'months') => void;
 }
 
 export default function PlayerStatsSection({
@@ -57,6 +59,8 @@ export default function PlayerStatsSection({
   hideApiKeyAlert = false,
   gymProgressPercent,
   setGymProgressPercent,
+  durationUnit = 'months',
+  setDurationUnit,
 }: PlayerStatsSectionProps) {
   // Constants for date validation
   const TORN_RELEASE_DATE = new Date('1997-10-27');
@@ -66,6 +70,22 @@ export default function PlayerStatsSection({
     yesterday.setHours(23, 59, 59, 999);
     return yesterday;
   };
+  
+  // Helper functions to convert duration
+  const convertToMonths = (value: number, unit: 'days' | 'weeks' | 'months'): number => {
+    if (unit === 'days') return value / 30;
+    if (unit === 'weeks') return value / 4.34524; // Average weeks per month
+    return value;
+  };
+  
+  const convertFromMonths = (months: number, unit: 'days' | 'weeks' | 'months'): number => {
+    if (unit === 'days') return Math.round(months * 30);
+    if (unit === 'weeks') return Math.round(months * 4.34524);
+    return months;
+  };
+  
+  // Get display value based on current unit
+  const displayValue = convertFromMonths(months, durationUnit);
   
   // State for fetching stats at simulated date
   const [fetchStatsAtDate, setFetchStatsAtDate] = useState(() => {
@@ -257,19 +277,32 @@ export default function PlayerStatsSection({
       <Grid container spacing={2}>
         <Grid size={{ xs: 6, md: 3 }}>
           <TextField 
-            label="Duration (months)" 
+            label={`Duration (${durationUnit})`}
             type="number" 
-            value={months ?? ''} 
+            value={displayValue ?? ''} 
             onChange={(e) => {
-              const value = e.target.value === '' ? 1 : Number(e.target.value);
-              setMonths(value);
+              const inputValue = e.target.value === '' ? 1 : Number(e.target.value);
+              const monthsValue = convertToMonths(inputValue, durationUnit);
+              setMonths(monthsValue);
             }}
             size="small" 
             fullWidth
             inputProps={{ step: 'any', min: 1 }} 
           />
         </Grid>
-        <Grid size={{ xs: 6, md: 3 }}>
+        {setDurationUnit && (
+          <Grid size={{ xs: 6, md: 3 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Duration Unit</InputLabel>
+              <Select value={durationUnit} label="Duration Unit" onChange={(e) => setDurationUnit(e.target.value as 'days' | 'weeks' | 'months')}>
+                <MenuItem value="days">Days</MenuItem>
+                <MenuItem value="weeks">Weeks</MenuItem>
+                <MenuItem value="months">Months</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+        )}
+        <Grid size={{ xs: 6, md: setDurationUnit ? 3 : 6 }}>
           <FormControl fullWidth size="small">
             <InputLabel>Starting Gym</InputLabel>
             <Select value={currentGymIndex} label="Starting Gym" onChange={(e) => setCurrentGymIndex(Number(e.target.value))}>

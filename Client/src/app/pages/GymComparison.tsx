@@ -191,6 +191,7 @@ export default function GymComparison() {
   const [currentGymIndex, setCurrentGymIndex] = useState<number>(() => loadSavedValue('currentGymIndex', 0));
   const [gymProgressPercent, setGymProgressPercent] = useState<number>(() => loadSavedValue('gymProgressPercent', 0));
   const [months, setMonths] = useState<number>(() => loadSavedValue('months', DEFAULT_SIMULATION_MONTHS));
+  const [durationUnit, setDurationUnit] = useState<'days' | 'weeks' | 'months'>(() => loadSavedValue('durationUnit', 'months'));
   const [simulatedDate, setSimulatedDate] = useState<Date | null>(() => {
     const saved = loadSavedValue<string | null>('simulatedDate', null);
     return saved ? new Date(saved) : null;
@@ -364,6 +365,7 @@ export default function GymComparison() {
   useEffect(() => { localStorage.setItem('gymComparison_currentGymIndex', JSON.stringify(currentGymIndex)); }, [currentGymIndex]);
   useEffect(() => { localStorage.setItem('gymComparison_gymProgressPercent', JSON.stringify(gymProgressPercent)); }, [gymProgressPercent]);
   useEffect(() => { localStorage.setItem('gymComparison_months', JSON.stringify(months)); }, [months]);
+  useEffect(() => { localStorage.setItem('gymComparison_durationUnit', JSON.stringify(durationUnit)); }, [durationUnit]);
   useEffect(() => { localStorage.setItem('gymComparison_comparisonStates', JSON.stringify(comparisonStates)); }, [comparisonStates]);
   
   // Auto-simulate when data changes
@@ -523,14 +525,30 @@ export default function GymComparison() {
       // Update manual mode perk percs
       setManualPerkPercs(data.perkPercs);
       
-      // Update perk percs in all sections of all comparison states
-      setComparisonStates((prev) => prev.map((state) => ({
-        ...state,
-        sections: state.sections.map(section => ({
-          ...section,
-          perkPercs: data.perkPercs,
-        })),
-      })));
+      // Auto-fill base happy if available
+      if (data.baseHappy !== null && data.baseHappy !== undefined) {
+        // Update base happy in all sections of all comparison states
+        setComparisonStates((prev) => prev.map((state) => ({
+          ...state,
+          sections: state.sections.map(section => ({
+            ...section,
+            happy: data.baseHappy!,
+            perkPercs: data.perkPercs,
+          })),
+        })));
+        
+        // Also update manual mode happy
+        setManualHappy(data.baseHappy);
+      } else {
+        // Just update perk percs if no base happy
+        setComparisonStates((prev) => prev.map((state) => ({
+          ...state,
+          sections: state.sections.map(section => ({
+            ...section,
+            perkPercs: data.perkPercs,
+          })),
+        })));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch gym stats');
     } finally {
@@ -1000,6 +1018,8 @@ export default function GymComparison() {
               setGymProgressPercent={setGymProgressPercent}
               months={months}
               setMonths={handleMonthsChange}
+              durationUnit={durationUnit}
+              setDurationUnit={setDurationUnit}
               isLoadingGymStats={isLoadingGymStats}
               handleFetchStats={handleFetchStats}
               simulatedDate={simulatedDate}
