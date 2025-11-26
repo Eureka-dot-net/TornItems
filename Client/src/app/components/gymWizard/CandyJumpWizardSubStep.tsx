@@ -93,24 +93,34 @@ export default function CandyJumpWizardSubStep({ mode = 'current' }: CandyJumpWi
   return (
     <Box>
       <Typography variant="h5" gutterBottom>
-        Configure Your Half Candy Jump Training
+        {isComparison ? 'Configure Comparison Half Candy Jump Training' : 'Configure Your Half Candy Jump Training'}
       </Typography>
 
       <Typography variant="body1" paragraph>
-        Happiness candies increase your happy level, which boosts the effectiveness of your gym training.
-        Let's configure how you use them.
+        {isComparison 
+          ? <>Configure the half candy jump settings for your <strong>comparison scenario</strong>. 
+              Adjust these values to see how different candy jump strategies would affect your gains.</>
+          : <>Happiness candies increase your happy level, which boosts the effectiveness of your gym training.
+              Let's configure how you use them.</>
+        }
       </Typography>
 
-      <Alert severity="info" sx={{ mb: 3 }}>
+      <Alert severity={isComparison ? 'warning' : 'info'} sx={{ mb: 3 }}>
         <Typography variant="body2" paragraph>
-          <strong>What is a Half Candy Jump?</strong> A frequent jump done without stacking xanax. 
-          By consuming happiness-boosting candies before training, you temporarily increase your happy level. 
-          Higher happiness means better gains from each gym session.
+          {isComparison 
+            ? <>These settings are for your <strong>comparison scenario</strong>. Modify them to 
+                see how changes to your candy jump strategy would impact your training.</>
+            : <><strong>What is a Half Candy Jump?</strong> A frequent jump done without stacking xanax. 
+                By consuming happiness-boosting candies before training, you temporarily increase your happy level. 
+                Higher happiness means better gains from each gym session.</>
+          }
         </Typography>
-        <Typography variant="body2">
-          <strong>Cooldown:</strong> Candies have a 30-minute cooldown. Without specialized job perks, 
-          the maximum you can use is <strong>48 candies per day</strong>.
-        </Typography>
+        {!isComparison && (
+          <Typography variant="body2">
+            <strong>Cooldown:</strong> Candies have a 30-minute cooldown. Without specialized job perks, 
+            the maximum you can use is <strong>48 candies per day</strong>.
+          </Typography>
+        )}
       </Alert>
 
       {/* Jump Frequency */}
@@ -274,7 +284,10 @@ export default function CandyJumpWizardSubStep({ mode = 'current' }: CandyJumpWi
       {(drugUsed !== null && (hasPointsRefill || usePointRefill !== null)) && (
         <Alert severity="success" sx={{ mt: 3 }}>
           <Typography variant="body2">
-            Your half candy jump configuration has been saved. Click Next to continue.
+            {isComparison 
+              ? 'Your comparison half candy jump configuration has been saved. Click Next to continue.'
+              : 'Your half candy jump configuration has been saved. Click Next to continue.'
+            }
           </Typography>
         </Alert>
       )}

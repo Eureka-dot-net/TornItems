@@ -66,23 +66,33 @@ export default function EnergyJumpWizardSubStep({ mode = 'current' }: EnergyJump
   return (
     <Box>
       <Typography variant="h5" gutterBottom>
-        Configure Your Energy Drink Usage
+        {isComparison ? 'Configure Comparison Energy Drink Usage' : 'Configure Your Energy Drink Usage'}
       </Typography>
 
       <Typography variant="body1" paragraph>
-        Energy drinks provide additional energy, allowing you to train more frequently throughout the day.
-        Let's configure how you use them.
+        {isComparison 
+          ? <>Configure the energy drink settings for your <strong>comparison scenario</strong>. 
+              Adjust these values to see how different energy drink usage would affect your gains.</>
+          : <>Energy drinks provide additional energy, allowing you to train more frequently throughout the day.
+              Let's configure how you use them.</>
+        }
       </Typography>
 
-      <Alert severity="info" sx={{ mb: 3 }}>
+      <Alert severity={isComparison ? 'warning' : 'info'} sx={{ mb: 3 }}>
         <Typography variant="body2" paragraph>
-          <strong>What are energy drinks?</strong> Energy drinks (Energy Cans) restore some of your energy bar,
-          allowing you to do additional training sessions. Different types provide different amounts of energy.
+          {isComparison 
+            ? <>These settings are for your <strong>comparison scenario</strong>. Modify them to 
+                see how changes to your energy drink usage would impact your training.</>
+            : <><strong>What are energy drinks?</strong> Energy drinks (Energy Cans) restore some of your energy bar,
+                allowing you to do additional training sessions. Different types provide different amounts of energy.</>
+          }
         </Typography>
-        <Typography variant="body2">
-          <strong>Cooldown:</strong> Energy drinks have a 2-hour cooldown. Without specialized job perks, 
-          the maximum you can use is <strong>12 energy drinks per day</strong>.
-        </Typography>
+        {!isComparison && (
+          <Typography variant="body2">
+            <strong>Cooldown:</strong> Energy drinks have a 2-hour cooldown. Without specialized job perks, 
+            the maximum you can use is <strong>12 energy drinks per day</strong>.
+          </Typography>
+        )}
       </Alert>
 
       {/* Energy Drink Type */}
@@ -147,7 +157,10 @@ export default function EnergyJumpWizardSubStep({ mode = 'current' }: EnergyJump
 
       <Alert severity="success" sx={{ mt: 3 }}>
         <Typography variant="body2">
-          Your energy drink configuration has been saved. Click Next to continue.
+          {isComparison 
+            ? 'Your comparison energy drink configuration has been saved. Click Next to continue.'
+            : 'Your energy drink configuration has been saved. Click Next to continue.'
+          }
         </Typography>
       </Alert>
     </Box>

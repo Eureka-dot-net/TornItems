@@ -73,24 +73,34 @@ export default function StackedCandyJumpWizardSubStep({ mode = 'current' }: Stac
   return (
     <Box>
       <Typography variant="h5" gutterBottom>
-        Configure Your Stacked Candy Jump Training
+        {isComparison ? 'Configure Comparison Stacked Candy Jump Training' : 'Configure Your Stacked Candy Jump Training'}
       </Typography>
 
       <Typography variant="body1" paragraph>
-        Stacked candy jumps work like eDVD jumps but use happiness candies instead of Educational DVDs.
-        Let's configure how you use them in your training routine.
+        {isComparison 
+          ? <>Configure the stacked candy jump settings for your <strong>comparison scenario</strong>. 
+              Adjust these values to see how different stacked candy strategies would affect your gains.</>
+          : <>Stacked candy jumps work like eDVD jumps but use happiness candies instead of Educational DVDs.
+              Let's configure how you use them in your training routine.</>
+        }
       </Typography>
 
-      <Alert severity="info" sx={{ mb: 3 }}>
+      <Alert severity={isComparison ? 'warning' : 'info'} sx={{ mb: 3 }}>
         <Typography variant="body2" paragraph>
-          <strong>What is a Stacked Candy Jump?</strong> Like an eDVD jump, you stack 3 xanax over 16 hours
-          before the jump day. On the jump day, you use 1 more xanax and 1 ecstasy along with happiness candies
-          to get a temporary happiness boost. This allows you to train at higher gym levels and gain more stats.
+          {isComparison 
+            ? <>These settings are for your <strong>comparison scenario</strong>. Modify them to 
+                see how changes to your stacked candy strategy would impact your training.</>
+            : <><strong>What is a Stacked Candy Jump?</strong> Like an eDVD jump, you stack 3 xanax over 16 hours
+                before the jump day. On the jump day, you use 1 more xanax and 1 ecstasy along with happiness candies
+                to get a temporary happiness boost. This allows you to train at higher gym levels and gain more stats.</>
+          }
         </Typography>
-        <Typography variant="body2">
-          <strong>Key difference from eDVD:</strong> Candies provide less happiness than DVDs but can be used 
-          in larger quantities and are affected by faction perks.
-        </Typography>
+        {!isComparison && (
+          <Typography variant="body2">
+            <strong>Key difference from eDVD:</strong> Candies provide less happiness than DVDs but can be used 
+            in larger quantities and are affected by faction perks.
+          </Typography>
+        )}
       </Alert>
 
       {/* Frequency */}
@@ -245,7 +255,10 @@ export default function StackedCandyJumpWizardSubStep({ mode = 'current' }: Stac
 
       <Alert severity="success" sx={{ mt: 3 }}>
         <Typography variant="body2">
-          Your stacked candy jump configuration has been saved. Click Next to continue.
+          {isComparison 
+            ? 'Your comparison stacked candy jump configuration has been saved. Click Next to continue.'
+            : 'Your stacked candy jump configuration has been saved. Click Next to continue.'
+          }
         </Typography>
       </Alert>
     </Box>

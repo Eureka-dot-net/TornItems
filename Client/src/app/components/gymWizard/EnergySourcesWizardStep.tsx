@@ -138,7 +138,10 @@ export default function EnergySourcesWizardStep({ mode = 'current' }: EnergySour
       {/* Subscriber Question */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6" gutterBottom>
-          Are you a Torn subscriber?
+          {isComparison 
+            ? 'Would your comparison scenario use a subscriber account?'
+            : 'Are you a Torn subscriber?'
+          }
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
           Subscribers have a 150 energy bar, while non-subscribers have 100.
@@ -150,12 +153,18 @@ export default function EnergySourcesWizardStep({ mode = 'current' }: EnergySour
           <FormControlLabel 
             value="yes" 
             control={<Radio />} 
-            label="Yes, I'm a subscriber (150 energy bar)" 
+            label={isComparison 
+              ? 'Yes, compare with subscriber benefits (150 energy bar)' 
+              : "Yes, I'm a subscriber (150 energy bar)"
+            }
           />
           <FormControlLabel 
             value="no" 
             control={<Radio />} 
-            label="No, I'm not a subscriber (100 energy bar)" 
+            label={isComparison 
+              ? 'No, compare without subscriber benefits (100 energy bar)' 
+              : "No, I'm not a subscriber (100 energy bar)"
+            }
           />
         </RadioGroup>
       </Box>
@@ -166,7 +175,10 @@ export default function EnergySourcesWizardStep({ mode = 'current' }: EnergySour
           {/* Hours per day */}
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" gutterBottom>
-              How many hours do you play Torn per day?
+              {isComparison 
+                ? 'How many hours would be played per day in this comparison?'
+                : 'How many hours do you play Torn per day?'
+              }
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
               This doesn't need to be continuous - just roughly how many hours total you log in 
@@ -189,7 +201,10 @@ export default function EnergySourcesWizardStep({ mode = 'current' }: EnergySour
           {/* Days skipped */}
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" gutterBottom>
-              How many days per month do you skip training?
+              {isComparison 
+                ? 'How many days per month would be skipped in this comparison?'
+                : 'How many days per month do you skip training?'
+              }
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
               This could be due to faction wars, chains, or personal reasons. Enter 0 if you 
@@ -212,7 +227,10 @@ export default function EnergySourcesWizardStep({ mode = 'current' }: EnergySour
           {/* Points refill */}
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Do you use a points refill daily?
+              {isComparison 
+                ? 'Would the comparison scenario use a daily points refill?'
+                : 'Do you use a points refill daily?'
+              }
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
               A points refill instantly refills your energy bar once per day. This provides a 
@@ -225,14 +243,20 @@ export default function EnergySourcesWizardStep({ mode = 'current' }: EnergySour
                   onChange={(e) => setHasPointsRefill(e.target.checked)}
                 />
               }
-              label={hasPointsRefill ? 'Yes, I use a daily points refill' : 'No, I don\'t use points refills'}
+              label={hasPointsRefill 
+                ? (isComparison ? 'Yes, include daily points refill in comparison' : 'Yes, I use a daily points refill') 
+                : (isComparison ? 'No, exclude points refills from comparison' : "No, I don't use points refills")
+              }
             />
           </Box>
 
           {/* Xanax per day */}
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" gutterBottom>
-              How many Xanax do you use per day?
+              {isComparison 
+                ? 'How many Xanax would be used per day in this comparison?'
+                : 'How many Xanax do you use per day?'
+              }
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
               Each Xanax provides 250 additional energy (it doesn't refill your bar, but adds to it). 
