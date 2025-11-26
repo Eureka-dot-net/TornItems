@@ -55,27 +55,39 @@ export default function FhcJumpWizardSubStep({ mode = 'current' }: FhcJumpWizard
   return (
     <Box>
       <Typography variant="h5" gutterBottom>
-        Configure Your FHC Usage
+        {isComparison ? 'Configure Comparison FHC Usage' : 'Configure Your FHC Usage'}
       </Typography>
 
       <Typography variant="body1" paragraph>
-        Feathery Hotel Coupons (FHC) are special items that completely refill your energy bar.
-        Let's configure how you use them.
+        {isComparison 
+          ? <>Configure the FHC settings for your <strong>comparison scenario</strong>. 
+              Adjust these values to see how different FHC usage would affect your gains.</>
+          : <>Feathery Hotel Coupons (FHC) are special items that completely refill your energy bar.
+              Let's configure how you use them.</>
+        }
       </Typography>
 
-      <Alert severity="info" sx={{ mb: 3 }}>
+      <Alert severity={isComparison ? 'warning' : 'info'} sx={{ mb: 3 }}>
         <Typography variant="body2" paragraph>
-          <strong>What is a Feathery Hotel Coupon?</strong> FHCs completely refill your energy bar,
-          regardless of your maximum energy. This is different from energy drinks which only add a
-          fixed amount.
+          {isComparison 
+            ? <>These settings are for your <strong>comparison scenario</strong>. Modify them to 
+                see how changes to your FHC usage would impact your training.</>
+            : <><strong>What is a Feathery Hotel Coupon?</strong> FHCs completely refill your energy bar,
+                regardless of your maximum energy. This is different from energy drinks which only add a
+                fixed amount.</>
+          }
         </Typography>
-        <Typography variant="body2" paragraph>
-          <strong>Cooldown:</strong> FHCs have a 6-hour cooldown. Without specialized job perks, 
-          the maximum you can use is <strong>4 FHCs per day</strong>.
-        </Typography>
-        <Typography variant="body2">
-          <strong>Note:</strong> FHCs are not affected by faction bonuses.
-        </Typography>
+        {!isComparison && (
+          <>
+            <Typography variant="body2" paragraph>
+              <strong>Cooldown:</strong> FHCs have a 6-hour cooldown. Without specialized job perks, 
+              the maximum you can use is <strong>4 FHCs per day</strong>.
+            </Typography>
+            <Typography variant="body2">
+              <strong>Note:</strong> FHCs are not affected by faction bonuses.
+            </Typography>
+          </>
+        )}
       </Alert>
 
       {/* Quantity */}
@@ -99,7 +111,10 @@ export default function FhcJumpWizardSubStep({ mode = 'current' }: FhcJumpWizard
 
       <Alert severity="success" sx={{ mt: 3 }}>
         <Typography variant="body2">
-          Your FHC configuration has been saved. Click Next to continue.
+          {isComparison 
+            ? 'Your comparison FHC configuration has been saved. Click Next to continue.'
+            : 'Your FHC configuration has been saved. Click Next to continue.'
+          }
         </Typography>
       </Alert>
     </Box>

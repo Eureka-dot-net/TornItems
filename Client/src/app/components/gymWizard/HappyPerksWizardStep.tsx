@@ -259,14 +259,20 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
       {/* Question 1: Base Happy */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6" gutterBottom>
-          1. What is your base happy?
+          {isComparison 
+            ? '1. What would be the base happy in this comparison scenario?'
+            : '1. What is your base happy?'
+          }
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
-          Your current happy status is shown by the yellow bar in your Information sidebar with a timer 
-          next to it. We need the <strong>maximum value when you haven't used any boosters</strong>.
+          {isComparison 
+            ? <>Enter the base happy value for your comparison scenario. This could be different from your current value if you're comparing what-if scenarios.</>
+            : <>Your current happy status is shown by the yellow bar in your Information sidebar with a timer 
+                next to it. We need the <strong>maximum value when you haven't used any boosters</strong>.</>
+          }
         </Typography>
 
-        {hasApiKey && perksLoaded && baseHappy !== null && baseHappy !== undefined && baseHappy > 0 && (
+        {!isComparison && hasApiKey && perksLoaded && baseHappy !== null && baseHappy !== undefined && baseHappy > 0 && (
           <Alert severity="success" sx={{ mb: 2 }}>
             <Typography variant="body2">
               Your base happy has been pre-filled from your API data. Please review and adjust if needed.
@@ -282,7 +288,10 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
           fullWidth
           size="small"
           inputProps={{ min: 0, max: 99999, step: 1 }}
-          helperText="Enter your base happy value (typically ranges from 0 to 5025)"
+          helperText={isComparison 
+            ? "Enter the base happy value for your comparison scenario"
+            : "Enter your base happy value (typically ranges from 0 to 5025)"
+          }
         />
       </Box>
 
@@ -290,11 +299,18 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
       {hasApiKey ? (
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" gutterBottom>
-            2. Review Your Gym Perks
+            {isComparison 
+              ? '2. Set Comparison Gym Perks'
+              : '2. Review Your Gym Perks'
+            }
           </Typography>
           <Typography variant="body2" color="text.secondary" paragraph>
-            Since you provided an API key, we've automatically calculated your gym gain bonuses 
-            from all sources (faction, property, education, etc.). Please review these values:
+            {isComparison 
+              ? <>Enter the gym perk percentages for your comparison scenario. You can use different values 
+                  to see how changing your perks would affect your gains.</>
+              : <>Since you provided an API key, we've automatically calculated your gym gain bonuses 
+                  from all sources (faction, property, education, etc.). Please review these values:</>
+            }
           </Typography>
 
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mt: 2 }}>
@@ -302,40 +318,47 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
               label="Strength Perk %"
               type="number"
               value={perkPercs.strength.toFixed(1)}
-              InputProps={{ readOnly: true }}
+              InputProps={{ readOnly: !isComparison }}
+              onChange={isComparison ? (e) => setPerkPercs({ ...perkPercs, strength: Math.max(0, Number(e.target.value)) }) : undefined}
               size="small"
-              helperText="Auto-calculated from API"
+              helperText={isComparison ? "Enter comparison value" : "Auto-calculated from API"}
             />
             <TextField
               label="Speed Perk %"
               type="number"
               value={perkPercs.speed.toFixed(1)}
-              InputProps={{ readOnly: true }}
+              InputProps={{ readOnly: !isComparison }}
+              onChange={isComparison ? (e) => setPerkPercs({ ...perkPercs, speed: Math.max(0, Number(e.target.value)) }) : undefined}
               size="small"
-              helperText="Auto-calculated from API"
+              helperText={isComparison ? "Enter comparison value" : "Auto-calculated from API"}
             />
             <TextField
               label="Defense Perk %"
               type="number"
               value={perkPercs.defense.toFixed(1)}
-              InputProps={{ readOnly: true }}
+              InputProps={{ readOnly: !isComparison }}
+              onChange={isComparison ? (e) => setPerkPercs({ ...perkPercs, defense: Math.max(0, Number(e.target.value)) }) : undefined}
               size="small"
-              helperText="Auto-calculated from API"
+              helperText={isComparison ? "Enter comparison value" : "Auto-calculated from API"}
             />
             <TextField
               label="Dexterity Perk %"
               type="number"
               value={perkPercs.dexterity.toFixed(1)}
-              InputProps={{ readOnly: true }}
+              InputProps={{ readOnly: !isComparison }}
+              onChange={isComparison ? (e) => setPerkPercs({ ...perkPercs, dexterity: Math.max(0, Number(e.target.value)) }) : undefined}
               size="small"
-              helperText="Auto-calculated from API"
+              helperText={isComparison ? "Enter comparison value" : "Auto-calculated from API"}
             />
           </Box>
 
-          <Alert severity="success" sx={{ mt: 2 }}>
-            These perk percentages have been automatically calculated from your faction bonuses, 
-            property perks, education courses, and other sources. If these look incorrect, 
-            you may need to refresh your API data.
+          <Alert severity={isComparison ? 'warning' : 'success'} sx={{ mt: 2 }}>
+            {isComparison 
+              ? <>Modify these perk percentages to see how different perks would affect your training in the comparison scenario.</>
+              : <>These perk percentages have been automatically calculated from your faction bonuses, 
+                  property perks, education courses, and other sources. If these look incorrect, 
+                  you may need to refresh your API data.</>
+            }
           </Alert>
         </Box>
       ) : (
@@ -344,11 +367,18 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
           {/* Question 2: Do you know your perks? */}
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" gutterBottom>
-              2. Do you know your gym perk percentages?
+              {isComparison 
+                ? '2. Do you know the gym perk percentages for your comparison scenario?'
+                : '2. Do you know your gym perk percentages?'
+              }
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              If you have TornTools installed, you can see these values on the gym page. 
-              Your gym perks come from faction bonuses, property perks, education courses, and other sources.
+              {isComparison 
+                ? <>Enter the perk percentages you want to compare. This could be different faction bonuses, 
+                    property perks, or education courses you're considering.</>
+                : <>If you have TornTools installed, you can see these values on the gym page. 
+                    Your gym perks come from faction bonuses, property perks, education courses, and other sources.</>
+              }
             </Typography>
             <RadioGroup
               value={knowsPerks || ''}
@@ -357,12 +387,18 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
               <FormControlLabel 
                 value="yes" 
                 control={<Radio />} 
-                label="Yes, I know my perk percentages" 
+                label={isComparison 
+                  ? "Yes, I know the perk percentages for my comparison"
+                  : "Yes, I know my perk percentages"
+                }
               />
               <FormControlLabel 
                 value="no" 
                 control={<Radio />} 
-                label="No, I need help calculating them" 
+                label={isComparison 
+                  ? "No, I need help calculating them for comparison"
+                  : "No, I need help calculating them"
+                }
               />
             </RadioGroup>
 
@@ -370,7 +406,10 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
             <Collapse in={knowsPerks === 'yes'} timeout="auto">
               <Box sx={{ mt: 2 }}>
                 <Typography variant="body2" color="text.secondary" paragraph>
-                  Enter your gym perk percentages for each stat:
+                  {isComparison 
+                    ? "Enter the gym perk percentages for your comparison scenario:"
+                    : "Enter your gym perk percentages for each stat:"
+                  }
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
                   <TextField
@@ -428,7 +467,10 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
               {/* Question 3: Faction Steadfast */}
               <Box sx={{ mb: 3 }}>
                 <Typography variant="h6" gutterBottom>
-                  3. Are you in a faction with the Steadfast bonus?
+                  {isComparison 
+                    ? '3. Would your comparison scenario include Steadfast faction bonuses?'
+                    : '3. Are you in a faction with the Steadfast bonus?'
+                  }
                 </Typography>
                 <Typography variant="body2" color="text.secondary" paragraph>
                   The Steadfast upgrade provides stat-specific gym gain bonuses. If your faction has this, 
@@ -441,12 +483,18 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
                 <FormControlLabel 
                   value="yes" 
                   control={<Radio />} 
-                  label="Yes, my faction has Steadfast bonuses" 
+                  label={isComparison 
+                    ? "Yes, include Steadfast bonuses in comparison"
+                    : "Yes, my faction has Steadfast bonuses"
+                  }
                 />
                 <FormControlLabel 
                   value="no" 
                   control={<Radio />} 
-                  label="No, my faction doesn't have Steadfast" 
+                  label={isComparison 
+                    ? "No, exclude Steadfast bonuses from comparison"
+                    : "No, my faction doesn't have Steadfast"
+                  }
                 />
               </RadioGroup>
 
@@ -504,7 +552,10 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
             {hasFactionSteadfast !== null && (
               <Box sx={{ mb: 3 }}>
                 <Typography variant="h6" gutterBottom>
-                  4. Do you live in a property with a private pool?
+                  {isComparison 
+                    ? '4. Would your comparison scenario include a private pool?'
+                    : '4. Do you live in a property with a private pool?'
+                  }
                 </Typography>
                 <Typography variant="body2" color="text.secondary" paragraph>
                   A private pool provides a +2% bonus to all gym stats.
@@ -516,12 +567,18 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
                   <FormControlLabel 
                     value="yes" 
                     control={<Radio />} 
-                    label="Yes, I have a private pool (+2% all stats)" 
+                    label={isComparison 
+                      ? "Yes, include private pool in comparison (+2% all stats)"
+                      : "Yes, I have a private pool (+2% all stats)"
+                    }
                   />
                   <FormControlLabel 
                     value="no" 
                     control={<Radio />} 
-                    label="No, I don't have a private pool" 
+                    label={isComparison 
+                      ? "No, exclude private pool from comparison"
+                      : "No, I don't have a private pool"
+                    }
                   />
                 </RadioGroup>
               </Box>
@@ -531,7 +588,10 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
             {hasPrivatePool !== null && (
               <Box sx={{ mb: 3 }}>
                 <Typography variant="h6" gutterBottom>
-                  5. Do you have Bachelor of Sports Science?
+                  {isComparison 
+                    ? '5. Would your comparison scenario include Bachelor of Sports Science?'
+                    : '5. Do you have Bachelor of Sports Science?'
+                  }
                 </Typography>
                 <Typography variant="body2" color="text.secondary" paragraph>
                   Bachelor of Sports Science provides +2% to all gym stats. If you don't have this, 
@@ -544,19 +604,28 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
                   <FormControlLabel 
                     value="yes" 
                     control={<Radio />} 
-                    label="Yes, I have Bachelor of Sports Science (+2% all stats)" 
+                    label={isComparison 
+                      ? "Yes, include Bachelor of Sports Science in comparison (+2% all stats)"
+                      : "Yes, I have Bachelor of Sports Science (+2% all stats)"
+                    }
                   />
                   <FormControlLabel 
                     value="no" 
                     control={<Radio />} 
-                    label="No, but I may have individual stat courses" 
+                    label={isComparison 
+                      ? "No, check for individual stat courses instead"
+                      : "No, but I may have individual stat courses"
+                    }
                   />
                 </RadioGroup>
 
                 <Collapse in={hasBachelorSportScience === 'no'} timeout="auto">
                   <Box sx={{ mt: 2 }}>
                     <Typography variant="body2" color="text.secondary" paragraph>
-                      Select which individual stat courses you have completed (+1% each):
+                      {isComparison 
+                        ? "Select which individual stat courses to include in the comparison (+1% each):"
+                        : "Select which individual stat courses you have completed (+1% each):"
+                      }
                     </Typography>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                       <FormControlLabel
@@ -617,10 +686,16 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
             {hasBachelorSportScience !== null && (
               <Alert severity="success" sx={{ mt: 3 }}>
                 <Typography variant="body2" fontWeight="bold" gutterBottom>
-                  Your Calculated Gym Perks
+                  {isComparison 
+                    ? 'Comparison Calculated Gym Perks'
+                    : 'Your Calculated Gym Perks'
+                  }
                 </Typography>
                 <Typography variant="body2">
-                  Based on your answers, your gym gain bonuses are:
+                  {isComparison 
+                    ? "Based on your selections, the comparison gym gain bonuses are:"
+                    : "Based on your answers, your gym gain bonuses are:"
+                  }
                 </Typography>
                 <Box sx={{ mt: 1, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1 }}>
                   <Typography variant="body2">

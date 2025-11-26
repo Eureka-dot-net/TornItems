@@ -602,7 +602,7 @@ export default function GymWizard() {
       </Typography>
 
       {/* Stepper for navigation - show first 8 base steps, plus dynamic comparison steps */}
-      <Paper sx={{ p: 2, mb: 3, overflowX: 'auto' }}>
+      <Paper sx={{ p: 2, mb: 3, overflowX: 'auto', overflowY: 'hidden' }}>
         <Stepper 
           activeStep={activeStep} 
           nonLinear
