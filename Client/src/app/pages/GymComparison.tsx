@@ -221,9 +221,14 @@ export default function GymComparison() {
       const wizardBaseHappy = loadSavedValue<number | null>('baseHappy', null);
       const wizardCompanyBenefitKey = loadSavedValue<string | null>('wizardCompanyBenefitKey', null);
       const wizardCandleShopStars = loadSavedValue<number | null>('wizardCandleShopStars', null);
+      const wizardHoursPlayedPerDay = loadSavedValue<number | null>('hoursPlayedPerDay', null);
+      const wizardXanaxPerDay = loadSavedValue<number | null>('xanaxPerDay', null);
+      const wizardHasPointsRefill = loadSavedValue<boolean | null>('hasPointsRefill', null);
+      const wizardMaxEnergy = loadSavedValue<number | null>('maxEnergy', null);
+      const wizardDaysSkippedPerMonth = loadSavedValue<number | null>('daysSkippedPerMonth', null);
 
-      // No saved states or coming from wizard, create default state with new format
-      return [{
+      // Create the "Current" state with new format
+      const currentState: ComparisonState = {
         id: '1',
         name: fromWizard ? 'Current' : 'State 1',
         sections: [{
@@ -231,10 +236,10 @@ export default function GymComparison() {
           startDay: 1,
           endDay: totalDays,
           statWeights: wizardStatWeights || DEFAULT_STAT_WEIGHTS,
-          hoursPlayedPerDay: DEFAULT_HOURS_PER_DAY,
-          xanaxPerDay: DEFAULT_XANAX_PER_DAY,
-          hasPointsRefill: true,
-          maxEnergy: MAX_ENERGY_DEFAULT,
+          hoursPlayedPerDay: wizardHoursPlayedPerDay ?? DEFAULT_HOURS_PER_DAY,
+          xanaxPerDay: wizardXanaxPerDay ?? DEFAULT_XANAX_PER_DAY,
+          hasPointsRefill: wizardHasPointsRefill ?? true,
+          maxEnergy: wizardMaxEnergy ?? MAX_ENERGY_DEFAULT,
           perkPercs: wizardPerkPercs || DEFAULT_PERK_PERCS,
           edvdJumpEnabled: false,
           edvdJumpFrequency: DEFAULT_EDVD_FREQUENCY_DAYS,
@@ -277,14 +282,184 @@ export default function GymComparison() {
           companyBenefitKey: wizardCompanyBenefitKey ?? COMPANY_BENEFIT_TYPES.NONE,
           candleShopStars: wizardCandleShopStars ?? DEFAULT_CANDLE_SHOP_STARS,
           happy: wizardBaseHappy ?? DEFAULT_HAPPY,
-          daysSkippedPerMonth: 0,
+          daysSkippedPerMonth: wizardDaysSkippedPerMonth ?? 0,
           statDriftPercent: wizardStatDriftPercent ?? 0,
           balanceAfterGymIndex: wizardBalanceAfterGymIndex ?? 19,
           ignorePerksForGymSelection: wizardIgnorePerksForGymSelection ?? false,
           islandCostPerDay: DEFAULT_ISLAND_COST_PER_DAY,
         }],
         showIndividualStats: false,
-      }];
+      };
+      
+      // Check if there are comparison page selections from wizard
+      const comparisonPageSelections = loadSavedValue<{
+        energySources: boolean;
+        happyPerks: boolean;
+        companyBenefits: boolean;
+        statTargetRatios: boolean;
+        trainingRegime: boolean;
+      } | null>('wizardComparisonPageSelections', null);
+      
+      // If comparison selections exist, create a comparison state
+      if (fromWizard && comparisonPageSelections && Object.values(comparisonPageSelections).some(v => v)) {
+        // Load comparison-specific values (from gymWizard_comparison_ prefix)
+        const loadComparisonValue = <T,>(key: string, defaultValue: T): T => {
+          try {
+            const saved = localStorage.getItem(`gymWizard_comparison_${key}`);
+            return saved ? JSON.parse(saved) : defaultValue;
+          } catch {
+            return defaultValue;
+          }
+        };
+        
+        // Start with a copy of the current state values
+        const comparisonSection = { ...currentState.sections[0], id: '1' };
+        
+        // Build comparison name based on selected areas
+        const selectedAreas: string[] = [];
+        
+        // Override values based on which areas were selected for comparison
+        if (comparisonPageSelections.energySources) {
+          selectedAreas.push('Energy');
+          const compIsSubscriber = loadComparisonValue<'yes' | 'no' | null>('isSubscriber', null);
+          const compMaxEnergy = compIsSubscriber === 'yes' ? 150 : compIsSubscriber === 'no' ? 100 : (wizardMaxEnergy ?? MAX_ENERGY_DEFAULT);
+          comparisonSection.maxEnergy = compMaxEnergy;
+          comparisonSection.hoursPlayedPerDay = loadComparisonValue('hoursPlayedPerDay', comparisonSection.hoursPlayedPerDay);
+          comparisonSection.xanaxPerDay = loadComparisonValue('xanaxPerDay', comparisonSection.xanaxPerDay);
+          comparisonSection.hasPointsRefill = loadComparisonValue('hasPointsRefill', comparisonSection.hasPointsRefill);
+          comparisonSection.daysSkippedPerMonth = loadComparisonValue('daysSkippedPerMonth', comparisonSection.daysSkippedPerMonth);
+        }
+        
+        if (comparisonPageSelections.happyPerks) {
+          selectedAreas.push('Happy');
+          comparisonSection.happy = loadComparisonValue('baseHappy', comparisonSection.happy);
+          const compPerkPercs = loadComparisonValue<{ strength: number; speed: number; defense: number; dexterity: number } | null>('perkPercs', null);
+          if (compPerkPercs) {
+            comparisonSection.perkPercs = compPerkPercs;
+          }
+        }
+        
+        if (comparisonPageSelections.companyBenefits) {
+          selectedAreas.push('Company');
+          comparisonSection.companyBenefitKey = loadComparisonValue('companyBenefitKey', comparisonSection.companyBenefitKey);
+          comparisonSection.candleShopStars = loadComparisonValue('candleShopStars', comparisonSection.candleShopStars);
+        }
+        
+        if (comparisonPageSelections.statTargetRatios) {
+          selectedAreas.push('Ratios');
+          // Load comparison stat ratio values and convert them
+          const compHasBalancedBuild = loadComparisonValue<'yes' | 'no' | null>('hasBalancedBuild', null);
+          const compStatRatio = loadComparisonValue<'balanced' | 'baldr' | 'hank' | 'defDex' | null>('statRatio', null);
+          const compDefDexPrimaryStat = loadComparisonValue<'defense' | 'dexterity' | null>('defDexPrimaryStat', null);
+          const compTrainByPerks = loadComparisonValue<'perks' | 'balanced' | null>('trainByPerks', null);
+          const compBalanceAfterGym = loadComparisonValue<'chachas' | 'georges' | null>('balanceAfterGym', null);
+          
+          // Convert to stat weights using the same helpers used in the wizard
+          // This requires importing the helper functions
+          // For now, just use basic conversion logic
+          if (compHasBalancedBuild === 'yes' || compStatRatio === 'balanced') {
+            comparisonSection.statWeights = { strength: 1, speed: 1, defense: 1, dexterity: 1 };
+          } else if (compStatRatio === 'baldr') {
+            // Baldr's ratio: approximately 30/25/23/22 or similar
+            if (compDefDexPrimaryStat === 'dexterity') {
+              comparisonSection.statWeights = { strength: 30, speed: 25, defense: 22, dexterity: 23 };
+            } else {
+              comparisonSection.statWeights = { strength: 30, speed: 25, defense: 23, dexterity: 22 };
+            }
+          } else if (compStatRatio === 'hank') {
+            // Hank's ratio: approximately 35/28/28/9 or similar
+            if (compDefDexPrimaryStat === 'dexterity') {
+              comparisonSection.statWeights = { strength: 35, speed: 28, defense: 9, dexterity: 28 };
+            } else {
+              comparisonSection.statWeights = { strength: 35, speed: 28, defense: 28, dexterity: 9 };
+            }
+          } else if (compStatRatio === 'defDex') {
+            // Defense/Dexterity build
+            if (compDefDexPrimaryStat === 'dexterity') {
+              comparisonSection.statWeights = { strength: 1, speed: 1, defense: 0, dexterity: 1.25 };
+            } else {
+              comparisonSection.statWeights = { strength: 1, speed: 1, defense: 1.25, dexterity: 0 };
+            }
+          }
+          
+          // Set stat drift based on training approach
+          if (compTrainByPerks === 'perks') {
+            comparisonSection.statDriftPercent = 100;
+            comparisonSection.ignorePerksForGymSelection = false;
+            // Set balance after gym index
+            if (compBalanceAfterGym === 'chachas') {
+              comparisonSection.balanceAfterGymIndex = 19; // Cha Cha's
+            } else if (compBalanceAfterGym === 'georges') {
+              comparisonSection.balanceAfterGymIndex = 23; // George's
+            }
+          } else if (compTrainByPerks === 'balanced') {
+            comparisonSection.statDriftPercent = 0;
+            comparisonSection.ignorePerksForGymSelection = true;
+          }
+        }
+        
+        if (comparisonPageSelections.trainingRegime) {
+          selectedAreas.push('Training');
+          // Load training regime comparison values
+          const compTrainingSelections = loadComparisonValue<{
+            edvd: boolean;
+            candy: boolean;
+            stackedCandy: boolean;
+            energy: boolean;
+            fhc: boolean;
+          } | null>('trainingRegimeSelections', null);
+          
+          if (compTrainingSelections) {
+            // eDVD
+            if (compTrainingSelections.edvd) {
+              comparisonSection.edvdJumpEnabled = true;
+              comparisonSection.edvdJumpFrequency = loadComparisonValue('edvdJumpFrequency', DEFAULT_EDVD_FREQUENCY_DAYS);
+              comparisonSection.edvdJumpDvds = loadComparisonValue('edvdJumpDvds', DEFAULT_EDVD_DVDS);
+              comparisonSection.edvdJumpLimit = loadComparisonValue('edvdJumpLimit', 'indefinite');
+              comparisonSection.edvdJumpCount = loadComparisonValue('edvdJumpCount', 10);
+              comparisonSection.edvdJumpStatTarget = loadComparisonValue('edvdJumpStatTarget', 10000000);
+              comparisonSection.edvdJumpAdultNovelties = loadComparisonValue('edvdJumpAdultNovelties', false);
+            }
+            
+            // Candy
+            if (compTrainingSelections.candy) {
+              comparisonSection.candyJumpEnabled = true;
+              comparisonSection.candyJumpFrequencyDays = loadComparisonValue('candyJumpFrequencyDays', 1);
+              comparisonSection.candyJumpItemId = loadComparisonValue('candyJumpItemId', CANDY_ITEM_IDS.HAPPY_75);
+              comparisonSection.candyJumpQuantity = loadComparisonValue('candyJumpQuantity', DEFAULT_CANDY_QUANTITY);
+            }
+            
+            // Stacked Candy
+            if (compTrainingSelections.stackedCandy) {
+              comparisonSection.stackedCandyJumpEnabled = true;
+              comparisonSection.stackedCandyJumpFrequency = loadComparisonValue('stackedCandyJumpFrequency', DEFAULT_EDVD_FREQUENCY_DAYS);
+              comparisonSection.stackedCandyJumpItemId = loadComparisonValue('stackedCandyJumpItemId', CANDY_ITEM_IDS.HAPPY_75);
+              comparisonSection.stackedCandyJumpQuantity = loadComparisonValue('stackedCandyJumpQuantity', DEFAULT_CANDY_QUANTITY);
+            }
+            
+            // Energy
+            if (compTrainingSelections.energy) {
+              comparisonSection.energyJumpEnabled = true;
+              comparisonSection.energyJumpItemId = loadComparisonValue('energyDrinkItemId', ENERGY_ITEM_IDS.ENERGY_10);
+              comparisonSection.energyJumpQuantity = loadComparisonValue('energyDrinkQuantity', DEFAULT_ENERGY_DRINK_QUANTITY);
+            }
+          }
+        }
+        
+        // Create comparison state with appropriate name
+        const comparisonName = selectedAreas.length > 0 ? `Compare: ${selectedAreas.join(', ')}` : 'Comparison';
+        
+        const comparisonState: ComparisonState = {
+          id: '2',
+          name: comparisonName,
+          sections: [comparisonSection],
+          showIndividualStats: false,
+        };
+        
+        return [currentState, comparisonState];
+      }
+      
+      return [currentState];
     }
     
     // Migrate saved states
