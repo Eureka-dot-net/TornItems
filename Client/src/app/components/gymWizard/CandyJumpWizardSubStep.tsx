@@ -21,13 +21,24 @@ import { validateNumericInput } from '../../../lib/utils/jumpHelpers';
  * 
  * This sub-step helps users configure their half candy jump training.
  * It asks questions in an easy-to-understand format for basic users.
+ * 
+ * @param mode - 'current' for current regime configuration, 'comparison' for comparison configuration
  */
 
-export default function CandyJumpWizardSubStep() {
+export type WizardMode = 'current' | 'comparison';
+
+interface CandyJumpWizardSubStepProps {
+  mode?: WizardMode;
+}
+
+export default function CandyJumpWizardSubStep({ mode = 'current' }: CandyJumpWizardSubStepProps) {
+  const isComparison = mode === 'comparison';
+  const storagePrefix = isComparison ? 'gymWizard_comparison_' : 'gymWizard_';
+
   // Load saved preferences from localStorage
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
     try {
-      const saved = localStorage.getItem(`gymWizard_${key}`);
+      const saved = localStorage.getItem(`${storagePrefix}${key}`);
       return saved ? JSON.parse(saved) : defaultValue;
     } catch {
       return defaultValue;

@@ -18,13 +18,24 @@ import { validateNumericInput } from '../../../lib/utils/jumpHelpers';
  * This sub-step helps users configure their stacked candy jump training.
  * A stacked candy jump is similar to an eDVD jump but uses candies instead of DVDs.
  * It asks questions in an easy-to-understand format for basic users.
+ * 
+ * @param mode - 'current' for current regime configuration, 'comparison' for comparison configuration
  */
 
-export default function StackedCandyJumpWizardSubStep() {
+export type WizardMode = 'current' | 'comparison';
+
+interface StackedCandyJumpWizardSubStepProps {
+  mode?: WizardMode;
+}
+
+export default function StackedCandyJumpWizardSubStep({ mode = 'current' }: StackedCandyJumpWizardSubStepProps) {
+  const isComparison = mode === 'comparison';
+  const storagePrefix = isComparison ? 'gymWizard_comparison_' : 'gymWizard_';
+
   // Load saved preferences from localStorage
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
     try {
-      const saved = localStorage.getItem(`gymWizard_${key}`);
+      const saved = localStorage.getItem(`${storagePrefix}${key}`);
       return saved ? JSON.parse(saved) : defaultValue;
     } catch {
       return defaultValue;

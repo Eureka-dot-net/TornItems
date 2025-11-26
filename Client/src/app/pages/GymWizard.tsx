@@ -7,6 +7,8 @@ import HappyPerksWizardStep from '../components/gymWizard/HappyPerksWizardStep';
 import CompanyBenefitsWizardStep from '../components/gymWizard/CompanyBenefitsWizardStep';
 import StatTargetRatiosWizardStep from '../components/gymWizard/StatTargetRatiosWizardStep';
 import TrainingRegimeWizardStep, { type TrainingRegimeSelections } from '../components/gymWizard/TrainingRegimeWizardStep';
+import ComparisonOptionsWizardStep, { type ComparisonOptionType } from '../components/gymWizard/ComparisonOptionsWizardStep';
+import ComparisonSelectionWizardStep, { type ComparisonPageSelections } from '../components/gymWizard/ComparisonSelectionWizardStep';
 import EdvdJumpWizardSubStep from '../components/gymWizard/EdvdJumpWizardSubStep';
 import CandyJumpWizardSubStep from '../components/gymWizard/CandyJumpWizardSubStep';
 import StackedCandyJumpWizardSubStep from '../components/gymWizard/StackedCandyJumpWizardSubStep';
@@ -26,6 +28,10 @@ import {
  * 
  * This wizard guides users through setting up the gym comparison tool step by step,
  * making it easier for new users to understand and use the tool.
+ * 
+ * The wizard has two phases:
+ * 1. Current regime configuration (steps 0-5)
+ * 2. Comparison configuration (steps 6+) - shown after user completes current regime
  */
 
 const baseWizardSteps = [
@@ -35,6 +41,8 @@ const baseWizardSteps = [
   { label: 'Company Benefits', description: 'Configure your company benefits' },
   { label: 'Stat Target Ratios', description: 'Configure your stat training strategy' },
   { label: 'Training Regime', description: 'Configure your training methods' },
+  { label: 'Comparison Options', description: 'Choose what to compare' },
+  { label: 'Select Areas', description: 'Select comparison areas' },
 ];
 
 export default function GymWizard() {
@@ -48,6 +56,26 @@ export default function GymWizard() {
     energy: false,
     fhc: false,
   });
+  
+  // Comparison phase state
+  // Note: comparisonOption will be used when 'recommendations' feature is implemented
+  const [comparisonOption, setComparisonOption] = useState<ComparisonOptionType>(null);
+  void comparisonOption; // Used for future recommendations feature
+  const [comparisonPageSelections, setComparisonPageSelections] = useState<ComparisonPageSelections>({
+    energySources: false,
+    happyPerks: false,
+    companyBenefits: false,
+    statTargetRatios: false,
+    trainingRegime: false,
+  });
+  const [comparisonSubStepIndex, setComparisonSubStepIndex] = useState(0);
+  const [comparisonTrainingSelections, setComparisonTrainingSelections] = useState<TrainingRegimeSelections>({
+    edvd: false,
+    candy: false,
+    stackedCandy: false,
+    energy: false,
+    fhc: false,
+  });
 
   // Load training selections from localStorage on mount
   useEffect(() => {
@@ -55,6 +83,24 @@ export default function GymWizard() {
       const saved = localStorage.getItem('gymWizard_trainingRegimeSelections');
       if (saved) {
         setTrainingSelections(JSON.parse(saved));
+      }
+    } catch {
+      // Ignore parse errors
+    }
+    
+    // Load comparison selections
+    try {
+      const savedOption = localStorage.getItem('gymWizard_comparisonOption');
+      if (savedOption) {
+        setComparisonOption(JSON.parse(savedOption));
+      }
+      const savedPageSelections = localStorage.getItem('gymWizard_comparisonPageSelections');
+      if (savedPageSelections) {
+        setComparisonPageSelections(JSON.parse(savedPageSelections));
+      }
+      const savedComparisonTraining = localStorage.getItem('gymWizard_comparison_trainingRegimeSelections');
+      if (savedComparisonTraining) {
+        setComparisonTrainingSelections(JSON.parse(savedComparisonTraining));
       }
     } catch {
       // Ignore parse errors
@@ -110,6 +156,118 @@ export default function GymWizard() {
 
   const subSteps = getSubStepsForTrainingRegime();
   const isInSubStep = activeStep === 5 && subSteps.length > 0 && subStepIndex < subSteps.length;
+  
+  const handleComparisonTrainingSelectionsChange = useCallback((selections: TrainingRegimeSelections) => {
+    setComparisonTrainingSelections(selections);
+  }, []);
+
+  // Build dynamic comparison page sub-steps based on selections
+  const getComparisonPageSteps = useCallback(() => {
+    const pages: Array<{ key: keyof ComparisonPageSelections; label: string; component: React.ReactElement }> = [];
+    
+    if (comparisonPageSelections.energySources) {
+      pages.push({
+        key: 'energySources',
+        label: 'Compare Energy Sources',
+        component: <EnergySourcesWizardStep mode="comparison" />,
+      });
+    }
+    
+    if (comparisonPageSelections.happyPerks) {
+      pages.push({
+        key: 'happyPerks',
+        label: 'Compare Happy & Perks',
+        component: <HappyPerksWizardStep mode="comparison" />,
+      });
+    }
+    
+    if (comparisonPageSelections.companyBenefits) {
+      pages.push({
+        key: 'companyBenefits',
+        label: 'Compare Company Benefits',
+        component: <CompanyBenefitsWizardStep mode="comparison" />,
+      });
+    }
+    
+    if (comparisonPageSelections.statTargetRatios) {
+      pages.push({
+        key: 'statTargetRatios',
+        label: 'Compare Stat Ratios',
+        component: <StatTargetRatiosWizardStep mode="comparison" />,
+      });
+    }
+    
+    if (comparisonPageSelections.trainingRegime) {
+      pages.push({
+        key: 'trainingRegime',
+        label: 'Compare Training Regime',
+        component: <TrainingRegimeWizardStep mode="comparison" onSelectionsChange={handleComparisonTrainingSelectionsChange} />,
+      });
+    }
+    
+    return pages;
+  }, [comparisonPageSelections, handleComparisonTrainingSelectionsChange]);
+  
+  const comparisonPageSteps = getComparisonPageSteps();
+  const isInComparisonPhase = activeStep >= 8; // Step 8+ are dynamic comparison steps
+  const comparisonPhaseStepIndex = activeStep - 8;
+  
+  // Build comparison training sub-steps (only if training regime is selected for comparison)
+  const getComparisonTrainingSubSteps = useCallback(() => {
+    const subSteps: Array<{ key: string; label: string; component: React.ReactElement }> = [];
+    
+    if (comparisonTrainingSelections.edvd) {
+      subSteps.push({
+        key: 'edvd',
+        label: 'Compare eDVD Configuration',
+        component: <EdvdJumpWizardSubStep mode="comparison" />,
+      });
+    }
+    
+    if (comparisonTrainingSelections.candy) {
+      subSteps.push({
+        key: 'candy',
+        label: 'Compare Half Candy Configuration',
+        component: <CandyJumpWizardSubStep mode="comparison" />,
+      });
+    }
+    
+    if (comparisonTrainingSelections.stackedCandy) {
+      subSteps.push({
+        key: 'stackedCandy',
+        label: 'Compare Stacked Candy Configuration',
+        component: <StackedCandyJumpWizardSubStep mode="comparison" />,
+      });
+    }
+    
+    if (comparisonTrainingSelections.energy) {
+      subSteps.push({
+        key: 'energy',
+        label: 'Compare Energy Configuration',
+        component: <EnergyJumpWizardSubStep mode="comparison" />,
+      });
+    }
+    
+    if (comparisonTrainingSelections.fhc) {
+      subSteps.push({
+        key: 'fhc',
+        label: 'Compare FHC Configuration',
+        component: <FhcJumpWizardSubStep mode="comparison" />,
+      });
+    }
+    
+    return subSteps;
+  }, [comparisonTrainingSelections]);
+  
+  const comparisonTrainingSubSteps = getComparisonTrainingSubSteps();
+  
+  // Check if we're showing training regime comparison and in its sub-steps
+  const isInComparisonTrainingSubStep = (() => {
+    if (!isInComparisonPhase) return false;
+    const currentStep = comparisonPageSteps[comparisonPhaseStepIndex];
+    if (!currentStep || currentStep.key !== 'trainingRegime') return false;
+    return comparisonTrainingSubSteps.length > 0 && comparisonSubStepIndex < comparisonTrainingSubSteps.length;
+  })();
 
   // Function to copy wizard data to gym comparison localStorage
   const copyWizardDataToGymComparison = () => {
@@ -185,35 +343,61 @@ export default function GymWizard() {
     
     // Set flag to indicate user completed wizard (not skipped)
     localStorage.setItem('gymComparison_fromWizard', 'true');
+    
+    // Store comparison page selections
+    localStorage.setItem('gymComparison_wizardComparisonPageSelections', JSON.stringify(comparisonPageSelections));
   };
 
   const handleNext = () => {
-    // If we're on the training regime step (step 5)
-    if (activeStep === 5) {
-      // If we're in a sub-step
-      if (isInSubStep) {
-        // Move to next sub-step
-        if (subStepIndex < subSteps.length - 1) {
-          setSubStepIndex(subStepIndex + 1);
-          return;
+    // Handle comparison phase navigation (step 8+)
+    if (isInComparisonPhase) {
+      const currentPageStep = comparisonPageSteps[comparisonPhaseStepIndex];
+      
+      // If we're in training regime comparison with sub-steps
+      if (currentPageStep?.key === 'trainingRegime') {
+        if (isInComparisonTrainingSubStep) {
+          // Move to next comparison training sub-step
+          if (comparisonSubStepIndex < comparisonTrainingSubSteps.length - 1) {
+            setComparisonSubStepIndex(comparisonSubStepIndex + 1);
+            return;
+          } else {
+            // Finished all comparison training sub-steps
+            setComparisonSubStepIndex(0);
+            // Move to next comparison page or finish
+            if (comparisonPhaseStepIndex < comparisonPageSteps.length - 1) {
+              setActiveStep(activeStep + 1);
+              return;
+            } else {
+              // Finished all comparison pages - go to gym comparison
+              copyWizardDataToGymComparison();
+              navigate('/gymComparison');
+              return;
+            }
+          }
         } else {
-          // Finished all sub-steps, move to next main step (or finish)
-          setSubStepIndex(0);
-          // No more main steps after training regime, so finish
-          copyWizardDataToGymComparison();
-          navigate('/gymComparison');
-          return;
+          // Just finished the comparison training regime selection
+          if (comparisonTrainingSubSteps.length > 0) {
+            // Enter comparison training sub-steps
+            setComparisonSubStepIndex(0);
+            return;
+          } else {
+            // No sub-steps, move to next comparison page or finish
+            if (comparisonPhaseStepIndex < comparisonPageSteps.length - 1) {
+              setActiveStep(activeStep + 1);
+              return;
+            } else {
+              copyWizardDataToGymComparison();
+              navigate('/gymComparison');
+              return;
+            }
+          }
         }
       } else {
-        // Just finished the training regime selection page
-        // If there are sub-steps, go to first sub-step
-        if (subSteps.length > 0) {
-          setSubStepIndex(0);
-          // Stay on step 5 but now show sub-step
-          setActiveStep(5);
+        // Non-training-regime comparison page, move to next or finish
+        if (comparisonPhaseStepIndex < comparisonPageSteps.length - 1) {
+          setActiveStep(activeStep + 1);
           return;
         } else {
-          // No sub-steps selected, finish wizard
           copyWizardDataToGymComparison();
           navigate('/gymComparison');
           return;
@@ -221,30 +405,98 @@ export default function GymWizard() {
       }
     }
     
-    // For other steps, just move to next step
-    if (activeStep === baseWizardSteps.length - 1) {
-      // Last step - copy wizard data, set wizard flag, and go to gym comparison
-      copyWizardDataToGymComparison();
-      navigate('/gymComparison');
-    } else {
-      setActiveStep((prevStep) => prevStep + 1);
-      setSubStepIndex(0); // Reset sub-step when moving to new main step
+    // Handle current regime training step (step 5) with sub-steps
+    if (activeStep === 5) {
+      if (isInSubStep) {
+        // Move to next sub-step
+        if (subStepIndex < subSteps.length - 1) {
+          setSubStepIndex(subStepIndex + 1);
+          return;
+        } else {
+          // Finished all sub-steps, move to Comparison Options (step 6)
+          setSubStepIndex(0);
+          setActiveStep(6);
+          return;
+        }
+      } else {
+        // Just finished the training regime selection page
+        if (subSteps.length > 0) {
+          // Enter sub-steps
+          setSubStepIndex(0);
+          return;
+        } else {
+          // No sub-steps, move to Comparison Options (step 6)
+          setActiveStep(6);
+          return;
+        }
+      }
     }
+    
+    // Handle Comparison Options step (step 6)
+    if (activeStep === 6) {
+      setActiveStep(7);
+      return;
+    }
+    
+    // Handle Select Areas step (step 7)
+    if (activeStep === 7) {
+      // Check if any comparison pages are selected
+      const hasAnySelection = Object.values(comparisonPageSelections).some(v => v);
+      if (hasAnySelection) {
+        // Move to first dynamic comparison step (step 8)
+        setActiveStep(8);
+        setComparisonSubStepIndex(0);
+      } else {
+        // No comparison selections, finish wizard
+        copyWizardDataToGymComparison();
+        navigate('/gymComparison');
+      }
+      return;
+    }
+    
+    // For steps 0-4, just move to next step
+    setActiveStep((prevStep) => prevStep + 1);
+    setSubStepIndex(0);
   };
 
   const handleBack = () => {
-    // If we're in a sub-step
+    // Handle comparison phase navigation
+    if (isInComparisonPhase) {
+      const currentPageStep = comparisonPageSteps[comparisonPhaseStepIndex];
+      
+      // If we're in comparison training sub-steps
+      if (currentPageStep?.key === 'trainingRegime' && isInComparisonTrainingSubStep) {
+        if (comparisonSubStepIndex > 0) {
+          setComparisonSubStepIndex(comparisonSubStepIndex - 1);
+          return;
+        } else {
+          // Exit comparison training sub-steps
+          setComparisonSubStepIndex(0);
+          return;
+        }
+      }
+      
+      // Move back to previous comparison page or exit comparison phase
+      if (comparisonPhaseStepIndex > 0) {
+        setActiveStep(activeStep - 1);
+        setComparisonSubStepIndex(0);
+      } else {
+        // Go back to Select Areas (step 7)
+        setActiveStep(7);
+        setComparisonSubStepIndex(0);
+      }
+      return;
+    }
+    
+    // Handle current regime navigation
     if (isInSubStep) {
       if (subStepIndex > 0) {
-        // Go to previous sub-step
         setSubStepIndex(subStepIndex - 1);
       } else {
-        // Go back to training regime selection (stay on step 4 but exit sub-steps)
+        // Exit sub-steps (stay on step 5 but show main content)
         setSubStepIndex(0);
-        // Force re-render by not changing activeStep
       }
     } else {
-      // Normal navigation
       setActiveStep((prevStep) => prevStep - 1);
       setSubStepIndex(0);
     }
@@ -265,6 +517,75 @@ export default function GymWizard() {
     setTrainingSelections(selections);
   }, []);
 
+  const handleComparisonOptionChange = useCallback((option: ComparisonOptionType) => {
+    setComparisonOption(option);
+  }, []);
+
+  const handleComparisonSelectionsChange = useCallback((selections: ComparisonPageSelections) => {
+    setComparisonPageSelections(selections);
+  }, []);
+
+  // Build the stepper steps dynamically based on comparison selections
+  const buildStepperSteps = () => {
+    const steps = [...baseWizardSteps];
+    
+    // Add dynamic comparison page steps if we have any selected
+    if (comparisonPageSteps.length > 0) {
+      comparisonPageSteps.forEach((page) => {
+        steps.push({
+          label: page.label,
+          description: `Configure comparison for ${page.label}`,
+        });
+      });
+    }
+    
+    return steps;
+  };
+  
+  const stepperSteps = buildStepperSteps();
+  
+  // Calculate current step label for display
+  const getCurrentStepLabel = () => {
+    if (isInSubStep) {
+      return `${baseWizardSteps[5].label} (${subStepIndex + 1}/${subSteps.length})`;
+    }
+    if (isInComparisonPhase && isInComparisonTrainingSubStep) {
+      return `Compare Training (${comparisonSubStepIndex + 1}/${comparisonTrainingSubSteps.length})`;
+    }
+    return stepperSteps[activeStep]?.label || '';
+  };
+  
+  // Determine the button label
+  const getNextButtonLabel = () => {
+    // Check if we're at the last step and can finish
+    const hasComparisonSelections = Object.values(comparisonPageSelections).some(v => v);
+    
+    // Step 7 (Select Areas) with no selections - finish
+    if (activeStep === 7 && !hasComparisonSelections) {
+      return 'Finish';
+    }
+    
+    // In comparison phase and at last comparison page
+    if (isInComparisonPhase) {
+      const isLastComparisonPage = comparisonPhaseStepIndex === comparisonPageSteps.length - 1;
+      const currentPageStep = comparisonPageSteps[comparisonPhaseStepIndex];
+      
+      if (currentPageStep?.key === 'trainingRegime') {
+        // Check if we're at the last training sub-step or no sub-steps
+        if (isInComparisonTrainingSubStep && comparisonSubStepIndex === comparisonTrainingSubSteps.length - 1 && isLastComparisonPage) {
+          return 'Finish';
+        }
+        if (!isInComparisonTrainingSubStep && comparisonTrainingSubSteps.length === 0 && isLastComparisonPage) {
+          return 'Finish';
+        }
+      } else if (isLastComparisonPage) {
+        return 'Finish';
+      }
+    }
+    
+    return 'Next';
+  };
+
   return (
     <Box sx={{ width: '100%', p: { xs: 2, md: 3 } }}>
       <Typography variant="h4" gutterBottom>
@@ -275,15 +596,26 @@ export default function GymWizard() {
         This wizard will help you set up the gym comparison tool step by step.
       </Typography>
 
-      {/* Stepper for navigation */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Stepper activeStep={activeStep} nonLinear>
-          {baseWizardSteps.map((step, index) => (
-            <Step key={step.label}>
-              <StepButton onClick={() => handleStepClick(index)}>
+      {/* Stepper for navigation - show first 8 base steps, plus dynamic comparison steps */}
+      <Paper sx={{ p: 2, mb: 3, overflowX: 'auto' }}>
+        <Stepper 
+          activeStep={activeStep} 
+          nonLinear
+          sx={{ 
+            minWidth: stepperSteps.length > 8 ? `${stepperSteps.length * 120}px` : undefined 
+          }}
+        >
+          {stepperSteps.map((step, index) => (
+            <Step key={`${step.label}-${index}`}>
+              <StepButton 
+                onClick={() => handleStepClick(index)}
+                disabled={index >= 8 && !Object.values(comparisonPageSelections).some(v => v)}
+              >
                 <StepLabel>
                   {step.label}
                   {index === 5 && isInSubStep && ` (${subStepIndex + 1}/${subSteps.length})`}
+                  {index === activeStep && isInComparisonPhase && isInComparisonTrainingSubStep && 
+                    ` (${comparisonSubStepIndex + 1}/${comparisonTrainingSubSteps.length})`}
                 </StepLabel>
               </StepButton>
             </Step>
@@ -291,17 +623,49 @@ export default function GymWizard() {
         </Stepper>
       </Paper>
 
+      {/* Current step indicator for mobile */}
+      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, display: { md: 'none' } }}>
+        Step {activeStep + 1} of {stepperSteps.length}: {getCurrentStepLabel()}
+      </Typography>
+
       {/* Wizard step content */}
       <Paper sx={{ p: 3, mb: 3, minHeight: '400px' }}>
+        {/* Current regime configuration steps (0-5) */}
         {activeStep === 0 && <ApiKeyWizardStep />}
-        {activeStep === 1 && <EnergySourcesWizardStep />}
-        {activeStep === 2 && <HappyPerksWizardStep />}
-        {activeStep === 3 && <CompanyBenefitsWizardStep />}
-        {activeStep === 4 && <StatTargetRatiosWizardStep />}
+        {activeStep === 1 && <EnergySourcesWizardStep mode="current" />}
+        {activeStep === 2 && <HappyPerksWizardStep mode="current" />}
+        {activeStep === 3 && <CompanyBenefitsWizardStep mode="current" />}
+        {activeStep === 4 && <StatTargetRatiosWizardStep mode="current" />}
         {activeStep === 5 && !isInSubStep && (
-          <TrainingRegimeWizardStep onSelectionsChange={handleTrainingSelectionsChange} />
+          <TrainingRegimeWizardStep mode="current" onSelectionsChange={handleTrainingSelectionsChange} />
         )}
         {activeStep === 5 && isInSubStep && subSteps[subStepIndex]?.component}
+        
+        {/* Comparison options step (6) */}
+        {activeStep === 6 && (
+          <ComparisonOptionsWizardStep onOptionChange={handleComparisonOptionChange} />
+        )}
+        
+        {/* Comparison selection step (7) */}
+        {activeStep === 7 && (
+          <ComparisonSelectionWizardStep onSelectionsChange={handleComparisonSelectionsChange} />
+        )}
+        
+        {/* Dynamic comparison page steps (8+) */}
+        {isInComparisonPhase && (() => {
+          const currentStep = comparisonPageSteps[comparisonPhaseStepIndex];
+          if (!currentStep) return null;
+          
+          // For training regime, handle sub-steps
+          if (currentStep.key === 'trainingRegime') {
+            if (isInComparisonTrainingSubStep) {
+              return comparisonTrainingSubSteps[comparisonSubStepIndex]?.component;
+            }
+            return currentStep.component;
+          }
+          
+          return currentStep.component;
+        })()}
       </Paper>
 
       {/* Navigation buttons */}
@@ -326,10 +690,7 @@ export default function GymWizard() {
             variant="contained"
             onClick={handleNext}
           >
-            {(activeStep === baseWizardSteps.length - 1 && !isInSubStep && subSteps.length === 0) || 
-             (isInSubStep && subStepIndex === subSteps.length - 1)
-              ? 'Finish'
-              : 'Next'}
+            {getNextButtonLabel()}
           </Button>
         </Box>
       </Box>

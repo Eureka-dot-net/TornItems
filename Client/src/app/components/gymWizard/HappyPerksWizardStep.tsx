@@ -17,7 +17,11 @@ import { fetchGymStatsFromTorn, calculatePerkPercentages } from '../../../lib/ut
  * 
  * This wizard step helps users configure their base happy and gym perks.
  * Questions are asked one by one to avoid overwhelming basic users.
+ * 
+ * @param mode - 'current' for current regime configuration, 'comparison' for comparison configuration
  */
+
+export type WizardMode = 'current' | 'comparison';
 
 interface PerkPercs {
   strength: number;
@@ -26,9 +30,25 @@ interface PerkPercs {
   dexterity: number;
 }
 
-export default function HappyPerksWizardStep() {
+interface HappyPerksWizardStepProps {
+  mode?: WizardMode;
+}
+
+export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWizardStepProps) {
+  const isComparison = mode === 'comparison';
+  const storagePrefix = isComparison ? 'gymWizard_comparison_' : 'gymWizard_';
   // Load saved preferences from localStorage
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
+    try {
+      const saved = localStorage.getItem(`${storagePrefix}${key}`);
+      return saved ? JSON.parse(saved) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  };
+
+  // For comparison mode, also load current values as defaults
+  const loadCurrentValue = <T,>(key: string, defaultValue: T): T => {
     try {
       const saved = localStorage.getItem(`gymWizard_${key}`);
       return saved ? JSON.parse(saved) : defaultValue;
@@ -38,37 +58,51 @@ export default function HappyPerksWizardStep() {
   };
 
   // Check if user provided API key in section 1
-  const apiKey = loadSavedValue<string>('apiKey', '');
+  const apiKey = loadCurrentValue<string>('apiKey', '');
   const hasApiKey = apiKey && apiKey.trim().length > 0;
 
   // State for base happy
   const [baseHappy, setBaseHappy] = useState<number>(() => 
-    loadSavedValue('baseHappy', 0)
+    isComparison
+      ? loadSavedValue('baseHappy', loadCurrentValue('baseHappy', 0))
+      : loadSavedValue('baseHappy', 0)
   );
 
   // State for perks - if API key exists, we can load from fetched data
   const [perkPercs, setPerkPercs] = useState<PerkPercs>(() => 
-    loadSavedValue('perkPercs', { strength: 0, speed: 0, defense: 0, dexterity: 0 })
+    isComparison
+      ? loadSavedValue('perkPercs', loadCurrentValue('perkPercs', { strength: 0, speed: 0, defense: 0, dexterity: 0 }))
+      : loadSavedValue('perkPercs', { strength: 0, speed: 0, defense: 0, dexterity: 0 })
   );
   const [perksLoaded, setPerksLoaded] = useState<boolean>(false);
   
   // State to track if user knows their perks (only if no API key)
   const [knowsPerks, setKnowsPerks] = useState<'yes' | 'no' | null>(() => 
-    loadSavedValue<'yes' | 'no' | null>('knowsPerks', null)
+    isComparison
+      ? loadSavedValue<'yes' | 'no' | null>('knowsPerks', loadCurrentValue('knowsPerks', null))
+      : loadSavedValue<'yes' | 'no' | null>('knowsPerks', null)
   );
 
   // State for manual perk questions (only if no API key and user doesn't know perks)
   const [hasFactionSteadfast, setHasFactionSteadfast] = useState<'yes' | 'no' | null>(() => 
-    loadSavedValue<'yes' | 'no' | null>('hasFactionSteadfast', null)
+    isComparison
+      ? loadSavedValue<'yes' | 'no' | null>('hasFactionSteadfast', loadCurrentValue('hasFactionSteadfast', null))
+      : loadSavedValue<'yes' | 'no' | null>('hasFactionSteadfast', null)
   );
   const [steadfastBonuses, setSteadfastBonuses] = useState<PerkPercs>(() => 
-    loadSavedValue('steadfastBonuses', { strength: 0, speed: 0, defense: 0, dexterity: 0 })
+    isComparison
+      ? loadSavedValue('steadfastBonuses', loadCurrentValue('steadfastBonuses', { strength: 0, speed: 0, defense: 0, dexterity: 0 }))
+      : loadSavedValue('steadfastBonuses', { strength: 0, speed: 0, defense: 0, dexterity: 0 })
   );
   const [hasPrivatePool, setHasPrivatePool] = useState<'yes' | 'no' | null>(() => 
-    loadSavedValue<'yes' | 'no' | null>('hasPrivatePool', null)
+    isComparison
+      ? loadSavedValue<'yes' | 'no' | null>('hasPrivatePool', loadCurrentValue('hasPrivatePool', null))
+      : loadSavedValue<'yes' | 'no' | null>('hasPrivatePool', null)
   );
   const [hasBachelorSportScience, setHasBachelorSportScience] = useState<'yes' | 'no' | null>(() => 
-    loadSavedValue<'yes' | 'no' | null>('hasBachelorSportScience', null)
+    isComparison
+      ? loadSavedValue<'yes' | 'no' | null>('hasBachelorSportScience', loadCurrentValue('hasBachelorSportScience', null))
+      : loadSavedValue<'yes' | 'no' | null>('hasBachelorSportScience', null)
   );
   const [individualCourses, setIndividualCourses] = useState<{
     strength: boolean;
@@ -76,46 +110,49 @@ export default function HappyPerksWizardStep() {
     defense: boolean;
     dexterity: boolean;
   }>(() => 
-    loadSavedValue('individualCourses', { strength: false, speed: false, defense: false, dexterity: false })
+    isComparison
+      ? loadSavedValue('individualCourses', loadCurrentValue('individualCourses', { strength: false, speed: false, defense: false, dexterity: false }))
+      : loadSavedValue('individualCourses', { strength: false, speed: false, defense: false, dexterity: false })
   );
 
   // Save values to localStorage
   useEffect(() => {
-    localStorage.setItem('gymWizard_baseHappy', JSON.stringify(baseHappy));
-  }, [baseHappy]);
+    localStorage.setItem(`${storagePrefix}baseHappy`, JSON.stringify(baseHappy));
+  }, [baseHappy, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_knowsPerks', JSON.stringify(knowsPerks));
-  }, [knowsPerks]);
+    localStorage.setItem(`${storagePrefix}knowsPerks`, JSON.stringify(knowsPerks));
+  }, [knowsPerks, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_perkPercs', JSON.stringify(perkPercs));
-  }, [perkPercs]);
+    localStorage.setItem(`${storagePrefix}perkPercs`, JSON.stringify(perkPercs));
+  }, [perkPercs, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_hasFactionSteadfast', JSON.stringify(hasFactionSteadfast));
-  }, [hasFactionSteadfast]);
+    localStorage.setItem(`${storagePrefix}hasFactionSteadfast`, JSON.stringify(hasFactionSteadfast));
+  }, [hasFactionSteadfast, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_steadfastBonuses', JSON.stringify(steadfastBonuses));
-  }, [steadfastBonuses]);
+    localStorage.setItem(`${storagePrefix}steadfastBonuses`, JSON.stringify(steadfastBonuses));
+  }, [steadfastBonuses, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_hasPrivatePool', JSON.stringify(hasPrivatePool));
-  }, [hasPrivatePool]);
+    localStorage.setItem(`${storagePrefix}hasPrivatePool`, JSON.stringify(hasPrivatePool));
+  }, [hasPrivatePool, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_hasBachelorSportScience', JSON.stringify(hasBachelorSportScience));
-  }, [hasBachelorSportScience]);
+    localStorage.setItem(`${storagePrefix}hasBachelorSportScience`, JSON.stringify(hasBachelorSportScience));
+  }, [hasBachelorSportScience, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_individualCourses', JSON.stringify(individualCourses));
-  }, [individualCourses]);
+    localStorage.setItem(`${storagePrefix}individualCourses`, JSON.stringify(individualCourses));
+  }, [individualCourses, storagePrefix]);
 
   // Fetch perks and base happy from API if API key exists and we haven't loaded them yet
+  // Only auto-fetch for current mode, not comparison mode
   useEffect(() => {
     const fetchPerks = async () => {
-      if (hasApiKey && !perksLoaded) {
+      if (hasApiKey && !perksLoaded && !isComparison) {
         try {
           // Use shared helper to fetch directly from Torn API with perks
           const data = await fetchGymStatsFromTorn(apiKey, true);
@@ -140,7 +177,7 @@ export default function HappyPerksWizardStep() {
     };
 
     fetchPerks();
-  }, [hasApiKey, apiKey, perksLoaded]);
+  }, [hasApiKey, apiKey, perksLoaded, isComparison]);
 
   // Calculate perk percentages from manual inputs (multiplicative)
   useEffect(() => {
@@ -196,18 +233,26 @@ export default function HappyPerksWizardStep() {
   return (
     <Box>
       <Typography variant="h5" gutterBottom>
-        Configure Your Base Happy and Gym Perks
+        {isComparison ? 'Configure Comparison Happy & Perks' : 'Configure Your Base Happy and Gym Perks'}
       </Typography>
       
       <Typography variant="body1" paragraph>
-        Let's configure your base happy value and gym gain bonuses. These affect how much you gain 
-        from training and help us provide accurate projections based on your <strong>current situation</strong>.
+        {isComparison 
+          ? <>Configure the happy and perk values for your <strong>comparison scenario</strong>. 
+              Adjust these settings to see how different configurations would affect your gym gains.</>
+          : <>Let's configure your base happy value and gym gain bonuses. These affect how much you gain 
+              from training and help us provide accurate projections based on your <strong>current situation</strong>.</>
+        }
       </Typography>
 
-      <Alert severity="info" sx={{ mb: 3 }}>
+      <Alert severity={isComparison ? 'warning' : 'info'} sx={{ mb: 3 }}>
         <Typography variant="body2">
-          Note: We're asking about your <strong>current state</strong>, not what you're planning for the future. 
-          The simulator will help you see how different scenarios would perform.
+          {isComparison 
+            ? <>These settings are for your <strong>comparison scenario</strong>. Modify any values you 
+                want to differ from your current setup to see the impact on your gains.</>
+            : <>Note: We're asking about your <strong>current state</strong>, not what you're planning for the future. 
+                The simulator will help you see how different scenarios would perform.</>
+          }
         </Typography>
       </Alert>
 

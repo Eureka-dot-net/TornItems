@@ -16,11 +16,31 @@ import { COMPANY_BENEFIT_TYPES } from '../../../lib/constants/gymConstants';
  * 
  * This wizard step helps users configure their company benefits in a simplified way.
  * Questions are phrased for basic users to understand easily.
+ * 
+ * @param mode - 'current' for current regime configuration, 'comparison' for comparison configuration
  */
 
-export default function CompanyBenefitsWizardStep() {
+export type WizardMode = 'current' | 'comparison';
+
+interface CompanyBenefitsWizardStepProps {
+  mode?: WizardMode;
+}
+
+export default function CompanyBenefitsWizardStep({ mode = 'current' }: CompanyBenefitsWizardStepProps) {
+  const isComparison = mode === 'comparison';
+  const storagePrefix = isComparison ? 'gymWizard_comparison_' : 'gymWizard_';
   // Load saved preferences from localStorage
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
+    try {
+      const saved = localStorage.getItem(`${storagePrefix}${key}`);
+      return saved ? JSON.parse(saved) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  };
+
+  // For comparison mode, also load current values as defaults
+  const loadCurrentValue = <T,>(key: string, defaultValue: T): T => {
     try {
       const saved = localStorage.getItem(`gymWizard_${key}`);
       return saved ? JSON.parse(saved) : defaultValue;
@@ -30,27 +50,33 @@ export default function CompanyBenefitsWizardStep() {
   };
 
   const [hasCompanyBenefit, setHasCompanyBenefit] = useState<'yes' | 'no' | null>(() => 
-    loadSavedValue<'yes' | 'no' | null>('hasCompanyBenefit', null)
+    isComparison
+      ? loadSavedValue<'yes' | 'no' | null>('hasCompanyBenefit', loadCurrentValue('hasCompanyBenefit', null))
+      : loadSavedValue<'yes' | 'no' | null>('hasCompanyBenefit', null)
   );
   const [companyBenefitKey, setCompanyBenefitKey] = useState<string>(() => 
-    loadSavedValue('companyBenefitKey', COMPANY_BENEFIT_TYPES.NONE)
+    isComparison
+      ? loadSavedValue('companyBenefitKey', loadCurrentValue('companyBenefitKey', COMPANY_BENEFIT_TYPES.NONE))
+      : loadSavedValue('companyBenefitKey', COMPANY_BENEFIT_TYPES.NONE)
   );
   const [candleShopStars, setCandleShopStars] = useState<number>(() => 
-    loadSavedValue('candleShopStars', 10)
+    isComparison
+      ? loadSavedValue('candleShopStars', loadCurrentValue('candleShopStars', 10))
+      : loadSavedValue('candleShopStars', 10)
   );
 
   // Save values to localStorage
   useEffect(() => {
-    localStorage.setItem('gymWizard_hasCompanyBenefit', JSON.stringify(hasCompanyBenefit));
-  }, [hasCompanyBenefit]);
+    localStorage.setItem(`${storagePrefix}hasCompanyBenefit`, JSON.stringify(hasCompanyBenefit));
+  }, [hasCompanyBenefit, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_companyBenefitKey', JSON.stringify(companyBenefitKey));
-  }, [companyBenefitKey]);
+    localStorage.setItem(`${storagePrefix}companyBenefitKey`, JSON.stringify(companyBenefitKey));
+  }, [companyBenefitKey, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_candleShopStars', JSON.stringify(candleShopStars));
-  }, [candleShopStars]);
+    localStorage.setItem(`${storagePrefix}candleShopStars`, JSON.stringify(candleShopStars));
+  }, [candleShopStars, storagePrefix]);
 
   // When hasCompanyBenefit changes, reset dependent fields
   useEffect(() => {
@@ -80,25 +106,36 @@ export default function CompanyBenefitsWizardStep() {
   return (
     <Box>
       <Typography variant="h5" gutterBottom>
-        Configure Your Company Benefits
+        {isComparison ? 'Configure Comparison Company Benefits' : 'Configure Your Company Benefits'}
       </Typography>
       
       <Typography variant="body1" paragraph>
-        Some company jobs provide special benefits that help with gym training. 
-        Let's see if your current company provides any gym-related perks.
+        {isComparison 
+          ? <>Configure the company benefits for your <strong>comparison scenario</strong>. 
+              This allows you to see how switching companies or jobs would affect your gym gains.</>
+          : <>Some company jobs provide special benefits that help with gym training. 
+              Let's see if your current company provides any gym-related perks.</>
+        }
       </Typography>
 
-      <Alert severity="info" sx={{ mb: 3 }}>
+      <Alert severity={isComparison ? 'warning' : 'info'} sx={{ mb: 3 }}>
         <Typography variant="body2">
-          Note: We're asking about your <strong>current employment</strong>, not what you're 
-          planning for the future. The simulator will help you compare different scenarios later.
+          {isComparison 
+            ? <>These settings are for your <strong>comparison scenario</strong>. Select different 
+                company benefits to see how they would impact your training gains.</>
+            : <>Note: We're asking about your <strong>current employment</strong>, not what you're 
+                planning for the future. The simulator will help you compare different scenarios later.</>
+          }
         </Typography>
       </Alert>
 
       {/* Question 1: Do you have a company benefit? */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6" gutterBottom>
-          1. Does your current company job provide gym-related benefits?
+          {isComparison 
+            ? '1. Would your comparison scenario include gym-related company benefits?'
+            : '1. Does your current company job provide gym-related benefits?'
+          }
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
           Some companies provide perks that help with gym training, such as bonus energy, 
@@ -111,12 +148,18 @@ export default function CompanyBenefitsWizardStep() {
           <FormControlLabel 
             value="yes" 
             control={<Radio />} 
-            label="Yes, my company provides gym-related benefits" 
+            label={isComparison 
+              ? 'Yes, I want to compare with gym-related benefits' 
+              : 'Yes, my company provides gym-related benefits'
+            }
           />
           <FormControlLabel 
             value="no" 
             control={<Radio />} 
-            label="No, I don't have gym-related company benefits" 
+            label={isComparison 
+              ? 'No, I want to compare without gym-related benefits' 
+              : "No, I don't have gym-related company benefits"
+            }
           />
         </RadioGroup>
       </Box>
@@ -241,12 +284,14 @@ export default function CompanyBenefitsWizardStep() {
       {hasCompanyBenefit !== null && (
         <Alert severity="success" sx={{ mt: 3 }}>
           <Typography variant="body2" fontWeight="bold" gutterBottom>
-            Your Company Benefit Configuration
+            {isComparison ? 'Comparison Company Benefit Configuration' : 'Your Company Benefit Configuration'}
           </Typography>
           {hasCompanyBenefit === 'no' ? (
             <Typography variant="body2">
-              You don't have any gym-related company benefits. This is fine - many players 
-              train without company perks.
+              {isComparison 
+                ? "Your comparison scenario doesn't include gym-related company benefits."
+                : "You don't have any gym-related company benefits. This is fine - many players train without company perks."
+              }
             </Typography>
           ) : (
             <>

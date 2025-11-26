@@ -17,13 +17,24 @@ import { validateNumericInput } from '../../../lib/utils/jumpHelpers';
  * This sub-step helps users configure their Feathery Hotel Coupon (FHC) usage.
  * It asks questions in an easy-to-understand format for basic users.
  * FHC is special because it completely refills the energy bar instead of adding a fixed amount.
+ * 
+ * @param mode - 'current' for current regime configuration, 'comparison' for comparison configuration
  */
 
-export default function FhcJumpWizardSubStep() {
+export type WizardMode = 'current' | 'comparison';
+
+interface FhcJumpWizardSubStepProps {
+  mode?: WizardMode;
+}
+
+export default function FhcJumpWizardSubStep({ mode = 'current' }: FhcJumpWizardSubStepProps) {
+  const isComparison = mode === 'comparison';
+  const storagePrefix = isComparison ? 'gymWizard_comparison_' : 'gymWizard_';
+
   // Load saved preferences from localStorage
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
     try {
-      const saved = localStorage.getItem(`gymWizard_${key}`);
+      const saved = localStorage.getItem(`${storagePrefix}${key}`);
       return saved ? JSON.parse(saved) : defaultValue;
     } catch {
       return defaultValue;
@@ -36,10 +47,10 @@ export default function FhcJumpWizardSubStep() {
 
   // Save values to localStorage - using fhc prefix to separate from energy drinks
   useEffect(() => {
-    localStorage.setItem('gymWizard_fhcEnabled', JSON.stringify(true));
-    localStorage.setItem('gymWizard_fhcItemId', JSON.stringify(ENERGY_ITEM_IDS.FHC));
-    localStorage.setItem('gymWizard_fhcQuantity', JSON.stringify(quantity));
-  }, [quantity]);
+    localStorage.setItem(`${storagePrefix}fhcEnabled`, JSON.stringify(true));
+    localStorage.setItem(`${storagePrefix}fhcItemId`, JSON.stringify(ENERGY_ITEM_IDS.FHC));
+    localStorage.setItem(`${storagePrefix}fhcQuantity`, JSON.stringify(quantity));
+  }, [quantity, storagePrefix]);
 
   return (
     <Box>
