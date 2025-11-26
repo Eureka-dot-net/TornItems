@@ -410,17 +410,27 @@ function computeStatGain(
 }
 
 /**
- * Get the effective gym gain multiplier for a specific stat
+ * Get the effective gym gain multiplier for a specific stat.
+ * 
  * This combines the general gymGainMultiplier with any stat-specific multipliers
+ * by multiplying them together. For example:
+ * - Fitness Center (3% all stats): gymGainMultiplier = 1.03
+ * - Gents Strip Club (10% dex only): statSpecificGymGainMultipliers.dexterity = 1.10
+ * 
+ * If both were active (hypothetically), dexterity would get: 1.03 * 1.10 = 1.133 (13.3% total)
+ * 
+ * @param stat - The stat to get the multiplier for
+ * @param companyBenefit - The company benefit configuration
+ * @returns The effective multiplier for the specified stat
  */
 function getEffectiveGymGainMultiplier(
   stat: 'strength' | 'speed' | 'defense' | 'dexterity',
   companyBenefit: CompanyBenefit
 ): number {
-  // Start with the general multiplier
+  // Start with the general multiplier (applies to all stats)
   let multiplier = companyBenefit.gymGainMultiplier;
   
-  // Apply stat-specific multiplier if available
+  // Apply stat-specific multiplier if available (multiplicative, not additive)
   if (companyBenefit.statSpecificGymGainMultipliers) {
     const statMultiplier = companyBenefit.statSpecificGymGainMultipliers[stat];
     if (statMultiplier !== undefined) {

@@ -223,7 +223,9 @@ export default function CompanyBenefitsWizardStep() {
                 value={candleShopStars}
                 onChange={(e) => {
                   const value = Number(e.target.value);
-                  setCandleShopStars(Math.max(1, Math.min(10, value)));
+                  if (!isNaN(value)) {
+                    setCandleShopStars(Math.max(1, Math.min(10, value)));
+                  }
                 }}
                 fullWidth
                 size="small"
