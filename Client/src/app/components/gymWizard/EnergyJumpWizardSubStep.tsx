@@ -57,11 +57,11 @@ export default function EnergyJumpWizardSubStep({ mode = 'current' }: EnergyJump
 
   // Save values to localStorage - using energyDrink prefix to separate from FHC
   useEffect(() => {
-    localStorage.setItem('gymWizard_energyDrinkEnabled', JSON.stringify(true));
-    localStorage.setItem('gymWizard_energyDrinkItemId', JSON.stringify(itemId));
-    localStorage.setItem('gymWizard_energyDrinkQuantity', JSON.stringify(quantity));
-    localStorage.setItem('gymWizard_energyDrinkFactionBenefit', JSON.stringify(factionBenefit));
-  }, [itemId, quantity, factionBenefit]);
+    localStorage.setItem(`${storagePrefix}energyDrinkEnabled`, JSON.stringify(true));
+    localStorage.setItem(`${storagePrefix}energyDrinkItemId`, JSON.stringify(itemId));
+    localStorage.setItem(`${storagePrefix}energyDrinkQuantity`, JSON.stringify(quantity));
+    localStorage.setItem(`${storagePrefix}energyDrinkFactionBenefit`, JSON.stringify(factionBenefit));
+  }, [itemId, quantity, factionBenefit, storagePrefix]);
 
   return (
     <Box>

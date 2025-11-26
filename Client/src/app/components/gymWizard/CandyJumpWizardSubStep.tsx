@@ -80,15 +80,15 @@ export default function CandyJumpWizardSubStep({ mode = 'current' }: CandyJumpWi
 
   // Save values to localStorage
   useEffect(() => {
-    localStorage.setItem('gymWizard_candyJumpEnabled', JSON.stringify(true));
-    localStorage.setItem('gymWizard_candyJumpFrequencyDays', JSON.stringify(frequencyDays));
-    localStorage.setItem('gymWizard_candyJumpItemId', JSON.stringify(itemId));
-    localStorage.setItem('gymWizard_candyJumpQuantity', JSON.stringify(quantity));
-    localStorage.setItem('gymWizard_candyJumpFactionBenefit', JSON.stringify(factionBenefit));
-    localStorage.setItem('gymWizard_candyJumpDrugUsed', JSON.stringify(drugUsed || 'none'));
-    localStorage.setItem('gymWizard_candyJumpDrugAlreadyIncluded', JSON.stringify(drugAlreadyIncluded));
-    localStorage.setItem('gymWizard_candyJumpUsePointRefill', JSON.stringify(usePointRefill ?? hasPointsRefill));
-  }, [frequencyDays, itemId, quantity, factionBenefit, drugUsed, drugAlreadyIncluded, usePointRefill, hasPointsRefill]);
+    localStorage.setItem(`${storagePrefix}candyJumpEnabled`, JSON.stringify(true));
+    localStorage.setItem(`${storagePrefix}candyJumpFrequencyDays`, JSON.stringify(frequencyDays));
+    localStorage.setItem(`${storagePrefix}candyJumpItemId`, JSON.stringify(itemId));
+    localStorage.setItem(`${storagePrefix}candyJumpQuantity`, JSON.stringify(quantity));
+    localStorage.setItem(`${storagePrefix}candyJumpFactionBenefit`, JSON.stringify(factionBenefit));
+    localStorage.setItem(`${storagePrefix}candyJumpDrugUsed`, JSON.stringify(drugUsed || 'none'));
+    localStorage.setItem(`${storagePrefix}candyJumpDrugAlreadyIncluded`, JSON.stringify(drugAlreadyIncluded));
+    localStorage.setItem(`${storagePrefix}candyJumpUsePointRefill`, JSON.stringify(usePointRefill ?? hasPointsRefill));
+  }, [frequencyDays, itemId, quantity, factionBenefit, drugUsed, drugAlreadyIncluded, usePointRefill, hasPointsRefill, storagePrefix]);
 
   return (
     <Box>

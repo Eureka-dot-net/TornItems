@@ -60,15 +60,15 @@ export default function StackedCandyJumpWizardSubStep({ mode = 'current' }: Stac
 
   // Save values to localStorage
   useEffect(() => {
-    localStorage.setItem('gymWizard_stackedCandyJumpEnabled', JSON.stringify(true));
-    localStorage.setItem('gymWizard_stackedCandyJumpFrequency', JSON.stringify(frequency));
-    localStorage.setItem('gymWizard_stackedCandyJumpItemId', JSON.stringify(itemId));
-    localStorage.setItem('gymWizard_stackedCandyJumpQuantity', JSON.stringify(quantity));
-    localStorage.setItem('gymWizard_stackedCandyJumpFactionBenefit', JSON.stringify(factionBenefit));
-    localStorage.setItem('gymWizard_stackedCandyJumpLimit', JSON.stringify(limit));
-    localStorage.setItem('gymWizard_stackedCandyJumpCount', JSON.stringify(count));
-    localStorage.setItem('gymWizard_stackedCandyJumpStatTarget', JSON.stringify(statTarget));
-  }, [frequency, itemId, quantity, factionBenefit, limit, count, statTarget]);
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpEnabled`, JSON.stringify(true));
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpFrequency`, JSON.stringify(frequency));
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpItemId`, JSON.stringify(itemId));
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpQuantity`, JSON.stringify(quantity));
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpFactionBenefit`, JSON.stringify(factionBenefit));
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpLimit`, JSON.stringify(limit));
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpCount`, JSON.stringify(count));
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpStatTarget`, JSON.stringify(statTarget));
+  }, [frequency, itemId, quantity, factionBenefit, limit, count, statTarget, storagePrefix]);
 
   return (
     <Box>

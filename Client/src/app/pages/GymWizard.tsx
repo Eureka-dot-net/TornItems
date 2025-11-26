@@ -58,9 +58,8 @@ export default function GymWizard() {
   });
   
   // Comparison phase state
-  // Note: comparisonOption will be used when 'recommendations' feature is implemented
-  const [comparisonOption, setComparisonOption] = useState<ComparisonOptionType>(null);
-  void comparisonOption; // Used for future recommendations feature
+  // Note: setComparisonOption is used by handleComparisonOptionChange callback
+  const [, setComparisonOption] = useState<ComparisonOptionType>(null);
   const [comparisonPageSelections, setComparisonPageSelections] = useState<ComparisonPageSelections>({
     energySources: false,
     happyPerks: false,
@@ -90,10 +89,6 @@ export default function GymWizard() {
     
     // Load comparison selections
     try {
-      const savedOption = localStorage.getItem('gymWizard_comparisonOption');
-      if (savedOption) {
-        setComparisonOption(JSON.parse(savedOption));
-      }
       const savedPageSelections = localStorage.getItem('gymWizard_comparisonPageSelections');
       if (savedPageSelections) {
         setComparisonPageSelections(JSON.parse(savedPageSelections));
