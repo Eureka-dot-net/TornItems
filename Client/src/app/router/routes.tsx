@@ -12,7 +12,8 @@ const router = createBrowserRouter([
     {
         element: <App />,
         children: [
-            { path: "/", element: <Recommendations /> },
+            { path: "/", element: <GymWizard /> },
+            { path: "/recommendations", element: <Recommendations /> },
             { path: "/profit", element: <Profit /> },
             { path: "/stockProfit", element: <StockProfit /> },
             { path: "/gymComparison", element: <GymComparison /> },
