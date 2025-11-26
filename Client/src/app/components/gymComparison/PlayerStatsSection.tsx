@@ -33,6 +33,7 @@ interface PlayerStatsSectionProps {
   onEnabledChange?: (enabled: boolean) => void;
   hideApiKeySection?: boolean;
   hideApiKeyAlert?: boolean;
+  hideStartDateSection?: boolean;
   gymProgressPercent?: number;
   setGymProgressPercent?: (percent: number) => void;
   durationUnit?: 'days' | 'weeks' | 'months';
@@ -57,6 +58,7 @@ export default function PlayerStatsSection({
   onEnabledChange,
   hideApiKeySection = false,
   hideApiKeyAlert = false,
+  hideStartDateSection = false,
   gymProgressPercent,
   setGymProgressPercent,
   durationUnit = 'months',
@@ -160,42 +162,44 @@ export default function PlayerStatsSection({
         </Alert>
       )}
       
-      {/* Start Date + Checkbox - Top section */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <DatePicker
-              label="Start Date"
-              value={simulatedDate}
-              onChange={(newValue) => setSimulatedDate(newValue)}
-              minDate={TORN_RELEASE_DATE}
-              maxDate={getYesterday()}
-              slotProps={{ 
-                textField: { 
-                  size: 'small',
-                  fullWidth: true,
-                  helperText: 'Sets the start date for the graph and Diabetes Day calculations (Nov 13-15).'
-                } 
-              }}
-            />
-          </LocalizationProvider>
-        </Grid>
-        {!hideApiKeySection && (
+      {/* Start Date + Checkbox - Top section (only shown when hideStartDateSection is false) */}
+      {!hideStartDateSection && (
+        <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid size={{ xs: 12, md: 6 }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={fetchStatsAtDate}
-                  onChange={(e) => setFetchStatsAtDate(e.target.checked)}
-                  size="small"
-                />
-              }
-              label="Fetch starting stats at this date"
-              sx={{ mt: 1 }}
-            />
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <DatePicker
+                label="Start Date"
+                value={simulatedDate}
+                onChange={(newValue) => setSimulatedDate(newValue)}
+                minDate={TORN_RELEASE_DATE}
+                maxDate={getYesterday()}
+                slotProps={{ 
+                  textField: { 
+                    size: 'small',
+                    fullWidth: true,
+                    helperText: 'Sets the start date for the graph and Diabetes Day calculations (Nov 13-15).'
+                  } 
+                }}
+              />
+            </LocalizationProvider>
           </Grid>
-        )}
-      </Grid>
+          {!hideApiKeySection && (
+            <Grid size={{ xs: 12, md: 6 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={fetchStatsAtDate}
+                    onChange={(e) => setFetchStatsAtDate(e.target.checked)}
+                    size="small"
+                  />
+                }
+                label="Fetch starting stats at this date"
+                sx={{ mt: 1 }}
+              />
+            </Grid>
+          )}
+        </Grid>
+      )}
       
       {/* API Key Section - Only show if not hidden */}
       {!hideApiKeySection && (
@@ -273,7 +277,7 @@ export default function PlayerStatsSection({
         </Grid>
       </Grid>
       
-      {/* Other Options - Duration and Starting Gym */}
+      {/* Other Options - Duration, Starting Gym, and Gym Progress */}
       <Grid container spacing={2}>
         <Grid size={{ xs: 6, md: 3 }}>
           <TextField 
@@ -302,7 +306,7 @@ export default function PlayerStatsSection({
             </FormControl>
           </Grid>
         )}
-        <Grid size={{ xs: 6, md: setDurationUnit ? 3 : 6 }}>
+        <Grid size={{ xs: 6, md: 3 }}>
           <FormControl fullWidth size="small">
             <InputLabel>Starting Gym</InputLabel>
             <Select value={currentGymIndex} label="Starting Gym" onChange={(e) => setCurrentGymIndex(Number(e.target.value))}>
@@ -313,9 +317,9 @@ export default function PlayerStatsSection({
           </FormControl>
         </Grid>
         {gymProgressPercent !== undefined && setGymProgressPercent && (
-          <Grid size={{ xs: 12, md: 6 }}>
+          <Grid size={{ xs: 6, md: 3 }}>
             <TextField 
-              label="Current Gym Progress (%)" 
+              label="Gym Progress (%)" 
               type="number" 
               value={gymProgressPercent} 
               onChange={(e) => {
@@ -326,7 +330,7 @@ export default function PlayerStatsSection({
               size="small" 
               fullWidth
               inputProps={{ step: 'any', min: 0, max: 100 }}
-              helperText="Progress toward unlocking next gym (0-100%). Find this on your gym page in Torn."
+              helperText="Progress toward next gym (0-100%)"
             />
           </Grid>
         )}
