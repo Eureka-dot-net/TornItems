@@ -8,7 +8,7 @@ import CompanyBenefitsWizardStep from '../components/gymWizard/CompanyBenefitsWi
 import StatTargetRatiosWizardStep from '../components/gymWizard/StatTargetRatiosWizardStep';
 import TrainingRegimeWizardStep, { type TrainingRegimeSelections } from '../components/gymWizard/TrainingRegimeWizardStep';
 import ComparisonOptionsWizardStep, { type ComparisonOptionType } from '../components/gymWizard/ComparisonOptionsWizardStep';
-import ComparisonSelectionWizardStep, { type ComparisonPageSelections } from '../components/gymWizard/ComparisonSelectionWizardStep';
+import ComparisonSelectionWizardStep, { type ComparisonPageSelections, type ComparisonMode } from '../components/gymWizard/ComparisonSelectionWizardStep';
 import EdvdJumpWizardSubStep from '../components/gymWizard/EdvdJumpWizardSubStep';
 import CandyJumpWizardSubStep from '../components/gymWizard/CandyJumpWizardSubStep';
 import StackedCandyJumpWizardSubStep from '../components/gymWizard/StackedCandyJumpWizardSubStep';
@@ -67,6 +67,7 @@ export default function GymWizard() {
     statTargetRatios: false,
     trainingRegime: false,
   });
+  const [comparisonMode, setComparisonMode] = useState<ComparisonMode>('separate');
   const [comparisonSubStepIndex, setComparisonSubStepIndex] = useState(0);
   const [comparisonTrainingSelections, setComparisonTrainingSelections] = useState<TrainingRegimeSelections>({
     edvd: false,
@@ -92,6 +93,10 @@ export default function GymWizard() {
       const savedPageSelections = localStorage.getItem('gymWizard_comparisonPageSelections');
       if (savedPageSelections) {
         setComparisonPageSelections(JSON.parse(savedPageSelections));
+      }
+      const savedComparisonMode = localStorage.getItem('gymWizard_comparisonMode');
+      if (savedComparisonMode) {
+        setComparisonMode(JSON.parse(savedComparisonMode));
       }
       const savedComparisonTraining = localStorage.getItem('gymWizard_comparison_trainingRegimeSelections');
       if (savedComparisonTraining) {
@@ -339,8 +344,9 @@ export default function GymWizard() {
     // Set flag to indicate user completed wizard (not skipped)
     localStorage.setItem('gymComparison_fromWizard', 'true');
     
-    // Store comparison page selections
+    // Store comparison page selections and mode
     localStorage.setItem('gymComparison_wizardComparisonPageSelections', JSON.stringify(comparisonPageSelections));
+    localStorage.setItem('gymComparison_wizardComparisonMode', JSON.stringify(comparisonMode));
   };
 
   const handleNext = () => {
@@ -520,6 +526,10 @@ export default function GymWizard() {
     setComparisonPageSelections(selections);
   }, []);
 
+  const handleComparisonModeChange = useCallback((mode: ComparisonMode) => {
+    setComparisonMode(mode);
+  }, []);
+
   // Build the stepper steps dynamically based on comparison selections
   const buildStepperSteps = () => {
     const steps = [...baseWizardSteps];
@@ -643,7 +653,10 @@ export default function GymWizard() {
         
         {/* Comparison selection step (7) */}
         {activeStep === 7 && (
-          <ComparisonSelectionWizardStep onSelectionsChange={handleComparisonSelectionsChange} />
+          <ComparisonSelectionWizardStep 
+            onSelectionsChange={handleComparisonSelectionsChange} 
+            onModeChange={handleComparisonModeChange}
+          />
         )}
         
         {/* Dynamic comparison page steps (8+) */}
