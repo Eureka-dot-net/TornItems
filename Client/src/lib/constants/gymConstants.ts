@@ -123,6 +123,8 @@ export const COMPANY_BENEFIT_TYPES = {
   MUSIC_STORE: 'musicStore',
   CANDLE_SHOP: 'candleShop',
   FITNESS_CENTER: 'fitnessCenter',
+  GENTS_STRIP_CLUB: 'gentsStripClub',
+  LADIES_STRIP_CLUB: 'ladiesStripClub',
 } as const;
 
 // Default candle shop stars

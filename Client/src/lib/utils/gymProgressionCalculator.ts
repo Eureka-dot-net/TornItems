@@ -48,6 +48,13 @@ export interface CompanyBenefit {
   gymUnlockSpeedMultiplier: number; // e.g., 1.3 for 30% faster
   bonusEnergyPerDay: number;
   gymGainMultiplier: number; // e.g., 1.03 for 3% more gains
+  // Optional stat-specific gym gain multipliers (for strip clubs)
+  statSpecificGymGainMultipliers?: {
+    strength?: number;
+    speed?: number;
+    defense?: number;
+    dexterity?: number;
+  };
 }
 
 export interface SimulationInputs {
@@ -403,6 +410,38 @@ function computeStatGain(
 }
 
 /**
+ * Get the effective gym gain multiplier for a specific stat.
+ * 
+ * This combines the general gymGainMultiplier with any stat-specific multipliers
+ * by multiplying them together. For example:
+ * - Fitness Center (3% all stats): gymGainMultiplier = 1.03
+ * - Gents Strip Club (10% dex only): statSpecificGymGainMultipliers.dexterity = 1.10
+ * 
+ * If both were active (hypothetically), dexterity would get: 1.03 * 1.10 = 1.133 (13.3% total)
+ * 
+ * @param stat - The stat to get the multiplier for
+ * @param companyBenefit - The company benefit configuration
+ * @returns The effective multiplier for the specified stat
+ */
+function getEffectiveGymGainMultiplier(
+  stat: 'strength' | 'speed' | 'defense' | 'dexterity',
+  companyBenefit: CompanyBenefit
+): number {
+  // Start with the general multiplier (applies to all stats)
+  let multiplier = companyBenefit.gymGainMultiplier;
+  
+  // Apply stat-specific multiplier if available (multiplicative, not additive)
+  if (companyBenefit.statSpecificGymGainMultipliers) {
+    const statMultiplier = companyBenefit.statSpecificGymGainMultipliers[stat];
+    if (statMultiplier !== undefined) {
+      multiplier *= statMultiplier;
+    }
+  }
+  
+  return multiplier;
+}
+
+/**
  * Find the best gym available for a given stat and energy spent
  */
 function findBestGym(
@@ -747,7 +786,7 @@ export function simulateGymProgression(
                   perksForSelection[stat],
                   statDots,
                   gym.energyPerTrain
-                ) * inputs.companyBenefit.gymGainMultiplier;
+                ) * getEffectiveGymGainMultiplier(stat, inputs.companyBenefit);
                 
                 // Pick stat with highest gym dots (use gain calculation to break ties)
                 if (statDots > bestDots || (statDots === bestDots && gain > 0)) {
@@ -834,7 +873,7 @@ export function simulateGymProgression(
                   perksForSelection[stat],
                   statDots,
                   gym.energyPerTrain
-                ) * inputs.companyBenefit.gymGainMultiplier;
+                ) * getEffectiveGymGainMultiplier(stat, inputs.companyBenefit);
                 
                 if (statDots > bestDots || (statDots === bestDots && gain > 0)) {
                   bestDots = statDots;
@@ -1351,7 +1390,7 @@ export function simulateGymProgression(
                 gym.energyPerTrain
               );
               
-              const actualGain = gain * inputs.companyBenefit.gymGainMultiplier;
+              const actualGain = gain * getEffectiveGymGainMultiplier(selectedStat, inputs.companyBenefit);
               stats[selectedStat] += actualGain;
               totalEnergySpent += gym.energyPerTrain;
               candyRemainingEnergy -= gym.energyPerTrain;
@@ -1524,7 +1563,7 @@ export function simulateGymProgression(
                 perksForSelection[stat],
                 statDots,
                 gym.energyPerTrain
-              ) * inputs.companyBenefit.gymGainMultiplier;
+              ) * getEffectiveGymGainMultiplier(stat, inputs.companyBenefit);
               
               // Calculate current ratio (how far from target)
               const ratio = stats[stat] / inputs.statWeights[stat];
@@ -1643,8 +1682,8 @@ export function simulateGymProgression(
               gym.energyPerTrain
             );
             
-            // Apply gym gain multiplier from company benefit
-            const actualGain = gain * inputs.companyBenefit.gymGainMultiplier;
+            // Apply gym gain multiplier from company benefit (with stat-specific multipliers if applicable)
+            const actualGain = gain * getEffectiveGymGainMultiplier(selectedStat, inputs.companyBenefit);
             stats[selectedStat] += actualGain;
             totalEnergySpent += gym.energyPerTrain;
             remainingEnergy -= gym.energyPerTrain;

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import ApiKeyWizardStep from '../components/gymWizard/ApiKeyWizardStep';
 import EnergySourcesWizardStep from '../components/gymWizard/EnergySourcesWizardStep';
 import HappyPerksWizardStep from '../components/gymWizard/HappyPerksWizardStep';
+import CompanyBenefitsWizardStep from '../components/gymWizard/CompanyBenefitsWizardStep';
 import StatTargetRatiosWizardStep from '../components/gymWizard/StatTargetRatiosWizardStep';
 import TrainingRegimeWizardStep, { type TrainingRegimeSelections } from '../components/gymWizard/TrainingRegimeWizardStep';
 import EdvdJumpWizardSubStep from '../components/gymWizard/EdvdJumpWizardSubStep';
@@ -31,6 +32,7 @@ const baseWizardSteps = [
   { label: 'Player Stats', description: 'Set up your player stats' },
   { label: 'Energy Sources', description: 'Configure your energy sources' },
   { label: 'Happy & Perks', description: 'Configure your base happy and gym perks' },
+  { label: 'Company Benefits', description: 'Configure your company benefits' },
   { label: 'Stat Target Ratios', description: 'Configure your stat training strategy' },
   { label: 'Training Regime', description: 'Configure your training methods' },
 ];
@@ -107,7 +109,7 @@ export default function GymWizard() {
   }, [trainingSelections]);
 
   const subSteps = getSubStepsForTrainingRegime();
-  const isInSubStep = activeStep === 4 && subSteps.length > 0 && subStepIndex < subSteps.length;
+  const isInSubStep = activeStep === 5 && subSteps.length > 0 && subStepIndex < subSteps.length;
 
   // Function to copy wizard data to gym comparison localStorage
   const copyWizardDataToGymComparison = () => {
@@ -124,7 +126,9 @@ export default function GymWizard() {
       'hasPointsRefill',
       'daysSkippedPerMonth',
       'baseHappy',
-      'perkPercs'
+      'perkPercs',
+      'companyBenefitKey',
+      'candleShopStars'
     ];
     
     wizardKeys.forEach(key => {
@@ -163,14 +167,29 @@ export default function GymWizard() {
     } catch (err) {
       console.error('Failed to convert wizard stat ratio selections:', err);
     }
+
+    // Copy company benefit selections
+    try {
+      const companyBenefitKey = JSON.parse(localStorage.getItem('gymWizard_companyBenefitKey') || 'null');
+      const candleShopStars = JSON.parse(localStorage.getItem('gymWizard_candleShopStars') || 'null');
+      
+      if (companyBenefitKey !== null) {
+        localStorage.setItem('gymComparison_wizardCompanyBenefitKey', JSON.stringify(companyBenefitKey));
+      }
+      if (candleShopStars !== null) {
+        localStorage.setItem('gymComparison_wizardCandleShopStars', JSON.stringify(candleShopStars));
+      }
+    } catch (err) {
+      console.error('Failed to copy wizard company benefit selections:', err);
+    }
     
     // Set flag to indicate user completed wizard (not skipped)
     localStorage.setItem('gymComparison_fromWizard', 'true');
   };
 
   const handleNext = () => {
-    // If we're on the training regime step (step 4)
-    if (activeStep === 4) {
+    // If we're on the training regime step (step 5)
+    if (activeStep === 5) {
       // If we're in a sub-step
       if (isInSubStep) {
         // Move to next sub-step
@@ -190,8 +209,8 @@ export default function GymWizard() {
         // If there are sub-steps, go to first sub-step
         if (subSteps.length > 0) {
           setSubStepIndex(0);
-          // Stay on step 4 but now show sub-step
-          setActiveStep(4);
+          // Stay on step 5 but now show sub-step
+          setActiveStep(5);
           return;
         } else {
           // No sub-steps selected, finish wizard
@@ -264,7 +283,7 @@ export default function GymWizard() {
               <StepButton onClick={() => handleStepClick(index)}>
                 <StepLabel>
                   {step.label}
-                  {index === 4 && isInSubStep && ` (${subStepIndex + 1}/${subSteps.length})`}
+                  {index === 5 && isInSubStep && ` (${subStepIndex + 1}/${subSteps.length})`}
                 </StepLabel>
               </StepButton>
             </Step>
@@ -277,11 +296,12 @@ export default function GymWizard() {
         {activeStep === 0 && <ApiKeyWizardStep />}
         {activeStep === 1 && <EnergySourcesWizardStep />}
         {activeStep === 2 && <HappyPerksWizardStep />}
-        {activeStep === 3 && <StatTargetRatiosWizardStep />}
-        {activeStep === 4 && !isInSubStep && (
+        {activeStep === 3 && <CompanyBenefitsWizardStep />}
+        {activeStep === 4 && <StatTargetRatiosWizardStep />}
+        {activeStep === 5 && !isInSubStep && (
           <TrainingRegimeWizardStep onSelectionsChange={handleTrainingSelectionsChange} />
         )}
-        {activeStep === 4 && isInSubStep && subSteps[subStepIndex]?.component}
+        {activeStep === 5 && isInSubStep && subSteps[subStepIndex]?.component}
       </Paper>
 
       {/* Navigation buttons */}
