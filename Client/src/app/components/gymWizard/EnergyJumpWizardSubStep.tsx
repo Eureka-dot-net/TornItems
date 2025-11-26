@@ -21,13 +21,24 @@ import { validateNumericInput } from '../../../lib/utils/jumpHelpers';
  * This sub-step helps users configure their energy drink usage.
  * It asks questions in an easy-to-understand format for basic users.
  * This component is for energy cans/drinks only (NOT FHC).
+ * 
+ * @param mode - 'current' for current regime configuration, 'comparison' for comparison configuration
  */
 
-export default function EnergyJumpWizardSubStep() {
+export type WizardMode = 'current' | 'comparison';
+
+interface EnergyJumpWizardSubStepProps {
+  mode?: WizardMode;
+}
+
+export default function EnergyJumpWizardSubStep({ mode = 'current' }: EnergyJumpWizardSubStepProps) {
+  const isComparison = mode === 'comparison';
+  const storagePrefix = isComparison ? 'gymWizard_comparison_' : 'gymWizard_';
+
   // Load saved preferences from localStorage
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
     try {
-      const saved = localStorage.getItem(`gymWizard_${key}`);
+      const saved = localStorage.getItem(`${storagePrefix}${key}`);
       return saved ? JSON.parse(saved) : defaultValue;
     } catch {
       return defaultValue;
@@ -46,11 +57,11 @@ export default function EnergyJumpWizardSubStep() {
 
   // Save values to localStorage - using energyDrink prefix to separate from FHC
   useEffect(() => {
-    localStorage.setItem('gymWizard_energyDrinkEnabled', JSON.stringify(true));
-    localStorage.setItem('gymWizard_energyDrinkItemId', JSON.stringify(itemId));
-    localStorage.setItem('gymWizard_energyDrinkQuantity', JSON.stringify(quantity));
-    localStorage.setItem('gymWizard_energyDrinkFactionBenefit', JSON.stringify(factionBenefit));
-  }, [itemId, quantity, factionBenefit]);
+    localStorage.setItem(`${storagePrefix}energyDrinkEnabled`, JSON.stringify(true));
+    localStorage.setItem(`${storagePrefix}energyDrinkItemId`, JSON.stringify(itemId));
+    localStorage.setItem(`${storagePrefix}energyDrinkQuantity`, JSON.stringify(quantity));
+    localStorage.setItem(`${storagePrefix}energyDrinkFactionBenefit`, JSON.stringify(factionBenefit));
+  }, [itemId, quantity, factionBenefit, storagePrefix]);
 
   return (
     <Box>

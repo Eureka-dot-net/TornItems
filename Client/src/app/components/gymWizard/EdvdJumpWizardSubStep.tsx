@@ -18,11 +18,32 @@ import { validateNumericInput } from '../../../lib/utils/jumpHelpers';
  * 
  * This sub-step helps users configure their eDVD jump training.
  * It asks questions in an easy-to-understand format for basic users.
+ * 
+ * @param mode - 'current' for current regime configuration, 'comparison' for comparison configuration
  */
 
-export default function EdvdJumpWizardSubStep() {
+export type WizardMode = 'current' | 'comparison';
+
+interface EdvdJumpWizardSubStepProps {
+  mode?: WizardMode;
+}
+
+export default function EdvdJumpWizardSubStep({ mode = 'current' }: EdvdJumpWizardSubStepProps) {
+  const isComparison = mode === 'comparison';
+  const storagePrefix = isComparison ? 'gymWizard_comparison_' : 'gymWizard_';
+
   // Load saved preferences from localStorage
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
+    try {
+      const saved = localStorage.getItem(`${storagePrefix}${key}`);
+      return saved ? JSON.parse(saved) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  };
+
+  // For comparison mode, also load current values as defaults
+  const loadCurrentValue = <T,>(key: string, defaultValue: T): T => {
     try {
       const saved = localStorage.getItem(`gymWizard_${key}`);
       return saved ? JSON.parse(saved) : defaultValue;
@@ -31,44 +52,72 @@ export default function EdvdJumpWizardSubStep() {
     }
   };
 
-  const [frequency, setFrequency] = useState<number>(() => loadSavedValue('edvdJumpFrequency', 7));
-  const [dvds, setDvds] = useState<number>(() => loadSavedValue('edvdJumpDvds', 1));
-  const [limit, setLimit] = useState<'indefinite' | 'count' | 'stat'>(() => 
-    loadSavedValue('edvdJumpLimit', 'indefinite')
+  const [frequency, setFrequency] = useState<number>(() => 
+    isComparison 
+      ? loadSavedValue('edvdJumpFrequency', loadCurrentValue('edvdJumpFrequency', 7))
+      : loadSavedValue('edvdJumpFrequency', 7)
   );
-  const [count, setCount] = useState<number>(() => loadSavedValue('edvdJumpCount', 10));
-  const [statTarget, setStatTarget] = useState<number>(() => loadSavedValue('edvdJumpStatTarget', 1000000));
+  const [dvds, setDvds] = useState<number>(() => 
+    isComparison 
+      ? loadSavedValue('edvdJumpDvds', loadCurrentValue('edvdJumpDvds', 1))
+      : loadSavedValue('edvdJumpDvds', 1)
+  );
+  const [limit, setLimit] = useState<'indefinite' | 'count' | 'stat'>(() => 
+    isComparison 
+      ? loadSavedValue('edvdJumpLimit', loadCurrentValue('edvdJumpLimit', 'indefinite'))
+      : loadSavedValue('edvdJumpLimit', 'indefinite')
+  );
+  const [count, setCount] = useState<number>(() => 
+    isComparison 
+      ? loadSavedValue('edvdJumpCount', loadCurrentValue('edvdJumpCount', 10))
+      : loadSavedValue('edvdJumpCount', 10)
+  );
+  const [statTarget, setStatTarget] = useState<number>(() => 
+    isComparison 
+      ? loadSavedValue('edvdJumpStatTarget', loadCurrentValue('edvdJumpStatTarget', 1000000))
+      : loadSavedValue('edvdJumpStatTarget', 1000000)
+  );
   const [adultNovelties, setAdultNovelties] = useState<boolean>(() => 
-    loadSavedValue('edvdJumpAdultNovelties', false)
+    isComparison 
+      ? loadSavedValue('edvdJumpAdultNovelties', loadCurrentValue('edvdJumpAdultNovelties', false))
+      : loadSavedValue('edvdJumpAdultNovelties', false)
   );
 
   // Save values to localStorage
   useEffect(() => {
-    localStorage.setItem('gymWizard_edvdJumpEnabled', JSON.stringify(true));
-    localStorage.setItem('gymWizard_edvdJumpFrequency', JSON.stringify(frequency));
-    localStorage.setItem('gymWizard_edvdJumpDvds', JSON.stringify(dvds));
-    localStorage.setItem('gymWizard_edvdJumpLimit', JSON.stringify(limit));
-    localStorage.setItem('gymWizard_edvdJumpCount', JSON.stringify(count));
-    localStorage.setItem('gymWizard_edvdJumpStatTarget', JSON.stringify(statTarget));
-    localStorage.setItem('gymWizard_edvdJumpAdultNovelties', JSON.stringify(adultNovelties));
-  }, [frequency, dvds, limit, count, statTarget, adultNovelties]);
+    localStorage.setItem(`${storagePrefix}edvdJumpEnabled`, JSON.stringify(true));
+    localStorage.setItem(`${storagePrefix}edvdJumpFrequency`, JSON.stringify(frequency));
+    localStorage.setItem(`${storagePrefix}edvdJumpDvds`, JSON.stringify(dvds));
+    localStorage.setItem(`${storagePrefix}edvdJumpLimit`, JSON.stringify(limit));
+    localStorage.setItem(`${storagePrefix}edvdJumpCount`, JSON.stringify(count));
+    localStorage.setItem(`${storagePrefix}edvdJumpStatTarget`, JSON.stringify(statTarget));
+    localStorage.setItem(`${storagePrefix}edvdJumpAdultNovelties`, JSON.stringify(adultNovelties));
+  }, [frequency, dvds, limit, count, statTarget, adultNovelties, storagePrefix]);
 
   return (
     <Box>
       <Typography variant="h5" gutterBottom>
-        Configure Your eDVD Jump Training
+        {isComparison ? 'Configure Comparison eDVD Jump Training' : 'Configure Your eDVD Jump Training'}
       </Typography>
 
       <Typography variant="body1" paragraph>
-        Educational DVDs (eDVDs) provide temporary stat boosts when used with Ecstasy.
-        Let's configure how you use them in your training routine.
+        {isComparison 
+          ? <>Configure the eDVD jump settings for your <strong>comparison scenario</strong>. 
+              Adjust these values to see how different eDVD strategies would affect your gains.</>
+          : <>Educational DVDs (eDVDs) provide temporary stat boosts when used with Ecstasy.
+              Let's configure how you use them in your training routine.</>
+        }
       </Typography>
 
-      <Alert severity="info" sx={{ mb: 3 }}>
+      <Alert severity={isComparison ? 'warning' : 'info'} sx={{ mb: 3 }}>
         <Typography variant="body2">
-          <strong>What is an eDVD jump?</strong> Using Educational DVDs with Ecstasy gives you a temporary
-          stat boost that lasts for several minutes. This allows you to train at higher gym levels and gain
-          more stats per training session.
+          {isComparison 
+            ? <>These settings are for your <strong>comparison scenario</strong>. Modify them to 
+                see how changes to your eDVD strategy would impact your training.</>
+            : <><strong>What is an eDVD jump?</strong> Using Educational DVDs with Ecstasy gives you a temporary
+                stat boost that lasts for several minutes. This allows you to train at higher gym levels and gain
+                more stats per training session.</>
+          }
         </Typography>
       </Alert>
 
@@ -198,7 +247,10 @@ export default function EdvdJumpWizardSubStep() {
 
       <Alert severity="success" sx={{ mt: 3 }}>
         <Typography variant="body2">
-          Your eDVD jump configuration has been saved. Click Next to continue.
+          {isComparison 
+            ? 'Your comparison eDVD jump configuration has been saved. Click Next to continue.'
+            : 'Your eDVD jump configuration has been saved. Click Next to continue.'
+          }
         </Typography>
       </Alert>
     </Box>

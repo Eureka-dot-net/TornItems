@@ -14,11 +14,31 @@ import {
  * 
  * This wizard step helps users configure their stat target ratios in a simplified way.
  * Questions are phrased for basic users to understand their current training regime.
+ * 
+ * @param mode - 'current' for current regime configuration, 'comparison' for comparison configuration
  */
 
-export default function StatTargetRatiosWizardStep() {
+export type WizardMode = 'current' | 'comparison';
+
+interface StatTargetRatiosWizardStepProps {
+  mode?: WizardMode;
+}
+
+export default function StatTargetRatiosWizardStep({ mode = 'current' }: StatTargetRatiosWizardStepProps) {
+  const isComparison = mode === 'comparison';
+  const storagePrefix = isComparison ? 'gymWizard_comparison_' : 'gymWizard_';
   // Load saved preferences from localStorage
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
+    try {
+      const saved = localStorage.getItem(`${storagePrefix}${key}`);
+      return saved ? JSON.parse(saved) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  };
+
+  // For comparison mode, also load current values as defaults
+  const loadCurrentValue = <T,>(key: string, defaultValue: T): T => {
     try {
       const saved = localStorage.getItem(`gymWizard_${key}`);
       return saved ? JSON.parse(saved) : defaultValue;
@@ -28,41 +48,51 @@ export default function StatTargetRatiosWizardStep() {
   };
 
   const [hasBalancedBuild, setHasBalancedBuild] = useState<'yes' | 'no' | null>(() => 
-    loadSavedValue<'yes' | 'no' | null>('hasBalancedBuild', null)
+    isComparison
+      ? loadSavedValue<'yes' | 'no' | null>('hasBalancedBuild', loadCurrentValue('hasBalancedBuild', null))
+      : loadSavedValue<'yes' | 'no' | null>('hasBalancedBuild', null)
   );
   const [statRatio, setStatRatio] = useState<'balanced' | 'baldr' | 'hank' | 'defDex' | null>(() => 
-    loadSavedValue<'balanced' | 'baldr' | 'hank' | 'defDex' | null>('statRatio', null)
+    isComparison
+      ? loadSavedValue<'balanced' | 'baldr' | 'hank' | 'defDex' | null>('statRatio', loadCurrentValue('statRatio', null))
+      : loadSavedValue<'balanced' | 'baldr' | 'hank' | 'defDex' | null>('statRatio', null)
   );
   const [defDexPrimaryStat, setDefDexPrimaryStat] = useState<'defense' | 'dexterity' | null>(() => 
-    loadSavedValue<'defense' | 'dexterity' | null>('defDexPrimaryStat', null)
+    isComparison
+      ? loadSavedValue<'defense' | 'dexterity' | null>('defDexPrimaryStat', loadCurrentValue('defDexPrimaryStat', null))
+      : loadSavedValue<'defense' | 'dexterity' | null>('defDexPrimaryStat', null)
   );
   const [trainByPerks, setTrainByPerks] = useState<'perks' | 'balanced' | null>(() => 
-    loadSavedValue<'perks' | 'balanced' | null>('trainByPerks', null)
+    isComparison
+      ? loadSavedValue<'perks' | 'balanced' | null>('trainByPerks', loadCurrentValue('trainByPerks', null))
+      : loadSavedValue<'perks' | 'balanced' | null>('trainByPerks', null)
   );
   const [balanceAfterGym, setBalanceAfterGym] = useState<'chachas' | 'georges' | null>(() => 
-    loadSavedValue<'chachas' | 'georges' | null>('balanceAfterGym', null)
+    isComparison
+      ? loadSavedValue<'chachas' | 'georges' | null>('balanceAfterGym', loadCurrentValue('balanceAfterGym', null))
+      : loadSavedValue<'chachas' | 'georges' | null>('balanceAfterGym', null)
   );
 
   // Save values to localStorage
   useEffect(() => {
-    localStorage.setItem('gymWizard_hasBalancedBuild', JSON.stringify(hasBalancedBuild));
-  }, [hasBalancedBuild]);
+    localStorage.setItem(`${storagePrefix}hasBalancedBuild`, JSON.stringify(hasBalancedBuild));
+  }, [hasBalancedBuild, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_statRatio', JSON.stringify(statRatio));
-  }, [statRatio]);
+    localStorage.setItem(`${storagePrefix}statRatio`, JSON.stringify(statRatio));
+  }, [statRatio, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_defDexPrimaryStat', JSON.stringify(defDexPrimaryStat));
-  }, [defDexPrimaryStat]);
+    localStorage.setItem(`${storagePrefix}defDexPrimaryStat`, JSON.stringify(defDexPrimaryStat));
+  }, [defDexPrimaryStat, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_trainByPerks', JSON.stringify(trainByPerks));
-  }, [trainByPerks]);
+    localStorage.setItem(`${storagePrefix}trainByPerks`, JSON.stringify(trainByPerks));
+  }, [trainByPerks, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_balanceAfterGym', JSON.stringify(balanceAfterGym));
-  }, [balanceAfterGym]);
+    localStorage.setItem(`${storagePrefix}balanceAfterGym`, JSON.stringify(balanceAfterGym));
+  }, [balanceAfterGym, storagePrefix]);
 
   // When hasBalancedBuild changes, reset dependent fields
   useEffect(() => {
@@ -90,25 +120,36 @@ export default function StatTargetRatiosWizardStep() {
   return (
     <Box>
       <Typography variant="h5" gutterBottom>
-        Configure Your Stat Target Ratios
+        {isComparison ? 'Configure Comparison Stat Target Ratios' : 'Configure Your Stat Target Ratios'}
       </Typography>
       
       <Typography variant="body1" paragraph>
-        Let's understand your <strong>current training regime</strong> - how you train your stats today. 
-        This helps us provide accurate projections for your gym progression.
+        {isComparison 
+          ? <>Configure the stat ratio strategy for your <strong>comparison scenario</strong>. 
+              This allows you to see how different training approaches would affect your gym progression.</>
+          : <>Let's understand your <strong>current training regime</strong> - how you train your stats today. 
+              This helps us provide accurate projections for your gym progression.</>
+        }
       </Typography>
 
-      <Alert severity="info" sx={{ mb: 3 }}>
+      <Alert severity={isComparison ? 'warning' : 'info'} sx={{ mb: 3 }}>
         <Typography variant="body2">
-          Note: We're asking about your <strong>current approach</strong> to training, not what you're 
-          planning to do in the future. The simulator will help you compare different strategies later.
+          {isComparison 
+            ? <>These settings are for your <strong>comparison scenario</strong>. Choose a different 
+                stat ratio strategy to see how it would impact your training gains.</>
+            : <>Note: We're asking about your <strong>current approach</strong> to training, not what you're 
+                planning to do in the future. The simulator will help you compare different strategies later.</>
+          }
         </Typography>
       </Alert>
 
       {/* Question 1: Balanced build? */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6" gutterBottom>
-          1. Do you maintain a balanced build across all four stats?
+          {isComparison 
+            ? '1. Would your comparison scenario maintain a balanced build?'
+            : '1. Do you maintain a balanced build across all four stats?'
+          }
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
           A balanced build means all your stats (Strength, Speed, Defense, and Dexterity) are roughly equal, 
@@ -121,12 +162,18 @@ export default function StatTargetRatiosWizardStep() {
           <FormControlLabel 
             value="yes" 
             control={<Radio />} 
-            label="Yes, I keep all my stats balanced (roughly equal)" 
+            label={isComparison 
+              ? 'Yes, compare with a balanced build (roughly equal stats)'
+              : 'Yes, I keep all my stats balanced (roughly equal)'
+            }
           />
           <FormControlLabel 
             value="no" 
             control={<Radio />} 
-            label="No, I follow a specific stat ratio" 
+            label={isComparison 
+              ? 'No, compare with a specific stat ratio'
+              : 'No, I follow a specific stat ratio'
+            }
           />
         </RadioGroup>
       </Box>
@@ -135,7 +182,10 @@ export default function StatTargetRatiosWizardStep() {
       {hasBalancedBuild === 'no' && (
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" gutterBottom>
-            2. Which stat ratio are you currently following?
+            {isComparison 
+              ? '2. Which stat ratio would you like to compare?'
+              : '2. Which stat ratio are you currently following?'
+            }
           </Typography>
           <Typography variant="body2" color="text.secondary" paragraph>
             Different ratios help you train more efficiently in specialized gyms that give better gains.{' '}

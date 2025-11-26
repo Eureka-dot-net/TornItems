@@ -18,13 +18,24 @@ import { validateNumericInput } from '../../../lib/utils/jumpHelpers';
  * This sub-step helps users configure their stacked candy jump training.
  * A stacked candy jump is similar to an eDVD jump but uses candies instead of DVDs.
  * It asks questions in an easy-to-understand format for basic users.
+ * 
+ * @param mode - 'current' for current regime configuration, 'comparison' for comparison configuration
  */
 
-export default function StackedCandyJumpWizardSubStep() {
+export type WizardMode = 'current' | 'comparison';
+
+interface StackedCandyJumpWizardSubStepProps {
+  mode?: WizardMode;
+}
+
+export default function StackedCandyJumpWizardSubStep({ mode = 'current' }: StackedCandyJumpWizardSubStepProps) {
+  const isComparison = mode === 'comparison';
+  const storagePrefix = isComparison ? 'gymWizard_comparison_' : 'gymWizard_';
+
   // Load saved preferences from localStorage
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
     try {
-      const saved = localStorage.getItem(`gymWizard_${key}`);
+      const saved = localStorage.getItem(`${storagePrefix}${key}`);
       return saved ? JSON.parse(saved) : defaultValue;
     } catch {
       return defaultValue;
@@ -49,15 +60,15 @@ export default function StackedCandyJumpWizardSubStep() {
 
   // Save values to localStorage
   useEffect(() => {
-    localStorage.setItem('gymWizard_stackedCandyJumpEnabled', JSON.stringify(true));
-    localStorage.setItem('gymWizard_stackedCandyJumpFrequency', JSON.stringify(frequency));
-    localStorage.setItem('gymWizard_stackedCandyJumpItemId', JSON.stringify(itemId));
-    localStorage.setItem('gymWizard_stackedCandyJumpQuantity', JSON.stringify(quantity));
-    localStorage.setItem('gymWizard_stackedCandyJumpFactionBenefit', JSON.stringify(factionBenefit));
-    localStorage.setItem('gymWizard_stackedCandyJumpLimit', JSON.stringify(limit));
-    localStorage.setItem('gymWizard_stackedCandyJumpCount', JSON.stringify(count));
-    localStorage.setItem('gymWizard_stackedCandyJumpStatTarget', JSON.stringify(statTarget));
-  }, [frequency, itemId, quantity, factionBenefit, limit, count, statTarget]);
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpEnabled`, JSON.stringify(true));
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpFrequency`, JSON.stringify(frequency));
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpItemId`, JSON.stringify(itemId));
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpQuantity`, JSON.stringify(quantity));
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpFactionBenefit`, JSON.stringify(factionBenefit));
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpLimit`, JSON.stringify(limit));
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpCount`, JSON.stringify(count));
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpStatTarget`, JSON.stringify(statTarget));
+  }, [frequency, itemId, quantity, factionBenefit, limit, count, statTarget, storagePrefix]);
 
   return (
     <Box>

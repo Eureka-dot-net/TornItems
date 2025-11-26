@@ -16,11 +16,31 @@ import { calculateDailyEnergy } from '../../../lib/utils/gymProgressionCalculato
  * 
  * This wizard step helps users configure their energy sources in a simplified way.
  * Questions are phrased for basic users to understand easily.
+ * 
+ * @param mode - 'current' for current regime configuration, 'comparison' for comparison configuration
  */
 
-export default function EnergySourcesWizardStep() {
+export type WizardMode = 'current' | 'comparison';
+
+interface EnergySourcesWizardStepProps {
+  mode?: WizardMode;
+}
+
+export default function EnergySourcesWizardStep({ mode = 'current' }: EnergySourcesWizardStepProps) {
+  const isComparison = mode === 'comparison';
+  const storagePrefix = isComparison ? 'gymWizard_comparison_' : 'gymWizard_';
   // Load saved preferences from localStorage
   const loadSavedValue = <T,>(key: string, defaultValue: T): T => {
+    try {
+      const saved = localStorage.getItem(`${storagePrefix}${key}`);
+      return saved ? JSON.parse(saved) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  };
+
+  // For comparison mode, also load current values as defaults
+  const loadCurrentValue = <T,>(key: string, defaultValue: T): T => {
     try {
       const saved = localStorage.getItem(`gymWizard_${key}`);
       return saved ? JSON.parse(saved) : defaultValue;
@@ -30,19 +50,29 @@ export default function EnergySourcesWizardStep() {
   };
 
   const [isSubscriber, setIsSubscriber] = useState<'yes' | 'no' | null>(() => 
-    loadSavedValue<'yes' | 'no' | null>('isSubscriber', null)
+    isComparison 
+      ? loadSavedValue<'yes' | 'no' | null>('isSubscriber', loadCurrentValue('isSubscriber', null))
+      : loadSavedValue<'yes' | 'no' | null>('isSubscriber', null)
   );
   const [hoursPlayedPerDay, setHoursPlayedPerDay] = useState<number>(() => 
-    loadSavedValue('hoursPlayedPerDay', 16)
+    isComparison
+      ? loadSavedValue('hoursPlayedPerDay', loadCurrentValue('hoursPlayedPerDay', 16))
+      : loadSavedValue('hoursPlayedPerDay', 16)
   );
   const [daysSkippedPerMonth, setDaysSkippedPerMonth] = useState<number>(() => 
-    loadSavedValue('daysSkippedPerMonth', 0)
+    isComparison
+      ? loadSavedValue('daysSkippedPerMonth', loadCurrentValue('daysSkippedPerMonth', 0))
+      : loadSavedValue('daysSkippedPerMonth', 0)
   );
   const [hasPointsRefill, setHasPointsRefill] = useState<boolean>(() => 
-    loadSavedValue('hasPointsRefill', true)
+    isComparison
+      ? loadSavedValue('hasPointsRefill', loadCurrentValue('hasPointsRefill', true))
+      : loadSavedValue('hasPointsRefill', true)
   );
   const [xanaxPerDay, setXanaxPerDay] = useState<number>(() => 
-    loadSavedValue('xanaxPerDay', 3)
+    isComparison
+      ? loadSavedValue('xanaxPerDay', loadCurrentValue('xanaxPerDay', 3))
+      : loadSavedValue('xanaxPerDay', 3)
   );
 
   // Calculate maxEnergy based on subscriber status
@@ -50,28 +80,28 @@ export default function EnergySourcesWizardStep() {
 
   // Save values to localStorage
   useEffect(() => {
-    localStorage.setItem('gymWizard_isSubscriber', JSON.stringify(isSubscriber));
-  }, [isSubscriber]);
+    localStorage.setItem(`${storagePrefix}isSubscriber`, JSON.stringify(isSubscriber));
+  }, [isSubscriber, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_hoursPlayedPerDay', JSON.stringify(hoursPlayedPerDay));
-  }, [hoursPlayedPerDay]);
+    localStorage.setItem(`${storagePrefix}hoursPlayedPerDay`, JSON.stringify(hoursPlayedPerDay));
+  }, [hoursPlayedPerDay, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_daysSkippedPerMonth', JSON.stringify(daysSkippedPerMonth));
-  }, [daysSkippedPerMonth]);
+    localStorage.setItem(`${storagePrefix}daysSkippedPerMonth`, JSON.stringify(daysSkippedPerMonth));
+  }, [daysSkippedPerMonth, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_hasPointsRefill', JSON.stringify(hasPointsRefill));
-  }, [hasPointsRefill]);
+    localStorage.setItem(`${storagePrefix}hasPointsRefill`, JSON.stringify(hasPointsRefill));
+  }, [hasPointsRefill, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_xanaxPerDay', JSON.stringify(xanaxPerDay));
-  }, [xanaxPerDay]);
+    localStorage.setItem(`${storagePrefix}xanaxPerDay`, JSON.stringify(xanaxPerDay));
+  }, [xanaxPerDay, storagePrefix]);
 
   useEffect(() => {
-    localStorage.setItem('gymWizard_maxEnergy', JSON.stringify(maxEnergy));
-  }, [maxEnergy]);
+    localStorage.setItem(`${storagePrefix}maxEnergy`, JSON.stringify(maxEnergy));
+  }, [maxEnergy, storagePrefix]);
 
   // Calculate daily energy for display
   const dailyEnergy = isSubscriber !== null 
@@ -81,18 +111,27 @@ export default function EnergySourcesWizardStep() {
   return (
     <Box>
       <Typography variant="h5" gutterBottom>
-        Configure Your Energy Sources
+        {isComparison ? 'Configure Comparison Energy Sources' : 'Configure Your Energy Sources'}
       </Typography>
       
       <Typography variant="body1" paragraph>
-        Let's set up how much energy you have available for training each day. This helps us 
-        calculate realistic gym gains based on your <strong>current training regime</strong>.
+        {isComparison 
+          ? <>Configure the energy sources for your <strong>comparison scenario</strong>. 
+              These settings will be compared against your current training regime to see how 
+              changes would affect your gains.</>
+          : <>Let's set up how much energy you have available for training each day. This helps us 
+              calculate realistic gym gains based on your <strong>current training regime</strong>.</>
+        }
       </Typography>
 
-      <Alert severity="info" sx={{ mb: 3 }}>
+      <Alert severity={isComparison ? 'warning' : 'info'} sx={{ mb: 3 }}>
         <Typography variant="body2">
-          Note: We're asking about your <strong>current approach</strong> to training, not what you're 
-          planning to do in the future. The simulator will help you compare different strategies later.
+          {isComparison 
+            ? <>These settings are for your <strong>comparison scenario</strong>. Adjust any values 
+                you want to differ from your current regime to see the impact on your gains.</>
+            : <>Note: We're asking about your <strong>current approach</strong> to training, not what you're 
+                planning to do in the future. The simulator will help you compare different strategies later.</>
+          }
         </Typography>
       </Alert>
 
@@ -216,10 +255,10 @@ export default function EnergySourcesWizardStep() {
           {/* Summary */}
           <Alert severity="success" sx={{ mt: 3 }}>
             <Typography variant="body2" fontWeight="bold">
-              Your Daily Energy Summary
+              {isComparison ? 'Comparison Daily Energy Summary' : 'Your Daily Energy Summary'}
             </Typography>
             <Typography variant="body2">
-              Based on your settings, you'll have approximately{' '}
+              Based on {isComparison ? 'these comparison' : 'your'} settings, you'll have approximately{' '}
               <strong>{dailyEnergy.toLocaleString()} energy</strong> available for training each day.
             </Typography>
             {daysSkippedPerMonth > 0 && (
