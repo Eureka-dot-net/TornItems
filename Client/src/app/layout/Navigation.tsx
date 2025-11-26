@@ -4,7 +4,7 @@ import { Menu as MenuIcon } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const allNavItems = [
-  { label: 'Stock Recommendations', path: '/' },
+  { label: 'Stock Recommendations', path: '/recommendations' },
   { label: 'Profit Analysis', path: '/profit' },
   { label: 'Stock Profit', path: '/stockProfit' },
   { label: 'Gym Comparison', path: '/gymComparison' },
