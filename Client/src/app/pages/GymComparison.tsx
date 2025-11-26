@@ -300,7 +300,10 @@ export default function GymComparison() {
         trainingRegime: boolean;
       } | null>('wizardComparisonPageSelections', null);
       
-      // If comparison selections exist, create a comparison state
+      // Check the comparison mode (separate or combined)
+      const comparisonMode = loadSavedValue<'separate' | 'combined'>('wizardComparisonMode', 'separate');
+      
+      // If comparison selections exist, create comparison state(s)
       if (fromWizard && comparisonPageSelections && Object.values(comparisonPageSelections).some(v => v)) {
         // Load comparison-specific values (from gymWizard_comparison_ prefix)
         const loadComparisonValue = <T,>(key: string, defaultValue: T): T => {
@@ -312,151 +315,188 @@ export default function GymComparison() {
           }
         };
         
-        // Start with a copy of the current state values
-        const comparisonSection = { ...currentState.sections[0], id: '1' };
+        // Define area configurations
+        const areaConfigs: Array<{
+          key: keyof typeof comparisonPageSelections;
+          name: string;
+          apply: (section: typeof currentState.sections[0]) => void;
+        }> = [];
         
-        // Build comparison name based on selected areas
-        const selectedAreas: string[] = [];
-        
-        // Override values based on which areas were selected for comparison
         if (comparisonPageSelections.energySources) {
-          selectedAreas.push('Energy');
-          const compIsSubscriber = loadComparisonValue<'yes' | 'no' | null>('isSubscriber', null);
-          const compMaxEnergy = compIsSubscriber === 'yes' ? 150 : compIsSubscriber === 'no' ? 100 : (wizardMaxEnergy ?? MAX_ENERGY_DEFAULT);
-          comparisonSection.maxEnergy = compMaxEnergy;
-          comparisonSection.hoursPlayedPerDay = loadComparisonValue('hoursPlayedPerDay', comparisonSection.hoursPlayedPerDay);
-          comparisonSection.xanaxPerDay = loadComparisonValue('xanaxPerDay', comparisonSection.xanaxPerDay);
-          comparisonSection.hasPointsRefill = loadComparisonValue('hasPointsRefill', comparisonSection.hasPointsRefill);
-          comparisonSection.daysSkippedPerMonth = loadComparisonValue('daysSkippedPerMonth', comparisonSection.daysSkippedPerMonth);
+          areaConfigs.push({
+            key: 'energySources',
+            name: 'Energy',
+            apply: (section) => {
+              const compIsSubscriber = loadComparisonValue<'yes' | 'no' | null>('isSubscriber', null);
+              const compMaxEnergy = compIsSubscriber === 'yes' ? 150 : compIsSubscriber === 'no' ? 100 : (wizardMaxEnergy ?? MAX_ENERGY_DEFAULT);
+              section.maxEnergy = compMaxEnergy;
+              section.hoursPlayedPerDay = loadComparisonValue('hoursPlayedPerDay', section.hoursPlayedPerDay);
+              section.xanaxPerDay = loadComparisonValue('xanaxPerDay', section.xanaxPerDay);
+              section.hasPointsRefill = loadComparisonValue('hasPointsRefill', section.hasPointsRefill);
+              section.daysSkippedPerMonth = loadComparisonValue('daysSkippedPerMonth', section.daysSkippedPerMonth);
+            },
+          });
         }
         
         if (comparisonPageSelections.happyPerks) {
-          selectedAreas.push('Happy');
-          comparisonSection.happy = loadComparisonValue('baseHappy', comparisonSection.happy);
-          const compPerkPercs = loadComparisonValue<{ strength: number; speed: number; defense: number; dexterity: number } | null>('perkPercs', null);
-          if (compPerkPercs) {
-            comparisonSection.perkPercs = compPerkPercs;
-          }
+          areaConfigs.push({
+            key: 'happyPerks',
+            name: 'Happy',
+            apply: (section) => {
+              section.happy = loadComparisonValue('baseHappy', section.happy);
+              const compPerkPercs = loadComparisonValue<{ strength: number; speed: number; defense: number; dexterity: number } | null>('perkPercs', null);
+              if (compPerkPercs) {
+                section.perkPercs = compPerkPercs;
+              }
+            },
+          });
         }
         
         if (comparisonPageSelections.companyBenefits) {
-          selectedAreas.push('Company');
-          comparisonSection.companyBenefitKey = loadComparisonValue('companyBenefitKey', comparisonSection.companyBenefitKey);
-          comparisonSection.candleShopStars = loadComparisonValue('candleShopStars', comparisonSection.candleShopStars);
+          areaConfigs.push({
+            key: 'companyBenefits',
+            name: 'Company',
+            apply: (section) => {
+              section.companyBenefitKey = loadComparisonValue('companyBenefitKey', section.companyBenefitKey);
+              section.candleShopStars = loadComparisonValue('candleShopStars', section.candleShopStars);
+            },
+          });
         }
         
         if (comparisonPageSelections.statTargetRatios) {
-          selectedAreas.push('Ratios');
-          // Load comparison stat ratio values and convert them
-          const compHasBalancedBuild = loadComparisonValue<'yes' | 'no' | null>('hasBalancedBuild', null);
-          const compStatRatio = loadComparisonValue<'balanced' | 'baldr' | 'hank' | 'defDex' | null>('statRatio', null);
-          const compDefDexPrimaryStat = loadComparisonValue<'defense' | 'dexterity' | null>('defDexPrimaryStat', null);
-          const compTrainByPerks = loadComparisonValue<'perks' | 'balanced' | null>('trainByPerks', null);
-          const compBalanceAfterGym = loadComparisonValue<'chachas' | 'georges' | null>('balanceAfterGym', null);
-          
-          // Convert to stat weights using the same helpers used in the wizard
-          // This requires importing the helper functions
-          // For now, just use basic conversion logic
-          if (compHasBalancedBuild === 'yes' || compStatRatio === 'balanced') {
-            comparisonSection.statWeights = { strength: 1, speed: 1, defense: 1, dexterity: 1 };
-          } else if (compStatRatio === 'baldr') {
-            // Baldr's ratio: approximately 30/25/23/22 or similar
-            if (compDefDexPrimaryStat === 'dexterity') {
-              comparisonSection.statWeights = { strength: 30, speed: 25, defense: 22, dexterity: 23 };
-            } else {
-              comparisonSection.statWeights = { strength: 30, speed: 25, defense: 23, dexterity: 22 };
-            }
-          } else if (compStatRatio === 'hank') {
-            // Hank's ratio: approximately 35/28/28/9 or similar
-            if (compDefDexPrimaryStat === 'dexterity') {
-              comparisonSection.statWeights = { strength: 35, speed: 28, defense: 9, dexterity: 28 };
-            } else {
-              comparisonSection.statWeights = { strength: 35, speed: 28, defense: 28, dexterity: 9 };
-            }
-          } else if (compStatRatio === 'defDex') {
-            // Defense/Dexterity build
-            if (compDefDexPrimaryStat === 'dexterity') {
-              comparisonSection.statWeights = { strength: 1, speed: 1, defense: 0, dexterity: 1.25 };
-            } else {
-              comparisonSection.statWeights = { strength: 1, speed: 1, defense: 1.25, dexterity: 0 };
-            }
-          }
-          
-          // Set stat drift based on training approach
-          if (compTrainByPerks === 'perks') {
-            comparisonSection.statDriftPercent = 100;
-            comparisonSection.ignorePerksForGymSelection = false;
-            // Set balance after gym index
-            if (compBalanceAfterGym === 'chachas') {
-              comparisonSection.balanceAfterGymIndex = 19; // Cha Cha's
-            } else if (compBalanceAfterGym === 'georges') {
-              comparisonSection.balanceAfterGymIndex = 23; // George's
-            }
-          } else if (compTrainByPerks === 'balanced') {
-            comparisonSection.statDriftPercent = 0;
-            comparisonSection.ignorePerksForGymSelection = true;
-          }
+          areaConfigs.push({
+            key: 'statTargetRatios',
+            name: 'Ratios',
+            apply: (section) => {
+              const compHasBalancedBuild = loadComparisonValue<'yes' | 'no' | null>('hasBalancedBuild', null);
+              const compStatRatio = loadComparisonValue<'balanced' | 'baldr' | 'hank' | 'defDex' | null>('statRatio', null);
+              const compDefDexPrimaryStat = loadComparisonValue<'defense' | 'dexterity' | null>('defDexPrimaryStat', null);
+              const compTrainByPerks = loadComparisonValue<'perks' | 'balanced' | null>('trainByPerks', null);
+              const compBalanceAfterGym = loadComparisonValue<'chachas' | 'georges' | null>('balanceAfterGym', null);
+              
+              if (compHasBalancedBuild === 'yes' || compStatRatio === 'balanced') {
+                section.statWeights = { strength: 1, speed: 1, defense: 1, dexterity: 1 };
+              } else if (compStatRatio === 'baldr') {
+                if (compDefDexPrimaryStat === 'dexterity') {
+                  section.statWeights = { strength: 30, speed: 25, defense: 22, dexterity: 23 };
+                } else {
+                  section.statWeights = { strength: 30, speed: 25, defense: 23, dexterity: 22 };
+                }
+              } else if (compStatRatio === 'hank') {
+                if (compDefDexPrimaryStat === 'dexterity') {
+                  section.statWeights = { strength: 35, speed: 28, defense: 9, dexterity: 28 };
+                } else {
+                  section.statWeights = { strength: 35, speed: 28, defense: 28, dexterity: 9 };
+                }
+              } else if (compStatRatio === 'defDex') {
+                if (compDefDexPrimaryStat === 'dexterity') {
+                  section.statWeights = { strength: 1, speed: 1, defense: 0, dexterity: 1.25 };
+                } else {
+                  section.statWeights = { strength: 1, speed: 1, defense: 1.25, dexterity: 0 };
+                }
+              }
+              
+              if (compTrainByPerks === 'perks') {
+                section.statDriftPercent = 100;
+                section.ignorePerksForGymSelection = false;
+                if (compBalanceAfterGym === 'chachas') {
+                  section.balanceAfterGymIndex = 19;
+                } else if (compBalanceAfterGym === 'georges') {
+                  section.balanceAfterGymIndex = 23;
+                }
+              } else if (compTrainByPerks === 'balanced') {
+                section.statDriftPercent = 0;
+                section.ignorePerksForGymSelection = true;
+              }
+            },
+          });
         }
         
         if (comparisonPageSelections.trainingRegime) {
-          selectedAreas.push('Training');
-          // Load training regime comparison values
-          const compTrainingSelections = loadComparisonValue<{
-            edvd: boolean;
-            candy: boolean;
-            stackedCandy: boolean;
-            energy: boolean;
-            fhc: boolean;
-          } | null>('trainingRegimeSelections', null);
-          
-          if (compTrainingSelections) {
-            // eDVD
-            if (compTrainingSelections.edvd) {
-              comparisonSection.edvdJumpEnabled = true;
-              comparisonSection.edvdJumpFrequency = loadComparisonValue('edvdJumpFrequency', DEFAULT_EDVD_FREQUENCY_DAYS);
-              comparisonSection.edvdJumpDvds = loadComparisonValue('edvdJumpDvds', DEFAULT_EDVD_DVDS);
-              comparisonSection.edvdJumpLimit = loadComparisonValue('edvdJumpLimit', 'indefinite');
-              comparisonSection.edvdJumpCount = loadComparisonValue('edvdJumpCount', 10);
-              comparisonSection.edvdJumpStatTarget = loadComparisonValue('edvdJumpStatTarget', 10000000);
-              comparisonSection.edvdJumpAdultNovelties = loadComparisonValue('edvdJumpAdultNovelties', false);
-            }
-            
-            // Candy
-            if (compTrainingSelections.candy) {
-              comparisonSection.candyJumpEnabled = true;
-              comparisonSection.candyJumpFrequencyDays = loadComparisonValue('candyJumpFrequencyDays', 1);
-              comparisonSection.candyJumpItemId = loadComparisonValue('candyJumpItemId', CANDY_ITEM_IDS.HAPPY_75);
-              comparisonSection.candyJumpQuantity = loadComparisonValue('candyJumpQuantity', DEFAULT_CANDY_QUANTITY);
-            }
-            
-            // Stacked Candy
-            if (compTrainingSelections.stackedCandy) {
-              comparisonSection.stackedCandyJumpEnabled = true;
-              comparisonSection.stackedCandyJumpFrequency = loadComparisonValue('stackedCandyJumpFrequency', DEFAULT_EDVD_FREQUENCY_DAYS);
-              comparisonSection.stackedCandyJumpItemId = loadComparisonValue('stackedCandyJumpItemId', CANDY_ITEM_IDS.HAPPY_75);
-              comparisonSection.stackedCandyJumpQuantity = loadComparisonValue('stackedCandyJumpQuantity', DEFAULT_CANDY_QUANTITY);
-            }
-            
-            // Energy
-            if (compTrainingSelections.energy) {
-              comparisonSection.energyJumpEnabled = true;
-              comparisonSection.energyJumpItemId = loadComparisonValue('energyDrinkItemId', ENERGY_ITEM_IDS.ENERGY_10);
-              comparisonSection.energyJumpQuantity = loadComparisonValue('energyDrinkQuantity', DEFAULT_ENERGY_DRINK_QUANTITY);
-            }
-          }
+          areaConfigs.push({
+            key: 'trainingRegime',
+            name: 'Training',
+            apply: (section) => {
+              const compTrainingSelections = loadComparisonValue<{
+                edvd: boolean;
+                candy: boolean;
+                stackedCandy: boolean;
+                energy: boolean;
+                fhc: boolean;
+              } | null>('trainingRegimeSelections', null);
+              
+              if (compTrainingSelections) {
+                if (compTrainingSelections.edvd) {
+                  section.edvdJumpEnabled = true;
+                  section.edvdJumpFrequency = loadComparisonValue('edvdJumpFrequency', DEFAULT_EDVD_FREQUENCY_DAYS);
+                  section.edvdJumpDvds = loadComparisonValue('edvdJumpDvds', DEFAULT_EDVD_DVDS);
+                  section.edvdJumpLimit = loadComparisonValue('edvdJumpLimit', 'indefinite');
+                  section.edvdJumpCount = loadComparisonValue('edvdJumpCount', 10);
+                  section.edvdJumpStatTarget = loadComparisonValue('edvdJumpStatTarget', 10000000);
+                  section.edvdJumpAdultNovelties = loadComparisonValue('edvdJumpAdultNovelties', false);
+                }
+                
+                if (compTrainingSelections.candy) {
+                  section.candyJumpEnabled = true;
+                  section.candyJumpFrequencyDays = loadComparisonValue('candyJumpFrequencyDays', 1);
+                  section.candyJumpItemId = loadComparisonValue('candyJumpItemId', CANDY_ITEM_IDS.HAPPY_75);
+                  section.candyJumpQuantity = loadComparisonValue('candyJumpQuantity', DEFAULT_CANDY_QUANTITY);
+                }
+                
+                if (compTrainingSelections.stackedCandy) {
+                  section.stackedCandyJumpEnabled = true;
+                  section.stackedCandyJumpFrequency = loadComparisonValue('stackedCandyJumpFrequency', DEFAULT_EDVD_FREQUENCY_DAYS);
+                  section.stackedCandyJumpItemId = loadComparisonValue('stackedCandyJumpItemId', CANDY_ITEM_IDS.HAPPY_75);
+                  section.stackedCandyJumpQuantity = loadComparisonValue('stackedCandyJumpQuantity', DEFAULT_CANDY_QUANTITY);
+                }
+                
+                if (compTrainingSelections.energy) {
+                  section.energyJumpEnabled = true;
+                  section.energyJumpItemId = loadComparisonValue('energyDrinkItemId', ENERGY_ITEM_IDS.ENERGY_10);
+                  section.energyJumpQuantity = loadComparisonValue('energyDrinkQuantity', DEFAULT_ENERGY_DRINK_QUANTITY);
+                }
+              }
+            },
+          });
         }
         
-        // Create comparison state with appropriate name
-        const comparisonName = selectedAreas.length > 0 ? `Compare: ${selectedAreas.join(', ')}` : 'Comparison';
-        
-        const comparisonState: ComparisonState = {
-          id: '2',
-          name: comparisonName,
-          sections: [comparisonSection],
-          showIndividualStats: false,
-        };
-        
-        return [currentState, comparisonState];
+        // Create comparison states based on mode
+        if (comparisonMode === 'separate') {
+          // Create separate comparison state for each area
+          const comparisonStates: ComparisonState[] = areaConfigs.map((config, index) => {
+            const section = { ...currentState.sections[0], id: '1' };
+            config.apply(section);
+            return {
+              id: String(index + 2),
+              name: `Compare: ${config.name}`,
+              sections: [section],
+              showIndividualStats: false,
+            };
+          });
+          
+          return [currentState, ...comparisonStates];
+        } else {
+          // Create single combined comparison state
+          const combinedSection = { ...currentState.sections[0], id: '1' };
+          const selectedAreas: string[] = [];
+          
+          // Apply all overrides to the combined section
+          areaConfigs.forEach((config) => {
+            selectedAreas.push(config.name);
+            config.apply(combinedSection);
+          });
+          
+          const comparisonName = selectedAreas.length > 0 ? `Compare: ${selectedAreas.join(' + ')}` : 'Comparison';
+          
+          const comparisonState: ComparisonState = {
+            id: '2',
+            name: comparisonName,
+            sections: [combinedSection],
+            showIndividualStats: false,
+          };
+          
+          return [currentState, comparisonState];
+        }
       }
       
       return [currentState];
