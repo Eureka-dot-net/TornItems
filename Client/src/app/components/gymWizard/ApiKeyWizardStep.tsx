@@ -209,6 +209,7 @@ export default function ApiKeyWizardStep() {
             setSimulatedDate={setSimulatedDate}
             hideApiKeySection={apiKeyPreference === 'no'}
             hideApiKeyAlert={apiKeyPreference === 'yes'}
+            hideStartDateSection={true}
           />
         </Box>
       </Collapse>
