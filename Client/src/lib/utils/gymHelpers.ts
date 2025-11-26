@@ -42,6 +42,13 @@ export interface CompanyBenefit {
   gymUnlockSpeedMultiplier: number;
   bonusEnergyPerDay: number;
   gymGainMultiplier: number;
+  // Optional stat-specific gym gain multipliers (for strip clubs)
+  statSpecificGymGainMultipliers?: {
+    strength?: number;
+    speed?: number;
+    defense?: number;
+    dexterity?: number;
+  };
 }
 
 export function getCompanyBenefit(benefitKey: string, candleShopStars: number): CompanyBenefit {
@@ -73,6 +80,26 @@ export function getCompanyBenefit(benefitKey: string, candleShopStars: number): 
         gymUnlockSpeedMultiplier: 1.0,
         bonusEnergyPerDay: 0,
         gymGainMultiplier: 1.03, // 3% gym gains
+      };
+    case 'gentsStripClub':
+      return {
+        name: '7★+ Gents Strip Club',
+        gymUnlockSpeedMultiplier: 1.0,
+        bonusEnergyPerDay: 0,
+        gymGainMultiplier: 1.0,
+        statSpecificGymGainMultipliers: {
+          dexterity: 1.10, // +10% Dexterity gym gains
+        },
+      };
+    case 'ladiesStripClub':
+      return {
+        name: '7★+ Ladies Strip Club',
+        gymUnlockSpeedMultiplier: 1.0,
+        bonusEnergyPerDay: 0,
+        gymGainMultiplier: 1.0,
+        statSpecificGymGainMultipliers: {
+          defense: 1.10, // +10% Defense gym gains
+        },
       };
     default:
       return {

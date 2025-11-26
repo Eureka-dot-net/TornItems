@@ -59,6 +59,8 @@ export default function BenefitsEventsSection({
           <MenuItem value={COMPANY_BENEFIT_TYPES.MUSIC_STORE}>3★ Music Store</MenuItem>
           <MenuItem value={COMPANY_BENEFIT_TYPES.CANDLE_SHOP}>Candle Shop</MenuItem>
           <MenuItem value={COMPANY_BENEFIT_TYPES.FITNESS_CENTER}>10★ Fitness Center</MenuItem>
+          <MenuItem value={COMPANY_BENEFIT_TYPES.GENTS_STRIP_CLUB}>7★+ Gents Strip Club (+10% Dex)</MenuItem>
+          <MenuItem value={COMPANY_BENEFIT_TYPES.LADIES_STRIP_CLUB}>7★+ Ladies Strip Club (+10% Def)</MenuItem>
         </Select>
       </FormControl>
 

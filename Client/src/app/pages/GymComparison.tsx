@@ -219,6 +219,8 @@ export default function GymComparison() {
       const wizardIgnorePerksForGymSelection = loadSavedValue<boolean | null>('wizardIgnorePerksForGymSelection', null);
       const wizardPerkPercs = loadSavedValue<{ strength: number; speed: number; defense: number; dexterity: number } | null>('perkPercs', null);
       const wizardBaseHappy = loadSavedValue<number | null>('baseHappy', null);
+      const wizardCompanyBenefitKey = loadSavedValue<string | null>('wizardCompanyBenefitKey', null);
+      const wizardCandleShopStars = loadSavedValue<number | null>('wizardCandleShopStars', null);
 
       // No saved states or coming from wizard, create default state with new format
       return [{
@@ -272,8 +274,8 @@ export default function GymComparison() {
           diabetesDayGreenEgg: 0,
           diabetesDaySeasonalMail: false,
           diabetesDayLogoClick: false,
-          companyBenefitKey: COMPANY_BENEFIT_TYPES.NONE,
-          candleShopStars: DEFAULT_CANDLE_SHOP_STARS,
+          companyBenefitKey: wizardCompanyBenefitKey ?? COMPANY_BENEFIT_TYPES.NONE,
+          candleShopStars: wizardCandleShopStars ?? DEFAULT_CANDLE_SHOP_STARS,
           happy: wizardBaseHappy ?? DEFAULT_HAPPY,
           daysSkippedPerMonth: 0,
           statDriftPercent: wizardStatDriftPercent ?? 0,
