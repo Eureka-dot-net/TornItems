@@ -181,3 +181,28 @@ export function calculatePerkPercentages(data: TornGymStatsResponse): PerkPercen
     dexterity: (perkMultipliers.dexterity - 1) * 100
   };
 }
+
+export interface TornUserProfile {
+  profile: {
+    id: number;
+    name: string;
+    signed_up: number; // Unix timestamp
+    // Other fields exist but we only need signed_up
+  };
+}
+
+/**
+ * Fetch user profile from Torn API to get the signed_up timestamp
+ * This is used to limit date pickers to valid date ranges
+ */
+export async function fetchUserProfile(apiKey: string): Promise<TornUserProfile> {
+  const response = await fetch(
+    `https://api.torn.com/v2/user/profile?striptags=true&key=${encodeURIComponent(apiKey)}`
+  );
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch user profile from Torn API');
+  }
+  
+  return response.json();
+}

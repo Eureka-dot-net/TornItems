@@ -7,6 +7,8 @@ import {
   Select,
   MenuItem,
   Alert,
+  Typography,
+  Link,
 } from '@mui/material';
 
 interface EdvdJumpConfigProps {
@@ -124,21 +126,33 @@ export default function EdvdJumpConfig({
           )}
 
           {limit === 'stat' && (
-            <TextField
-              label="Stat Target (Individual)"
-              type="number"
-              value={statTarget ?? ''}
-              onChange={(e) =>
-                onUpdate({
-                  edvdJumpStatTarget:
-                    e.target.value === '' ? 1000000 : Math.max(0, Number(e.target.value)),
-                })
-              }
-              fullWidth
-              margin="dense"
-              size="small"
-              inputProps={{ step: 'any', min: 0 }}
-            />
+            <>
+              <TextField
+                label="Stat Target (Individual)"
+                type="number"
+                value={statTarget ?? ''}
+                onChange={(e) =>
+                  onUpdate({
+                    edvdJumpStatTarget:
+                      e.target.value === '' ? 140000 : Math.max(0, Number(e.target.value)),
+                  })
+                }
+                fullWidth
+                margin="dense"
+                size="small"
+                inputProps={{ step: 'any', min: 0 }}
+                helperText="Recommended: Stop at 140k per stat"
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                <Link 
+                  href="https://www.torn.com/forums.php#/p=threads&f=3&t=16259382&b=0&a=0&start=0&to=22124548" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  📖 Read the eDVD guide for more info on when to stop jumping
+                </Link>
+              </Typography>
+            </>
           )}
 
           <FormControlLabel

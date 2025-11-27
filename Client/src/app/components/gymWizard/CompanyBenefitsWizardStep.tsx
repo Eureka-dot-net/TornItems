@@ -258,21 +258,21 @@ export default function CompanyBenefitsWizardStep({ mode = 'current' }: CompanyB
                 3. How many stars does your Candle Shop have?
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                The Candle Shop provides 5 energy per star. A 10★ shop gives 50 bonus energy per day.
+                The Candle Shop gym benefit is only available at 7★ to 10★. It provides 5 energy per star (35-50 bonus energy per day).
               </Typography>
               <TextField
-                label="Candle Shop Stars"
+                label="Candle Shop Stars (7-10)"
                 type="number"
                 value={candleShopStars}
                 onChange={(e) => {
                   const value = Number(e.target.value);
                   if (!isNaN(value)) {
-                    setCandleShopStars(Math.max(1, Math.min(10, value)));
+                    setCandleShopStars(Math.max(7, Math.min(10, value)));
                   }
                 }}
                 fullWidth
                 size="small"
-                inputProps={{ min: 1, max: 10, step: 1 }}
+                inputProps={{ min: 7, max: 10, step: 1 }}
                 helperText={`This gives you ${candleShopStars * 5} bonus energy per day`}
               />
             </Box>

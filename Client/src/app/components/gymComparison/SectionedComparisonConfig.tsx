@@ -17,65 +17,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { useNavigate } from 'react-router-dom';
 import { exportIndividualComparisonData, type IndividualComparisonExportData } from '../../../lib/utils/exportHelpers';
-
-// Training section interface - matches the one in GymComparison.tsx
-interface TrainingSection {
-  id: string;
-  startDay: number;
-  endDay: number;
-  statWeights: { strength: number; speed: number; defense: number; dexterity: number };
-  hoursPlayedPerDay: number;
-  xanaxPerDay: number;
-  hasPointsRefill: boolean;
-  maxEnergy: number;
-  perkPercs: { strength: number; speed: number; defense: number; dexterity: number };
-  edvdJumpEnabled: boolean;
-  edvdJumpFrequency: number;
-  edvdJumpDvds: number;
-  edvdJumpLimit: 'indefinite' | 'count' | 'stat';
-  edvdJumpCount: number;
-  edvdJumpStatTarget: number;
-  edvdJumpAdultNovelties: boolean;
-  candyJumpEnabled: boolean;
-  candyJumpFrequencyDays: number;
-  candyJumpItemId: number;
-  candyJumpQuantity: number;
-  candyJumpFactionBenefit: number;
-  candyJumpDrugUsed: 'none' | 'xanax' | 'ecstasy';
-  candyJumpDrugAlreadyIncluded: boolean;
-  candyJumpUsePointRefill: boolean;
-  stackedCandyJumpEnabled: boolean;
-  stackedCandyJumpFrequency: number;
-  stackedCandyJumpItemId: number;
-  stackedCandyJumpQuantity: number;
-  stackedCandyJumpFactionBenefit: number;
-  stackedCandyJumpLimit: 'indefinite' | 'count' | 'stat';
-  stackedCandyJumpCount: number;
-  stackedCandyJumpStatTarget: number;
-  energyJumpEnabled: boolean;
-  energyJumpItemId: number;
-  energyJumpQuantity: number;
-  energyJumpFactionBenefit: number;
-  lossReviveEnabled: boolean;
-  lossReviveNumberPerDay: number;
-  lossReviveEnergyCost: number;
-  lossReviveDaysBetween: number;
-  lossRevivePricePerLoss: number;
-  diabetesDayEnabled: boolean;
-  diabetesDayNumberOfJumps: 1 | 2;
-  diabetesDayFHC: 0 | 1 | 2;
-  diabetesDayGreenEgg: 0 | 1 | 2;
-  diabetesDaySeasonalMail: boolean;
-  diabetesDayLogoClick: boolean;
-  companyBenefitKey: string;
-  candleShopStars: number;
-  happy: number;
-  daysSkippedPerMonth: number;
-  statDriftPercent: number;
-  balanceAfterGymIndex: number;
-  ignorePerksForGymSelection: boolean;
-  islandCostPerDay?: number;
-}
+import { type TrainingSection } from '../../../lib/utils/sectionSimulator';
 
 interface ComparisonState {
   id: string;
@@ -510,6 +452,7 @@ export default function SectionedComparisonConfig({
                     hoursPlayedPerDay={section.hoursPlayedPerDay}
                     xanaxPerDay={section.xanaxPerDay}
                     hasPointsRefill={section.hasPointsRefill}
+                    pointsRefillDaysPerWeek={section.pointsRefillDaysPerWeek}
                     daysSkippedPerMonth={section.daysSkippedPerMonth}
                     companyBenefit={getCompanyBenefit(section.companyBenefitKey, section.candleShopStars)}
                     showCosts={showCosts}

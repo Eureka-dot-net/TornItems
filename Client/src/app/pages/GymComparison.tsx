@@ -103,6 +103,7 @@ export default function GymComparison() {
       hoursPlayedPerDay: (state.hoursPlayedPerDay as number) || DEFAULT_HOURS_PER_DAY,
       xanaxPerDay: (state.xanaxPerDay as number) || DEFAULT_XANAX_PER_DAY,
       hasPointsRefill: (state.hasPointsRefill as boolean) ?? true,
+      pointsRefillDaysPerWeek: (state.pointsRefillDaysPerWeek as number) || 7,
       maxEnergy: (state.maxEnergy as number) || MAX_ENERGY_DEFAULT,
       perkPercs: (state.perkPercs as { strength: number; speed: number; defense: number; dexterity: number }) || DEFAULT_PERK_PERCS,
       edvdJumpEnabled: (state.edvdJumpEnabled as boolean) || false,
@@ -110,7 +111,7 @@ export default function GymComparison() {
       edvdJumpDvds: (state.edvdJumpDvds as number) || DEFAULT_EDVD_DVDS,
       edvdJumpLimit: (state.edvdJumpLimit as 'indefinite' | 'count' | 'stat') || 'indefinite',
       edvdJumpCount: (state.edvdJumpCount as number) || 10,
-      edvdJumpStatTarget: (state.edvdJumpStatTarget as number) || 10000000,
+      edvdJumpStatTarget: (state.edvdJumpStatTarget as number) || 140000,
       edvdJumpAdultNovelties: (state.edvdJumpAdultNovelties as boolean) || false,
       candyJumpEnabled: (state.candyJumpEnabled as boolean) || false,
       candyJumpFrequencyDays: (state.candyJumpFrequencyDays as number) || 1,
@@ -239,6 +240,7 @@ export default function GymComparison() {
           hoursPlayedPerDay: wizardHoursPlayedPerDay ?? DEFAULT_HOURS_PER_DAY,
           xanaxPerDay: wizardXanaxPerDay ?? DEFAULT_XANAX_PER_DAY,
           hasPointsRefill: wizardHasPointsRefill ?? true,
+          pointsRefillDaysPerWeek: 7,
           maxEnergy: wizardMaxEnergy ?? MAX_ENERGY_DEFAULT,
           perkPercs: wizardPerkPercs || DEFAULT_PERK_PERCS,
           edvdJumpEnabled: false,
@@ -246,7 +248,7 @@ export default function GymComparison() {
           edvdJumpDvds: DEFAULT_EDVD_DVDS,
           edvdJumpLimit: 'indefinite',
           edvdJumpCount: 10,
-          edvdJumpStatTarget: 10000000,
+          edvdJumpStatTarget: 140000,
           edvdJumpAdultNovelties: false,
           candyJumpEnabled: false,
           candyJumpFrequencyDays: 1,
@@ -432,7 +434,7 @@ export default function GymComparison() {
                   section.edvdJumpDvds = loadComparisonValue('edvdJumpDvds', DEFAULT_EDVD_DVDS);
                   section.edvdJumpLimit = loadComparisonValue('edvdJumpLimit', 'indefinite');
                   section.edvdJumpCount = loadComparisonValue('edvdJumpCount', 10);
-                  section.edvdJumpStatTarget = loadComparisonValue('edvdJumpStatTarget', 10000000);
+                  section.edvdJumpStatTarget = loadComparisonValue('edvdJumpStatTarget', 140000);
                   section.edvdJumpAdultNovelties = loadComparisonValue('edvdJumpAdultNovelties', false);
                 }
                 

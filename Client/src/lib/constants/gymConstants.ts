@@ -117,6 +117,9 @@ export const DEFAULT_HOURS_PER_DAY = 16;
 // Default xanax per day
 export const DEFAULT_XANAX_PER_DAY = 3;
 
+// Default points refill days per week
+export const DEFAULT_POINTS_REFILL_DAYS_PER_WEEK = 7;
+
 // Company benefit types
 export const COMPANY_BENEFIT_TYPES = {
   NONE: 'none',

@@ -7,7 +7,8 @@ import HappyPerksWizardStep from '../components/gymWizard/HappyPerksWizardStep';
 import CompanyBenefitsWizardStep from '../components/gymWizard/CompanyBenefitsWizardStep';
 import StatTargetRatiosWizardStep from '../components/gymWizard/StatTargetRatiosWizardStep';
 import TrainingRegimeWizardStep, { type TrainingRegimeSelections } from '../components/gymWizard/TrainingRegimeWizardStep';
-import ComparisonOptionsWizardStep, { type ComparisonOptionType } from '../components/gymWizard/ComparisonOptionsWizardStep';
+// NOTE: ComparisonOptionsWizardStep is intentionally kept but not shown in the stepper - will be used for future recommendations feature
+import type { ComparisonOptionType } from '../components/gymWizard/ComparisonOptionsWizardStep';
 import ComparisonSelectionWizardStep, { type ComparisonPageSelections, type ComparisonMode } from '../components/gymWizard/ComparisonSelectionWizardStep';
 import EdvdJumpWizardSubStep from '../components/gymWizard/EdvdJumpWizardSubStep';
 import CandyJumpWizardSubStep from '../components/gymWizard/CandyJumpWizardSubStep';
@@ -41,7 +42,8 @@ const baseWizardSteps = [
   { label: 'Company Benefits', description: 'Configure your company benefits' },
   { label: 'Stat Target Ratios', description: 'Configure your stat training strategy' },
   { label: 'Training Regime', description: 'Configure your training methods' },
-  { label: 'Comparison Options', description: 'Choose what to compare' },
+  // NOTE: "Comparison Options" step is intentionally skipped but the component is kept for future use
+  // See ComparisonOptionsWizardStep.tsx for details
   { label: 'Select Areas', description: 'Select comparison areas' },
 ];
 
@@ -58,7 +60,7 @@ export default function GymWizard() {
   });
   
   // Comparison phase state
-  // Note: setComparisonOption is used by handleComparisonOptionChange callback
+  // Note: comparisonOption state is not used directly but setComparisonOption is used in handleStartOver
   const [, setComparisonOption] = useState<ComparisonOptionType>(null);
   const [comparisonPageSelections, setComparisonPageSelections] = useState<ComparisonPageSelections>({
     energySources: false,
@@ -210,8 +212,8 @@ export default function GymWizard() {
   }, [comparisonPageSelections, handleComparisonTrainingSelectionsChange]);
   
   const comparisonPageSteps = getComparisonPageSteps();
-  const isInComparisonPhase = activeStep >= 8; // Step 8+ are dynamic comparison steps
-  const comparisonPhaseStepIndex = activeStep - 8;
+  const isInComparisonPhase = activeStep >= 7; // Step 7+ are dynamic comparison steps
+  const comparisonPhaseStepIndex = activeStep - 7;
   
   // Build comparison training sub-steps (only if training regime is selected for comparison)
   const getComparisonTrainingSubSteps = useCallback(() => {
@@ -353,7 +355,7 @@ export default function GymWizard() {
   };
 
   const handleNext = () => {
-    // Handle comparison phase navigation (step 8+)
+    // Handle comparison phase navigation (step 7+)
     if (isInComparisonPhase) {
       const currentPageStep = comparisonPageSteps[comparisonPhaseStepIndex];
       
@@ -431,26 +433,21 @@ export default function GymWizard() {
           setSubStepIndex(0);
           return;
         } else {
-          // No sub-steps, move to Comparison Options (step 6)
+          // No sub-steps, go directly to Select Areas (step 6)
+          // Note: "Comparison Options" step was removed from the stepper but the component is kept for future use
           setActiveStep(6);
           return;
         }
       }
     }
     
-    // Handle Comparison Options step (step 6)
+    // Handle Select Areas step (step 6)
     if (activeStep === 6) {
-      setActiveStep(7);
-      return;
-    }
-    
-    // Handle Select Areas step (step 7)
-    if (activeStep === 7) {
       // Check if any comparison pages are selected
       const hasAnySelection = Object.values(comparisonPageSelections).some(v => v);
       if (hasAnySelection) {
-        // Move to first dynamic comparison step (step 8)
-        setActiveStep(8);
+        // Move to first dynamic comparison step (step 7)
+        setActiveStep(7);
         setComparisonSubStepIndex(0);
       } else {
         // No comparison selections, finish wizard
@@ -489,8 +486,8 @@ export default function GymWizard() {
         setComparisonSubStepIndex(0);
         setHasEnteredComparisonTrainingSubSteps(false);
       } else {
-        // Go back to Select Areas (step 7)
-        setActiveStep(7);
+        // Go back to Select Areas (step 6)
+        setActiveStep(6);
         setComparisonSubStepIndex(0);
         setHasEnteredComparisonTrainingSubSteps(false);
       }
@@ -517,6 +514,46 @@ export default function GymWizard() {
     navigate('/gymComparison');
   };
 
+  const handleStartOver = () => {
+    // Clear all wizard localStorage data
+    const keysToRemove = Object.keys(localStorage).filter(key => 
+      key.startsWith('gymWizard_')
+    );
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    // Reset all state to initial values
+    setActiveStep(0);
+    setSubStepIndex(0);
+    setTrainingSelections({
+      edvd: false,
+      candy: false,
+      stackedCandy: false,
+      energy: false,
+      fhc: false,
+    });
+    setComparisonOption(null);
+    setComparisonPageSelections({
+      energySources: false,
+      happyPerks: false,
+      companyBenefits: false,
+      statTargetRatios: false,
+      trainingRegime: false,
+    });
+    setComparisonMode('separate');
+    setComparisonSubStepIndex(0);
+    setHasEnteredComparisonTrainingSubSteps(false);
+    setComparisonTrainingSelections({
+      edvd: false,
+      candy: false,
+      stackedCandy: false,
+      energy: false,
+      fhc: false,
+    });
+    
+    // Reload the page to reset component state
+    window.location.reload();
+  };
+
   const handleStepClick = (stepIndex: number) => {
     setActiveStep(stepIndex);
     setSubStepIndex(0); // Reset sub-step when jumping to a different main step
@@ -527,9 +564,8 @@ export default function GymWizard() {
     setTrainingSelections(selections);
   }, []);
 
-  const handleComparisonOptionChange = useCallback((option: ComparisonOptionType) => {
-    setComparisonOption(option);
-  }, []);
+  // NOTE: handleComparisonOptionChange is intentionally removed as ComparisonOptionsWizardStep is not shown in stepper
+  // It will be re-added when the recommendations feature is implemented
 
   const handleComparisonSelectionsChange = useCallback((selections: ComparisonPageSelections) => {
     setComparisonPageSelections(selections);
@@ -574,8 +610,8 @@ export default function GymWizard() {
     // Check if we're at the last step and can finish
     const hasComparisonSelections = Object.values(comparisonPageSelections).some(v => v);
     
-    // Step 7 (Select Areas) with no selections - finish
-    if (activeStep === 7 && !hasComparisonSelections) {
+    // Step 6 (Select Areas) with no selections - finish
+    if (activeStep === 6 && !hasComparisonSelections) {
       return 'Finish';
     }
     
@@ -656,19 +692,15 @@ export default function GymWizard() {
         {activeStep === 5 && isInSubStep && subSteps[subStepIndex]?.component}
         
         {/* Comparison options step (6) */}
+        {/* Comparison selection step (6) - now directly at step 6 since Comparison Options was removed from stepper */}
         {activeStep === 6 && (
-          <ComparisonOptionsWizardStep onOptionChange={handleComparisonOptionChange} />
-        )}
-        
-        {/* Comparison selection step (7) */}
-        {activeStep === 7 && (
           <ComparisonSelectionWizardStep 
             onSelectionsChange={handleComparisonSelectionsChange} 
             onModeChange={handleComparisonModeChange}
           />
         )}
         
-        {/* Dynamic comparison page steps (8+) */}
+        {/* Dynamic comparison page steps (7+) */}
         {isInComparisonPhase && (() => {
           const currentStep = comparisonPageSteps[comparisonPhaseStepIndex];
           if (!currentStep) return null;
@@ -687,13 +719,21 @@ export default function GymWizard() {
 
       {/* Navigation buttons */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-        <Button
-          variant="outlined"
-          onClick={handleSkip}
-          sx={{ order: { xs: 3, sm: 1 } }}
-        >
-          Skip Wizard
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1, order: { xs: 3, sm: 1 } }}>
+          <Button
+            variant="outlined"
+            onClick={handleSkip}
+          >
+            Skip Wizard
+          </Button>
+          <Button
+            variant="outlined"
+            color="warning"
+            onClick={handleStartOver}
+          >
+            Start Over
+          </Button>
+        </Box>
         
         <Box sx={{ display: 'flex', gap: 2, order: { xs: 1, sm: 2 } }}>
           <Button
