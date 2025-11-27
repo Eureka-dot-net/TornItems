@@ -229,7 +229,7 @@ export default function EdvdJumpWizardSubStep({ mode = 'current' }: EdvdJumpWiza
       {/* Adult Novelties */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6" gutterBottom>
-          Do you have access to 10★ Adult Novelties?
+          Do you work at a 10★ Adult Novelties store?
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
           Working at an Adult Novelties store doubles the happy from eDvDs.
