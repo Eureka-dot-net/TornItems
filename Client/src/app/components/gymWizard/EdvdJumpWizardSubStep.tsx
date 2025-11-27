@@ -212,7 +212,7 @@ export default function EdvdJumpWizardSubStep({ mode = 'current' }: EdvdJumpWiza
             What is your target stat level? (individual stat)
           </Typography>
           <Typography variant="body2" color="text.secondary" paragraph>
-            For example, enter 1000000 if you want to stop when you reach 1M in any stat.
+            For example, enter 1000000 if you want to stop when you reach 1M in all stats.
           </Typography>
           <TextField
             type="number"
@@ -232,7 +232,7 @@ export default function EdvdJumpWizardSubStep({ mode = 'current' }: EdvdJumpWiza
           Do you have access to 10★ Adult Novelties?
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
-          Adult Novelties provide an additional stat boost when equipped.
+          Working at an Adult Novelties store doubles the happy from eDvDs.
         </Typography>
         <FormControlLabel
           control={
