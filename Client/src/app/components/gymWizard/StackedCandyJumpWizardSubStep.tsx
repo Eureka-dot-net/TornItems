@@ -239,7 +239,7 @@ export default function StackedCandyJumpWizardSubStep({ mode = 'current' }: Stac
             What is your target stat level? (individual stat)
           </Typography>
           <Typography variant="body2" color="text.secondary" paragraph>
-            For example, enter 1000000 if you want to stop when you reach 1M in any stat.
+            For example, enter 1000000 if you want to stop when you reach 1M in all stats.
           </Typography>
           <TextField
             type="number"

@@ -69,6 +69,7 @@ export default function GymWizard() {
   });
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>('separate');
   const [comparisonSubStepIndex, setComparisonSubStepIndex] = useState(0);
+  const [hasEnteredComparisonTrainingSubSteps, setHasEnteredComparisonTrainingSubSteps] = useState(false);
   const [comparisonTrainingSelections, setComparisonTrainingSelections] = useState<TrainingRegimeSelections>({
     edvd: false,
     candy: false,
@@ -262,11 +263,13 @@ export default function GymWizard() {
   const comparisonTrainingSubSteps = getComparisonTrainingSubSteps();
   
   // Check if we're showing training regime comparison and in its sub-steps
+  // Only true if we've explicitly entered sub-steps by clicking Next from the selection page
   const isInComparisonTrainingSubStep = (() => {
     if (!isInComparisonPhase) return false;
     const currentStep = comparisonPageSteps[comparisonPhaseStepIndex];
     if (!currentStep || currentStep.key !== 'trainingRegime') return false;
-    return comparisonTrainingSubSteps.length > 0 && comparisonSubStepIndex < comparisonTrainingSubSteps.length;
+    // Only consider in sub-steps if we've explicitly entered them
+    return hasEnteredComparisonTrainingSubSteps && comparisonTrainingSubSteps.length > 0 && comparisonSubStepIndex < comparisonTrainingSubSteps.length;
   })();
 
   // Function to copy wizard data to gym comparison localStorage
@@ -364,6 +367,7 @@ export default function GymWizard() {
           } else {
             // Finished all comparison training sub-steps
             setComparisonSubStepIndex(0);
+            setHasEnteredComparisonTrainingSubSteps(false);
             // Move to next comparison page or finish
             if (comparisonPhaseStepIndex < comparisonPageSteps.length - 1) {
               setActiveStep(activeStep + 1);
@@ -380,6 +384,7 @@ export default function GymWizard() {
           if (comparisonTrainingSubSteps.length > 0) {
             // Enter comparison training sub-steps
             setComparisonSubStepIndex(0);
+            setHasEnteredComparisonTrainingSubSteps(true);
             return;
           } else {
             // No sub-steps, move to next comparison page or finish
@@ -471,8 +476,9 @@ export default function GymWizard() {
           setComparisonSubStepIndex(comparisonSubStepIndex - 1);
           return;
         } else {
-          // Exit comparison training sub-steps
+          // Exit comparison training sub-steps back to selection page
           setComparisonSubStepIndex(0);
+          setHasEnteredComparisonTrainingSubSteps(false);
           return;
         }
       }
@@ -481,10 +487,12 @@ export default function GymWizard() {
       if (comparisonPhaseStepIndex > 0) {
         setActiveStep(activeStep - 1);
         setComparisonSubStepIndex(0);
+        setHasEnteredComparisonTrainingSubSteps(false);
       } else {
         // Go back to Select Areas (step 7)
         setActiveStep(7);
         setComparisonSubStepIndex(0);
+        setHasEnteredComparisonTrainingSubSteps(false);
       }
       return;
     }
@@ -512,6 +520,7 @@ export default function GymWizard() {
   const handleStepClick = (stepIndex: number) => {
     setActiveStep(stepIndex);
     setSubStepIndex(0); // Reset sub-step when jumping to a different main step
+    setHasEnteredComparisonTrainingSubSteps(false); // Reset comparison sub-step flag
   };
 
   const handleTrainingSelectionsChange = useCallback((selections: TrainingRegimeSelections) => {
