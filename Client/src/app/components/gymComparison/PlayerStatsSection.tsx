@@ -7,6 +7,7 @@ import { GYMS } from '../../../lib/data/gyms';
 import HistoricalDataConfig from './HistoricalDataConfig';
 import { type HistoricalStat } from '../../../lib/hooks/useHistoricalStats';
 import axios from 'axios';
+import { fetchUserProfile } from '../../../lib/utils/tornApiHelpers';
 
 interface Stats {
   strength: number;
@@ -73,6 +74,29 @@ export default function PlayerStatsSection({
     return yesterday;
   };
   
+  // State for user's account sign-up date (fetched from API)
+  const [userSignUpDate, setUserSignUpDate] = useState<Date | null>(() => {
+    try {
+      const saved = localStorage.getItem('userSignUpDate');
+      return saved ? new Date(JSON.parse(saved)) : null;
+    } catch {
+      return null;
+    }
+  });
+  
+  // Save userSignUpDate to localStorage
+  useEffect(() => {
+    if (userSignUpDate) {
+      localStorage.setItem('userSignUpDate', JSON.stringify(userSignUpDate.toISOString()));
+    }
+  }, [userSignUpDate]);
+  
+  // Calculate the minimum date for the DatePicker
+  // Use user's sign-up date if available, otherwise fall back to Torn release date
+  const getMinDate = () => {
+    return userSignUpDate || TORN_RELEASE_DATE;
+  };
+  
   // Helper functions to convert duration
   const convertToMonths = (value: number, unit: 'days' | 'weeks' | 'months'): number => {
     if (unit === 'days') return value / 30;
@@ -105,6 +129,7 @@ export default function PlayerStatsSection({
   }, [fetchStatsAtDate]);
   
   // Enhanced fetch function that can fetch at a specific date
+  // Also fetches user profile to get sign-up date for date picker limits
   const handleEnhancedFetch = async () => {
     if (!apiKey.trim()) {
       return;
@@ -149,6 +174,19 @@ export default function PlayerStatsSection({
       // Fallback to regular fetch if date-based fetch fails
       handleFetchStats();
     }
+    
+    // Also fetch user profile to get sign-up date for date picker limits
+    try {
+      const profileData = await fetchUserProfile(apiKey);
+      if (profileData.profile?.signed_up) {
+        // Convert Unix timestamp to Date
+        const signUpDate = new Date(profileData.profile.signed_up * 1000);
+        setUserSignUpDate(signUpDate);
+      }
+    } catch (err) {
+      console.error('Failed to fetch user profile:', err);
+      // Non-critical error - date picker will use Torn release date as fallback
+    }
   };
   
   return (
@@ -171,13 +209,15 @@ export default function PlayerStatsSection({
                 label="Start Date"
                 value={simulatedDate}
                 onChange={(newValue) => setSimulatedDate(newValue)}
-                minDate={TORN_RELEASE_DATE}
+                minDate={getMinDate()}
                 maxDate={getYesterday()}
                 slotProps={{ 
                   textField: { 
                     size: 'small',
                     fullWidth: true,
-                    helperText: 'Sets the start date for the graph and Diabetes Day calculations (Nov 13-15).'
+                    helperText: userSignUpDate 
+                      ? `Sets the start date for the graph and Diabetes Day calculations (Nov 13-15). Min: ${userSignUpDate.toLocaleDateString()}`
+                      : 'Sets the start date for the graph and Diabetes Day calculations (Nov 13-15).'
                   } 
                 }}
               />

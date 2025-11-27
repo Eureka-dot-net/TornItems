@@ -30,8 +30,8 @@ interface HistoricalDataConfigProps {
 }
 
 export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, simulatedDate, onEnabledChange }: HistoricalDataConfigProps) {
-  // Constants for date validation
-  const TORN_RELEASE_DATE = new Date('1997-10-27');
+  // Constants for date validation - Torn was released on November 16, 2004
+  const TORN_RELEASE_DATE = new Date('2004-11-16');
   const getYesterday = () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
