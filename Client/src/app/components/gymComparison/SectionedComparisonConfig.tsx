@@ -452,6 +452,7 @@ export default function SectionedComparisonConfig({
                     hoursPlayedPerDay={section.hoursPlayedPerDay}
                     xanaxPerDay={section.xanaxPerDay}
                     hasPointsRefill={section.hasPointsRefill}
+                    pointsRefillDaysPerWeek={section.pointsRefillDaysPerWeek}
                     daysSkippedPerMonth={section.daysSkippedPerMonth}
                     companyBenefit={getCompanyBenefit(section.companyBenefitKey, section.candleShopStars)}
                     showCosts={showCosts}
