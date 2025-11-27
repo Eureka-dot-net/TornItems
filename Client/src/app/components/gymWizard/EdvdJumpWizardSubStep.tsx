@@ -146,7 +146,7 @@ export default function EdvdJumpWizardSubStep({ mode = 'current' }: EdvdJumpWiza
           How many eDVDs do you use per jump session?
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
-          Each eDVD gives +10% to battle stats for 6 hours.
+          Each eDVD gives 2500 extra happiness
         </Typography>
         <TextField
           type="number"
