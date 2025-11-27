@@ -66,19 +66,19 @@ export default function BenefitsEventsSection({
 
       {companyBenefitKey === COMPANY_BENEFIT_TYPES.CANDLE_SHOP && (
         <TextField
-          label="Candle Stars"
+          label="Candle Stars (7-10)"
           type="number"
           value={candleShopStars ?? ''}
           onChange={(e) =>
             onUpdate({
               candleShopStars:
-                e.target.value === '' ? 1 : Math.max(1, Math.min(10, Number(e.target.value))),
+                e.target.value === '' ? 7 : Math.max(7, Math.min(10, Number(e.target.value))),
             })
           }
           fullWidth
           margin="dense"
           size="small"
-          inputProps={{ step: 'any', min: 1, max: 10 }}
+          inputProps={{ step: 'any', min: 7, max: 10 }}
         />
       )}
 

@@ -16,6 +16,7 @@ export interface TrainingSection {
   hoursPlayedPerDay: number;
   xanaxPerDay: number;
   hasPointsRefill: boolean;
+  pointsRefillDaysPerWeek: number; // How many days per week to use points refill (default 7)
   maxEnergy: number;
   perkPercs: { strength: number; speed: number; defense: number; dexterity: number };
   edvdJumpEnabled: boolean;

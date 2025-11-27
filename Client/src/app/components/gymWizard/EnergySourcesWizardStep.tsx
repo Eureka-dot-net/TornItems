@@ -69,6 +69,11 @@ export default function EnergySourcesWizardStep({ mode = 'current' }: EnergySour
       ? loadSavedValue('hasPointsRefill', loadCurrentValue('hasPointsRefill', true))
       : loadSavedValue('hasPointsRefill', true)
   );
+  const [pointsRefillDaysPerWeek, setPointsRefillDaysPerWeek] = useState<number>(() => 
+    isComparison
+      ? loadSavedValue('pointsRefillDaysPerWeek', loadCurrentValue('pointsRefillDaysPerWeek', 7))
+      : loadSavedValue('pointsRefillDaysPerWeek', 7)
+  );
   const [xanaxPerDay, setXanaxPerDay] = useState<number>(() => 
     isComparison
       ? loadSavedValue('xanaxPerDay', loadCurrentValue('xanaxPerDay', 3))
@@ -94,6 +99,10 @@ export default function EnergySourcesWizardStep({ mode = 'current' }: EnergySour
   useEffect(() => {
     localStorage.setItem(`${storagePrefix}hasPointsRefill`, JSON.stringify(hasPointsRefill));
   }, [hasPointsRefill, storagePrefix]);
+
+  useEffect(() => {
+    localStorage.setItem(`${storagePrefix}pointsRefillDaysPerWeek`, JSON.stringify(pointsRefillDaysPerWeek));
+  }, [pointsRefillDaysPerWeek, storagePrefix]);
 
   useEffect(() => {
     localStorage.setItem(`${storagePrefix}xanaxPerDay`, JSON.stringify(xanaxPerDay));
@@ -248,6 +257,26 @@ export default function EnergySourcesWizardStep({ mode = 'current' }: EnergySour
                 : (isComparison ? 'No, exclude points refills from comparison' : "No, I don't use points refills")
               }
             />
+            
+            {hasPointsRefill && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" color="text.secondary" paragraph>
+                  How many days per week do you use points refill?
+                </Typography>
+                <TextField
+                  type="number"
+                  value={pointsRefillDaysPerWeek}
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    setPointsRefillDaysPerWeek(Math.max(1, Math.min(7, value)));
+                  }}
+                  fullWidth
+                  size="small"
+                  inputProps={{ min: 1, max: 7, step: 1 }}
+                  helperText="Enter a value between 1 and 7 (default: 7 days/week)"
+                />
+              </Box>
+            )}
           </Box>
 
           {/* Xanax per day */}
@@ -260,7 +289,8 @@ export default function EnergySourcesWizardStep({ mode = 'current' }: EnergySour
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
               Each Xanax provides 250 additional energy (it doesn't refill your bar, but adds to it). 
-              Enter 0 if you don't use Xanax for training.
+              Enter 0 if you don't use Xanax for training. Decimals are allowed for averaging (e.g., 2.5 if you use 
+              5 Xanax every 2 days).
             </Typography>
             <TextField
               type="number"
@@ -271,8 +301,8 @@ export default function EnergySourcesWizardStep({ mode = 'current' }: EnergySour
               }}
               fullWidth
               size="small"
-              inputProps={{ min: 0, step: 1 }}
-              helperText="Enter 0 or more"
+              inputProps={{ min: 0, step: 'any' }}
+              helperText="Enter 0 or more (decimals allowed)"
             />
           </Box>
 

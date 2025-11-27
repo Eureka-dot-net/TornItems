@@ -14,6 +14,13 @@ import {
  * 
  * This wizard step appears after all current regime configuration is complete.
  * It asks users what they want to compare: recommendations or manual comparison.
+ * 
+ * NOTE: This step is currently SKIPPED in the wizard flow but MUST NOT BE REMOVED.
+ * It will be used in the future when the "Get Personalized Recommendations" feature
+ * is implemented. The wizard currently skips directly from Training Regime to 
+ * Select Areas (ComparisonSelectionWizardStep).
+ * 
+ * @see GymWizard.tsx - handleNext function for the skip logic
  */
 
 export type ComparisonOptionType = 'recommendations' | 'manual' | null;

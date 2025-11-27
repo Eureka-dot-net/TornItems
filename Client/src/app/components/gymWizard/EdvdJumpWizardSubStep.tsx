@@ -10,6 +10,7 @@ import {
   FormControlLabel,
   Switch,
   Alert,
+  Link,
 } from '@mui/material';
 import { validateNumericInput } from '../../../lib/utils/jumpHelpers';
 
@@ -74,8 +75,8 @@ export default function EdvdJumpWizardSubStep({ mode = 'current' }: EdvdJumpWiza
   );
   const [statTarget, setStatTarget] = useState<number>(() => 
     isComparison 
-      ? loadSavedValue('edvdJumpStatTarget', loadCurrentValue('edvdJumpStatTarget', 1000000))
-      : loadSavedValue('edvdJumpStatTarget', 1000000)
+      ? loadSavedValue('edvdJumpStatTarget', loadCurrentValue('edvdJumpStatTarget', 140000))
+      : loadSavedValue('edvdJumpStatTarget', 140000)
   );
   const [adultNovelties, setAdultNovelties] = useState<boolean>(() => 
     isComparison 
@@ -212,17 +213,30 @@ export default function EdvdJumpWizardSubStep({ mode = 'current' }: EdvdJumpWiza
             What is your target stat level? (individual stat)
           </Typography>
           <Typography variant="body2" color="text.secondary" paragraph>
-            For example, enter 1000000 if you want to stop when you reach 1M in all stats.
+            <strong>Recommendation:</strong> Stop at 140,000 per stat. After this point, eDVD jumps become 
+            less efficient compared to regular training.
           </Typography>
           <TextField
             type="number"
             value={statTarget}
-            onChange={(e) => setStatTarget(validateNumericInput(e.target.value, 1000000, 0))}
+            onChange={(e) => setStatTarget(validateNumericInput(e.target.value, 140000, 0))}
             fullWidth
             size="small"
-            inputProps={{ step: 100000, min: 0 }}
-            helperText="Enter target stat level"
+            inputProps={{ step: 10000, min: 0 }}
+            helperText="Recommended: 140,000 per stat"
           />
+          <Alert severity="info" sx={{ mt: 2 }}>
+            <Typography variant="body2">
+              📖 Learn more about optimal eDVD strategy:{' '}
+              <Link 
+                href="https://www.torn.com/forums.php#/p=threads&f=3&t=16259382&b=0&a=0&start=0&to=22124548" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                eDVD Jump Guide
+              </Link>
+            </Typography>
+          </Alert>
         </Box>
       )}
 

@@ -65,7 +65,7 @@ export default function PlayerStatsSection({
   setDurationUnit,
 }: PlayerStatsSectionProps) {
   // Constants for date validation
-  const TORN_RELEASE_DATE = new Date('1997-10-27');
+  const TORN_RELEASE_DATE = new Date('2004-11-16');
   const getYesterday = () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -335,6 +335,14 @@ export default function PlayerStatsSection({
           </Grid>
         )}
       </Grid>
+      
+      {gymProgressPercent !== undefined && (
+        <Alert severity="warning" sx={{ mt: 2, py: 0.5 }}>
+          <Typography variant="body2">
+            <strong>Note:</strong> Gym progress percentage must be filled manually - this data is not available from the API.
+          </Typography>
+        </Alert>
+      )}
     </Paper>
     
     {/* Historical data section - only visible when API key is present */}

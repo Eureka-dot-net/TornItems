@@ -11,13 +11,14 @@ import {
 import { calculateDailyEnergy } from '../../../lib/utils/gymProgressionCalculator';
 import type { CompanyBenefit } from '../../../lib/utils/gymProgressionCalculator';
 import { formatCurrency } from '../../../lib/utils/gymHelpers';
-import { CONSUMABLE_ITEM_IDS } from '../../../lib/constants/gymConstants';
+import { CONSUMABLE_ITEM_IDS, DEFAULT_POINTS_REFILL_DAYS_PER_WEEK } from '../../../lib/constants/gymConstants';
 
 interface EnergySourcesSectionProps {
   maxEnergy: number;
   hoursPlayedPerDay: number;
   xanaxPerDay: number;
   hasPointsRefill: boolean;
+  pointsRefillDaysPerWeek?: number;
   daysSkippedPerMonth: number;
   companyBenefit: CompanyBenefit;
   showCosts?: boolean;
@@ -29,6 +30,7 @@ interface EnergySourcesSectionProps {
     hoursPlayedPerDay?: number;
     xanaxPerDay?: number;
     hasPointsRefill?: boolean;
+    pointsRefillDaysPerWeek?: number;
     daysSkippedPerMonth?: number;
   }) => void;
 }
@@ -38,6 +40,7 @@ export default function EnergySourcesSection({
   hoursPlayedPerDay,
   xanaxPerDay,
   hasPointsRefill,
+  pointsRefillDaysPerWeek = DEFAULT_POINTS_REFILL_DAYS_PER_WEEK,
   daysSkippedPerMonth,
   companyBenefit,
   showCosts,
@@ -91,6 +94,7 @@ export default function EnergySourcesSection({
         margin="dense"
         size="small"
         inputProps={{ step: 'any', min: 0 }}
+        helperText="Decimals allowed (e.g., 2.5 for averaging usage)"
       />
 
       {showCosts && itemPricesData && xanaxPerDay > 0 && itemPricesData.prices[CONSUMABLE_ITEM_IDS.XANAX] !== null && (
@@ -111,9 +115,28 @@ export default function EnergySourcesSection({
         sx={{ mt: 1 }}
       />
 
+      {hasPointsRefill && (
+        <TextField
+          label="Days/Week Using Refill"
+          type="number"
+          value={pointsRefillDaysPerWeek ?? DEFAULT_POINTS_REFILL_DAYS_PER_WEEK}
+          onChange={(e) =>
+            onUpdate({
+              pointsRefillDaysPerWeek:
+                e.target.value === '' ? DEFAULT_POINTS_REFILL_DAYS_PER_WEEK : Math.max(1, Math.min(7, Number(e.target.value))),
+            })
+          }
+          fullWidth
+          margin="dense"
+          size="small"
+          inputProps={{ step: 1, min: 1, max: 7 }}
+          helperText="How many days per week do you use points refill?"
+        />
+      )}
+
       {showCosts && itemPricesData && hasPointsRefill && itemPricesData.prices[0] !== null && (
         <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>
-          Cost: {formatCurrency(itemPricesData.prices[0]! * 30)} per day
+          Cost: {formatCurrency(itemPricesData.prices[0]! * 30 * (pointsRefillDaysPerWeek / 7))} per day (avg)
         </Typography>
       )}
 

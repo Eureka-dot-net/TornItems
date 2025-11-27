@@ -58,7 +58,7 @@ export default function GymWizard() {
   });
   
   // Comparison phase state
-  // Note: setComparisonOption is used by handleComparisonOptionChange callback
+  // Note: comparisonOption state is not used directly but setComparisonOption is used in handleStartOver
   const [, setComparisonOption] = useState<ComparisonOptionType>(null);
   const [comparisonPageSelections, setComparisonPageSelections] = useState<ComparisonPageSelections>({
     energySources: false,
@@ -431,14 +431,17 @@ export default function GymWizard() {
           setSubStepIndex(0);
           return;
         } else {
-          // No sub-steps, move to Comparison Options (step 6)
-          setActiveStep(6);
+          // No sub-steps, skip Comparison Options step (step 6) and go directly to Select Areas (step 7)
+          // Step 6 is intentionally skipped but kept for future use
+          setActiveStep(7);
           return;
         }
       }
     }
     
     // Handle Comparison Options step (step 6)
+    // NOTE: This step is currently skipped but kept for future recommendations feature
+    // DO NOT REMOVE - it will be used when "Get Personalized Recommendations" is implemented
     if (activeStep === 6) {
       setActiveStep(7);
       return;
@@ -515,6 +518,46 @@ export default function GymWizard() {
     // Skip wizard and go directly to gym comparison
     // Don't set the wizard flag - user is advanced
     navigate('/gymComparison');
+  };
+
+  const handleStartOver = () => {
+    // Clear all wizard localStorage data
+    const keysToRemove = Object.keys(localStorage).filter(key => 
+      key.startsWith('gymWizard_')
+    );
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    // Reset all state to initial values
+    setActiveStep(0);
+    setSubStepIndex(0);
+    setTrainingSelections({
+      edvd: false,
+      candy: false,
+      stackedCandy: false,
+      energy: false,
+      fhc: false,
+    });
+    setComparisonOption(null);
+    setComparisonPageSelections({
+      energySources: false,
+      happyPerks: false,
+      companyBenefits: false,
+      statTargetRatios: false,
+      trainingRegime: false,
+    });
+    setComparisonMode('separate');
+    setComparisonSubStepIndex(0);
+    setHasEnteredComparisonTrainingSubSteps(false);
+    setComparisonTrainingSelections({
+      edvd: false,
+      candy: false,
+      stackedCandy: false,
+      energy: false,
+      fhc: false,
+    });
+    
+    // Reload the page to reset component state
+    window.location.reload();
   };
 
   const handleStepClick = (stepIndex: number) => {
@@ -687,13 +730,21 @@ export default function GymWizard() {
 
       {/* Navigation buttons */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-        <Button
-          variant="outlined"
-          onClick={handleSkip}
-          sx={{ order: { xs: 3, sm: 1 } }}
-        >
-          Skip Wizard
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1, order: { xs: 3, sm: 1 } }}>
+          <Button
+            variant="outlined"
+            onClick={handleSkip}
+          >
+            Skip Wizard
+          </Button>
+          <Button
+            variant="outlined"
+            color="warning"
+            onClick={handleStartOver}
+          >
+            Start Over
+          </Button>
+        </Box>
         
         <Box sx={{ display: 'flex', gap: 2, order: { xs: 1, sm: 2 } }}>
           <Button
