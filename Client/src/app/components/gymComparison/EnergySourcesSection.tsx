@@ -94,7 +94,7 @@ export default function EnergySourcesSection({
         margin="dense"
         size="small"
         inputProps={{ step: 'any', min: 0 }}
-        helperText="Decimals allowed (e.g., 2.5 for averaging usage)"
+        helperText={`Decimals allowed (e.g., ${(2.5).toLocaleString()} for averaging usage)`}
       />
 
       {showCosts && itemPricesData && xanaxPerDay > 0 && itemPricesData.prices[CONSUMABLE_ITEM_IDS.XANAX] !== null && (

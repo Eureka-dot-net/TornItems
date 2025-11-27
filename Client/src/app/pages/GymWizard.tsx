@@ -7,7 +7,8 @@ import HappyPerksWizardStep from '../components/gymWizard/HappyPerksWizardStep';
 import CompanyBenefitsWizardStep from '../components/gymWizard/CompanyBenefitsWizardStep';
 import StatTargetRatiosWizardStep from '../components/gymWizard/StatTargetRatiosWizardStep';
 import TrainingRegimeWizardStep, { type TrainingRegimeSelections } from '../components/gymWizard/TrainingRegimeWizardStep';
-import ComparisonOptionsWizardStep, { type ComparisonOptionType } from '../components/gymWizard/ComparisonOptionsWizardStep';
+// NOTE: ComparisonOptionsWizardStep is intentionally kept but not shown in the stepper - will be used for future recommendations feature
+import type { ComparisonOptionType } from '../components/gymWizard/ComparisonOptionsWizardStep';
 import ComparisonSelectionWizardStep, { type ComparisonPageSelections, type ComparisonMode } from '../components/gymWizard/ComparisonSelectionWizardStep';
 import EdvdJumpWizardSubStep from '../components/gymWizard/EdvdJumpWizardSubStep';
 import CandyJumpWizardSubStep from '../components/gymWizard/CandyJumpWizardSubStep';
@@ -41,7 +42,8 @@ const baseWizardSteps = [
   { label: 'Company Benefits', description: 'Configure your company benefits' },
   { label: 'Stat Target Ratios', description: 'Configure your stat training strategy' },
   { label: 'Training Regime', description: 'Configure your training methods' },
-  { label: 'Comparison Options', description: 'Choose what to compare' },
+  // NOTE: "Comparison Options" step is intentionally skipped but the component is kept for future use
+  // See ComparisonOptionsWizardStep.tsx for details
   { label: 'Select Areas', description: 'Select comparison areas' },
 ];
 
@@ -210,8 +212,8 @@ export default function GymWizard() {
   }, [comparisonPageSelections, handleComparisonTrainingSelectionsChange]);
   
   const comparisonPageSteps = getComparisonPageSteps();
-  const isInComparisonPhase = activeStep >= 8; // Step 8+ are dynamic comparison steps
-  const comparisonPhaseStepIndex = activeStep - 8;
+  const isInComparisonPhase = activeStep >= 7; // Step 7+ are dynamic comparison steps
+  const comparisonPhaseStepIndex = activeStep - 7;
   
   // Build comparison training sub-steps (only if training regime is selected for comparison)
   const getComparisonTrainingSubSteps = useCallback(() => {
@@ -353,7 +355,7 @@ export default function GymWizard() {
   };
 
   const handleNext = () => {
-    // Handle comparison phase navigation (step 8+)
+    // Handle comparison phase navigation (step 7+)
     if (isInComparisonPhase) {
       const currentPageStep = comparisonPageSteps[comparisonPhaseStepIndex];
       
@@ -431,29 +433,21 @@ export default function GymWizard() {
           setSubStepIndex(0);
           return;
         } else {
-          // No sub-steps, skip Comparison Options step (step 6) and go directly to Select Areas (step 7)
-          // Step 6 is intentionally skipped but kept for future use
-          setActiveStep(7);
+          // No sub-steps, go directly to Select Areas (step 6)
+          // Note: "Comparison Options" step was removed from the stepper but the component is kept for future use
+          setActiveStep(6);
           return;
         }
       }
     }
     
-    // Handle Comparison Options step (step 6)
-    // NOTE: This step is currently skipped but kept for future recommendations feature
-    // DO NOT REMOVE - it will be used when "Get Personalized Recommendations" is implemented
+    // Handle Select Areas step (step 6)
     if (activeStep === 6) {
-      setActiveStep(7);
-      return;
-    }
-    
-    // Handle Select Areas step (step 7)
-    if (activeStep === 7) {
       // Check if any comparison pages are selected
       const hasAnySelection = Object.values(comparisonPageSelections).some(v => v);
       if (hasAnySelection) {
-        // Move to first dynamic comparison step (step 8)
-        setActiveStep(8);
+        // Move to first dynamic comparison step (step 7)
+        setActiveStep(7);
         setComparisonSubStepIndex(0);
       } else {
         // No comparison selections, finish wizard
@@ -492,8 +486,8 @@ export default function GymWizard() {
         setComparisonSubStepIndex(0);
         setHasEnteredComparisonTrainingSubSteps(false);
       } else {
-        // Go back to Select Areas (step 7)
-        setActiveStep(7);
+        // Go back to Select Areas (step 6)
+        setActiveStep(6);
         setComparisonSubStepIndex(0);
         setHasEnteredComparisonTrainingSubSteps(false);
       }
@@ -570,9 +564,8 @@ export default function GymWizard() {
     setTrainingSelections(selections);
   }, []);
 
-  const handleComparisonOptionChange = useCallback((option: ComparisonOptionType) => {
-    setComparisonOption(option);
-  }, []);
+  // NOTE: handleComparisonOptionChange is intentionally removed as ComparisonOptionsWizardStep is not shown in stepper
+  // It will be re-added when the recommendations feature is implemented
 
   const handleComparisonSelectionsChange = useCallback((selections: ComparisonPageSelections) => {
     setComparisonPageSelections(selections);
@@ -617,8 +610,8 @@ export default function GymWizard() {
     // Check if we're at the last step and can finish
     const hasComparisonSelections = Object.values(comparisonPageSelections).some(v => v);
     
-    // Step 7 (Select Areas) with no selections - finish
-    if (activeStep === 7 && !hasComparisonSelections) {
+    // Step 6 (Select Areas) with no selections - finish
+    if (activeStep === 6 && !hasComparisonSelections) {
       return 'Finish';
     }
     
@@ -699,19 +692,15 @@ export default function GymWizard() {
         {activeStep === 5 && isInSubStep && subSteps[subStepIndex]?.component}
         
         {/* Comparison options step (6) */}
+        {/* Comparison selection step (6) - now directly at step 6 since Comparison Options was removed from stepper */}
         {activeStep === 6 && (
-          <ComparisonOptionsWizardStep onOptionChange={handleComparisonOptionChange} />
-        )}
-        
-        {/* Comparison selection step (7) */}
-        {activeStep === 7 && (
           <ComparisonSelectionWizardStep 
             onSelectionsChange={handleComparisonSelectionsChange} 
             onModeChange={handleComparisonModeChange}
           />
         )}
         
-        {/* Dynamic comparison page steps (8+) */}
+        {/* Dynamic comparison page steps (7+) */}
         {isInComparisonPhase && (() => {
           const currentStep = comparisonPageSteps[comparisonPhaseStepIndex];
           if (!currentStep) return null;
