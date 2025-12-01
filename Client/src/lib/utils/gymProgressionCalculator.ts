@@ -920,7 +920,8 @@ export function simulateGymProgression(
       
       // If ecstasy is used AND it IS already included (replaces one of daily xanax), subtract xanax energy
       // because the xanax energy is already in dailyEnergy but is being replaced by ecstasy which adds no energy
-      if (inputs.candyJump.drugUsed === 'ecstasy' && inputs.candyJump.drugAlreadyIncluded) {
+      // Only subtract if user actually uses xanax daily (otherwise there's no xanax energy to replace)
+      if (inputs.candyJump.drugUsed === 'ecstasy' && inputs.candyJump.drugAlreadyIncluded && inputs.xanaxPerDay > 0) {
         // Subtract the xanax energy that's already in dailyEnergy since it's being replaced by ecstasy
         energyAvailableToday -= 250;
       }
