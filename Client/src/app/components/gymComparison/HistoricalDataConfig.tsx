@@ -75,6 +75,13 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
   useEffect(() => { localStorage.setItem('historicalDataConfig_endDate', JSON.stringify(endDate ? endDate.toISOString() : null)); }, [endDate]);
   useEffect(() => { localStorage.setItem('historicalDataConfig_cachingMode', JSON.stringify(cachingMode)); }, [cachingMode]);
 
+  // Sync startDate with simulatedDate when simulatedDate changes
+  useEffect(() => {
+    if (simulatedDate) {
+      setStartDate(simulatedDate);
+    }
+  }, [simulatedDate]);
+
   // Notify parent when enabled changes
   useEffect(() => {
     if (onEnabledChange) {
