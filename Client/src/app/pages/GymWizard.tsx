@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Box, Typography, Paper, Button, Stepper, Step, StepLabel, StepButton } from '@mui/material';
+import { Box, Typography, Paper, Button, Stepper, Step, StepLabel, StepButton, Chip, Stack } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ApiKeyWizardStep from '../components/gymWizard/ApiKeyWizardStep';
 import EnergySourcesWizardStep from '../components/gymWizard/EnergySourcesWizardStep';
@@ -51,6 +51,7 @@ export default function GymWizard() {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
   const [subStepIndex, setSubStepIndex] = useState(0);
+  const [hasEnteredCurrentTrainingSubSteps, setHasEnteredCurrentTrainingSubSteps] = useState(false);
   const [trainingSelections, setTrainingSelections] = useState<TrainingRegimeSelections>({
     edvd: false,
     candy: false,
@@ -158,7 +159,8 @@ export default function GymWizard() {
   }, [trainingSelections]);
 
   const subSteps = getSubStepsForTrainingRegime();
-  const isInSubStep = activeStep === 5 && subSteps.length > 0 && subStepIndex < subSteps.length;
+  // Only consider in sub-steps if we've explicitly entered them (similar to comparison training)
+  const isInSubStep = activeStep === 5 && hasEnteredCurrentTrainingSubSteps && subSteps.length > 0 && subStepIndex < subSteps.length;
   
   const handleComparisonTrainingSelectionsChange = useCallback((selections: TrainingRegimeSelections) => {
     setComparisonTrainingSelections(selections);
@@ -423,6 +425,7 @@ export default function GymWizard() {
         } else {
           // Finished all sub-steps, move to Comparison Options (step 6)
           setSubStepIndex(0);
+          setHasEnteredCurrentTrainingSubSteps(false);
           setActiveStep(6);
           return;
         }
@@ -431,6 +434,7 @@ export default function GymWizard() {
         if (subSteps.length > 0) {
           // Enter sub-steps
           setSubStepIndex(0);
+          setHasEnteredCurrentTrainingSubSteps(true);
           return;
         } else {
           // No sub-steps, go directly to Select Areas (step 6)
@@ -499,12 +503,14 @@ export default function GymWizard() {
       if (subStepIndex > 0) {
         setSubStepIndex(subStepIndex - 1);
       } else {
-        // Exit sub-steps (stay on step 5 but show main content)
+        // Exit sub-steps back to training regime selection page
         setSubStepIndex(0);
+        setHasEnteredCurrentTrainingSubSteps(false);
       }
     } else {
       setActiveStep((prevStep) => prevStep - 1);
       setSubStepIndex(0);
+      setHasEnteredCurrentTrainingSubSteps(false);
     }
   };
 
@@ -524,6 +530,7 @@ export default function GymWizard() {
     // Reset all state to initial values
     setActiveStep(0);
     setSubStepIndex(0);
+    setHasEnteredCurrentTrainingSubSteps(false);
     setTrainingSelections({
       edvd: false,
       candy: false,
@@ -557,6 +564,7 @@ export default function GymWizard() {
   const handleStepClick = (stepIndex: number) => {
     setActiveStep(stepIndex);
     setSubStepIndex(0); // Reset sub-step when jumping to a different main step
+    setHasEnteredCurrentTrainingSubSteps(false); // Reset current training sub-step flag
     setHasEnteredComparisonTrainingSubSteps(false); // Reset comparison sub-step flag
   };
 
@@ -663,14 +671,79 @@ export default function GymWizard() {
               >
                 <StepLabel>
                   {step.label}
-                  {index === 5 && isInSubStep && ` (${subStepIndex + 1}/${subSteps.length})`}
-                  {index === activeStep && isInComparisonPhase && isInComparisonTrainingSubStep && 
-                    ` (${comparisonSubStepIndex + 1}/${comparisonTrainingSubSteps.length})`}
                 </StepLabel>
               </StepButton>
             </Step>
           ))}
         </Stepper>
+        
+        {/* Sub-stepper for current training regime sub-steps */}
+        {activeStep === 5 && subSteps.length > 0 && (
+          <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+              Training Regime Sub-steps:
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              <Chip
+                label="Selection"
+                color={!hasEnteredCurrentTrainingSubSteps ? 'primary' : 'default'}
+                variant={!hasEnteredCurrentTrainingSubSteps ? 'filled' : 'outlined'}
+                size="small"
+                onClick={() => {
+                  setSubStepIndex(0);
+                  setHasEnteredCurrentTrainingSubSteps(false);
+                }}
+              />
+              {subSteps.map((subStep, idx) => (
+                <Chip
+                  key={subStep.key}
+                  label={subStep.label}
+                  color={hasEnteredCurrentTrainingSubSteps && subStepIndex === idx ? 'primary' : 'default'}
+                  variant={hasEnteredCurrentTrainingSubSteps && subStepIndex === idx ? 'filled' : 'outlined'}
+                  size="small"
+                  onClick={() => {
+                    setSubStepIndex(idx);
+                    setHasEnteredCurrentTrainingSubSteps(true);
+                  }}
+                />
+              ))}
+            </Stack>
+          </Box>
+        )}
+        
+        {/* Sub-stepper for comparison training regime sub-steps */}
+        {isInComparisonPhase && comparisonPageSteps[comparisonPhaseStepIndex]?.key === 'trainingRegime' && comparisonTrainingSubSteps.length > 0 && (
+          <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+              Compare Training Regime Sub-steps:
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              <Chip
+                label="Selection"
+                color={!hasEnteredComparisonTrainingSubSteps ? 'primary' : 'default'}
+                variant={!hasEnteredComparisonTrainingSubSteps ? 'filled' : 'outlined'}
+                size="small"
+                onClick={() => {
+                  setComparisonSubStepIndex(0);
+                  setHasEnteredComparisonTrainingSubSteps(false);
+                }}
+              />
+              {comparisonTrainingSubSteps.map((subStep, idx) => (
+                <Chip
+                  key={subStep.key}
+                  label={subStep.label.replace('Compare ', '')}
+                  color={hasEnteredComparisonTrainingSubSteps && comparisonSubStepIndex === idx ? 'primary' : 'default'}
+                  variant={hasEnteredComparisonTrainingSubSteps && comparisonSubStepIndex === idx ? 'filled' : 'outlined'}
+                  size="small"
+                  onClick={() => {
+                    setComparisonSubStepIndex(idx);
+                    setHasEnteredComparisonTrainingSubSteps(true);
+                  }}
+                />
+              ))}
+            </Stack>
+          </Box>
+        )}
       </Paper>
 
       {/* Current step indicator for mobile */}
