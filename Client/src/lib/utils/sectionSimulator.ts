@@ -134,6 +134,7 @@ export function simulateWithSections(
       months: sectionMonths,
       xanaxPerDay: section.xanaxPerDay,
       hasPointsRefill: section.hasPointsRefill,
+      pointsRefillDaysPerWeek: section.pointsRefillDaysPerWeek,
       hoursPlayedPerDay: section.hoursPlayedPerDay,
       maxEnergy: section.maxEnergy,
       companyBenefit: benefit,

@@ -105,6 +105,7 @@ export interface SimulationInputs {
   months: number;  // Number of months for future mode
   xanaxPerDay: number;
   hasPointsRefill: boolean;
+  pointsRefillDaysPerWeek?: number; // How many days per week points refill is used (default 7)
   hoursPlayedPerDay: number;
   companyBenefit: CompanyBenefit;
   apiKey?: string;
@@ -547,7 +548,8 @@ export function simulateGymProgression(
         inputs.xanaxPerDay,
         inputs.hasPointsRefill,
         inputs.companyBenefit.bonusEnergyPerDay,
-        inputs.maxEnergy || 150
+        inputs.maxEnergy || 150,
+        inputs.pointsRefillDaysPerWeek ?? 7
       );
   
   // For manual mode, simulate 1 day. For future mode, use months
