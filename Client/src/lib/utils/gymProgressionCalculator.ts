@@ -930,6 +930,33 @@ export function simulateGymProgression(
       if (inputs.candyJump.usePointRefill && !inputs.hasPointsRefill) {
         energyAvailableToday += maxEnergyValue;
       }
+      
+      // Add energy from energy drinks/FHC to daily energy pool on candy jump days
+      // This ensures total daily energy is the same as non-candy days when energy drinks are used
+      // The energy drinks are used during the candy jump (at boosted happy) but should contribute to total daily energy
+      if (inputs.energyJump?.enabled) {
+        const energyPerItem = ENERGY_ITEM_MAP[inputs.energyJump.itemId];
+        
+        if (energyPerItem !== undefined) {
+          let extraEnergy = 0;
+          const energyQuantity = inputs.energyJump.quantity || 24;
+          
+          if (inputs.energyJump.itemId === 367) {
+            // FHC refills energy bar - use maxEnergy value
+            extraEnergy = maxEnergyValue * energyQuantity;
+          } else {
+            // Regular energy items
+            extraEnergy = energyPerItem * energyQuantity;
+          }
+          
+          // Apply faction benefit percentage increase
+          if (inputs.energyJump.factionBenefitPercent > 0) {
+            extraEnergy = extraEnergy * (1 + inputs.energyJump.factionBenefitPercent / 100);
+          }
+          
+          energyAvailableToday += extraEnergy;
+        }
+      }
     }
     
     // Track if this is a jump day and the energy split between jump and post-jump training
