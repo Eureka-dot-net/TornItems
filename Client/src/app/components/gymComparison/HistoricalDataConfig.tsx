@@ -356,7 +356,26 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
               <DatePicker
                 label="Start Date"
                 value={startDate}
-                onChange={(newValue) => setStartDate(newValue)}
+                onChange={(newValue) => {
+                  if (newValue === null) {
+                    setStartDate(null);
+                    return;
+                  }
+                  
+                  // Check if it's a valid date
+                  if (isNaN(newValue.getTime())) {
+                    return; // Ignore invalid dates
+                  }
+                  
+                  const maxDate = getYesterday();
+                  
+                  // Validate against min/max
+                  if (newValue < userSignUpDate || newValue > maxDate) {
+                    return; // Ignore dates outside valid range
+                  }
+                  
+                  setStartDate(newValue);
+                }}
                 minDate={userSignUpDate}
                 maxDate={getYesterday()}
                 slotProps={{ 
@@ -370,7 +389,26 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
               <DatePicker
                 label="End Date"
                 value={endDate}
-                onChange={(newValue) => setEndDate(newValue)}
+                onChange={(newValue) => {
+                  if (newValue === null) {
+                    setEndDate(null);
+                    return;
+                  }
+                  
+                  // Check if it's a valid date
+                  if (isNaN(newValue.getTime())) {
+                    return; // Ignore invalid dates
+                  }
+                  
+                  const maxDate = getYesterday();
+                  
+                  // Validate against min/max
+                  if (newValue < userSignUpDate || newValue > maxDate) {
+                    return; // Ignore dates outside valid range
+                  }
+                  
+                  setEndDate(newValue);
+                }}
                 minDate={userSignUpDate}
                 maxDate={getYesterday()}
                 slotProps={{ 
