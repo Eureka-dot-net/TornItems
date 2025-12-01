@@ -524,6 +524,7 @@ export default function GymWizard() {
     // Keys to preserve (first page data: API key, stats, etc.)
     const keysToPreserve = [
       'gymWizard_apiKey',
+      'gymWizard_apiKeyPreference', // Preserve the user's choice of API key vs manual entry
       'gymWizard_initialStats',
       'gymWizard_currentGymIndex',
       'gymWizard_gymProgressPercent',
