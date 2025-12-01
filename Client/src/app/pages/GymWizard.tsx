@@ -49,6 +49,12 @@ const baseWizardSteps = [
   { label: 'Select Areas', description: 'Select comparison areas' },
 ];
 
+// Step indices for navigation
+const TRAINING_REGIME_STEP = 5;
+const LOSS_REVIVE_STEP = 6;
+const SELECT_AREAS_STEP = 7;
+const COMPARISON_PHASE_START_STEP = 8;
+
 export default function GymWizard() {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
@@ -163,7 +169,7 @@ export default function GymWizard() {
 
   const subSteps = getSubStepsForTrainingRegime();
   // Only consider in sub-steps if we've explicitly entered them (similar to comparison training)
-  const isInSubStep = activeStep === 5 && hasEnteredCurrentTrainingSubSteps && subSteps.length > 0 && subStepIndex < subSteps.length;
+  const isInSubStep = activeStep === TRAINING_REGIME_STEP && hasEnteredCurrentTrainingSubSteps && subSteps.length > 0 && subStepIndex < subSteps.length;
   
   const handleComparisonTrainingSelectionsChange = useCallback((selections: TrainingRegimeSelections) => {
     setComparisonTrainingSelections(selections);
@@ -225,8 +231,8 @@ export default function GymWizard() {
   }, [comparisonPageSelections, handleComparisonTrainingSelectionsChange]);
   
   const comparisonPageSteps = getComparisonPageSteps();
-  const isInComparisonPhase = activeStep >= 8; // Step 8+ are dynamic comparison steps
-  const comparisonPhaseStepIndex = activeStep - 8;
+  const isInComparisonPhase = activeStep >= COMPARISON_PHASE_START_STEP;
+  const comparisonPhaseStepIndex = activeStep - COMPARISON_PHASE_START_STEP;
   
   // Build comparison training sub-steps (only if training regime is selected for comparison)
   const getComparisonTrainingSubSteps = useCallback(() => {
@@ -431,18 +437,18 @@ export default function GymWizard() {
       }
     }
     
-    // Handle current regime training step (step 5) with sub-steps
-    if (activeStep === 5) {
+    // Handle current regime training step with sub-steps
+    if (activeStep === TRAINING_REGIME_STEP) {
       if (isInSubStep) {
         // Move to next sub-step
         if (subStepIndex < subSteps.length - 1) {
           setSubStepIndex(subStepIndex + 1);
           return;
         } else {
-          // Finished all sub-steps, move to Loss/Revive (step 6)
+          // Finished all sub-steps, move to Loss/Revive
           setSubStepIndex(0);
           setHasEnteredCurrentTrainingSubSteps(false);
-          setActiveStep(6);
+          setActiveStep(LOSS_REVIVE_STEP);
           return;
         }
       } else {
@@ -453,27 +459,27 @@ export default function GymWizard() {
           setHasEnteredCurrentTrainingSubSteps(true);
           return;
         } else {
-          // No sub-steps, go directly to Loss/Revive (step 6)
-          setActiveStep(6);
+          // No sub-steps, go directly to Loss/Revive
+          setActiveStep(LOSS_REVIVE_STEP);
           return;
         }
       }
     }
     
-    // Handle Loss/Revive step (step 6)
-    if (activeStep === 6) {
-      // Move to Select Areas (step 7)
-      setActiveStep(7);
+    // Handle Loss/Revive step
+    if (activeStep === LOSS_REVIVE_STEP) {
+      // Move to Select Areas
+      setActiveStep(SELECT_AREAS_STEP);
       return;
     }
     
-    // Handle Select Areas step (step 7)
-    if (activeStep === 7) {
+    // Handle Select Areas step
+    if (activeStep === SELECT_AREAS_STEP) {
       // Check if any comparison pages are selected
       const hasAnySelection = Object.values(comparisonPageSelections).some(v => v);
       if (hasAnySelection) {
-        // Move to first dynamic comparison step (step 8)
-        setActiveStep(8);
+        // Move to first dynamic comparison step
+        setActiveStep(COMPARISON_PHASE_START_STEP);
         setComparisonSubStepIndex(0);
       } else {
         // No comparison selections, finish wizard
@@ -512,8 +518,8 @@ export default function GymWizard() {
         setComparisonSubStepIndex(0);
         setHasEnteredComparisonTrainingSubSteps(false);
       } else {
-        // Go back to Select Areas (step 7)
-        setActiveStep(7);
+        // Go back to Select Areas
+        setActiveStep(SELECT_AREAS_STEP);
         setComparisonSubStepIndex(0);
         setHasEnteredComparisonTrainingSubSteps(false);
       }
@@ -652,8 +658,8 @@ export default function GymWizard() {
     // Check if we're at the last step and can finish
     const hasComparisonSelections = Object.values(comparisonPageSelections).some(v => v);
     
-    // Step 7 (Select Areas) with no selections - finish
-    if (activeStep === 7 && !hasComparisonSelections) {
+    // Select Areas step with no selections - finish
+    if (activeStep === SELECT_AREAS_STEP && !hasComparisonSelections) {
       return 'Finish';
     }
     
@@ -701,7 +707,7 @@ export default function GymWizard() {
             <Step key={`${step.label}-${index}`}>
               <StepButton 
                 onClick={() => handleStepClick(index)}
-                disabled={index >= 9 && !Object.values(comparisonPageSelections).some(v => v)}
+                disabled={index > COMPARISON_PHASE_START_STEP && !Object.values(comparisonPageSelections).some(v => v)}
               >
                 <StepLabel>
                   {step.label}
@@ -712,7 +718,7 @@ export default function GymWizard() {
         </Stepper>
         
         {/* Sub-stepper for current training regime sub-steps */}
-        {activeStep === 5 && subSteps.length > 0 && (
+        {activeStep === TRAINING_REGIME_STEP && subSteps.length > 0 && (
           <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
             <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
               Training Regime Sub-steps:
@@ -787,29 +793,29 @@ export default function GymWizard() {
 
       {/* Wizard step content */}
       <Paper sx={{ p: 3, mb: 3, minHeight: '400px' }}>
-        {/* Current regime configuration steps (0-6) */}
+        {/* Current regime configuration steps */}
         {activeStep === 0 && <ApiKeyWizardStep />}
         {activeStep === 1 && <EnergySourcesWizardStep mode="current" />}
         {activeStep === 2 && <HappyPerksWizardStep mode="current" />}
         {activeStep === 3 && <CompanyBenefitsWizardStep mode="current" />}
         {activeStep === 4 && <StatTargetRatiosWizardStep mode="current" />}
-        {activeStep === 5 && !isInSubStep && (
+        {activeStep === TRAINING_REGIME_STEP && !isInSubStep && (
           <TrainingRegimeWizardStep mode="current" onSelectionsChange={handleTrainingSelectionsChange} />
         )}
-        {activeStep === 5 && isInSubStep && subSteps[subStepIndex]?.component}
+        {activeStep === TRAINING_REGIME_STEP && isInSubStep && subSteps[subStepIndex]?.component}
         
-        {/* Loss/Revive step (6) */}
-        {activeStep === 6 && <LossReviveWizardStep mode="current" />}
+        {/* Loss/Revive step */}
+        {activeStep === LOSS_REVIVE_STEP && <LossReviveWizardStep mode="current" />}
         
-        {/* Comparison selection step (7) */}
-        {activeStep === 7 && (
+        {/* Comparison selection step */}
+        {activeStep === SELECT_AREAS_STEP && (
           <ComparisonSelectionWizardStep 
             onSelectionsChange={handleComparisonSelectionsChange} 
             onModeChange={handleComparisonModeChange}
           />
         )}
         
-        {/* Dynamic comparison page steps (8+) */}
+        {/* Dynamic comparison page steps */}
         {isInComparisonPhase && (() => {
           const currentStep = comparisonPageSteps[comparisonPhaseStepIndex];
           if (!currentStep) return null;

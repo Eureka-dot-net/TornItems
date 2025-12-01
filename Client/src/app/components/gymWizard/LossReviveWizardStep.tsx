@@ -14,6 +14,7 @@ import {
   DEFAULT_LOSS_REVIVE_ENERGY_COST,
   DEFAULT_LOSS_REVIVE_DAYS_BETWEEN,
   DEFAULT_LOSS_REVIVE_PRICE,
+  DAYS_PER_MONTH_ESTIMATE,
 } from '../../../lib/constants/gymConstants';
 
 /**
@@ -110,8 +111,7 @@ export default function LossReviveWizardStep({ mode = 'current' }: LossReviveWiz
   }, [lossRevivePricePerLoss, storagePrefix]);
 
   // Calculate estimated energy loss per month for display
-  const daysPerMonth = 30;
-  const sessionsPerMonth = sellsLosses === 'yes' ? Math.floor(daysPerMonth / lossReviveDaysBetween) : 0;
+  const sessionsPerMonth = sellsLosses === 'yes' ? Math.floor(DAYS_PER_MONTH_ESTIMATE / lossReviveDaysBetween) : 0;
   const totalEnergyLostPerMonth = sessionsPerMonth * lossReviveNumberPerDay * lossReviveEnergyCost;
   const totalIncomePerMonth = sessionsPerMonth * lossReviveNumberPerDay * lossRevivePricePerLoss;
 

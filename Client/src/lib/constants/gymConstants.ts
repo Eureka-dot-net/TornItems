@@ -139,5 +139,8 @@ export const DEFAULT_LOSS_REVIVE_ENERGY_COST = 25;
 export const DEFAULT_LOSS_REVIVE_DAYS_BETWEEN = 7;
 export const DEFAULT_LOSS_REVIVE_PRICE = 10000000; // $10M default
 
+// Simulation constants
+export const DAYS_PER_MONTH_ESTIMATE = 30;
+
 // Island cost defaults
 export const DEFAULT_ISLAND_COST_PER_DAY = 1000000; // $1M default (rent + staff)
