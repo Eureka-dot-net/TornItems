@@ -105,6 +105,7 @@ export interface SimulationInputs {
   months: number;  // Number of months for future mode
   xanaxPerDay: number;
   hasPointsRefill: boolean;
+  pointsRefillDaysPerWeek?: number; // How many days per week points refill is used (default 7)
   hoursPlayedPerDay: number;
   companyBenefit: CompanyBenefit;
   apiKey?: string;
@@ -353,7 +354,8 @@ export function calculateDailyEnergy(
   xanaxPerDay: number,
   hasPointsRefill: boolean,
   bonusEnergyPerDay: number = 0,
-  maxEnergy: number = 150 // 150 or 100
+  maxEnergy: number = 150, // 150 or 100
+  pointsRefillDaysPerWeek: number = 7 // How many days per week points refill is used
 ): number {
   // Energy regeneration rate depends on max energy
   // 150 max: 5 energy every 10 minutes = 30 per hour, fills in 5 hours
@@ -381,9 +383,11 @@ export function calculateDailyEnergy(
   // Add xanax energy (250 per xanax)
   energy += xanaxPerDay * 250;
   
-  // Add points refill energy (uses maxEnergy value)
+  // Add points refill energy (uses maxEnergy value), adjusted by days per week
   if (hasPointsRefill) {
-    energy += maxEnergy;
+    // Calculate average daily points refill energy based on days per week used
+    const pointsRefillEnergyPerDay = maxEnergy * (pointsRefillDaysPerWeek / 7);
+    energy += pointsRefillEnergyPerDay;
   }
   
   // Add company benefit bonus energy
@@ -544,7 +548,8 @@ export function simulateGymProgression(
         inputs.xanaxPerDay,
         inputs.hasPointsRefill,
         inputs.companyBenefit.bonusEnergyPerDay,
-        inputs.maxEnergy || 150
+        inputs.maxEnergy || 150,
+        inputs.pointsRefillDaysPerWeek ?? 7
       );
   
   // For manual mode, simulate 1 day. For future mode, use months

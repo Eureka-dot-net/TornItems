@@ -39,6 +39,7 @@ interface PlayerStatsSectionProps {
   setGymProgressPercent?: (percent: number) => void;
   durationUnit?: 'days' | 'weeks' | 'months';
   setDurationUnit?: (unit: 'days' | 'weeks' | 'months') => void;
+  statsFetchedWithApiKey?: boolean;
 }
 
 export default function PlayerStatsSection({
@@ -64,6 +65,7 @@ export default function PlayerStatsSection({
   setGymProgressPercent,
   durationUnit = 'months',
   setDurationUnit,
+  statsFetchedWithApiKey = false,
 }: PlayerStatsSectionProps) {
   // Constants for date validation
   const TORN_RELEASE_DATE = new Date('2004-11-16');
@@ -208,7 +210,33 @@ export default function PlayerStatsSection({
               <DatePicker
                 label="Start Date"
                 value={simulatedDate}
-                onChange={(newValue) => setSimulatedDate(newValue)}
+                onChange={(newValue) => {
+                  // Only accept valid dates within the min/max range
+                  if (newValue === null) {
+                    setSimulatedDate(null);
+                    return;
+                  }
+                  
+                  // Check if it's a valid date
+                  if (isNaN(newValue.getTime())) {
+                    return; // Ignore invalid dates
+                  }
+                  
+                  const minDate = getMinDate();
+                  const maxDate = getYesterday();
+                  
+                  // Compare dates by setting to start of day to avoid time-related issues
+                  const newValueDate = new Date(newValue.getFullYear(), newValue.getMonth(), newValue.getDate());
+                  const minDateCompare = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+                  const maxDateCompare = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate());
+                  
+                  // Validate against min/max
+                  if (newValueDate < minDateCompare || newValueDate > maxDateCompare) {
+                    return; // Ignore dates outside valid range
+                  }
+                  
+                  setSimulatedDate(newValue);
+                }}
                 minDate={getMinDate()}
                 maxDate={getYesterday()}
                 slotProps={{ 
@@ -385,13 +413,14 @@ export default function PlayerStatsSection({
       )}
     </Paper>
     
-    {/* Historical data section - only visible when API key is present */}
-    {apiKey && onHistoricalDataFetched && (
+    {/* Historical data section - only visible when stats have been fetched AND we have user's sign-up date */}
+    {statsFetchedWithApiKey && apiKey && onHistoricalDataFetched && userSignUpDate && (
       <HistoricalDataConfig 
         apiKey={apiKey}
         onHistoricalDataFetched={onHistoricalDataFetched}
         simulatedDate={simulatedDate}
         onEnabledChange={onEnabledChange}
+        userSignUpDate={userSignUpDate}
       />
     )}
     </>

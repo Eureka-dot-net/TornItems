@@ -163,7 +163,8 @@ export default function EnergySourcesSection({
           xanaxPerDay,
           hasPointsRefill,
           companyBenefit.bonusEnergyPerDay,
-          maxEnergy
+          maxEnergy,
+          pointsRefillDaysPerWeek
         ).toLocaleString()}
       </Typography>
     </>

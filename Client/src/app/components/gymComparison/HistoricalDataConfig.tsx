@@ -27,11 +27,10 @@ interface HistoricalDataConfigProps {
   onHistoricalDataFetched: (data: HistoricalStat[]) => void;
   simulatedDate: Date | null;
   onEnabledChange?: (enabled: boolean) => void;
+  userSignUpDate: Date; // Required - user's account creation date for validation
 }
 
-export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, simulatedDate, onEnabledChange }: HistoricalDataConfigProps) {
-  // Constants for date validation - Torn was released on November 16, 2004
-  const TORN_RELEASE_DATE = new Date('2004-11-16');
+export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, simulatedDate, onEnabledChange, userSignUpDate }: HistoricalDataConfigProps) {
   const getYesterday = () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -74,6 +73,13 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
   useEffect(() => { localStorage.setItem('historicalDataConfig_startDate', JSON.stringify(startDate ? startDate.toISOString() : null)); }, [startDate]);
   useEffect(() => { localStorage.setItem('historicalDataConfig_endDate', JSON.stringify(endDate ? endDate.toISOString() : null)); }, [endDate]);
   useEffect(() => { localStorage.setItem('historicalDataConfig_cachingMode', JSON.stringify(cachingMode)); }, [cachingMode]);
+
+  // Sync startDate with simulatedDate when simulatedDate changes
+  useEffect(() => {
+    if (simulatedDate) {
+      setStartDate(simulatedDate);
+    }
+  }, [simulatedDate]);
 
   // Notify parent when enabled changes
   useEffect(() => {
@@ -350,20 +356,70 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
               <DatePicker
                 label="Start Date"
                 value={startDate}
-                onChange={(newValue) => setStartDate(newValue)}
-                minDate={TORN_RELEASE_DATE}
+                onChange={(newValue) => {
+                  if (newValue === null) {
+                    setStartDate(null);
+                    return;
+                  }
+                  
+                  // Check if it's a valid date
+                  if (isNaN(newValue.getTime())) {
+                    return; // Ignore invalid dates
+                  }
+                  
+                  const maxDate = getYesterday();
+                  
+                  // Compare dates by setting to start of day to avoid time-related issues
+                  const newValueDate = new Date(newValue.getFullYear(), newValue.getMonth(), newValue.getDate());
+                  const minDateCompare = new Date(userSignUpDate.getFullYear(), userSignUpDate.getMonth(), userSignUpDate.getDate());
+                  const maxDateCompare = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate());
+                  
+                  // Validate against min/max
+                  if (newValueDate < minDateCompare || newValueDate > maxDateCompare) {
+                    return; // Ignore dates outside valid range
+                  }
+                  
+                  setStartDate(newValue);
+                }}
+                minDate={userSignUpDate}
                 maxDate={getYesterday()}
                 slotProps={{ 
                   textField: { 
                     size: 'small',
-                    sx: { flex: 1, minWidth: 200 }
+                    sx: { flex: 1, minWidth: 200 },
+                    helperText: `Min: ${userSignUpDate.toLocaleDateString()}`
                   } 
                 }}
               />
               <DatePicker
                 label="End Date"
                 value={endDate}
-                onChange={(newValue) => setEndDate(newValue)}
+                onChange={(newValue) => {
+                  if (newValue === null) {
+                    setEndDate(null);
+                    return;
+                  }
+                  
+                  // Check if it's a valid date
+                  if (isNaN(newValue.getTime())) {
+                    return; // Ignore invalid dates
+                  }
+                  
+                  const maxDate = getYesterday();
+                  
+                  // Compare dates by setting to start of day to avoid time-related issues
+                  const newValueDate = new Date(newValue.getFullYear(), newValue.getMonth(), newValue.getDate());
+                  const minDateCompare = new Date(userSignUpDate.getFullYear(), userSignUpDate.getMonth(), userSignUpDate.getDate());
+                  const maxDateCompare = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate());
+                  
+                  // Validate against min/max
+                  if (newValueDate < minDateCompare || newValueDate > maxDateCompare) {
+                    return; // Ignore dates outside valid range
+                  }
+                  
+                  setEndDate(newValue);
+                }}
+                minDate={userSignUpDate}
                 maxDate={getYesterday()}
                 slotProps={{ 
                   textField: { 

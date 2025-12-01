@@ -297,6 +297,17 @@ export default function ComparisonSelectionWizardStep({ onSelectionsChange, onMo
               />
             </Paper>
           </RadioGroup>
+
+          {/* Warning when selecting more than 2 areas with separate mode */}
+          {comparisonMode === 'separate' && selectedCount > 2 && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              <Typography variant="body2">
+                <strong>Note:</strong> You've selected {selectedCount} comparison areas. With "separate" display mode, 
+                each area will generate its own line on the chart. Charts with more than 2-3 comparisons can become 
+                difficult to read. Consider using "combined" mode or selecting fewer areas for clearer results.
+              </Typography>
+            </Alert>
+          )}
         </Paper>
       )}
 
