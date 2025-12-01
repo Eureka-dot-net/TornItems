@@ -225,8 +225,13 @@ export default function PlayerStatsSection({
                   const minDate = getMinDate();
                   const maxDate = getYesterday();
                   
+                  // Compare dates by setting to start of day to avoid time-related issues
+                  const newValueDate = new Date(newValue.getFullYear(), newValue.getMonth(), newValue.getDate());
+                  const minDateCompare = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+                  const maxDateCompare = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate());
+                  
                   // Validate against min/max
-                  if (newValue < minDate || newValue > maxDate) {
+                  if (newValueDate < minDateCompare || newValueDate > maxDateCompare) {
                     return; // Ignore dates outside valid range
                   }
                   

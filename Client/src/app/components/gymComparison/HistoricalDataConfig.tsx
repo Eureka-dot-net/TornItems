@@ -369,8 +369,13 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
                   
                   const maxDate = getYesterday();
                   
+                  // Compare dates by setting to start of day to avoid time-related issues
+                  const newValueDate = new Date(newValue.getFullYear(), newValue.getMonth(), newValue.getDate());
+                  const minDateCompare = new Date(userSignUpDate.getFullYear(), userSignUpDate.getMonth(), userSignUpDate.getDate());
+                  const maxDateCompare = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate());
+                  
                   // Validate against min/max
-                  if (newValue < userSignUpDate || newValue > maxDate) {
+                  if (newValueDate < minDateCompare || newValueDate > maxDateCompare) {
                     return; // Ignore dates outside valid range
                   }
                   
@@ -402,8 +407,13 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
                   
                   const maxDate = getYesterday();
                   
+                  // Compare dates by setting to start of day to avoid time-related issues
+                  const newValueDate = new Date(newValue.getFullYear(), newValue.getMonth(), newValue.getDate());
+                  const minDateCompare = new Date(userSignUpDate.getFullYear(), userSignUpDate.getMonth(), userSignUpDate.getDate());
+                  const maxDateCompare = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate());
+                  
                   // Validate against min/max
-                  if (newValue < userSignUpDate || newValue > maxDate) {
+                  if (newValueDate < minDateCompare || newValueDate > maxDateCompare) {
                     return; // Ignore dates outside valid range
                   }
                   
