@@ -29,6 +29,7 @@ export interface ComparisonPageSelections {
   companyBenefits: boolean;
   statTargetRatios: boolean;
   trainingRegime: boolean;
+  lossRevive: boolean;
 }
 
 export type ComparisonMode = 'separate' | 'combined';
@@ -56,6 +57,7 @@ export default function ComparisonSelectionWizardStep({ onSelectionsChange, onMo
       companyBenefits: false,
       statTargetRatios: false,
       trainingRegime: false,
+      lossRevive: false,
     })
   );
 
@@ -210,6 +212,25 @@ export default function ComparisonSelectionWizardStep({ onSelectionsChange, onMo
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 Compare different training methods (eDVD, candy jumps, energy cans, etc.)
+              </Typography>
+            </Box>
+          }
+        />
+
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={selections.lossRevive}
+              onChange={handleCheckboxChange('lossRevive')}
+            />
+          }
+          label={
+            <Box>
+              <Typography variant="body1">
+                <strong>Loss/Revive Selling</strong>
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Compare with or without selling losses/revivals
               </Typography>
             </Box>
           }

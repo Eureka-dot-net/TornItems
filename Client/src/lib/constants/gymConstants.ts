@@ -137,7 +137,10 @@ export const DEFAULT_CANDLE_SHOP_STARS = 10;
 export const DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY = 1;
 export const DEFAULT_LOSS_REVIVE_ENERGY_COST = 25;
 export const DEFAULT_LOSS_REVIVE_DAYS_BETWEEN = 7;
-export const DEFAULT_LOSS_REVIVE_PRICE = 10000000; // $10M default
+export const DEFAULT_LOSS_REVIVE_PRICE = 350000; // 350k default
+
+// Simulation constants
+export const DAYS_PER_MONTH_ESTIMATE = 30;
 
 // Island cost defaults
 export const DEFAULT_ISLAND_COST_PER_DAY = 1000000; // $1M default (rent + staff)
