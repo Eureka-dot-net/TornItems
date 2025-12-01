@@ -27,11 +27,10 @@ interface HistoricalDataConfigProps {
   onHistoricalDataFetched: (data: HistoricalStat[]) => void;
   simulatedDate: Date | null;
   onEnabledChange?: (enabled: boolean) => void;
+  userSignUpDate: Date; // Required - user's account creation date for validation
 }
 
-export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, simulatedDate, onEnabledChange }: HistoricalDataConfigProps) {
-  // Constants for date validation - Torn was released on November 16, 2004
-  const TORN_RELEASE_DATE = new Date('2004-11-16');
+export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, simulatedDate, onEnabledChange, userSignUpDate }: HistoricalDataConfigProps) {
   const getYesterday = () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -358,12 +357,13 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
                 label="Start Date"
                 value={startDate}
                 onChange={(newValue) => setStartDate(newValue)}
-                minDate={TORN_RELEASE_DATE}
+                minDate={userSignUpDate}
                 maxDate={getYesterday()}
                 slotProps={{ 
                   textField: { 
                     size: 'small',
-                    sx: { flex: 1, minWidth: 200 }
+                    sx: { flex: 1, minWidth: 200 },
+                    helperText: `Min: ${userSignUpDate.toLocaleDateString()}`
                   } 
                 }}
               />
@@ -371,6 +371,7 @@ export default function HistoricalDataConfig({ apiKey, onHistoricalDataFetched, 
                 label="End Date"
                 value={endDate}
                 onChange={(newValue) => setEndDate(newValue)}
+                minDate={userSignUpDate}
                 maxDate={getYesterday()}
                 slotProps={{ 
                   textField: { 

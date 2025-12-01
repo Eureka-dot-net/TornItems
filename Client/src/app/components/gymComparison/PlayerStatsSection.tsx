@@ -408,13 +408,14 @@ export default function PlayerStatsSection({
       )}
     </Paper>
     
-    {/* Historical data section - only visible when stats have been successfully fetched with API key */}
-    {statsFetchedWithApiKey && apiKey && onHistoricalDataFetched && (
+    {/* Historical data section - only visible when stats have been fetched AND we have user's sign-up date */}
+    {statsFetchedWithApiKey && apiKey && onHistoricalDataFetched && userSignUpDate && (
       <HistoricalDataConfig 
         apiKey={apiKey}
         onHistoricalDataFetched={onHistoricalDataFetched}
         simulatedDate={simulatedDate}
         onEnabledChange={onEnabledChange}
+        userSignUpDate={userSignUpDate}
       />
     )}
     </>
