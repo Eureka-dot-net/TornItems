@@ -196,8 +196,8 @@ export default function LossReviveWizardStep({ mode = 'current' }: LossReviveWiz
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" gutterBottom>
               {isComparison 
-                ? 'How many losses/revivals per session in this comparison?'
-                : 'How many losses/revivals do you sell per session?'
+                ? 'How many losses/revivals in this comparison?'
+                : 'How many losses/revivals do you sell?'
               }
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
@@ -226,8 +226,8 @@ export default function LossReviveWizardStep({ mode = 'current' }: LossReviveWiz
               }
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              The energy spent per loss (for attacking/being attacked) or revive. Typically 25 energy for losses, 
-              or less for revivals.
+              The energy spent per loss for attacking or reviving. Typically 25 energy for losses, 
+              or more for revivals depending on faction benefits.
             </Typography>
             <TextField
               type="number"
@@ -264,7 +264,7 @@ export default function LossReviveWizardStep({ mode = 'current' }: LossReviveWiz
               fullWidth
               size="small"
               inputProps={{ min: 1, step: 1 }}
-              helperText="Days between selling sessions (e.g., 7 for weekly)"
+              helperText="Days between selling (e.g., 7 for weekly)"
             />
           </Box>
 
