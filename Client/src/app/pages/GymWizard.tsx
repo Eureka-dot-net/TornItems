@@ -521,9 +521,19 @@ export default function GymWizard() {
   };
 
   const handleStartOver = () => {
-    // Clear all wizard localStorage data
+    // Keys to preserve (first page data: API key, stats, etc.)
+    const keysToPreserve = [
+      'gymWizard_apiKey',
+      'gymWizard_initialStats',
+      'gymWizard_currentGymIndex',
+      'gymWizard_gymProgressPercent',
+      'gymWizard_months',
+      'gymWizard_simulatedDate',
+    ];
+    
+    // Clear all wizard localStorage data EXCEPT first page data
     const keysToRemove = Object.keys(localStorage).filter(key => 
-      key.startsWith('gymWizard_')
+      key.startsWith('gymWizard_') && !keysToPreserve.includes(key)
     );
     keysToRemove.forEach(key => localStorage.removeItem(key));
     

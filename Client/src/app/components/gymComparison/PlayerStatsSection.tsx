@@ -208,7 +208,28 @@ export default function PlayerStatsSection({
               <DatePicker
                 label="Start Date"
                 value={simulatedDate}
-                onChange={(newValue) => setSimulatedDate(newValue)}
+                onChange={(newValue) => {
+                  // Only accept valid dates within the min/max range
+                  if (newValue === null) {
+                    setSimulatedDate(null);
+                    return;
+                  }
+                  
+                  // Check if it's a valid date
+                  if (isNaN(newValue.getTime())) {
+                    return; // Ignore invalid dates
+                  }
+                  
+                  const minDate = getMinDate();
+                  const maxDate = getYesterday();
+                  
+                  // Validate against min/max
+                  if (newValue < minDate || newValue > maxDate) {
+                    return; // Ignore dates outside valid range
+                  }
+                  
+                  setSimulatedDate(newValue);
+                }}
                 minDate={getMinDate()}
                 maxDate={getYesterday()}
                 slotProps={{ 

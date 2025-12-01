@@ -11,9 +11,11 @@ import {
   Collapse,
   IconButton,
 } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 import DownloadIcon from '@mui/icons-material/Download';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import {
   simulateGymProgression,
   type SimulationInputs,
@@ -1172,6 +1174,39 @@ export default function GymComparison() {
       <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
         Compare gym stat gains with different configurations
       </Typography>
+      
+      {/* Link to Wizard */}
+      <Paper 
+        sx={{ 
+          p: 2, 
+          mb: 3, 
+          border: '2px solid',
+          borderColor: 'primary.main',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          flexWrap: 'wrap',
+        }}
+      >
+        <AutoFixHighIcon color="primary" />
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="body1">
+            <strong>New to the Gym Comparison Tool?</strong>
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Use our step-by-step wizard to help you set up your first comparison.
+          </Typography>
+        </Box>
+        <Button 
+          component={RouterLink} 
+          to="/gymWizard" 
+          variant="outlined"
+          color="primary"
+          startIcon={<AutoFixHighIcon />}
+        >
+          Open Wizard
+        </Button>
+      </Paper>
       
       <Box sx={{ mb: 3 }}>
         {/* First row: Mode selection buttons */}
