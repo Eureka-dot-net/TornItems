@@ -46,7 +46,7 @@ function calculateEnergyFromItems(
     return 0;
   }
   
-  const energyQuantity = energyJump.quantity || DEFAULT_ENERGY_ITEM_QUANTITY;
+  const energyQuantity = energyJump.quantity ?? DEFAULT_ENERGY_ITEM_QUANTITY;
   
   let extraEnergy: number;
   if (energyJump.itemId === 367) {
@@ -1486,7 +1486,7 @@ export function simulateGymProgression(
           367: 'Feathery Hotel Coupon',
         };
         const itemName = energyItemNames[inputs.energyJump.itemId] || 'energy items';
-        const energyQuantity = inputs.energyJump.quantity || DEFAULT_ENERGY_ITEM_QUANTITY;
+        const energyQuantity = inputs.energyJump.quantity ?? DEFAULT_ENERGY_ITEM_QUANTITY;
         dailyNotes.push(`Used ${energyQuantity} ${itemName}`);
         
         energyJumpDaysPerformed++;
