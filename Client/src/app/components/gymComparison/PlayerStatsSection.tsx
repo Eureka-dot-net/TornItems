@@ -39,6 +39,7 @@ interface PlayerStatsSectionProps {
   setGymProgressPercent?: (percent: number) => void;
   durationUnit?: 'days' | 'weeks' | 'months';
   setDurationUnit?: (unit: 'days' | 'weeks' | 'months') => void;
+  statsFetchedWithApiKey?: boolean;
 }
 
 export default function PlayerStatsSection({
@@ -64,6 +65,7 @@ export default function PlayerStatsSection({
   setGymProgressPercent,
   durationUnit = 'months',
   setDurationUnit,
+  statsFetchedWithApiKey = false,
 }: PlayerStatsSectionProps) {
   // Constants for date validation
   const TORN_RELEASE_DATE = new Date('2004-11-16');
@@ -406,8 +408,8 @@ export default function PlayerStatsSection({
       )}
     </Paper>
     
-    {/* Historical data section - only visible when API key is present */}
-    {apiKey && onHistoricalDataFetched && (
+    {/* Historical data section - only visible when stats have been successfully fetched with API key */}
+    {statsFetchedWithApiKey && apiKey && onHistoricalDataFetched && (
       <HistoricalDataConfig 
         apiKey={apiKey}
         onHistoricalDataFetched={onHistoricalDataFetched}

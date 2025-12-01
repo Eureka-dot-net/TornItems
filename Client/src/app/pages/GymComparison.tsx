@@ -199,6 +199,12 @@ export default function GymComparison() {
     return saved ? new Date(saved) : null;
   });
   
+  // Track if stats were successfully fetched with API key
+  const [statsFetchedWithApiKey, setStatsFetchedWithApiKey] = useState<boolean>(() => loadSavedValue('statsFetchedWithApiKey', false));
+  
+  // Check if user came from wizard (persisted until cleared)
+  const [cameFromWizard] = useState<boolean>(() => localStorage.getItem('gymComparison_fromWizard') === 'true');
+  
   // Comparison states - use the actual loaded months value for initialization
   const [comparisonStates, setComparisonStates] = useState<ComparisonState[]>(() => {
     const savedStates = loadSavedValue<unknown[]>('comparisonStates', []);
@@ -587,6 +593,7 @@ export default function GymComparison() {
   useEffect(() => { localStorage.setItem('gymComparison_months', JSON.stringify(months)); }, [months]);
   useEffect(() => { localStorage.setItem('gymComparison_durationUnit', JSON.stringify(durationUnit)); }, [durationUnit]);
   useEffect(() => { localStorage.setItem('gymComparison_comparisonStates', JSON.stringify(comparisonStates)); }, [comparisonStates]);
+  useEffect(() => { localStorage.setItem('gymComparison_statsFetchedWithApiKey', JSON.stringify(statsFetchedWithApiKey)); }, [statsFetchedWithApiKey]);
   
   // Auto-simulate when data changes
   useEffect(() => {
@@ -774,6 +781,9 @@ export default function GymComparison() {
           })),
         })));
       }
+      
+      // Mark that stats were successfully fetched with API key
+      setStatsFetchedWithApiKey(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch gym stats');
     } finally {
@@ -1191,10 +1201,12 @@ export default function GymComparison() {
         <AutoFixHighIcon color="primary" />
         <Box sx={{ flex: 1 }}>
           <Typography variant="body1">
-            <strong>New to the Gym Comparison Tool?</strong>
+            <strong>{cameFromWizard ? 'Want to change your settings?' : 'New to the Gym Comparison Tool?'}</strong>
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Use our step-by-step wizard to help you set up your first comparison.
+            {cameFromWizard 
+              ? 'Use the wizard button to go back and edit your responses.'
+              : 'Use our step-by-step wizard to help you set up your first comparison.'}
           </Typography>
         </Box>
         <Button 
@@ -1204,7 +1216,7 @@ export default function GymComparison() {
           color="primary"
           startIcon={<AutoFixHighIcon />}
         >
-          Open Wizard
+          {cameFromWizard ? 'Edit in Wizard' : 'Open Wizard'}
         </Button>
       </Paper>
       
@@ -1285,6 +1297,7 @@ export default function GymComparison() {
               monthValidationError={monthValidationError}
               onHistoricalDataFetched={setHistoricalData}
               onEnabledChange={setHistoricalComparisonEnabled}
+              statsFetchedWithApiKey={statsFetchedWithApiKey}
             />
 
             <ComparisonSelector
@@ -1316,6 +1329,21 @@ export default function GymComparison() {
           {/* Results Section */}
           {Object.keys(results).length > 0 && (
             <Box ref={resultsRef}>
+              {/* Show Edit in Wizard button for users who came from wizard */}
+              {cameFromWizard && (
+                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button 
+                    component={RouterLink} 
+                    to="/gymWizard" 
+                    variant="outlined"
+                    color="primary"
+                    size="small"
+                    startIcon={<AutoFixHighIcon />}
+                  >
+                    Edit in Wizard
+                  </Button>
+                </Box>
+              )}
               <ResultsSection
                 chartData={chartData}
                 comparisonStates={comparisonStates.map(state => ({
