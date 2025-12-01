@@ -58,8 +58,9 @@ function calculateEnergyFromItems(
   }
   
   // Apply faction benefit percentage increase
-  if (energyJump.factionBenefitPercent && energyJump.factionBenefitPercent > 0) {
-    extraEnergy = extraEnergy * (1 + energyJump.factionBenefitPercent / 100);
+  const factionBenefit = energyJump.factionBenefitPercent ?? 0;
+  if (factionBenefit > 0) {
+    extraEnergy = extraEnergy * (1 + factionBenefit / 100);
   }
   
   return extraEnergy;
