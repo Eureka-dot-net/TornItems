@@ -105,7 +105,7 @@ export default function EdvdJumpWizardSubStep({ mode = 'current' }: EdvdJumpWiza
         {isComparison 
           ? <>Configure the eDVD jump settings for your <strong>comparison scenario</strong>. 
               Adjust these values to see how different eDVD strategies would affect your gains.</>
-          : <>Educational DVDs (eDVDs) provide temporary stat boosts when used with Ecstasy.
+          : <>eDVDs provide 2500 extra happiness.
               Let's configure how you use them in your training routine.</>
         }
       </Typography>
