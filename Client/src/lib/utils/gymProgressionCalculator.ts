@@ -23,6 +23,49 @@ const CANDY_HAPPINESS_MAP: Record<number, number> = {
   151: 150, // Happy 150
 };
 
+// Default quantity for energy items if not specified
+const DEFAULT_ENERGY_ITEM_QUANTITY = 24;
+
+/**
+ * Calculate extra energy from energy items (energy drinks or FHC)
+ * @param energyJump - Energy jump configuration
+ * @param maxEnergyValue - Maximum energy value (100 or 150)
+ * @returns Extra energy from energy items, or 0 if not enabled/invalid
+ */
+function calculateEnergyFromItems(
+  energyJump: { enabled: boolean; itemId: number; quantity?: number; factionBenefitPercent?: number } | undefined,
+  maxEnergyValue: number
+): number {
+  if (!energyJump?.enabled) {
+    return 0;
+  }
+  
+  const energyPerItem = ENERGY_ITEM_MAP[energyJump.itemId];
+  
+  if (energyPerItem === undefined) {
+    return 0;
+  }
+  
+  const energyQuantity = energyJump.quantity ?? DEFAULT_ENERGY_ITEM_QUANTITY;
+  
+  let extraEnergy: number;
+  if (energyJump.itemId === 367) {
+    // FHC refills energy bar - use maxEnergy value
+    extraEnergy = maxEnergyValue * energyQuantity;
+  } else {
+    // Regular energy items
+    extraEnergy = energyPerItem * energyQuantity;
+  }
+  
+  // Apply faction benefit percentage increase
+  const factionBenefit = energyJump.factionBenefitPercent ?? 0;
+  if (factionBenefit > 0) {
+    extraEnergy = extraEnergy * (1 + factionBenefit / 100);
+  }
+  
+  return extraEnergy;
+}
+
 export interface Gym {
   name: string;
   displayName: string;
@@ -920,7 +963,8 @@ export function simulateGymProgression(
       
       // If ecstasy is used AND it IS already included (replaces one of daily xanax), subtract xanax energy
       // because the xanax energy is already in dailyEnergy but is being replaced by ecstasy which adds no energy
-      if (inputs.candyJump.drugUsed === 'ecstasy' && inputs.candyJump.drugAlreadyIncluded) {
+      // Only subtract if user actually uses xanax daily (otherwise there's no xanax energy to replace)
+      if (inputs.candyJump.drugUsed === 'ecstasy' && inputs.candyJump.drugAlreadyIncluded && inputs.xanaxPerDay > 0) {
         // Subtract the xanax energy that's already in dailyEnergy since it's being replaced by ecstasy
         energyAvailableToday -= 250;
       }
@@ -929,6 +973,11 @@ export function simulateGymProgression(
       if (inputs.candyJump.usePointRefill && !inputs.hasPointsRefill) {
         energyAvailableToday += maxEnergyValue;
       }
+      
+      // Add energy from energy drinks/FHC to daily energy pool on candy jump days
+      // This ensures total daily energy is the same as non-candy days when energy drinks are used
+      // The energy drinks are used during the candy jump (at boosted happy) but should contribute to total daily energy
+      energyAvailableToday += calculateEnergyFromItems(inputs.energyJump, maxEnergyValue);
     }
     
     // Track if this is a jump day and the energy split between jump and post-jump training
@@ -1289,29 +1338,7 @@ export function simulateGymProgression(
       }
       
       // Add energy from energy cans/FHC if enabled (they're used during the jump)
-      if (inputs.energyJump?.enabled) {
-        const energyPerItem = ENERGY_ITEM_MAP[inputs.energyJump.itemId];
-        
-        if (energyPerItem !== undefined) {
-          let extraEnergy = 0;
-          const energyQuantity = inputs.energyJump.quantity || 24;
-          
-          if (inputs.energyJump.itemId === 367) {
-            // FHC refills energy bar - use maxEnergy value
-            extraEnergy = maxEnergyValue * energyQuantity;
-          } else {
-            // Regular energy items
-            extraEnergy = energyPerItem * energyQuantity;
-          }
-          
-          // Apply faction benefit percentage increase
-          if (inputs.energyJump.factionBenefitPercent > 0) {
-            extraEnergy = extraEnergy * (1 + inputs.energyJump.factionBenefitPercent / 100);
-          }
-          
-          candyEnergy += extraEnergy;
-        }
-      }
+      candyEnergy += calculateEnergyFromItems(inputs.energyJump, maxEnergyValue);
       
       // Make sure we don't use more energy than available
       const energyToUse = Math.min(candyEnergy, remainingEnergy);
@@ -1442,46 +1469,28 @@ export function simulateGymProgression(
     // Energy Jump - add extra energy per day from energy items
     // Skip on candy jump days since energy cans/FHC are already included in the candy jump
     if (inputs.energyJump?.enabled && !shouldPerformEdvdJump && !isDiabetesDayJump && !isCandyJumpDay && !isSkipped) {
-      const energyPerItem = ENERGY_ITEM_MAP[inputs.energyJump.itemId];
+      const extraEnergy = calculateEnergyFromItems(inputs.energyJump, maxEnergyValue);
       
-      if (energyPerItem === undefined) {
-        throw new Error(`Invalid energy item ID: ${inputs.energyJump.itemId}`);
+      if (extraEnergy > 0) {
+        // Add extra energy to remaining energy pool
+        remainingEnergy += extraEnergy;
+        
+        // Add energy jump note
+        const energyItemNames: Record<number, string> = {
+          985: 'Small Energy Drink',
+          986: 'Energy Drink',
+          987: 'Large Energy Drink',
+          530: 'X-Large Energy Drink',
+          532: 'XX-Large Energy Drink',
+          533: 'XXX-Large Energy Drink',
+          367: 'Feathery Hotel Coupon',
+        };
+        const itemName = energyItemNames[inputs.energyJump.itemId] || 'energy items';
+        const energyQuantity = inputs.energyJump.quantity ?? DEFAULT_ENERGY_ITEM_QUANTITY;
+        dailyNotes.push(`Used ${energyQuantity} ${itemName}`);
+        
+        energyJumpDaysPerformed++;
       }
-      
-      // Calculate extra energy from items
-      let extraEnergy = 0;
-      const energyQuantity = inputs.energyJump.quantity || 24;
-      
-      if (inputs.energyJump.itemId === 367) {
-        // FHC refills energy bar - use maxEnergy value
-        extraEnergy = maxEnergyValue * energyQuantity;
-      } else {
-        // Regular energy items
-        extraEnergy = energyPerItem * energyQuantity;
-      }
-      
-      // Apply faction benefit percentage increase
-      if (inputs.energyJump.factionBenefitPercent > 0) {
-        extraEnergy = extraEnergy * (1 + inputs.energyJump.factionBenefitPercent / 100);
-      }
-      
-      // Add extra energy to remaining energy pool
-      remainingEnergy += extraEnergy;
-      
-      // Add energy jump note
-      const energyItemNames: Record<number, string> = {
-        985: 'Small Energy Drink',
-        986: 'Energy Drink',
-        987: 'Large Energy Drink',
-        530: 'X-Large Energy Drink',
-        532: 'XX-Large Energy Drink',
-        533: 'XXX-Large Energy Drink',
-        367: 'Feathery Hotel Coupon',
-      };
-      const itemName = energyItemNames[inputs.energyJump.itemId] || 'energy items';
-      dailyNotes.push(`Used ${energyQuantity} ${itemName}`);
-      
-      energyJumpDaysPerformed++;
     }
     
     while (remainingEnergy > 0) {
