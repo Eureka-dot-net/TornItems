@@ -235,6 +235,11 @@ export default function GymComparison() {
       const wizardHasPointsRefill = loadSavedValue<boolean | null>('hasPointsRefill', null);
       const wizardMaxEnergy = loadSavedValue<number | null>('maxEnergy', null);
       const wizardDaysSkippedPerMonth = loadSavedValue<number | null>('daysSkippedPerMonth', null);
+      const wizardLossReviveEnabled = loadSavedValue<boolean | null>('lossReviveEnabled', null);
+      const wizardLossReviveNumberPerDay = loadSavedValue<number | null>('lossReviveNumberPerDay', null);
+      const wizardLossReviveEnergyCost = loadSavedValue<number | null>('lossReviveEnergyCost', null);
+      const wizardLossReviveDaysBetween = loadSavedValue<number | null>('lossReviveDaysBetween', null);
+      const wizardLossRevivePricePerLoss = loadSavedValue<number | null>('lossRevivePricePerLoss', null);
 
       // Create the "Current" state with new format
       const currentState: ComparisonState = {
@@ -278,11 +283,11 @@ export default function GymComparison() {
           energyJumpItemId: ENERGY_ITEM_IDS.ENERGY_5,
           energyJumpQuantity: DEFAULT_ENERGY_DRINK_QUANTITY,
           energyJumpFactionBenefit: 0,
-          lossReviveEnabled: false,
-          lossReviveNumberPerDay: DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY,
-          lossReviveEnergyCost: DEFAULT_LOSS_REVIVE_ENERGY_COST,
-          lossReviveDaysBetween: DEFAULT_LOSS_REVIVE_DAYS_BETWEEN,
-          lossRevivePricePerLoss: DEFAULT_LOSS_REVIVE_PRICE,
+          lossReviveEnabled: wizardLossReviveEnabled ?? false,
+          lossReviveNumberPerDay: wizardLossReviveNumberPerDay ?? DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY,
+          lossReviveEnergyCost: wizardLossReviveEnergyCost ?? DEFAULT_LOSS_REVIVE_ENERGY_COST,
+          lossReviveDaysBetween: wizardLossReviveDaysBetween ?? DEFAULT_LOSS_REVIVE_DAYS_BETWEEN,
+          lossRevivePricePerLoss: wizardLossRevivePricePerLoss ?? DEFAULT_LOSS_REVIVE_PRICE,
           diabetesDayEnabled: false,
           diabetesDayNumberOfJumps: 1,
           diabetesDayFHC: 0,
@@ -308,6 +313,7 @@ export default function GymComparison() {
         companyBenefits: boolean;
         statTargetRatios: boolean;
         trainingRegime: boolean;
+        lossRevive: boolean;
       } | null>('wizardComparisonPageSelections', null);
       
       // Check the comparison mode (separate or combined)
@@ -465,6 +471,24 @@ export default function GymComparison() {
                   section.energyJumpItemId = loadComparisonValue('energyDrinkItemId', ENERGY_ITEM_IDS.ENERGY_10);
                   section.energyJumpQuantity = loadComparisonValue('energyDrinkQuantity', DEFAULT_ENERGY_DRINK_QUANTITY);
                 }
+              }
+            },
+          });
+        }
+        
+        if (comparisonPageSelections.lossRevive) {
+          areaConfigs.push({
+            key: 'lossRevive',
+            name: 'Loss/Revive',
+            apply: (section) => {
+              const compLossReviveEnabled = loadComparisonValue<boolean>('lossReviveEnabled', false);
+              section.lossReviveEnabled = compLossReviveEnabled;
+              
+              if (compLossReviveEnabled) {
+                section.lossReviveNumberPerDay = loadComparisonValue('lossReviveNumberPerDay', DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY);
+                section.lossReviveEnergyCost = loadComparisonValue('lossReviveEnergyCost', DEFAULT_LOSS_REVIVE_ENERGY_COST);
+                section.lossReviveDaysBetween = loadComparisonValue('lossReviveDaysBetween', DEFAULT_LOSS_REVIVE_DAYS_BETWEEN);
+                section.lossRevivePricePerLoss = loadComparisonValue('lossRevivePricePerLoss', DEFAULT_LOSS_REVIVE_PRICE);
               }
             },
           });
