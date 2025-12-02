@@ -46,6 +46,9 @@ interface ComparisonState {
   stackedCandyJumpLimit: 'indefinite' | 'count' | 'stat';
   stackedCandyJumpCount: number;
   stackedCandyJumpStatTarget: number;
+  stackedCandyJumpUsePointRefill?: boolean;
+  stackedCandyJumpXanaxStacked?: number;
+  stackedCandyJumpStackOnNaturalEnergy?: boolean;
   energyJumpEnabled: boolean;
   energyJumpItemId: number;
   energyJumpQuantity: number;
@@ -323,6 +326,9 @@ export default function ComparisonConfigSection({
         stackedCandyJumpLimit={activeState.stackedCandyJumpLimit}
         stackedCandyJumpCount={activeState.stackedCandyJumpCount}
         stackedCandyJumpStatTarget={activeState.stackedCandyJumpStatTarget}
+        stackedCandyJumpUsePointRefill={activeState.stackedCandyJumpUsePointRefill ?? false}
+        stackedCandyJumpXanaxStacked={activeState.stackedCandyJumpXanaxStacked ?? 4}
+        stackedCandyJumpStackOnNaturalEnergy={activeState.stackedCandyJumpStackOnNaturalEnergy ?? false}
         energyJumpEnabled={activeState.energyJumpEnabled}
         energyJumpItemId={activeState.energyJumpItemId}
         energyJumpQuantity={activeState.energyJumpQuantity}

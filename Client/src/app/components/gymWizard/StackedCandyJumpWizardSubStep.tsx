@@ -8,6 +8,8 @@ import {
   Select,
   MenuItem,
   Alert,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import { CANDY_ITEM_IDS, DEFAULT_CANDY_QUANTITY } from '../../../lib/constants/gymConstants';
 import { validateNumericInput } from '../../../lib/utils/jumpHelpers';
@@ -42,6 +44,16 @@ export default function StackedCandyJumpWizardSubStep({ mode = 'current' }: Stac
     }
   };
 
+  // Load from main wizard prefix (for checking hasPointsRefill)
+  const loadMainWizardValue = <T,>(key: string, defaultValue: T): T => {
+    try {
+      const saved = localStorage.getItem(`gymWizard_${key}`);
+      return saved ? JSON.parse(saved) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  };
+
   const [frequency, setFrequency] = useState<number>(() => loadSavedValue('stackedCandyJumpFrequency', 7));
   const [itemId, setItemId] = useState<number>(() => 
     loadSavedValue('stackedCandyJumpItemId', CANDY_ITEM_IDS.HAPPY_75)
@@ -57,6 +69,18 @@ export default function StackedCandyJumpWizardSubStep({ mode = 'current' }: Stac
   );
   const [count, setCount] = useState<number>(() => loadSavedValue('stackedCandyJumpCount', 10));
   const [statTarget, setStatTarget] = useState<number>(() => loadSavedValue('stackedCandyJumpStatTarget', 1000000));
+  
+  // New fields for xanax stacking options
+  const [xanaxStacked, setXanaxStacked] = useState<number>(() => loadSavedValue('stackedCandyJumpXanaxStacked', 4));
+  const [stackOnNaturalEnergy, setStackOnNaturalEnergy] = useState<boolean>(() => 
+    loadSavedValue('stackedCandyJumpStackOnNaturalEnergy', false)
+  );
+  const [usePointRefill, setUsePointRefill] = useState<boolean>(() => 
+    loadSavedValue('stackedCandyJumpUsePointRefill', false)
+  );
+  
+  // Check if user already uses daily points refill (from energy sources step)
+  const hasPointsRefill = loadMainWizardValue('hasPointsRefill', true);
 
   // Save values to localStorage
   useEffect(() => {
@@ -68,7 +92,10 @@ export default function StackedCandyJumpWizardSubStep({ mode = 'current' }: Stac
     localStorage.setItem(`${storagePrefix}stackedCandyJumpLimit`, JSON.stringify(limit));
     localStorage.setItem(`${storagePrefix}stackedCandyJumpCount`, JSON.stringify(count));
     localStorage.setItem(`${storagePrefix}stackedCandyJumpStatTarget`, JSON.stringify(statTarget));
-  }, [frequency, itemId, quantity, factionBenefit, limit, count, statTarget, storagePrefix]);
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpXanaxStacked`, JSON.stringify(xanaxStacked));
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpStackOnNaturalEnergy`, JSON.stringify(stackOnNaturalEnergy));
+    localStorage.setItem(`${storagePrefix}stackedCandyJumpUsePointRefill`, JSON.stringify(usePointRefill));
+  }, [frequency, itemId, quantity, factionBenefit, limit, count, statTarget, xanaxStacked, stackOnNaturalEnergy, usePointRefill, storagePrefix]);
 
   return (
     <Box>
@@ -90,8 +117,8 @@ export default function StackedCandyJumpWizardSubStep({ mode = 'current' }: Stac
           {isComparison 
             ? <>These settings are for your <strong>comparison scenario</strong>. Modify them to 
                 see how changes to your stacked candy strategy would impact your training.</>
-            : <><strong>What is a Stacked Candy Jump?</strong> Like an eDVD jump, you stack 3 xanax over 16 hours
-                before the jump day. On the jump day, you use 1 more xanax and 1 ecstasy along with happiness candies
+            : <><strong>What is a Stacked Candy Jump?</strong> You stack xanax before the jump day, 
+                then on jump day use 1 more xanax and 1 ecstasy along with happiness candies
                 to get a temporary happiness boost. This allows you to train at higher gym levels and gain more stats.</>
           }
         </Typography>
@@ -121,6 +148,79 @@ export default function StackedCandyJumpWizardSubStep({ mode = 'current' }: Stac
           helperText="Enter number of days between stacked candy jump sessions"
         />
       </Box>
+
+      {/* Xanax Stacking */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          How many Xanax will you stack for each jump?
+        </Typography>
+        <Typography variant="body2" color="text.secondary" paragraph>
+          Traditionally, stacked jumps use 4 xanax (3 stacked the day before + 1 on jump day) for 1000 energy.
+          You can stack fewer xanax if you prefer (1-4).
+        </Typography>
+        <TextField
+          type="number"
+          value={xanaxStacked}
+          onChange={(e) => {
+            const value = e.target.value === '' ? 4 : Math.min(4, Math.max(1, Number(e.target.value)));
+            setXanaxStacked(value);
+          }}
+          fullWidth
+          size="small"
+          inputProps={{ step: 1, min: 1, max: 4 }}
+          helperText="1-4 xanax. 4 = 1000 energy, 3 = 750, 2 = 500, 1 = 250"
+        />
+      </Box>
+
+      {/* Stack on Natural Energy - only show if less than 4 xanax */}
+      {xanaxStacked < 4 && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Will you stack on top of your natural energy?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            If yes, your energy bar will be full when you start the jump, adding to your stacked xanax energy.
+            For example, with 3 xanax + natural energy on a 150 energy bar = 950 energy.
+          </Typography>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={stackOnNaturalEnergy}
+                onChange={(e) => setStackOnNaturalEnergy(e.target.checked)}
+              />
+            }
+            label={stackOnNaturalEnergy 
+              ? 'Yes, I will have a full energy bar when I start the jump' 
+              : 'No, I will only use the xanax energy'
+            }
+          />
+        </Box>
+      )}
+
+      {/* Point Refill - only show if user doesn't already use daily points refill */}
+      {!hasPointsRefill && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Will you use a point refill during the jump?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            Since you don't currently use daily point refills, you can choose to use one specifically
+            for your stacked candy jumps to add extra energy.
+          </Typography>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={usePointRefill}
+                onChange={(e) => setUsePointRefill(e.target.checked)}
+              />
+            }
+            label={usePointRefill 
+              ? 'Yes, I will use a point refill during the jump' 
+              : 'No, I will not use a point refill'
+            }
+          />
+        </Box>
+      )}
 
       {/* Candy Type */}
       <Box sx={{ mb: 3 }}>

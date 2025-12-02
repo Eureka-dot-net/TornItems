@@ -42,6 +42,9 @@ export interface TrainingSection {
   stackedCandyJumpLimit: 'indefinite' | 'count' | 'stat';
   stackedCandyJumpCount: number;
   stackedCandyJumpStatTarget: number;
+  stackedCandyJumpUsePointRefill: boolean; // Does user use point refill during stacked candy jump?
+  stackedCandyJumpXanaxStacked: number; // How many xanax to stack (1-4, default 4)
+  stackedCandyJumpStackOnNaturalEnergy: boolean; // If less than 4 xanax, stack on top of natural energy?
   energyJumpEnabled: boolean;
   energyJumpItemId: number;
   energyJumpQuantity: number;
@@ -184,6 +187,9 @@ export function simulateWithSections(
         limit: section.stackedCandyJumpLimit,
         count: section.stackedCandyJumpCount,
         statTarget: section.stackedCandyJumpStatTarget,
+        usePointRefill: section.stackedCandyJumpUsePointRefill,
+        xanaxStacked: section.stackedCandyJumpXanaxStacked,
+        stackOnNaturalEnergy: section.stackedCandyJumpStackOnNaturalEnergy,
       } : undefined,
       energyJump: section.energyJumpEnabled ? {
         enabled: true,
