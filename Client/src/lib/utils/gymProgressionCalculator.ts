@@ -66,6 +66,48 @@ function calculateEnergyFromItems(
   return extraEnergy;
 }
 
+/**
+ * Configuration for calculating stacked jump energy (used by both eDVD and Stacked Candy jumps)
+ */
+interface StackedJumpEnergyConfig {
+  xanaxStacked: number;          // Number of xanax stacked (1-4)
+  maxEnergyValue: number;        // User's max energy (100 or 150)
+  hasPointsRefill: boolean;      // Whether user uses daily point refills
+  usePointRefillForJump?: boolean; // Whether to use point refill for this specific jump (only relevant if !hasPointsRefill)
+  stackOnNaturalEnergy?: boolean; // Whether to add natural energy bar to jump (only relevant if xanaxStacked < 4)
+}
+
+/**
+ * Calculate energy for a stacked jump (eDVD or Stacked Candy)
+ * This is a shared helper function to avoid code duplication between jump types.
+ * 
+ * Energy calculation:
+ * - Base energy: xanaxStacked * 250 (capped at 1000)
+ * - Natural energy: Added if stackOnNaturalEnergy is true AND xanaxStacked < 4
+ * - Point refill: Added if user has daily point refills OR opts to use one for the jump
+ * 
+ * @param config - Configuration for the stacked jump
+ * @returns Total jump energy
+ */
+function calculateStackedJumpEnergy(config: StackedJumpEnergyConfig): number {
+  const { xanaxStacked, maxEnergyValue, hasPointsRefill, usePointRefillForJump, stackOnNaturalEnergy } = config;
+  
+  // Base energy from xanax: 250 energy per xanax stacked, capped at 1000
+  let jumpEnergy = Math.min(1000, xanaxStacked * 250);
+  
+  // Add natural energy bar if stacking on natural energy (only relevant when xanaxStacked < 4)
+  if (stackOnNaturalEnergy && xanaxStacked < 4) {
+    jumpEnergy += maxEnergyValue;
+  }
+  
+  // Add point refill energy if user uses daily point refills OR opts to use one for this jump
+  if (hasPointsRefill || usePointRefillForJump) {
+    jumpEnergy += maxEnergyValue;
+  }
+  
+  return jumpEnergy;
+}
+
 export interface Gym {
   name: string;
   displayName: string;
@@ -1063,14 +1105,15 @@ export function simulateGymProgression(
       
       isJumpDay = true;
       
-      // Jump energy: 1000 (4 xanax stacked) - no natural energy added for eDVD jumps
-      // You stack xanax to reach 1000 energy cap, natural energy is not part of the jump
-      jumpEnergy = 1000;
-      
-      // Add point refill energy if user uses daily point refills
-      if (inputs.hasPointsRefill) {
-        jumpEnergy += maxEnergyValue;
-      }
+      // Use shared helper for jump energy calculation
+      // eDVD jumps always use 4 xanax, no stacking on natural energy
+      jumpEnergy = calculateStackedJumpEnergy({
+        xanaxStacked: 4,
+        maxEnergyValue,
+        hasPointsRefill: inputs.hasPointsRefill,
+        usePointRefillForJump: false, // eDVD assumes daily point refill users will use it
+        stackOnNaturalEnergy: false,  // eDVD doesn't stack on natural energy
+      });
       
       // Happy during jump
       // DVD happiness: 2500 per DVD normally, 5000 per DVD with Adult Novelties
@@ -1118,29 +1161,17 @@ export function simulateGymProgression(
       
       isJumpDay = true;
       
-      // Calculate jump energy based on xanax stacked
+      // Calculate jump energy using shared helper function
       const xanaxStacked = inputs.stackedCandyJump.xanaxStacked ?? 4;
       const stackOnNaturalEnergy = inputs.stackedCandyJump.stackOnNaturalEnergy ?? false;
       
-      // Base energy from xanax: 250 energy per xanax stacked
-      // With 4 xanax + ecstasy = 4 * 250 = 1000 base energy
-      // We still take ecstasy, so max energy is capped at 1000
-      jumpEnergy = Math.min(1000, xanaxStacked * 250);
-      
-      // If stacking on natural energy (only relevant when xanaxStacked < 4)
-      // Add natural energy bar to the jump energy
-      if (stackOnNaturalEnergy && xanaxStacked < 4) {
-        jumpEnergy += maxEnergyValue; // Add energy bar (100 or 150)
-      }
-      
-      // Add point refill energy to jump:
-      // - If user uses daily point refills (hasPointsRefill), add their energy bar
-      // - If user doesn't normally use point refills but opts to use one for the jump, add energy bar
-      // Note: These are mutually exclusive in the UI (usePointRefill switch is only shown when !hasPointsRefill)
-      // Using OR ensures we add point refill energy exactly once if either condition is true
-      if (inputs.hasPointsRefill || inputs.stackedCandyJump.usePointRefill) {
-        jumpEnergy += maxEnergyValue;
-      }
+      jumpEnergy = calculateStackedJumpEnergy({
+        xanaxStacked,
+        maxEnergyValue,
+        hasPointsRefill: inputs.hasPointsRefill,
+        usePointRefillForJump: inputs.stackedCandyJump.usePointRefill,
+        stackOnNaturalEnergy,
+      });
       
       // Get base candy happiness
       const baseCandyHappy = CANDY_HAPPINESS_MAP[inputs.stackedCandyJump.itemId];
