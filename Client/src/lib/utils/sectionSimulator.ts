@@ -119,6 +119,8 @@ export function simulateWithSections(
   let totalXanaxCost = 0;
   let totalPointsCost = 0;
   let totalCandyCost = 0;
+  let totalStackedCandyCost = 0;
+  let totalStackedCandyJumps = 0;
   let totalEnergyCost = 0;
   let totalLossReviveIncome = 0;
   let totalIslandCost = 0;
@@ -278,6 +280,10 @@ export function simulateWithSections(
     if (sectionResult.candyJumpCosts) {
       totalCandyCost += sectionResult.candyJumpCosts.totalCost;
     }
+    if (sectionResult.stackedCandyJumpCosts) {
+      totalStackedCandyCost += sectionResult.stackedCandyJumpCosts.totalCost;
+      totalStackedCandyJumps += sectionResult.stackedCandyJumpCosts.totalJumps;
+    }
     if (sectionResult.energyJumpCosts) {
       totalEnergyCost += sectionResult.energyJumpCosts.totalCost;
     }
@@ -337,6 +343,13 @@ export function simulateWithSections(
       totalDays: totalCandyDays,
       costPerDay: totalCandyDays > 0 ? totalCandyCost / totalCandyDays : 0,
       totalCost: totalCandyCost,
+    };
+  }
+  if (totalStackedCandyCost > 0) {
+    finalResult.stackedCandyJumpCosts = {
+      totalJumps: totalStackedCandyJumps,
+      costPerJump: totalStackedCandyJumps > 0 ? totalStackedCandyCost / totalStackedCandyJumps : 0,
+      totalCost: totalStackedCandyCost,
     };
   }
   if (totalEnergyCost > 0) {
