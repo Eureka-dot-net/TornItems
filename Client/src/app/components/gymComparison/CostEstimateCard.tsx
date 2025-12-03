@@ -105,18 +105,16 @@ export default function CostEstimateCard({
                   return <TableCell key={state.id} align="right">-</TableCell>;
                 }
                 
-                // Combine both half candy and stacked candy costs
-                const halfCandyCost = result.candyJumpCosts?.totalCost || 0;
-                const stackedCandyCost = result.stackedCandyJumpCosts?.totalCost || 0;
-                const totalCandyCost = halfCandyCost + stackedCandyCost;
+                // Use helper function to get combined candy cost
+                const breakdown = extractCostBreakdown(result);
                 
-                if (totalCandyCost === 0) {
+                if (breakdown.candyCost === 0) {
                   return <TableCell key={state.id} align="right">-</TableCell>;
                 }
                 
                 return (
                   <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
-                    {formatCurrency(totalCandyCost)}
+                    {formatCurrency(breakdown.candyCost)}
                   </TableCell>
                 );
               })}
