@@ -1145,6 +1145,8 @@ export function simulateGymProgression(
       // Add point refill energy to jump:
       // - If user uses daily point refills (hasPointsRefill), add their energy bar
       // - If user doesn't normally use point refills but opts to use one for the jump, add energy bar
+      // Note: These are mutually exclusive in the UI (usePointRefill switch is only shown when !hasPointsRefill)
+      // Using OR ensures we add point refill energy exactly once if either condition is true
       if (inputs.hasPointsRefill || inputs.stackedCandyJump.usePointRefill) {
         jumpEnergy += maxEnergyValue;
       }
