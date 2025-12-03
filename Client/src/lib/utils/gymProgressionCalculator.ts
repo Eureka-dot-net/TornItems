@@ -1103,10 +1103,16 @@ export function simulateGymProgression(
         // The stacking window itself doesn't reduce available energy - the user just isn't training
         // during the stacking period because they're waiting for xanax cooldowns
         
-        // Start with natural energy bar (user wakes up with full bar)
-        energyAvailableToday = maxEnergyValue;
+        // Determine if user is stacking on natural energy (saving it for jump day)
+        const stackingOnNaturalEnergy = isDayBeforeStackedCandyJump && 
+          inputs.stackedCandyJump?.stackOnNaturalEnergy && 
+          (inputs.stackedCandyJump?.xanaxStacked ?? 4) < 4;
         
-        // Add points refill if enabled
+        // Start with natural energy bar ONLY if NOT stacking on natural energy
+        // If stacking on natural energy, the user saves their energy bar for the jump
+        energyAvailableToday = stackingOnNaturalEnergy ? 0 : maxEnergyValue;
+        
+        // Add points refill if enabled (still available on stacking day)
         if (inputs.hasPointsRefill) {
           energyAvailableToday += maxEnergyValue;
         }
@@ -1123,7 +1129,8 @@ export function simulateGymProgression(
         }
         
         const jumpType = isDayBeforeEdvdJump ? 'eDVD' : isDayBeforeStackedCandyJump ? 'Stacked Candy' : 'DD';
-        dailyNotes.push(`Stacking for ${jumpType} jump (${xanaxStackedDayBefore} Xanax, spending energy before stacking begins)`);
+        const stackingNote = stackingOnNaturalEnergy ? ' (saving natural energy for jump)' : '';
+        dailyNotes.push(`Stacking for ${jumpType} jump (${xanaxStackedDayBefore} Xanax, spending energy before stacking begins${stackingNote})`);
       }
     }
     
