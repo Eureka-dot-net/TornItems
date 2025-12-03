@@ -1066,15 +1066,20 @@ export function simulateGymProgression(
       // 3. Use 1 Ecstasy (consumes a drug slot, replaces a Xanax slot in cooldown)
       // 4. After cooldown completes → perform the jump:
       //    - Spend ALL available energy at boosted happy
-      //    - eDVD jump energy spent: 1150 energy
+      //    - eDVD jump energy spent: 1150 energy (1000 from 4 xanax + 150 natural energy)
       // 5. After the jump, continue normal training:
       //    - Natural energy regen
       //    - If user normally takes 3 Xanax/day → consume one more Xanax after the jump
       
       isJumpDay = true;
       
-      // Jump energy: exactly 1150 energy
-      jumpEnergy = 1150;
+      // Jump energy: 1000 (4 xanax) + natural energy bar (100 or 150)
+      jumpEnergy = 1000 + maxEnergyValue;
+      
+      // Add point refill energy if user uses daily point refills
+      if (inputs.hasPointsRefill) {
+        jumpEnergy += maxEnergyValue;
+      }
       
       // Happy during jump
       // DVD happiness: 2500 per DVD normally, 5000 per DVD with Adult Novelties
@@ -1099,7 +1104,8 @@ export function simulateGymProgression(
       energyAvailableToday = jumpEnergy + postJumpEnergy;
       
       // Add note about eDVD jump
-      dailyNotes.push(`eDVD jump: Used ${inputs.edvdJump.dvdsUsed} DVD${inputs.edvdJump.dvdsUsed > 1 ? 's' : ''}, 1 Ecstasy${inputs.edvdJump.adultNovelties ? ' (with 10★ Adult Novelties)' : ''}`);
+      const pointRefillNote = inputs.hasPointsRefill ? ' + point refill' : '';
+      dailyNotes.push(`eDVD jump: Used ${inputs.edvdJump.dvdsUsed} DVD${inputs.edvdJump.dvdsUsed > 1 ? 's' : ''}, 1 Ecstasy${inputs.edvdJump.adultNovelties ? ' (with 10★ Adult Novelties)' : ''}${pointRefillNote}`);
       
       // Increment jump counter and schedule next jump
       edvdJumpsPerformed++;
@@ -1136,14 +1142,11 @@ export function simulateGymProgression(
         jumpEnergy += maxEnergyValue; // Add energy bar (100 or 150)
       }
       
-      // Add point refill energy if enabled for stacked candy jumps
-      // Only ask about this if user doesn't normally use point refills
-      if (inputs.stackedCandyJump.usePointRefill) {
-        // If user already uses daily point refills, this is already included
-        // If not, we add extra energy for the jump
-        if (!inputs.hasPointsRefill) {
-          jumpEnergy += maxEnergyValue; // Add another energy bar from point refill
-        }
+      // Add point refill energy to jump:
+      // - If user uses daily point refills (hasPointsRefill), add their energy bar
+      // - If user doesn't normally use point refills but opts to use one for the jump, add energy bar
+      if (inputs.hasPointsRefill || inputs.stackedCandyJump.usePointRefill) {
+        jumpEnergy += maxEnergyValue;
       }
       
       // Get base candy happiness
@@ -1197,7 +1200,7 @@ export function simulateGymProgression(
         ? ` (+${inputs.stackedCandyJump.factionBenefitPercent}% faction perk)`
         : '';
       const naturalEnergyNote = stackOnNaturalEnergy && xanaxStacked < 4 ? ` + natural energy` : '';
-      const pointRefillNote = inputs.stackedCandyJump.usePointRefill && !inputs.hasPointsRefill ? ` + point refill` : '';
+      const pointRefillNote = inputs.hasPointsRefill || inputs.stackedCandyJump.usePointRefill ? ` + point refill` : '';
       dailyNotes.push(`Stacked Candy jump: ${xanaxStacked} Xanax stacked${naturalEnergyNote}${pointRefillNote}, ${candyQuantity} candies (${baseCandyHappy} happy${factionBenefitNote}), 1 Ecstasy`);
       
       // Increment jump counter and schedule next jump
