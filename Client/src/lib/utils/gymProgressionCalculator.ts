@@ -1767,11 +1767,15 @@ export function simulateGymProgression(
             totalEnergySpent += gym.energyPerTrain;
             remainingEnergy -= gym.energyPerTrain;
             
-            // For jump days, also decrement the appropriate phase-specific energy counter
+            // For jump days, track which phase this training belongs to BEFORE decrementing counters
+            // This ensures the last training action's energy is properly attributed to the correct phase
+            let trainingPhase: 'jump' | 'postJump' | 'regular' = 'regular';
             if (isJumpDay) {
               if (remainingJumpEnergy > 0) {
+                trainingPhase = 'jump';
                 remainingJumpEnergy -= gym.energyPerTrain;
               } else if (remainingPostJumpEnergy > 0) {
+                trainingPhase = 'postJump';
                 remainingPostJumpEnergy -= gym.energyPerTrain;
               }
             }
@@ -1781,13 +1785,13 @@ export function simulateGymProgression(
             // Track training details
             // For eDVD/DD/Stacked Candy jump days, track separately for jump and post-jump phases
             if (isJumpDay && (shouldPerformEdvdJump || isDiabetesDayJump || shouldPerformStackedCandyJump)) {
-              if (remainingJumpEnergy > 0) {
+              if (trainingPhase === 'jump') {
                 // This training is part of the jump phase
                 if (!jumpTrainingDetails[selectedStat]) {
                   jumpTrainingDetails[selectedStat] = { gym: gym.displayName, energy: 0 };
                 }
                 jumpTrainingDetails[selectedStat]!.energy += gym.energyPerTrain;
-              } else if (remainingPostJumpEnergy > 0) {
+              } else if (trainingPhase === 'postJump') {
                 // This training is part of the post-jump phase
                 if (!postJumpTrainingDetails[selectedStat]) {
                   postJumpTrainingDetails[selectedStat] = { gym: gym.displayName, energy: 0 };
