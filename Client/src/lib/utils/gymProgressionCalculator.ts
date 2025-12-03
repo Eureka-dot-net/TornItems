@@ -1000,25 +1000,15 @@ export function simulateGymProgression(
     // Stacking logic: User stacks X Xanax over time (0 energy spent during stacking window)
     // For stacked candy jumps, the number of xanax stacked is configurable (1-4)
     if (isDayBeforeEdvdJump || isDayBeforeStackedCandyJump || isDayBeforeDdJump) {
-      const energyPerHour = maxEnergyValue === 100 ? 20 : 30;
-      
       // Determine how many xanax are being stacked the day before
       // For eDVD and DD jumps: always 3 xanax (standard behavior)
       // For stacked candy jumps: based on user's xanaxStacked setting
       let xanaxStackedDayBefore = 3; // Default for eDVD/DD
-      let stackingHours = 16; // Hours spent stacking
       
       if (isDayBeforeStackedCandyJump && inputs.stackedCandyJump) {
         const totalXanaxToStack = inputs.stackedCandyJump.xanaxStacked ?? 4;
         // Day before: stack (totalXanaxToStack - 1) xanax, because 1 is taken on jump day
         xanaxStackedDayBefore = Math.max(0, totalXanaxToStack - 1);
-        
-        // For every xanax less than 3 stacked the day before, add 8 hours of available time
-        // e.g., if only 2 xanax stacked: 16 - 8 = 8 hours stacking, 16 hours available
-        // e.g., if only 1 xanax stacked: 16 - 16 = 0 hours stacking, 24 hours available
-        // e.g., if 0 xanax stacked: no stacking at all, normal day
-        const hoursPerXanax = 8; // Each xanax takes ~8 hours of cooldown
-        stackingHours = Math.max(0, xanaxStackedDayBefore * hoursPerXanax);
       }
       
       if (xanaxStackedDayBefore === 0) {
@@ -1028,13 +1018,13 @@ export function simulateGymProgression(
         const jumpType = isDayBeforeEdvdJump ? 'eDVD' : isDayBeforeStackedCandyJump ? 'Stacked Candy' : 'DD';
         dailyNotes.push(`Day before ${jumpType} jump (no stacking needed, normal training day)`);
       } else {
-        // Calculate energy available outside stacking window
-        // Available hours = 24 - stackingHours
-        const availableHours = 24 - stackingHours;
-        const sleepEnergy = Math.min(maxEnergyValue, availableHours * energyPerHour);
+        // On stacking day, user has their natural energy bar (from overnight regen) plus point refill
+        // They can spend this energy BEFORE starting the stacking window
+        // The stacking window itself doesn't reduce available energy - the user just isn't training
+        // during the stacking period because they're waiting for xanax cooldowns
         
-        // Start with natural regen energy
-        energyAvailableToday = sleepEnergy;
+        // Start with natural energy bar (user wakes up with full bar)
+        energyAvailableToday = maxEnergyValue;
         
         // Add points refill if enabled
         if (inputs.hasPointsRefill) {
@@ -1053,7 +1043,7 @@ export function simulateGymProgression(
         }
         
         const jumpType = isDayBeforeEdvdJump ? 'eDVD' : isDayBeforeStackedCandyJump ? 'Stacked Candy' : 'DD';
-        dailyNotes.push(`Stacking for ${jumpType} jump (${xanaxStackedDayBefore} Xanax over ${stackingHours} hours, using natural regen outside stacking window)`);
+        dailyNotes.push(`Stacking for ${jumpType} jump (${xanaxStackedDayBefore} Xanax, spending energy before stacking begins)`);
       }
     }
     
