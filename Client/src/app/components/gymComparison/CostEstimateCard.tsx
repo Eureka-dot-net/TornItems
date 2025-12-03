@@ -98,31 +98,25 @@ export default function CostEstimateCard({
               })}
             </TableRow>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold' }}>Half Candy Cost</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Candy Cost</TableCell>
               {comparisonStates.map((state) => {
                 const result = results[state.id];
-                if (!result || !result.candyJumpCosts) {
+                if (!result) {
+                  return <TableCell key={state.id} align="right">-</TableCell>;
+                }
+                
+                // Combine both half candy and stacked candy costs
+                const halfCandyCost = result.candyJumpCosts?.totalCost || 0;
+                const stackedCandyCost = result.stackedCandyJumpCosts?.totalCost || 0;
+                const totalCandyCost = halfCandyCost + stackedCandyCost;
+                
+                if (totalCandyCost === 0) {
                   return <TableCell key={state.id} align="right">-</TableCell>;
                 }
                 
                 return (
                   <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
-                    {formatCurrency(result.candyJumpCosts.totalCost)}
-                  </TableCell>
-                );
-              })}
-            </TableRow>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 'bold' }}>Stacked Candy Cost</TableCell>
-              {comparisonStates.map((state) => {
-                const result = results[state.id];
-                if (!result || !result.stackedCandyJumpCosts) {
-                  return <TableCell key={state.id} align="right">-</TableCell>;
-                }
-                
-                return (
-                  <TableCell key={state.id} align="right" sx={{ fontSize: '0.875rem' }}>
-                    {formatCurrency(result.stackedCandyJumpCosts.totalCost)}
+                    {formatCurrency(totalCandyCost)}
                   </TableCell>
                 );
               })}

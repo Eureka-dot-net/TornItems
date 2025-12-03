@@ -172,8 +172,7 @@ export interface CostBreakdown {
   edvdCost: number;
   xanaxCost: number;
   pointsCost: number;
-  candyCost: number;
-  stackedCandyCost: number;
+  candyCost: number;  // Combined half candy + stacked candy costs
   energyCost: number;
   lossReviveIncome: number;
   islandCost: number;
@@ -193,12 +192,15 @@ export function extractCostBreakdown(result: {
   lossReviveIncome?: { totalIncome: number };
   islandCosts?: { totalCost: number };
 }): CostBreakdown {
+  // Combine both half candy and stacked candy costs into a single candy cost
+  const halfCandyCost = result.candyJumpCosts?.totalCost || 0;
+  const stackedCandyCost = result.stackedCandyJumpCosts?.totalCost || 0;
+  
   return {
     edvdCost: result.edvdJumpCosts?.totalCost || 0,
     xanaxCost: result.xanaxCosts?.totalCost || 0,
     pointsCost: result.pointsRefillCosts?.totalCost || 0,
-    candyCost: result.candyJumpCosts?.totalCost || 0,
-    stackedCandyCost: result.stackedCandyJumpCosts?.totalCost || 0,
+    candyCost: halfCandyCost + stackedCandyCost,
     energyCost: result.energyJumpCosts?.totalCost || 0,
     lossReviveIncome: result.lossReviveIncome?.totalIncome || 0,
     islandCost: result.islandCosts?.totalCost || 0,
@@ -215,7 +217,6 @@ export function calculateTotalCost(breakdown: CostBreakdown): number {
     breakdown.xanaxCost +
     breakdown.pointsCost +
     breakdown.candyCost +
-    breakdown.stackedCandyCost +
     breakdown.energyCost +
     breakdown.islandCost -
     breakdown.lossReviveIncome
