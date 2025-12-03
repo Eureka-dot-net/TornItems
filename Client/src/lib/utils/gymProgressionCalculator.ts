@@ -108,6 +108,44 @@ function calculateStackedJumpEnergy(config: StackedJumpEnergyConfig): number {
   return jumpEnergy;
 }
 
+/**
+ * Configuration for calculating post-jump energy (used by both eDVD and Stacked Candy jumps)
+ */
+interface PostJumpEnergyConfig {
+  maxEnergyValue: number;        // User's max energy (100 or 150)
+  xanaxPerDay: number;           // How many xanax the user normally takes per day
+}
+
+/**
+ * Calculate post-jump energy (energy available after the jump for normal training)
+ * This is a shared helper function to avoid code duplication between jump types.
+ * 
+ * Post-jump energy calculation:
+ * - Natural regen: 12 hours × (20 or 30 energy/hour depending on max energy)
+ * - Extra xanax: If user normally takes 3 xanax/day, they can take 1 more after the jump
+ * 
+ * @param config - Configuration for post-jump energy
+ * @returns Total post-jump energy
+ */
+function calculatePostJumpEnergy(config: PostJumpEnergyConfig): number {
+  const { maxEnergyValue, xanaxPerDay } = config;
+  
+  // Natural energy regen rate
+  const energyPerHour = maxEnergyValue === 100 ? 20 : 30;
+  
+  // Calculate remaining time in the day after the jump
+  // Assume jump happens mid-day, leaving ~12 hours for natural regen and training
+  const remainingHours = 12;
+  let postJumpEnergy = remainingHours * energyPerHour;
+  
+  // If user normally takes 3 xanax/day, they can take 1 more after the jump
+  if (xanaxPerDay >= 3) {
+    postJumpEnergy += 250; // One extra xanax
+  }
+  
+  return postJumpEnergy;
+}
+
 export interface Gym {
   name: string;
   displayName: string;
@@ -1120,19 +1158,11 @@ export function simulateGymProgression(
       const dvdHappinessPerDvd = inputs.edvdJump.adultNovelties ? 5000 : 2500;
       currentHappy = (inputs.happy + dvdHappinessPerDvd * inputs.edvdJump.dvdsUsed) * 2;
       
-      // Post-jump energy (energy available after the jump for normal training)
-      // This includes natural regen and potentially one more Xanax if user normally takes 3 Xanax/day
-      const energyPerHour = maxEnergyValue === 100 ? 20 : 30;
-      
-      // Calculate remaining time in the day after the jump
-      // Assume jump happens mid-day, leaving ~12 hours for natural regen and training
-      const remainingHours = 12;
-      postJumpEnergy = remainingHours * energyPerHour;
-      
-      // If user normally takes 3 Xanax/day, they can take one more after the jump
-      if (inputs.xanaxPerDay >= 3) {
-        postJumpEnergy += 250; // One Xanax
-      }
+      // Use shared helper for post-jump energy calculation
+      postJumpEnergy = calculatePostJumpEnergy({
+        maxEnergyValue,
+        xanaxPerDay: inputs.xanaxPerDay,
+      });
       
       // Set total energy for today: jump energy + post-jump energy
       energyAvailableToday = jumpEnergy + postJumpEnergy;
@@ -1189,32 +1219,11 @@ export function simulateGymProgression(
       const candyQuantity = inputs.stackedCandyJump.quantity;
       currentHappy = (inputs.happy + effectiveCandyHappy * candyQuantity) * 2;
       
-      // Post-jump energy (energy available after the jump for normal training)
-      // This includes natural regen and potentially one more Xanax if user normally takes enough
-      const energyPerHour = maxEnergyValue === 100 ? 20 : 30;
-      
-      // Calculate remaining time in the day after the jump
-      // Assume jump happens mid-day, leaving ~12 hours for natural regen and training
-      const remainingHours = 12;
-      postJumpEnergy = remainingHours * energyPerHour;
-      
-      // Calculate how many xanax can be used after the jump
-      // Day before: used (xanaxStacked - 1) xanax for stacking
-      // Jump day: used 1 xanax to complete the stack
-      // After jump: can use remaining xanax if user normally takes more than xanaxStacked
-      // Note: A user can only use 3 xanax per day maximum
-      const xanaxUsedForJump = 1; // Always 1 xanax on jump day to complete the stack
-      
-      // If user uses 3 xanax per day and stacked less than 3+1=4, they can use extra after jump
-      // e.g., if they stack 2 xanax total (1 day before + 1 jump day) and normally use 3/day,
-      // they used 1 xanax day before, leaving 2 for that day
-      // on jump day they use 1 to complete stack, leaving 2 more for post-jump (capped at daily limit)
-      if (inputs.xanaxPerDay >= 3 && xanaxUsedForJump < 3) {
-        const extraXanaxAfterJump = Math.min(3 - xanaxUsedForJump, inputs.xanaxPerDay - xanaxUsedForJump);
-        if (extraXanaxAfterJump > 0) {
-          postJumpEnergy += extraXanaxAfterJump * 250;
-        }
-      }
+      // Use shared helper for post-jump energy calculation
+      postJumpEnergy = calculatePostJumpEnergy({
+        maxEnergyValue,
+        xanaxPerDay: inputs.xanaxPerDay,
+      });
       
       // Set total energy for today: jump energy + post-jump energy
       energyAvailableToday = jumpEnergy + postJumpEnergy;
