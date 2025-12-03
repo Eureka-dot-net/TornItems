@@ -163,3 +163,61 @@ export function getDefensiveBuildRatio(primaryStat: 'defense' | 'dexterity'): St
     return { strength: 1, speed: 1, defense: 0, dexterity: 1.25 };
   }
 }
+
+/**
+ * Cost breakdown from a simulation result
+ * Includes all costs and income for accurate total calculation
+ */
+export interface CostBreakdown {
+  edvdCost: number;
+  xanaxCost: number;
+  pointsCost: number;
+  candyCost: number;
+  stackedCandyCost: number;
+  energyCost: number;
+  lossReviveIncome: number;
+  islandCost: number;
+}
+
+/**
+ * Extract cost breakdown from a simulation result
+ * This helper centralizes the cost extraction logic to avoid duplication
+ */
+export function extractCostBreakdown(result: {
+  edvdJumpCosts?: { totalCost: number };
+  xanaxCosts?: { totalCost: number };
+  pointsRefillCosts?: { totalCost: number };
+  candyJumpCosts?: { totalCost: number };
+  stackedCandyJumpCosts?: { totalCost: number };
+  energyJumpCosts?: { totalCost: number };
+  lossReviveIncome?: { totalIncome: number };
+  islandCosts?: { totalCost: number };
+}): CostBreakdown {
+  return {
+    edvdCost: result.edvdJumpCosts?.totalCost || 0,
+    xanaxCost: result.xanaxCosts?.totalCost || 0,
+    pointsCost: result.pointsRefillCosts?.totalCost || 0,
+    candyCost: result.candyJumpCosts?.totalCost || 0,
+    stackedCandyCost: result.stackedCandyJumpCosts?.totalCost || 0,
+    energyCost: result.energyJumpCosts?.totalCost || 0,
+    lossReviveIncome: result.lossReviveIncome?.totalIncome || 0,
+    islandCost: result.islandCosts?.totalCost || 0,
+  };
+}
+
+/**
+ * Calculate total cost from a cost breakdown
+ * This includes all costs minus any income (loss/revive)
+ */
+export function calculateTotalCost(breakdown: CostBreakdown): number {
+  return (
+    breakdown.edvdCost +
+    breakdown.xanaxCost +
+    breakdown.pointsCost +
+    breakdown.candyCost +
+    breakdown.stackedCandyCost +
+    breakdown.energyCost +
+    breakdown.islandCost -
+    breakdown.lossReviveIncome
+  );
+}
