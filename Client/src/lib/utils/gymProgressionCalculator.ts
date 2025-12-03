@@ -1063,8 +1063,9 @@ export function simulateGymProgression(
       
       isJumpDay = true;
       
-      // Jump energy: 1000 (4 xanax) + natural energy bar (100 or 150)
-      jumpEnergy = 1000 + maxEnergyValue;
+      // Jump energy: 1000 (4 xanax stacked) - no natural energy added for eDVD jumps
+      // You stack xanax to reach 1000 energy cap, natural energy is not part of the jump
+      jumpEnergy = 1000;
       
       // Add point refill energy if user uses daily point refills
       if (inputs.hasPointsRefill) {
