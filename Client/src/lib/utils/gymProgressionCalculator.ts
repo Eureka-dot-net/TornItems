@@ -1056,7 +1056,7 @@ export function simulateGymProgression(
       // 3. Use 1 Ecstasy (consumes a drug slot, replaces a Xanax slot in cooldown)
       // 4. After cooldown completes → perform the jump:
       //    - Spend ALL available energy at boosted happy
-      //    - eDVD jump energy spent: 1150 energy (1000 from 4 xanax + 150 natural energy)
+      //    - eDVD jump energy: 1000 from 4 xanax (+ 150 point refill if applicable)
       // 5. After the jump, continue normal training:
       //    - Natural energy regen
       //    - If user normally takes 3 Xanax/day → consume one more Xanax after the jump
