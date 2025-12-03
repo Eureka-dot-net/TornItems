@@ -2235,14 +2235,12 @@ export function simulateGymProgression(
     }
     
     // Calculate Stacked Candy jump costs
-    if (inputs.stackedCandyJump?.enabled && inputs.itemPrices.xanaxPrice !== null && 
-        inputs.itemPrices.ecstasyPrice !== null && inputs.itemPrices.candyPrices) {
+    if (inputs.stackedCandyJump?.enabled && inputs.itemPrices.candyPrices) {
       const candyPrice = inputs.itemPrices.candyPrices[inputs.stackedCandyJump.itemId as keyof typeof inputs.itemPrices.candyPrices];
       
       if (candyPrice !== null && candyPrice !== undefined) {
-        const costPerJump = (inputs.stackedCandyJump.quantity * candyPrice) + 
-                            (4 * inputs.itemPrices.xanaxPrice) + 
-                            inputs.itemPrices.ecstasyPrice;
+        // Calculate candy cost ONLY (xanax and ecstasy are separate costs)
+        const costPerJump = inputs.stackedCandyJump.quantity * candyPrice;
         
         stackedCandyJumpCosts = {
           totalJumps: stackedCandyJumpsPerformed,
