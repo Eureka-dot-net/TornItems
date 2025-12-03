@@ -34,6 +34,9 @@ interface StatJumpsSectionProps {
   stackedCandyJumpLimit: 'indefinite' | 'count' | 'stat';
   stackedCandyJumpCount: number;
   stackedCandyJumpStatTarget: number;
+  stackedCandyJumpUsePointRefill: boolean;
+  stackedCandyJumpXanaxStacked: number;
+  stackedCandyJumpStackOnNaturalEnergy: boolean;
 
   // Energy Jump
   energyJumpEnabled: boolean;
@@ -82,6 +85,9 @@ interface StatJumpsSectionProps {
     stackedCandyJumpLimit?: 'indefinite' | 'count' | 'stat';
     stackedCandyJumpCount?: number;
     stackedCandyJumpStatTarget?: number;
+    stackedCandyJumpUsePointRefill?: boolean;
+    stackedCandyJumpXanaxStacked?: number;
+    stackedCandyJumpStackOnNaturalEnergy?: boolean;
     energyJumpEnabled?: boolean;
     energyJumpItemId?: number;
     energyJumpQuantity?: number;
@@ -143,6 +149,10 @@ export default function StatJumpsSection(props: StatJumpsSectionProps) {
           limit={props.stackedCandyJumpLimit}
           count={props.stackedCandyJumpCount}
           statTarget={props.stackedCandyJumpStatTarget}
+          usePointRefill={props.stackedCandyJumpUsePointRefill}
+          xanaxStacked={props.stackedCandyJumpXanaxStacked}
+          stackOnNaturalEnergy={props.stackedCandyJumpStackOnNaturalEnergy}
+          hasPointsRefill={props.hasPointsRefill}
           showCosts={props.showCosts}
           itemPricesData={props.itemPricesData}
           onUpdate={props.onUpdate}

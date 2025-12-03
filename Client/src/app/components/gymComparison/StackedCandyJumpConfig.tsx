@@ -8,6 +8,7 @@ import {
   MenuItem,
   Typography,
   Alert,
+  Box,
 } from '@mui/material';
 import {
   CANDY_ITEM_IDS,
@@ -25,6 +26,10 @@ interface StackedCandyJumpConfigProps {
   limit: 'indefinite' | 'count' | 'stat';
   count: number;
   statTarget: number;
+  usePointRefill: boolean;
+  xanaxStacked: number;
+  stackOnNaturalEnergy: boolean;
+  hasPointsRefill: boolean; // Whether user already uses daily points refill
   showCosts: boolean;
   itemPricesData?: {
     prices: Record<number, number | null>;
@@ -38,6 +43,9 @@ interface StackedCandyJumpConfigProps {
     stackedCandyJumpLimit?: 'indefinite' | 'count' | 'stat';
     stackedCandyJumpCount?: number;
     stackedCandyJumpStatTarget?: number;
+    stackedCandyJumpUsePointRefill?: boolean;
+    stackedCandyJumpXanaxStacked?: number;
+    stackedCandyJumpStackOnNaturalEnergy?: boolean;
   }) => void;
 }
 
@@ -50,6 +58,10 @@ export default function StackedCandyJumpConfig({
   limit,
   count,
   statTarget,
+  usePointRefill,
+  xanaxStacked,
+  stackOnNaturalEnergy,
+  hasPointsRefill,
   showCosts,
   itemPricesData,
   onUpdate,
@@ -72,7 +84,7 @@ export default function StackedCandyJumpConfig({
           <Alert severity="info" sx={{ mt: 1, mb: 2 }}>
             <Typography variant="body2">
               A <strong>Stacked Candy Jump</strong> works like an eDVD jump but uses candies instead of DVDs.
-              You stack 3 xanax over 16 hours before the jump, then on jump day use 1 more xanax and 1 ecstasy
+              You stack xanax before the jump, then on jump day use 1 more xanax and 1 ecstasy
               along with candies to get a happiness boost for enhanced training.
             </Typography>
           </Alert>
@@ -91,6 +103,73 @@ export default function StackedCandyJumpConfig({
             size="small"
             inputProps={{ step: 'any', min: 1 }}
           />
+
+          <Box sx={{ mt: 2, mb: 1 }}>
+            <Typography variant="subtitle2" color="primary" gutterBottom>
+              Xanax Stacking Options
+            </Typography>
+          </Box>
+
+          <TextField
+            label="Number of Xanax to Stack"
+            type="number"
+            value={xanaxStacked ?? 4}
+            onChange={(e) => {
+              const value = e.target.value === '' ? 4 : Math.min(4, Math.max(1, Number(e.target.value)));
+              onUpdate({ stackedCandyJumpXanaxStacked: value });
+            }}
+            fullWidth
+            margin="dense"
+            size="small"
+            inputProps={{ step: 1, min: 1, max: 4 }}
+            helperText="1-4 xanax. 4 xanax = 1000 energy, 3 = 750, 2 = 500, 1 = 250"
+          />
+
+          {xanaxStacked < 4 && (
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={stackOnNaturalEnergy}
+                  onChange={(e) => onUpdate({ stackedCandyJumpStackOnNaturalEnergy: e.target.checked })}
+                  size="small"
+                />
+              }
+              label="Stack on top of natural energy bar"
+              sx={{ mt: 1, display: 'block' }}
+            />
+          )}
+
+          {xanaxStacked < 4 && stackOnNaturalEnergy && (
+            <Typography variant="caption" sx={{ display: 'block', ml: 4, color: 'text.secondary' }}>
+              Your energy bar will be added to the stacked xanax energy at jump time
+            </Typography>
+          )}
+
+          {!hasPointsRefill && (
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={usePointRefill}
+                  onChange={(e) => onUpdate({ stackedCandyJumpUsePointRefill: e.target.checked })}
+                  size="small"
+                />
+              }
+              label="Use point refill during jump"
+              sx={{ mt: 1, display: 'block' }}
+            />
+          )}
+
+          {!hasPointsRefill && usePointRefill && (
+            <Typography variant="caption" sx={{ display: 'block', ml: 4, color: 'text.secondary' }}>
+              Point refill energy will be added to your jump energy
+            </Typography>
+          )}
+
+          <Box sx={{ mt: 2, mb: 1 }}>
+            <Typography variant="subtitle2" color="primary" gutterBottom>
+              Candy Configuration
+            </Typography>
+          </Box>
 
           <FormControl fullWidth margin="dense" size="small">
             <InputLabel>Candy Type</InputLabel>
@@ -191,7 +270,7 @@ export default function StackedCandyJumpConfig({
           )}
 
           <Typography variant="caption" sx={{ display: 'block', mt: 2, color: 'text.secondary' }}>
-            One stacked candy jump every {frequency} day{frequency > 1 ? 's' : ''} using {quantity} candies
+            One stacked candy jump every {frequency} day{frequency > 1 ? 's' : ''} using {quantity} candies with {xanaxStacked} xanax stacked
             {showCosts && itemPricesData && itemPricesData.prices[itemId] !== null && (() => {
               const candyPrice = itemPricesData.prices[itemId]!;
               const costPerJump = quantity * candyPrice;

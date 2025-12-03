@@ -66,6 +66,86 @@ function calculateEnergyFromItems(
   return extraEnergy;
 }
 
+/**
+ * Configuration for calculating stacked jump energy (used by both eDVD and Stacked Candy jumps)
+ */
+interface StackedJumpEnergyConfig {
+  xanaxStacked: number;          // Number of xanax stacked (1-4)
+  maxEnergyValue: number;        // User's max energy (100 or 150)
+  hasPointsRefill: boolean;      // Whether user uses daily point refills
+  usePointRefillForJump?: boolean; // Whether to use point refill for this specific jump (only relevant if !hasPointsRefill)
+  stackOnNaturalEnergy?: boolean; // Whether to add natural energy bar to jump (only relevant if xanaxStacked < 4)
+}
+
+/**
+ * Calculate energy for a stacked jump (eDVD or Stacked Candy)
+ * This is a shared helper function to avoid code duplication between jump types.
+ * 
+ * Energy calculation:
+ * - Base energy: xanaxStacked * 250 (capped at 1000)
+ * - Natural energy: Added if stackOnNaturalEnergy is true AND xanaxStacked < 4
+ * - Point refill: Added if user has daily point refills OR opts to use one for the jump
+ * 
+ * @param config - Configuration for the stacked jump
+ * @returns Total jump energy
+ */
+function calculateStackedJumpEnergy(config: StackedJumpEnergyConfig): number {
+  const { xanaxStacked, maxEnergyValue, hasPointsRefill, usePointRefillForJump, stackOnNaturalEnergy } = config;
+  
+  // Base energy from xanax: 250 energy per xanax stacked, capped at 1000
+  let jumpEnergy = Math.min(1000, xanaxStacked * 250);
+  
+  // Add natural energy bar if stacking on natural energy (only relevant when xanaxStacked < 4)
+  if (stackOnNaturalEnergy && xanaxStacked < 4) {
+    jumpEnergy += maxEnergyValue;
+  }
+  
+  // Add point refill energy if user uses daily point refills OR opts to use one for this jump
+  if (hasPointsRefill || usePointRefillForJump) {
+    jumpEnergy += maxEnergyValue;
+  }
+  
+  return jumpEnergy;
+}
+
+/**
+ * Configuration for calculating post-jump energy (used by both eDVD and Stacked Candy jumps)
+ */
+interface PostJumpEnergyConfig {
+  maxEnergyValue: number;        // User's max energy (100 or 150)
+  xanaxPerDay: number;           // How many xanax the user normally takes per day
+}
+
+/**
+ * Calculate post-jump energy (energy available after the jump for normal training)
+ * This is a shared helper function to avoid code duplication between jump types.
+ * 
+ * Post-jump energy calculation:
+ * - Natural regen: 12 hours × (20 or 30 energy/hour depending on max energy)
+ * - Extra xanax: If user normally takes 3 xanax/day, they can take 1 more after the jump
+ * 
+ * @param config - Configuration for post-jump energy
+ * @returns Total post-jump energy
+ */
+function calculatePostJumpEnergy(config: PostJumpEnergyConfig): number {
+  const { maxEnergyValue, xanaxPerDay } = config;
+  
+  // Natural energy regen rate
+  const energyPerHour = maxEnergyValue === 100 ? 20 : 30;
+  
+  // Calculate remaining time in the day after the jump
+  // Assume jump happens mid-day, leaving ~12 hours for natural regen and training
+  const remainingHours = 12;
+  let postJumpEnergy = remainingHours * energyPerHour;
+  
+  // If user normally takes 3 xanax/day, they can take 1 more after the jump
+  if (xanaxPerDay >= 3) {
+    postJumpEnergy += 250; // One extra xanax
+  }
+  
+  return postJumpEnergy;
+}
+
 export interface Gym {
   name: string;
   displayName: string;
@@ -163,6 +243,9 @@ export interface SimulationInputs {
     limit: 'indefinite' | 'count' | 'stat';
     count?: number; // Number of jumps to perform when limit is 'count'
     statTarget?: number; // Individual stat target when limit is 'stat'
+    usePointRefill?: boolean; // Does user use point refill during stacked candy jump?
+    xanaxStacked?: number; // How many xanax to stack (1-4, default 4)
+    stackOnNaturalEnergy?: boolean; // If less than 4 xanax, stack on top of natural energy?
   };
   energyJump?: {
     enabled: boolean;
@@ -994,25 +1077,61 @@ export function simulateGymProgression(
     const isDayBeforeDdJump = diabetesDayJumpDays.some(ddDay => day === ddDay - 1) && !isSkipped;
     
     // If it's the day before an eDVD, Stacked Candy, or DD jump, adjust energy for stacking
-    // Stacking logic: User stacks 3 Xanax over 16 hours (0 energy spent during stacking)
-    // Outside the 16-hour window: ~8 hours of sleep = ~150 energy from natural regen (if maxEnergy=150)
-    // If daily points refill is used: also spend that energy
+    // Stacking logic: User stacks X Xanax over time (0 energy spent during stacking window)
+    // For stacked candy jumps, the number of xanax stacked is configurable (1-4)
     if (isDayBeforeEdvdJump || isDayBeforeStackedCandyJump || isDayBeforeDdJump) {
-      // Calculate energy available outside stacking window
-      // Natural energy regen during ~8 hours sleep (assuming user plays less during stacking day)
-      const energyPerHour = maxEnergyValue === 100 ? 20 : 30;
-      const sleepEnergy = Math.min(maxEnergyValue, 8 * energyPerHour); // ~150 for maxEnergy=150, ~100 for maxEnergy=100
+      // Determine how many xanax are being stacked the day before
+      // For eDVD and DD jumps: always 3 xanax (standard behavior)
+      // For stacked candy jumps: based on user's xanaxStacked setting
+      let xanaxStackedDayBefore = 3; // Default for eDVD/DD
       
-      // Start with sleep energy
-      energyAvailableToday = sleepEnergy;
-      
-      // Add points refill if enabled
-      if (inputs.hasPointsRefill) {
-        energyAvailableToday += maxEnergyValue;
+      if (isDayBeforeStackedCandyJump && inputs.stackedCandyJump) {
+        const totalXanaxToStack = inputs.stackedCandyJump.xanaxStacked ?? 4;
+        // Day before: stack (totalXanaxToStack - 1) xanax, because 1 is taken on jump day
+        xanaxStackedDayBefore = Math.max(0, totalXanaxToStack - 1);
       }
       
-      const jumpType = isDayBeforeEdvdJump ? 'eDVD' : isDayBeforeStackedCandyJump ? 'Stacked Candy' : 'DD';
-      dailyNotes.push(`Stacking for ${jumpType} jump (3 Xanax over 16 hours, using natural regen outside stacking window)`);
+      if (xanaxStackedDayBefore === 0) {
+        // No stacking the day before - normal day with full energy
+        // This happens when user only stacks 1 xanax (taken on jump day)
+        // Normal energy calculation applies
+        const jumpType = isDayBeforeEdvdJump ? 'eDVD' : isDayBeforeStackedCandyJump ? 'Stacked Candy' : 'DD';
+        dailyNotes.push(`Day before ${jumpType} jump (no stacking needed, normal training day)`);
+      } else {
+        // On stacking day, user has their natural energy bar (from overnight regen) plus point refill
+        // They can spend this energy BEFORE starting the stacking window
+        // The stacking window itself doesn't reduce available energy - the user just isn't training
+        // during the stacking period because they're waiting for xanax cooldowns
+        
+        // Determine if user is stacking on natural energy (saving it for jump day)
+        const stackingOnNaturalEnergy = isDayBeforeStackedCandyJump && 
+          inputs.stackedCandyJump?.stackOnNaturalEnergy && 
+          (inputs.stackedCandyJump?.xanaxStacked ?? 4) < 4;
+        
+        // Start with natural energy bar ONLY if NOT stacking on natural energy
+        // If stacking on natural energy, the user saves their energy bar for the jump
+        energyAvailableToday = stackingOnNaturalEnergy ? 0 : maxEnergyValue;
+        
+        // Add points refill if enabled (still available on stacking day)
+        if (inputs.hasPointsRefill) {
+          energyAvailableToday += maxEnergyValue;
+        }
+        
+        // For stacked candy jumps: if user uses more xanax per day than they're stacking,
+        // they can use additional xanax for training the day before
+        if (isDayBeforeStackedCandyJump && inputs.stackedCandyJump) {
+          // Extra xanax available = daily xanax usage - xanax stacked day before
+          // But only if they use 3 xanax per day (the max outside of stacking)
+          const extraXanax = Math.max(0, inputs.xanaxPerDay - xanaxStackedDayBefore);
+          if (extraXanax > 0) {
+            energyAvailableToday += extraXanax * 250;
+          }
+        }
+        
+        const jumpType = isDayBeforeEdvdJump ? 'eDVD' : isDayBeforeStackedCandyJump ? 'Stacked Candy' : 'DD';
+        const stackingNote = stackingOnNaturalEnergy ? ' (saving natural energy for jump)' : '';
+        dailyNotes.push(`Stacking for ${jumpType} jump (${xanaxStackedDayBefore} Xanax, spending energy before stacking begins${stackingNote})`);
+      }
     }
     
     if (shouldPerformEdvdJump && inputs.edvdJump) {
@@ -1024,40 +1143,40 @@ export function simulateGymProgression(
       // 3. Use 1 Ecstasy (consumes a drug slot, replaces a Xanax slot in cooldown)
       // 4. After cooldown completes → perform the jump:
       //    - Spend ALL available energy at boosted happy
-      //    - eDVD jump energy spent: 1150 energy
+      //    - eDVD jump energy: 1000 from 4 xanax (+ 150 point refill if applicable)
       // 5. After the jump, continue normal training:
       //    - Natural energy regen
       //    - If user normally takes 3 Xanax/day → consume one more Xanax after the jump
       
       isJumpDay = true;
       
-      // Jump energy: exactly 1150 energy
-      jumpEnergy = 1150;
+      // Use shared helper for jump energy calculation
+      // eDVD jumps always use 4 xanax, no stacking on natural energy
+      jumpEnergy = calculateStackedJumpEnergy({
+        xanaxStacked: 4,
+        maxEnergyValue,
+        hasPointsRefill: inputs.hasPointsRefill,
+        usePointRefillForJump: false, // eDVD assumes daily point refill users will use it
+        stackOnNaturalEnergy: false,  // eDVD doesn't stack on natural energy
+      });
       
       // Happy during jump
       // DVD happiness: 2500 per DVD normally, 5000 per DVD with Adult Novelties
       const dvdHappinessPerDvd = inputs.edvdJump.adultNovelties ? 5000 : 2500;
       currentHappy = (inputs.happy + dvdHappinessPerDvd * inputs.edvdJump.dvdsUsed) * 2;
       
-      // Post-jump energy (energy available after the jump for normal training)
-      // This includes natural regen and potentially one more Xanax if user normally takes 3 Xanax/day
-      const energyPerHour = maxEnergyValue === 100 ? 20 : 30;
-      
-      // Calculate remaining time in the day after the jump
-      // Assume jump happens mid-day, leaving ~12 hours for natural regen and training
-      const remainingHours = 12;
-      postJumpEnergy = remainingHours * energyPerHour;
-      
-      // If user normally takes 3 Xanax/day, they can take one more after the jump
-      if (inputs.xanaxPerDay >= 3) {
-        postJumpEnergy += 250; // One Xanax
-      }
+      // Use shared helper for post-jump energy calculation
+      postJumpEnergy = calculatePostJumpEnergy({
+        maxEnergyValue,
+        xanaxPerDay: inputs.xanaxPerDay,
+      });
       
       // Set total energy for today: jump energy + post-jump energy
       energyAvailableToday = jumpEnergy + postJumpEnergy;
       
       // Add note about eDVD jump
-      dailyNotes.push(`eDVD jump: Used ${inputs.edvdJump.dvdsUsed} DVD${inputs.edvdJump.dvdsUsed > 1 ? 's' : ''}, 1 Ecstasy${inputs.edvdJump.adultNovelties ? ' (with 10★ Adult Novelties)' : ''}`);
+      const pointRefillNote = inputs.hasPointsRefill ? ' + point refill' : '';
+      dailyNotes.push(`eDVD jump: Used ${inputs.edvdJump.dvdsUsed} DVD${inputs.edvdJump.dvdsUsed > 1 ? 's' : ''}, 1 Ecstasy${inputs.edvdJump.adultNovelties ? ' (with 10★ Adult Novelties)' : ''}${pointRefillNote}`);
       
       // Increment jump counter and schedule next jump
       edvdJumpsPerformed++;
@@ -1073,23 +1192,23 @@ export function simulateGymProgression(
     }
     
     if (shouldPerformStackedCandyJump && inputs.stackedCandyJump) {
-      // Stacked Candy jump calculation (SIMILAR TO eDVD):
-      // Day before: Stack 3 Xanax over 16 hours (handled above)
-      // Jump day:
-      // 1. On wake-up, stack 1 more Xanax
-      // 2. Wait 8 hours for cooldown
-      // 3. Use 1 Ecstasy (consumes a drug slot, replaces a Xanax slot in cooldown)
-      // 4. After cooldown completes → perform the jump:
-      //    - Spend ALL available energy at boosted happy
-      //    - Stacked Candy jump energy spent: 1150 energy
-      // 5. After the jump, continue normal training:
-      //    - Natural energy regen
-      //    - If user normally takes 3 Xanax/day → consume one more Xanax after the jump
+      // Stacked Candy jump calculation:
+      // The number of xanax stacked is configurable (1-4)
+      // Jump energy depends on xanax stacked and whether stacking on natural energy
       
       isJumpDay = true;
       
-      // Jump energy: exactly 1150 energy
-      jumpEnergy = 1150;
+      // Calculate jump energy using shared helper function
+      const xanaxStacked = inputs.stackedCandyJump.xanaxStacked ?? 4;
+      const stackOnNaturalEnergy = inputs.stackedCandyJump.stackOnNaturalEnergy ?? false;
+      
+      jumpEnergy = calculateStackedJumpEnergy({
+        xanaxStacked,
+        maxEnergyValue,
+        hasPointsRefill: inputs.hasPointsRefill,
+        usePointRefillForJump: inputs.stackedCandyJump.usePointRefill,
+        stackOnNaturalEnergy,
+      });
       
       // Get base candy happiness
       const baseCandyHappy = CANDY_HAPPINESS_MAP[inputs.stackedCandyJump.itemId];
@@ -1107,19 +1226,11 @@ export function simulateGymProgression(
       const candyQuantity = inputs.stackedCandyJump.quantity;
       currentHappy = (inputs.happy + effectiveCandyHappy * candyQuantity) * 2;
       
-      // Post-jump energy (energy available after the jump for normal training)
-      // This includes natural regen and potentially one more Xanax if user normally takes 3 Xanax/day
-      const energyPerHour = maxEnergyValue === 100 ? 20 : 30;
-      
-      // Calculate remaining time in the day after the jump
-      // Assume jump happens mid-day, leaving ~12 hours for natural regen and training
-      const remainingHours = 12;
-      postJumpEnergy = remainingHours * energyPerHour;
-      
-      // If user normally takes 3 Xanax/day, they can take one more after the jump
-      if (inputs.xanaxPerDay >= 3) {
-        postJumpEnergy += 250; // One Xanax
-      }
+      // Use shared helper for post-jump energy calculation
+      postJumpEnergy = calculatePostJumpEnergy({
+        maxEnergyValue,
+        xanaxPerDay: inputs.xanaxPerDay,
+      });
       
       // Set total energy for today: jump energy + post-jump energy
       energyAvailableToday = jumpEnergy + postJumpEnergy;
@@ -1128,7 +1239,9 @@ export function simulateGymProgression(
       const factionBenefitNote = inputs.stackedCandyJump.factionBenefitPercent && inputs.stackedCandyJump.factionBenefitPercent > 0
         ? ` (+${inputs.stackedCandyJump.factionBenefitPercent}% faction perk)`
         : '';
-      dailyNotes.push(`Stacked Candy jump: Used ${candyQuantity} candies (${baseCandyHappy} happy${factionBenefitNote}), 1 Ecstasy`);
+      const naturalEnergyNote = stackOnNaturalEnergy && xanaxStacked < 4 ? ` + natural energy` : '';
+      const pointRefillNote = inputs.hasPointsRefill || inputs.stackedCandyJump.usePointRefill ? ` + point refill` : '';
+      dailyNotes.push(`Stacked Candy jump: ${xanaxStacked} Xanax stacked${naturalEnergyNote}${pointRefillNote}, ${candyQuantity} candies (${baseCandyHappy} happy${factionBenefitNote}), 1 Ecstasy`);
       
       // Increment jump counter and schedule next jump
       stackedCandyJumpsPerformed++;
@@ -1702,11 +1815,15 @@ export function simulateGymProgression(
             totalEnergySpent += gym.energyPerTrain;
             remainingEnergy -= gym.energyPerTrain;
             
-            // For jump days, also decrement the appropriate phase-specific energy counter
+            // For jump days, track which phase this training belongs to BEFORE decrementing counters
+            // This ensures the last training action's energy is properly attributed to the correct phase
+            let trainingPhase: 'jump' | 'postJump' | 'regular' = 'regular';
             if (isJumpDay) {
               if (remainingJumpEnergy > 0) {
+                trainingPhase = 'jump';
                 remainingJumpEnergy -= gym.energyPerTrain;
               } else if (remainingPostJumpEnergy > 0) {
+                trainingPhase = 'postJump';
                 remainingPostJumpEnergy -= gym.energyPerTrain;
               }
             }
@@ -1716,13 +1833,13 @@ export function simulateGymProgression(
             // Track training details
             // For eDVD/DD/Stacked Candy jump days, track separately for jump and post-jump phases
             if (isJumpDay && (shouldPerformEdvdJump || isDiabetesDayJump || shouldPerformStackedCandyJump)) {
-              if (remainingJumpEnergy > 0) {
+              if (trainingPhase === 'jump') {
                 // This training is part of the jump phase
                 if (!jumpTrainingDetails[selectedStat]) {
                   jumpTrainingDetails[selectedStat] = { gym: gym.displayName, energy: 0 };
                 }
                 jumpTrainingDetails[selectedStat]!.energy += gym.energyPerTrain;
-              } else if (remainingPostJumpEnergy > 0) {
+              } else if (trainingPhase === 'postJump') {
                 // This training is part of the post-jump phase
                 if (!postJumpTrainingDetails[selectedStat]) {
                   postJumpTrainingDetails[selectedStat] = { gym: gym.displayName, energy: 0 };

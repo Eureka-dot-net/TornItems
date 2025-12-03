@@ -521,6 +521,9 @@ export default function SectionedComparisonConfig({
                 stackedCandyJumpLimit={section.stackedCandyJumpLimit}
                 stackedCandyJumpCount={section.stackedCandyJumpCount}
                 stackedCandyJumpStatTarget={section.stackedCandyJumpStatTarget}
+                stackedCandyJumpUsePointRefill={section.stackedCandyJumpUsePointRefill ?? false}
+                stackedCandyJumpXanaxStacked={section.stackedCandyJumpXanaxStacked ?? 4}
+                stackedCandyJumpStackOnNaturalEnergy={section.stackedCandyJumpStackOnNaturalEnergy ?? false}
                 energyJumpEnabled={section.energyJumpEnabled}
                 energyJumpItemId={section.energyJumpItemId}
                 energyJumpQuantity={section.energyJumpQuantity}
