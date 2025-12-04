@@ -16,6 +16,7 @@ import CandyJumpWizardSubStep from '../components/gymWizard/CandyJumpWizardSubSt
 import StackedCandyJumpWizardSubStep from '../components/gymWizard/StackedCandyJumpWizardSubStep';
 import EnergyJumpWizardSubStep from '../components/gymWizard/EnergyJumpWizardSubStep';
 import FhcJumpWizardSubStep from '../components/gymWizard/FhcJumpWizardSubStep';
+import SupportCardsSection from '../components/shared/SupportCardsSection';
 import { 
   convertWizardSelectionsToStatWeights, 
   convertTrainByPerksToStatDrift,
@@ -54,6 +55,16 @@ const TRAINING_REGIME_STEP = 5;
 const LOSS_REVIVE_STEP = 6;
 const SELECT_AREAS_STEP = 7;
 const COMPARISON_PHASE_START_STEP = 8;
+
+// Helper to safely load a value from wizard localStorage
+const loadWizardValue = <T,>(key: string, defaultValue: T): T => {
+  try {
+    const saved = localStorage.getItem(`gymWizard_${key}`);
+    return saved ? JSON.parse(saved) : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+};
 
 export default function GymWizard() {
   const navigate = useNavigate();
@@ -623,6 +634,59 @@ export default function GymWizard() {
     setComparisonMode(mode);
   }, []);
 
+  // Function to get current settings for problem reporting
+  const getCurrentSettings = useCallback(() => {
+    // Get the API key value and use the same redaction pattern as GymComparison
+    const apiKey = loadWizardValue('apiKey', '');
+    
+    return {
+      page: 'GymWizard',
+      activeStep,
+      subStepIndex,
+      hasEnteredCurrentTrainingSubSteps,
+      trainingSelections,
+      comparisonPageSelections,
+      comparisonMode,
+      comparisonSubStepIndex,
+      hasEnteredComparisonTrainingSubSteps,
+      comparisonTrainingSelections,
+      // Include key wizard values (API key is redacted for security)
+      apiKey: apiKey ? '***REDACTED***' : '',
+      initialStats: loadWizardValue('initialStats', null),
+      currentGymIndex: loadWizardValue('currentGymIndex', null),
+      months: loadWizardValue('months', null),
+      maxEnergy: loadWizardValue('maxEnergy', null),
+      hoursPlayedPerDay: loadWizardValue('hoursPlayedPerDay', null),
+      xanaxPerDay: loadWizardValue('xanaxPerDay', null),
+      hasPointsRefill: loadWizardValue('hasPointsRefill', null),
+      daysSkippedPerMonth: loadWizardValue('daysSkippedPerMonth', null),
+      baseHappy: loadWizardValue('baseHappy', null),
+      perkPercs: loadWizardValue('perkPercs', null),
+      companyBenefitKey: loadWizardValue('companyBenefitKey', null),
+      candleShopStars: loadWizardValue('candleShopStars', null),
+      hasBalancedBuild: loadWizardValue('hasBalancedBuild', null),
+      statRatio: loadWizardValue('statRatio', null),
+      defDexPrimaryStat: loadWizardValue('defDexPrimaryStat', null),
+      trainByPerks: loadWizardValue('trainByPerks', null),
+      balanceAfterGym: loadWizardValue('balanceAfterGym', null),
+      lossReviveEnabled: loadWizardValue('lossReviveEnabled', null),
+      lossReviveNumberPerDay: loadWizardValue('lossReviveNumberPerDay', null),
+      lossReviveEnergyCost: loadWizardValue('lossReviveEnergyCost', null),
+      lossReviveDaysBetween: loadWizardValue('lossReviveDaysBetween', null),
+      lossRevivePricePerLoss: loadWizardValue('lossRevivePricePerLoss', null),
+    };
+  }, [
+    activeStep, 
+    subStepIndex, 
+    hasEnteredCurrentTrainingSubSteps, 
+    trainingSelections, 
+    comparisonPageSelections, 
+    comparisonMode, 
+    comparisonSubStepIndex, 
+    hasEnteredComparisonTrainingSubSteps, 
+    comparisonTrainingSelections
+  ]);
+
   // Build the stepper steps dynamically based on comparison selections
   const buildStepperSteps = () => {
     const steps = [...baseWizardSteps];
@@ -866,6 +930,9 @@ export default function GymWizard() {
           </Button>
         </Box>
       </Box>
+      
+      {/* Support and Problem Report Cards */}
+      <SupportCardsSection getCurrentSettings={getCurrentSettings} />
     </Box>
   );
 }
