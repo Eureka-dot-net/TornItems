@@ -13,11 +13,21 @@ import { TextField, type TextFieldProps } from '@mui/material';
  * - Validates and applies min/max constraints on blur
  * - Converts empty value to defaultValue (or 0) on blur
  * - Reduces lag by not triggering parent state updates on every keystroke
+ * 
+ * @example
+ * <NumericTextField
+ *   label="Happy"
+ *   value={happy}
+ *   onChange={(value) => setHappy(value)}
+ *   min={0}
+ *   max={99999}
+ *   defaultValue={0}
+ * />
  */
 
 export interface NumericTextFieldProps extends Omit<TextFieldProps, 'value' | 'onChange' | 'onBlur' | 'type'> {
-  /** The numeric value */
-  value: number | '';
+  /** The numeric value. Note: The component accepts number only, not empty string. */
+  value: number;
   /** Callback when value changes (called on blur with validated value) */
   onChange: (value: number) => void;
   /** Minimum allowed value (default: 0) */
@@ -41,13 +51,11 @@ export default function NumericTextField({
   ...textFieldProps
 }: NumericTextFieldProps) {
   // Local state to hold the display value (can be empty string during editing)
-  const [displayValue, setDisplayValue] = useState<string>(
-    value === '' ? '' : String(value)
-  );
+  const [displayValue, setDisplayValue] = useState<string>(String(value));
 
   // Sync display value when external value changes
   useEffect(() => {
-    setDisplayValue(value === '' ? '' : String(value));
+    setDisplayValue(String(value));
   }, [value]);
 
   // Handle input change - just update local state, no validation
@@ -78,7 +86,7 @@ export default function NumericTextField({
     // Update display to show the validated value
     setDisplayValue(String(finalValue));
     
-    // Only call onChange if value actually changed
+    // Only call onChange if value actually changed (compare as numbers)
     if (finalValue !== value) {
       onChange(finalValue);
     }

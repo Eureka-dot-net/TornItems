@@ -290,6 +290,7 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
           min={0}
           max={99999}
           step={1}
+          defaultValue={0}
           helperText={isComparison 
             ? "Enter the base happy value for your comparison scenario"
             : "Enter your base happy value (typically ranges from 0 to 5025)"

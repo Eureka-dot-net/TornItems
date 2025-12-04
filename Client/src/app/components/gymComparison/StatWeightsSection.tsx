@@ -167,6 +167,7 @@ export default function StatWeightsSection({
           onChange={(value) => onUpdate({ strength: value })}
           size="small"
           min={0}
+          defaultValue={0}
           sx={{ width: 80 }}
         />
         <Button
@@ -195,6 +196,7 @@ export default function StatWeightsSection({
           onChange={(value) => onUpdate({ speed: value })}
           size="small"
           min={0}
+          defaultValue={0}
           sx={{ width: 80 }}
         />
         <Button
@@ -223,6 +225,7 @@ export default function StatWeightsSection({
           onChange={(value) => onUpdate({ defense: value })}
           size="small"
           min={0}
+          defaultValue={0}
           sx={{ width: 80 }}
         />
         <Button
@@ -259,6 +262,7 @@ export default function StatWeightsSection({
           onChange={(value) => onUpdate({ dexterity: value })}
           size="small"
           min={0}
+          defaultValue={0}
           sx={{ width: 80 }}
         />
         <Button
