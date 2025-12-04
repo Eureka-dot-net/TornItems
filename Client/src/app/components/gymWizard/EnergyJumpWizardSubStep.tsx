@@ -2,18 +2,17 @@ import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  TextField,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   Alert,
 } from '@mui/material';
+import { NumericTextField } from '../../../lib/components';
 import { 
   ENERGY_ITEM_IDS, 
   DEFAULT_ENERGY_DRINK_QUANTITY 
 } from '../../../lib/constants/gymConstants';
-import { validateNumericInput } from '../../../lib/utils/jumpHelpers';
 
 /**
  * EnergyJumpWizardSubStep Component
@@ -125,13 +124,15 @@ export default function EnergyJumpWizardSubStep({ mode = 'current' }: EnergyJump
         <Typography variant="body2" color="text.secondary" paragraph>
           Enter the number of energy drinks you consume each day (maximum 12 without specialized perks).
         </Typography>
-        <TextField
-          type="number"
+        <NumericTextField
           value={quantity}
-          onChange={(e) => setQuantity(validateNumericInput(e.target.value, DEFAULT_ENERGY_DRINK_QUANTITY, 1, 12))}
+          onChange={(value) => setQuantity(value)}
           fullWidth
           size="small"
-          inputProps={{ step: 1, min: 1, max: 12 }}
+          min={1}
+          max={12}
+          step={1}
+          defaultValue={DEFAULT_ENERGY_DRINK_QUANTITY}
           helperText="Enter a value between 1 and 12"
         />
       </Box>
@@ -144,13 +145,13 @@ export default function EnergyJumpWizardSubStep({ mode = 'current' }: EnergyJump
         <Typography variant="body2" color="text.secondary" paragraph>
           Some faction perks provide additional percentage bonuses to energy gained. Enter 0 if you don't have any.
         </Typography>
-        <TextField
-          type="number"
+        <NumericTextField
           value={factionBenefit}
-          onChange={(e) => setFactionBenefit(validateNumericInput(e.target.value, 0, 0))}
+          onChange={(value) => setFactionBenefit(value)}
           fullWidth
           size="small"
-          inputProps={{ step: 1, min: 0 }}
+          min={0}
+          step={1}
           helperText="Enter percentage bonus (e.g., 10 for 10% bonus)"
         />
       </Box>

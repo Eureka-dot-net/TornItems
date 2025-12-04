@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  TextField,
   Alert,
 } from '@mui/material';
+import { NumericTextField } from '../../../lib/components';
 import { 
   ENERGY_ITEM_IDS,
   DEFAULT_FHC_QUANTITY 
 } from '../../../lib/constants/gymConstants';
-import { validateNumericInput } from '../../../lib/utils/jumpHelpers';
 
 /**
  * FhcJumpWizardSubStep Component
@@ -98,13 +97,15 @@ export default function FhcJumpWizardSubStep({ mode = 'current' }: FhcJumpWizard
         <Typography variant="body2" color="text.secondary" paragraph>
           Enter the number of FHCs you use each day for training (maximum 4 without specialized perks).
         </Typography>
-        <TextField
-          type="number"
+        <NumericTextField
           value={quantity}
-          onChange={(e) => setQuantity(validateNumericInput(e.target.value, DEFAULT_FHC_QUANTITY, 1, 4))}
+          onChange={(value) => setQuantity(value)}
           fullWidth
           size="small"
-          inputProps={{ step: 1, min: 1, max: 4 }}
+          min={1}
+          max={4}
+          step={1}
+          defaultValue={DEFAULT_FHC_QUANTITY}
           helperText="Enter a value between 1 and 4"
         />
       </Box>

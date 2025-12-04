@@ -1,7 +1,6 @@
 import {
   FormControlLabel,
   Switch,
-  TextField,
   FormControl,
   InputLabel,
   Select,
@@ -10,6 +9,7 @@ import {
   Alert,
   Box,
 } from '@mui/material';
+import { NumericTextField } from '../../../lib/components';
 import {
   CANDY_ITEM_IDS,
   DEFAULT_CANDY_QUANTITY,
@@ -89,19 +89,15 @@ export default function StackedCandyJumpConfig({
             </Typography>
           </Alert>
 
-          <TextField
+          <NumericTextField
             label="Days Between Jumps"
-            type="number"
-            value={frequency ?? ''}
-            onChange={(e) =>
-              onUpdate({
-                stackedCandyJumpFrequency: e.target.value === '' ? DEFAULT_EDVD_FREQUENCY_DAYS : Math.max(1, Number(e.target.value)),
-              })
-            }
+            value={frequency}
+            onChange={(value) => onUpdate({ stackedCandyJumpFrequency: value })}
             fullWidth
             margin="dense"
             size="small"
-            inputProps={{ step: 'any', min: 1 }}
+            min={1}
+            defaultValue={DEFAULT_EDVD_FREQUENCY_DAYS}
           />
 
           <Box sx={{ mt: 2, mb: 1 }}>
@@ -110,18 +106,17 @@ export default function StackedCandyJumpConfig({
             </Typography>
           </Box>
 
-          <TextField
+          <NumericTextField
             label="Number of Xanax to Stack"
-            type="number"
             value={xanaxStacked ?? 4}
-            onChange={(e) => {
-              const value = e.target.value === '' ? 4 : Math.min(4, Math.max(1, Number(e.target.value)));
-              onUpdate({ stackedCandyJumpXanaxStacked: value });
-            }}
+            onChange={(value) => onUpdate({ stackedCandyJumpXanaxStacked: value })}
             fullWidth
             margin="dense"
             size="small"
-            inputProps={{ step: 1, min: 1, max: 4 }}
+            min={1}
+            max={4}
+            defaultValue={4}
+            step={1}
             helperText="1-4 xanax. 4 xanax = 1000 energy, 3 = 750, 2 = 500, 1 = 250"
           />
 
@@ -186,36 +181,25 @@ export default function StackedCandyJumpConfig({
             </Select>
           </FormControl>
 
-          <TextField
+          <NumericTextField
             label="Candies per Jump"
-            type="number"
-            value={quantity ?? ''}
-            onChange={(e) =>
-              onUpdate({
-                stackedCandyJumpQuantity:
-                  e.target.value === '' ? DEFAULT_CANDY_QUANTITY : Math.max(1, Number(e.target.value)),
-              })
-            }
+            value={quantity}
+            onChange={(value) => onUpdate({ stackedCandyJumpQuantity: value })}
             fullWidth
             margin="dense"
             size="small"
-            inputProps={{ step: 'any', min: 1 }}
+            min={1}
+            defaultValue={DEFAULT_CANDY_QUANTITY}
           />
 
-          <TextField
+          <NumericTextField
             label="Faction Perk % (Increase in Happiness)"
-            type="number"
-            value={factionBenefit ?? ''}
-            onChange={(e) =>
-              onUpdate({
-                stackedCandyJumpFactionBenefit:
-                  e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)),
-              })
-            }
+            value={factionBenefit}
+            onChange={(value) => onUpdate({ stackedCandyJumpFactionBenefit: value })}
             fullWidth
             margin="dense"
             size="small"
-            inputProps={{ step: 'any', min: 0 }}
+            min={0}
             helperText="Faction perk percentage that boosts happiness from candies"
           />
 
@@ -235,37 +219,28 @@ export default function StackedCandyJumpConfig({
           </FormControl>
 
           {limit === 'count' && (
-            <TextField
+            <NumericTextField
               label="Number of Jumps"
-              type="number"
-              value={count ?? ''}
-              onChange={(e) =>
-                onUpdate({
-                  stackedCandyJumpCount: e.target.value === '' ? 1 : Math.max(1, Number(e.target.value)),
-                })
-              }
+              value={count}
+              onChange={(value) => onUpdate({ stackedCandyJumpCount: value })}
               fullWidth
               margin="dense"
               size="small"
-              inputProps={{ step: 'any', min: 1 }}
+              min={1}
+              defaultValue={1}
             />
           )}
 
           {limit === 'stat' && (
-            <TextField
+            <NumericTextField
               label="Stat Target (Individual)"
-              type="number"
-              value={statTarget ?? ''}
-              onChange={(e) =>
-                onUpdate({
-                  stackedCandyJumpStatTarget:
-                    e.target.value === '' ? 1000000 : Math.max(0, Number(e.target.value)),
-                })
-              }
+              value={statTarget}
+              onChange={(value) => onUpdate({ stackedCandyJumpStatTarget: value })}
               fullWidth
               margin="dense"
               size="small"
-              inputProps={{ step: 'any', min: 0 }}
+              min={0}
+              defaultValue={1000000}
             />
           )}
 

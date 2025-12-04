@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  TextField,
   FormControl,
   InputLabel,
   Select,
@@ -12,7 +11,7 @@ import {
   Alert,
   Link,
 } from '@mui/material';
-import { validateNumericInput } from '../../../lib/utils/jumpHelpers';
+import { NumericTextField } from '../../../lib/components';
 
 /**
  * EdvdJumpWizardSubStep Component
@@ -130,13 +129,14 @@ export default function EdvdJumpWizardSubStep({ mode = 'current' }: EdvdJumpWiza
         <Typography variant="body2" color="text.secondary" paragraph>
           For example, if you do eDVD jumps once per week, enter 7.
         </Typography>
-        <TextField
-          type="number"
+        <NumericTextField
           value={frequency}
-          onChange={(e) => setFrequency(validateNumericInput(e.target.value, 7, 1))}
+          onChange={(value) => setFrequency(value)}
           fullWidth
           size="small"
-          inputProps={{ step: 1, min: 1 }}
+          min={1}
+          step={1}
+          defaultValue={7}
           helperText="Enter number of days between eDVD jump sessions"
         />
       </Box>
@@ -149,13 +149,14 @@ export default function EdvdJumpWizardSubStep({ mode = 'current' }: EdvdJumpWiza
         <Typography variant="body2" color="text.secondary" paragraph>
           Each eDVD gives 2500 extra happiness
         </Typography>
-        <TextField
-          type="number"
+        <NumericTextField
           value={dvds}
-          onChange={(e) => setDvds(validateNumericInput(e.target.value, 1, 0))}
+          onChange={(value) => setDvds(value)}
           fullWidth
           size="small"
-          inputProps={{ step: 1, min: 0 }}
+          min={0}
+          step={1}
+          defaultValue={1}
           helperText="Enter number of eDVDs used per session"
         />
       </Box>
@@ -194,13 +195,14 @@ export default function EdvdJumpWizardSubStep({ mode = 'current' }: EdvdJumpWiza
           <Typography variant="body2" color="text.secondary" paragraph>
             Enter the total number of eDVD jump sessions you plan to complete.
           </Typography>
-          <TextField
-            type="number"
+          <NumericTextField
             value={count}
-            onChange={(e) => setCount(validateNumericInput(e.target.value, 10, 1))}
+            onChange={(value) => setCount(value)}
             fullWidth
             size="small"
-            inputProps={{ step: 1, min: 1 }}
+            min={1}
+            step={1}
+            defaultValue={10}
             helperText="Enter total number of sessions"
           />
         </Box>
@@ -216,13 +218,14 @@ export default function EdvdJumpWizardSubStep({ mode = 'current' }: EdvdJumpWiza
             <strong>Recommendation:</strong> Stop at 140,000 per stat. After this point, eDVD jumps become 
             less efficient compared to regular training.
           </Typography>
-          <TextField
-            type="number"
+          <NumericTextField
             value={statTarget}
-            onChange={(e) => setStatTarget(validateNumericInput(e.target.value, 140000, 0))}
+            onChange={(value) => setStatTarget(value)}
             fullWidth
             size="small"
-            inputProps={{ step: 10000, min: 0 }}
+            min={0}
+            step={10000}
+            defaultValue={140000}
             helperText="Recommended: 140,000 per stat"
           />
           <Alert severity="info" sx={{ mt: 2 }}>

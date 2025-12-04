@@ -6,9 +6,9 @@ import {
   FormControlLabel,
   Radio,
   Alert,
-  TextField,
   Collapse,
 } from '@mui/material';
+import { NumericTextField } from '../../../lib/components';
 import { COMPANY_BENEFIT_TYPES } from '../../../lib/constants/gymConstants';
 
 /**
@@ -260,19 +260,16 @@ export default function CompanyBenefitsWizardStep({ mode = 'current' }: CompanyB
               <Typography variant="body2" color="text.secondary" paragraph>
                 The Candle Shop gym benefit is only available at 7★ to 10★. It provides 5 energy per star (35-50 bonus energy per day).
               </Typography>
-              <TextField
+              <NumericTextField
                 label="Candle Shop Stars (7-10)"
-                type="number"
                 value={candleShopStars}
-                onChange={(e) => {
-                  const value = Number(e.target.value);
-                  if (!isNaN(value)) {
-                    setCandleShopStars(Math.max(7, Math.min(10, value)));
-                  }
-                }}
+                onChange={(value) => setCandleShopStars(value)}
                 fullWidth
                 size="small"
-                inputProps={{ min: 7, max: 10, step: 1 }}
+                min={7}
+                max={10}
+                step={1}
+                defaultValue={10}
                 helperText={`This gives you ${candleShopStars * 5} bonus energy per day`}
               />
             </Box>

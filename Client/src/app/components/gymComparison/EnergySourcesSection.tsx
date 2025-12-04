@@ -4,10 +4,10 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  TextField,
   FormControlLabel,
   Switch,
 } from '@mui/material';
+import { NumericTextField } from '../../../lib/components';
 import { calculateDailyEnergy } from '../../../lib/utils/gymProgressionCalculator';
 import type { CompanyBenefit } from '../../../lib/utils/gymProgressionCalculator';
 import { formatCurrency } from '../../../lib/utils/gymHelpers';
@@ -65,35 +65,25 @@ export default function EnergySourcesSection({
         </Select>
       </FormControl>
 
-      <TextField
+      <NumericTextField
         label="Hours/Day"
-        type="number"
-        value={hoursPlayedPerDay ?? ''}
-        onChange={(e) =>
-          onUpdate({
-            hoursPlayedPerDay:
-              e.target.value === '' ? 0 : Math.max(0, Math.min(24, Number(e.target.value))),
-          })
-        }
+        value={hoursPlayedPerDay}
+        onChange={(value) => onUpdate({ hoursPlayedPerDay: value })}
         fullWidth
         margin="dense"
         size="small"
-        inputProps={{ step: 'any', min: 0, max: 24 }}
+        min={0}
+        max={24}
       />
 
-      <TextField
+      <NumericTextField
         label="Xanax/Day"
-        type="number"
-        value={xanaxPerDay ?? ''}
-        onChange={(e) =>
-          onUpdate({
-            xanaxPerDay: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)),
-          })
-        }
+        value={xanaxPerDay}
+        onChange={(value) => onUpdate({ xanaxPerDay: value })}
         fullWidth
         margin="dense"
         size="small"
-        inputProps={{ step: 'any', min: 0 }}
+        min={0}
         helperText={`Decimals allowed (e.g., ${(2.5).toLocaleString()} for averaging usage)`}
       />
 
@@ -116,20 +106,17 @@ export default function EnergySourcesSection({
       />
 
       {hasPointsRefill && (
-        <TextField
+        <NumericTextField
           label="Days/Week Using Refill"
-          type="number"
           value={pointsRefillDaysPerWeek ?? DEFAULT_POINTS_REFILL_DAYS_PER_WEEK}
-          onChange={(e) =>
-            onUpdate({
-              pointsRefillDaysPerWeek:
-                e.target.value === '' ? DEFAULT_POINTS_REFILL_DAYS_PER_WEEK : Math.max(1, Math.min(7, Number(e.target.value))),
-            })
-          }
+          onChange={(value) => onUpdate({ pointsRefillDaysPerWeek: value })}
           fullWidth
           margin="dense"
           size="small"
-          inputProps={{ step: 1, min: 1, max: 7 }}
+          min={1}
+          max={7}
+          defaultValue={DEFAULT_POINTS_REFILL_DAYS_PER_WEEK}
+          step={1}
           helperText="How many days per week do you use points refill?"
         />
       )}
@@ -140,20 +127,15 @@ export default function EnergySourcesSection({
         </Typography>
       )}
 
-      <TextField
+      <NumericTextField
         label="Days Skipped/Month"
-        type="number"
-        value={daysSkippedPerMonth ?? ''}
-        onChange={(e) =>
-          onUpdate({
-            daysSkippedPerMonth:
-              e.target.value === '' ? 0 : Math.max(0, Math.min(30, Number(e.target.value))),
-          })
-        }
+        value={daysSkippedPerMonth}
+        onChange={(value) => onUpdate({ daysSkippedPerMonth: value })}
         fullWidth
         margin="dense"
         size="small"
-        inputProps={{ step: 'any', min: 0, max: 30 }}
+        min={0}
+        max={30}
       />
 
       <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 1 }}>

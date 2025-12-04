@@ -11,12 +11,12 @@ import {
   Paper,
   Select,
   Switch,
-  TextField,
   Typography,
   Tooltip,
   IconButton,
 } from '@mui/material';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import { NumericTextField } from '../../../lib/components';
 import { GYMS } from '../../../lib/data/gyms';
 import type { SimulationResult } from '../../../lib/utils/gymProgressionCalculator';
 
@@ -120,25 +120,24 @@ export default function ManualTestingSection({
             </Box>
           </Box>
           
-          <TextField 
+          <NumericTextField 
             label="Total Energy" 
-            type="number" 
-            value={manualEnergy ?? ''} 
-            onChange={(e) => setManualEnergy(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))} 
+            value={manualEnergy} 
+            onChange={(value) => setManualEnergy(value)} 
             fullWidth 
             margin="dense" 
             size="small" 
-            inputProps={{ step: 'any', min: 0 }} 
+            min={0}
           />
-          <TextField 
+          <NumericTextField 
             label="Happy" 
-            type="number" 
-            value={manualHappy ?? ''} 
-            onChange={(e) => setManualHappy(e.target.value === '' ? 0 : Math.max(0, Math.min(99999, Number(e.target.value))))} 
+            value={manualHappy} 
+            onChange={(value) => setManualHappy(value)} 
             fullWidth 
             margin="dense" 
             size="small" 
-            inputProps={{ step: 'any', min: 0, max: 99999 }} 
+            min={0}
+            max={99999}
           />
           <FormControlLabel 
             control={<Switch checked={autoUpgradeGyms} onChange={(e) => setAutoUpgradeGyms(e.target.checked)} />} 
@@ -251,16 +250,16 @@ export default function ManualTestingSection({
             )}
           </Box>
           
-          <TextField label="Str" type="number" value={manualStatWeights.strength ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-          <TextField label="Spd" type="number" value={manualStatWeights.speed ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, speed: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-          <TextField label="Def" type="number" value={manualStatWeights.defense ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, defense: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-          <TextField label="Dex" type="number" value={manualStatWeights.dexterity ?? ''} onChange={(e) => setManualStatWeights({ ...manualStatWeights, dexterity: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
+          <NumericTextField label="Str" value={manualStatWeights.strength} onChange={(value) => setManualStatWeights({ ...manualStatWeights, strength: value })} fullWidth margin="dense" size="small" min={0} />
+          <NumericTextField label="Spd" value={manualStatWeights.speed} onChange={(value) => setManualStatWeights({ ...manualStatWeights, speed: value })} fullWidth margin="dense" size="small" min={0} />
+          <NumericTextField label="Def" value={manualStatWeights.defense} onChange={(value) => setManualStatWeights({ ...manualStatWeights, defense: value })} fullWidth margin="dense" size="small" min={0} />
+          <NumericTextField label="Dex" value={manualStatWeights.dexterity} onChange={(value) => setManualStatWeights({ ...manualStatWeights, dexterity: value })} fullWidth margin="dense" size="small" min={0} />
           
           <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Perk %</Typography>
-          <TextField label="Str %" type="number" value={manualPerkPercs.strength ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, strength: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-          <TextField label="Spd %" type="number" value={manualPerkPercs.speed ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, speed: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-          <TextField label="Def %" type="number" value={manualPerkPercs.defense ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, defense: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
-          <TextField label="Dex %" type="number" value={manualPerkPercs.dexterity ?? ''} onChange={(e) => setManualPerkPercs({ ...manualPerkPercs, dexterity: e.target.value === '' ? 0 : Number(e.target.value) })} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 0 }} />
+          <NumericTextField label="Str %" value={manualPerkPercs.strength} onChange={(value) => setManualPerkPercs({ ...manualPerkPercs, strength: value })} fullWidth margin="dense" size="small" min={0} />
+          <NumericTextField label="Spd %" value={manualPerkPercs.speed} onChange={(value) => setManualPerkPercs({ ...manualPerkPercs, speed: value })} fullWidth margin="dense" size="small" min={0} />
+          <NumericTextField label="Def %" value={manualPerkPercs.defense} onChange={(value) => setManualPerkPercs({ ...manualPerkPercs, defense: value })} fullWidth margin="dense" size="small" min={0} />
+          <NumericTextField label="Dex %" value={manualPerkPercs.dexterity} onChange={(value) => setManualPerkPercs({ ...manualPerkPercs, dexterity: value })} fullWidth margin="dense" size="small" min={0} />
           
           <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>Company Benefit</Typography>
           <FormControl fullWidth margin="dense" size="small">
@@ -274,7 +273,7 @@ export default function ManualTestingSection({
           </FormControl>
           
           {manualCompanyBenefitKey === 'candleShop' && (
-            <TextField label="Stars" type="number" value={manualCandleShopStars ?? ''} onChange={(e) => setManualCandleShopStars(e.target.value === '' ? 1 : Math.max(1, Math.min(10, Number(e.target.value))))} fullWidth margin="dense" size="small" inputProps={{ step: 'any', min: 1, max: 10 }} />
+            <NumericTextField label="Stars" value={manualCandleShopStars} onChange={(value) => setManualCandleShopStars(value)} fullWidth margin="dense" size="small" min={1} max={10} defaultValue={1} />
           )}
         </Paper>
       </Grid>

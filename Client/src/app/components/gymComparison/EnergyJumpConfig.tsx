@@ -1,13 +1,13 @@
 import {
   FormControlLabel,
   Switch,
-  TextField,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   Typography,
 } from '@mui/material';
+import { NumericTextField } from '../../../lib/components';
 import {
   ENERGY_ITEM_IDS,
   ENERGY_VALUES,
@@ -85,40 +85,25 @@ export default function EnergyJumpConfig({
             </Select>
           </FormControl>
 
-          <TextField
+          <NumericTextField
             label="Items per Day"
-            type="number"
-            value={quantity ?? ''}
-            onChange={(e) =>
-              onUpdate({
-                energyJumpQuantity:
-                  e.target.value === ''
-                    ? itemId === ENERGY_ITEM_IDS.FHC
-                      ? DEFAULT_FHC_QUANTITY
-                      : DEFAULT_ENERGY_DRINK_QUANTITY
-                    : Math.max(1, Number(e.target.value)),
-              })
-            }
+            value={quantity}
+            onChange={(value) => onUpdate({ energyJumpQuantity: value })}
             fullWidth
             margin="dense"
             size="small"
-            inputProps={{ step: 'any', min: 1 }}
+            min={1}
+            defaultValue={itemId === ENERGY_ITEM_IDS.FHC ? DEFAULT_FHC_QUANTITY : DEFAULT_ENERGY_DRINK_QUANTITY}
           />
 
-          <TextField
+          <NumericTextField
             label="Faction Benefit %"
-            type="number"
-            value={factionBenefit ?? ''}
-            onChange={(e) =>
-              onUpdate({
-                energyJumpFactionBenefit:
-                  e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)),
-              })
-            }
+            value={factionBenefit}
+            onChange={(value) => onUpdate({ energyJumpFactionBenefit: value })}
             fullWidth
             margin="dense"
             size="small"
-            inputProps={{ step: 'any', min: 0 }}
+            min={0}
           />
 
           <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
