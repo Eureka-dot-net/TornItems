@@ -56,6 +56,16 @@ const LOSS_REVIVE_STEP = 6;
 const SELECT_AREAS_STEP = 7;
 const COMPARISON_PHASE_START_STEP = 8;
 
+// Helper to safely load a value from wizard localStorage
+const loadWizardValue = <T,>(key: string, defaultValue: T): T => {
+  try {
+    const saved = localStorage.getItem(`gymWizard_${key}`);
+    return saved ? JSON.parse(saved) : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+};
+
 export default function GymWizard() {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
@@ -626,16 +636,9 @@ export default function GymWizard() {
 
   // Function to get current settings for problem reporting
   const getCurrentSettings = useCallback(() => {
-    // Helper to safely load a value from localStorage
-    const loadWizardValue = <T,>(key: string, defaultValue: T): T => {
-      try {
-        const saved = localStorage.getItem(`gymWizard_${key}`);
-        return saved ? JSON.parse(saved) : defaultValue;
-      } catch {
-        return defaultValue;
-      }
-    };
-
+    // Get the API key value and use the same redaction pattern as GymComparison
+    const apiKey = loadWizardValue('apiKey', '');
+    
     return {
       page: 'GymWizard',
       activeStep,
@@ -648,7 +651,7 @@ export default function GymWizard() {
       hasEnteredComparisonTrainingSubSteps,
       comparisonTrainingSelections,
       // Include key wizard values (API key is redacted for security)
-      apiKey: loadWizardValue('apiKey', '') ? '***REDACTED***' : '',
+      apiKey: apiKey ? '***REDACTED***' : '',
       initialStats: loadWizardValue('initialStats', null),
       currentGymIndex: loadWizardValue('currentGymIndex', null),
       months: loadWizardValue('months', null),
