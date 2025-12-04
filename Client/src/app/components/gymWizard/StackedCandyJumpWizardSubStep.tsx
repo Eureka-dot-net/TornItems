@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  TextField,
   FormControl,
   InputLabel,
   Select,
@@ -11,8 +10,8 @@ import {
   FormControlLabel,
   Switch,
 } from '@mui/material';
+import { NumericTextField } from '../../../lib/components';
 import { CANDY_ITEM_IDS, DEFAULT_CANDY_QUANTITY } from '../../../lib/constants/gymConstants';
-import { validateNumericInput } from '../../../lib/utils/jumpHelpers';
 
 /**
  * StackedCandyJumpWizardSubStep Component
@@ -138,13 +137,14 @@ export default function StackedCandyJumpWizardSubStep({ mode = 'current' }: Stac
         <Typography variant="body2" color="text.secondary" paragraph>
           For example, if you do stacked candy jumps once per week, enter 7.
         </Typography>
-        <TextField
-          type="number"
+        <NumericTextField
           value={frequency}
-          onChange={(e) => setFrequency(validateNumericInput(e.target.value, 7, 1))}
+          onChange={(value) => setFrequency(value)}
           fullWidth
           size="small"
-          inputProps={{ step: 1, min: 1 }}
+          min={1}
+          step={1}
+          defaultValue={7}
           helperText="Enter number of days between stacked candy jump sessions"
         />
       </Box>
@@ -158,16 +158,15 @@ export default function StackedCandyJumpWizardSubStep({ mode = 'current' }: Stac
           Traditionally, stacked jumps use 4 xanax (3 stacked the day before + 1 on jump day) for 1000 energy.
           You can stack fewer xanax if you prefer (1-4).
         </Typography>
-        <TextField
-          type="number"
+        <NumericTextField
           value={xanaxStacked}
-          onChange={(e) => {
-            const value = e.target.value === '' ? 4 : Math.min(4, Math.max(1, Number(e.target.value)));
-            setXanaxStacked(value);
-          }}
+          onChange={(value) => setXanaxStacked(value)}
           fullWidth
           size="small"
-          inputProps={{ step: 1, min: 1, max: 4 }}
+          min={1}
+          max={4}
+          step={1}
+          defaultValue={4}
           helperText="1-4 xanax. 4 = 1000 energy, 3 = 750, 2 = 500, 1 = 250"
         />
       </Box>
@@ -255,13 +254,14 @@ export default function StackedCandyJumpWizardSubStep({ mode = 'current' }: Stac
           Unlike DVDs which are limited to a few per jump, candies can be used in much larger quantities.
           The default maximum is 48 without specialized job perks.
         </Typography>
-        <TextField
-          type="number"
+        <NumericTextField
           value={quantity}
-          onChange={(e) => setQuantity(validateNumericInput(e.target.value, DEFAULT_CANDY_QUANTITY, 1))}
+          onChange={(value) => setQuantity(value)}
           fullWidth
           size="small"
-          inputProps={{ step: 1, min: 1 }}
+          min={1}
+          step={1}
+          defaultValue={DEFAULT_CANDY_QUANTITY}
           helperText="Enter number of candies used per session"
         />
       </Box>
@@ -275,13 +275,13 @@ export default function StackedCandyJumpWizardSubStep({ mode = 'current' }: Stac
           Some faction perks provide percentage bonuses to candy happiness. Enter 0 if you don't have any.
           This is a key advantage of candy jumps over eDVD jumps.
         </Typography>
-        <TextField
-          type="number"
+        <NumericTextField
           value={factionBenefit}
-          onChange={(e) => setFactionBenefit(validateNumericInput(e.target.value, 0, 0))}
+          onChange={(value) => setFactionBenefit(value)}
           fullWidth
           size="small"
-          inputProps={{ step: 1, min: 0 }}
+          min={0}
+          step={1}
           helperText="Enter percentage bonus (e.g., 10 for 10% bonus)"
         />
       </Box>
@@ -320,13 +320,14 @@ export default function StackedCandyJumpWizardSubStep({ mode = 'current' }: Stac
           <Typography variant="body2" color="text.secondary" paragraph>
             Enter the total number of stacked candy jump sessions you plan to complete.
           </Typography>
-          <TextField
-            type="number"
+          <NumericTextField
             value={count}
-            onChange={(e) => setCount(validateNumericInput(e.target.value, 10, 1))}
+            onChange={(value) => setCount(value)}
             fullWidth
             size="small"
-            inputProps={{ step: 1, min: 1 }}
+            min={1}
+            step={1}
+            defaultValue={10}
             helperText="Enter total number of sessions"
           />
         </Box>
@@ -341,13 +342,14 @@ export default function StackedCandyJumpWizardSubStep({ mode = 'current' }: Stac
           <Typography variant="body2" color="text.secondary" paragraph>
             For example, enter 1000000 if you want to stop when you reach 1M in all stats.
           </Typography>
-          <TextField
-            type="number"
+          <NumericTextField
             value={statTarget}
-            onChange={(e) => setStatTarget(validateNumericInput(e.target.value, 1000000, 0))}
+            onChange={(value) => setStatTarget(value)}
             fullWidth
             size="small"
-            inputProps={{ step: 100000, min: 0 }}
+            min={0}
+            step={100000}
+            defaultValue={1000000}
             helperText="Enter target stat level"
           />
         </Box>

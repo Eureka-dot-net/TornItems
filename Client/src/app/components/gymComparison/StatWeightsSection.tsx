@@ -1,5 +1,6 @@
-import { Box, Typography, TextField, Button, FormControlLabel, Checkbox, Tooltip, IconButton, Select, MenuItem, FormControl } from '@mui/material';
+import { Box, Typography, Button, FormControlLabel, Checkbox, Tooltip, IconButton, Select, MenuItem, FormControl } from '@mui/material';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import { NumericTextField } from '../../../lib/components';
 
 interface StatWeights {
   strength: number;
@@ -160,17 +161,12 @@ export default function StatWeightsSection({
 
       {/* Strength */}
       <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 1 }}>
-        <TextField
+        <NumericTextField
           label="Str"
-          type="number"
-          value={statWeights.strength ?? ''}
-          onChange={(e) =>
-            onUpdate({
-              strength: e.target.value === '' ? 0 : Number(e.target.value),
-            })
-          }
+          value={statWeights.strength}
+          onChange={(value) => onUpdate({ strength: value })}
           size="small"
-          inputProps={{ step: 'any', min: 0 }}
+          min={0}
           sx={{ width: 80 }}
         />
         <Button
@@ -193,17 +189,12 @@ export default function StatWeightsSection({
 
       {/* Speed */}
       <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 1 }}>
-        <TextField
+        <NumericTextField
           label="Spd"
-          type="number"
-          value={statWeights.speed ?? ''}
-          onChange={(e) =>
-            onUpdate({
-              speed: e.target.value === '' ? 0 : Number(e.target.value),
-            })
-          }
+          value={statWeights.speed}
+          onChange={(value) => onUpdate({ speed: value })}
           size="small"
-          inputProps={{ step: 'any', min: 0 }}
+          min={0}
           sx={{ width: 80 }}
         />
         <Button
@@ -226,17 +217,12 @@ export default function StatWeightsSection({
 
       {/* Defense */}
       <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 1 }}>
-        <TextField
+        <NumericTextField
           label="Def"
-          type="number"
-          value={statWeights.defense ?? ''}
-          onChange={(e) =>
-            onUpdate({
-              defense: e.target.value === '' ? 0 : Number(e.target.value),
-            })
-          }
+          value={statWeights.defense}
+          onChange={(value) => onUpdate({ defense: value })}
           size="small"
-          inputProps={{ step: 'any', min: 0 }}
+          min={0}
           sx={{ width: 80 }}
         />
         <Button
@@ -267,17 +253,12 @@ export default function StatWeightsSection({
 
       {/* Dexterity */}
       <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 1 }}>
-        <TextField
+        <NumericTextField
           label="Dex"
-          type="number"
-          value={statWeights.dexterity ?? ''}
-          onChange={(e) =>
-            onUpdate({
-              dexterity: e.target.value === '' ? 0 : Number(e.target.value),
-            })
-          }
+          value={statWeights.dexterity}
+          onChange={(value) => onUpdate({ dexterity: value })}
           size="small"
-          inputProps={{ step: 'any', min: 0 }}
+          min={0}
           sx={{ width: 80 }}
         />
         <Button

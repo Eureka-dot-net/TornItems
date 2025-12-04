@@ -5,10 +5,10 @@ import {
   RadioGroup,
   FormControlLabel,
   Radio,
-  TextField,
   Switch,
   Alert,
 } from '@mui/material';
+import { NumericTextField } from '../../../lib/components';
 import { calculateDailyEnergy } from '../../../lib/utils/gymProgressionCalculator';
 
 /**
@@ -193,16 +193,14 @@ export default function EnergySourcesWizardStep({ mode = 'current' }: EnergySour
               This doesn't need to be continuous - just roughly how many hours total you log in 
               throughout the day (between 1-24).
             </Typography>
-            <TextField
-              type="number"
+            <NumericTextField
               value={hoursPlayedPerDay}
-              onChange={(e) => {
-                const value = Number(e.target.value);
-                setHoursPlayedPerDay(Math.max(1, Math.min(24, value)));
-              }}
+              onChange={(value) => setHoursPlayedPerDay(value)}
               fullWidth
               size="small"
-              inputProps={{ min: 1, max: 24, step: 1 }}
+              min={1}
+              max={24}
+              step={1}
               helperText="Enter a value between 1 and 24"
             />
           </Box>
@@ -219,16 +217,14 @@ export default function EnergySourcesWizardStep({ mode = 'current' }: EnergySour
               This could be due to faction wars, chains, or personal reasons. Enter 0 if you 
               train every day.
             </Typography>
-            <TextField
-              type="number"
+            <NumericTextField
               value={daysSkippedPerMonth}
-              onChange={(e) => {
-                const value = Number(e.target.value);
-                setDaysSkippedPerMonth(Math.max(0, Math.min(30, value)));
-              }}
+              onChange={(value) => setDaysSkippedPerMonth(value)}
               fullWidth
               size="small"
-              inputProps={{ min: 0, max: 30, step: 1 }}
+              min={0}
+              max={30}
+              step={1}
               helperText="Enter a value between 0 and 30"
             />
           </Box>
@@ -263,16 +259,15 @@ export default function EnergySourcesWizardStep({ mode = 'current' }: EnergySour
                 <Typography variant="body2" color="text.secondary" paragraph>
                   How many days per week do you use points refill?
                 </Typography>
-                <TextField
-                  type="number"
+                <NumericTextField
                   value={pointsRefillDaysPerWeek}
-                  onChange={(e) => {
-                    const value = Number(e.target.value);
-                    setPointsRefillDaysPerWeek(Math.max(1, Math.min(7, value)));
-                  }}
+                  onChange={(value) => setPointsRefillDaysPerWeek(value)}
                   fullWidth
                   size="small"
-                  inputProps={{ min: 1, max: 7, step: 1 }}
+                  min={1}
+                  max={7}
+                  step={1}
+                  defaultValue={7}
                   helperText="Enter a value between 1 and 7 (default: 7 days/week)"
                 />
               </Box>
@@ -292,16 +287,12 @@ export default function EnergySourcesWizardStep({ mode = 'current' }: EnergySour
               Enter 0 if you don't use Xanax for training. Decimals are allowed for averaging (e.g., 2.5 if you use 
               5 Xanax every 2 days).
             </Typography>
-            <TextField
-              type="number"
+            <NumericTextField
               value={xanaxPerDay}
-              onChange={(e) => {
-                const value = Number(e.target.value);
-                setXanaxPerDay(Math.max(0, value));
-              }}
+              onChange={(value) => setXanaxPerDay(value)}
               fullWidth
               size="small"
-              inputProps={{ min: 0, step: 'any' }}
+              min={0}
               helperText="Enter 0 or more (decimals allowed)"
             />
           </Box>

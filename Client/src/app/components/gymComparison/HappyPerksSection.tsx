@@ -1,4 +1,5 @@
-import { Typography, TextField, Box, FormHelperText } from '@mui/material';
+import { Typography, Box, FormHelperText } from '@mui/material';
+import { NumericTextField } from '../../../lib/components';
 
 interface PerkPercs {
   strength: number;
@@ -28,36 +29,28 @@ export default function HappyPerksSection({
         Happy & Perks
       </Typography>
 
-      <TextField
+      <NumericTextField
         label="Happy"
-        type="number"
-        value={happy ?? ''}
-        onChange={(e) =>
-          onUpdate({
-            happy: e.target.value === '' ? 0 : Math.max(0, Math.min(99999, Number(e.target.value))),
-          })
-        }
+        value={happy}
+        onChange={(value) => onUpdate({ happy: value })}
         fullWidth
         margin="dense"
         size="small"
-        inputProps={{ step: 'any', min: 0, max: 99999 }}
+        min={0}
+        max={99999}
       />
 
       {showCosts && (
         <Box sx={{ mb: 1 }}>
-          <TextField
+          <NumericTextField
             label="Island cost per day (rent + staff)"
-            type="number"
-            value={islandCostPerDay ?? ''}
-            onChange={(e) =>
-              onUpdate({
-                islandCostPerDay: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)),
-              })
-            }
+            value={islandCostPerDay}
+            onChange={(value) => onUpdate({ islandCostPerDay: value })}
             fullWidth
             margin="dense"
             size="small"
-            inputProps={{ step: 1, min: 0 }}
+            min={0}
+            step={1}
           />
           <FormHelperText>
             This should include both your island rent cost and your staff cost.
@@ -65,76 +58,72 @@ export default function HappyPerksSection({
         </Box>
       )}
 
-      <TextField
+      <NumericTextField
         label="Str Perk %"
-        type="number"
-        value={perkPercs.strength ?? ''}
-        onChange={(e) =>
+        value={perkPercs.strength}
+        onChange={(value) =>
           onUpdate({
             perkPercs: {
               ...perkPercs,
-              strength: e.target.value === '' ? 0 : Number(e.target.value),
+              strength: value,
             },
           })
         }
         fullWidth
         margin="dense"
         size="small"
-        inputProps={{ step: 'any', min: 0 }}
+        min={0}
       />
 
-      <TextField
+      <NumericTextField
         label="Spd Perk %"
-        type="number"
-        value={perkPercs.speed ?? ''}
-        onChange={(e) =>
+        value={perkPercs.speed}
+        onChange={(value) =>
           onUpdate({
             perkPercs: {
               ...perkPercs,
-              speed: e.target.value === '' ? 0 : Number(e.target.value),
+              speed: value,
             },
           })
         }
         fullWidth
         margin="dense"
         size="small"
-        inputProps={{ step: 'any', min: 0 }}
+        min={0}
       />
 
-      <TextField
+      <NumericTextField
         label="Def Perk %"
-        type="number"
-        value={perkPercs.defense ?? ''}
-        onChange={(e) =>
+        value={perkPercs.defense}
+        onChange={(value) =>
           onUpdate({
             perkPercs: {
               ...perkPercs,
-              defense: e.target.value === '' ? 0 : Number(e.target.value),
+              defense: value,
             },
           })
         }
         fullWidth
         margin="dense"
         size="small"
-        inputProps={{ step: 'any', min: 0 }}
+        min={0}
       />
 
-      <TextField
+      <NumericTextField
         label="Dex Perk %"
-        type="number"
-        value={perkPercs.dexterity ?? ''}
-        onChange={(e) =>
+        value={perkPercs.dexterity}
+        onChange={(value) =>
           onUpdate({
             perkPercs: {
               ...perkPercs,
-              dexterity: e.target.value === '' ? 0 : Number(e.target.value),
+              dexterity: value,
             },
           })
         }
         fullWidth
         margin="dense"
         size="small"
-        inputProps={{ step: 'any', min: 0 }}
+        min={0}
       />
     </>
   );

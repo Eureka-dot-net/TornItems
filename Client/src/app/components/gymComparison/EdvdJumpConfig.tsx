@@ -1,7 +1,6 @@
 import {
   FormControlLabel,
   Switch,
-  TextField,
   FormControl,
   InputLabel,
   Select,
@@ -10,6 +9,7 @@ import {
   Typography,
   Link,
 } from '@mui/material';
+import { NumericTextField } from '../../../lib/components';
 
 interface EdvdJumpConfigProps {
   enabled: boolean;
@@ -63,34 +63,25 @@ export default function EdvdJumpConfig({
 
       {enabled && (
         <>
-          <TextField
+          <NumericTextField
             label="Days Between"
-            type="number"
-            value={frequency ?? ''}
-            onChange={(e) =>
-              onUpdate({
-                edvdJumpFrequency: e.target.value === '' ? 1 : Math.max(1, Number(e.target.value)),
-              })
-            }
+            value={frequency}
+            onChange={(value) => onUpdate({ edvdJumpFrequency: value })}
             fullWidth
             margin="dense"
             size="small"
-            inputProps={{ step: 'any', min: 1 }}
+            min={1}
+            defaultValue={1}
           />
 
-          <TextField
+          <NumericTextField
             label="DVDs Used"
-            type="number"
-            value={dvds ?? ''}
-            onChange={(e) =>
-              onUpdate({
-                edvdJumpDvds: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)),
-              })
-            }
+            value={dvds}
+            onChange={(value) => onUpdate({ edvdJumpDvds: value })}
             fullWidth
             margin="dense"
             size="small"
-            inputProps={{ step: 'any', min: 0 }}
+            min={0}
           />
 
           <FormControl fullWidth margin="dense" size="small">
@@ -109,38 +100,29 @@ export default function EdvdJumpConfig({
           </FormControl>
 
           {limit === 'count' && (
-            <TextField
+            <NumericTextField
               label="Number of Jumps"
-              type="number"
-              value={count ?? ''}
-              onChange={(e) =>
-                onUpdate({
-                  edvdJumpCount: e.target.value === '' ? 1 : Math.max(1, Number(e.target.value)),
-                })
-              }
+              value={count}
+              onChange={(value) => onUpdate({ edvdJumpCount: value })}
               fullWidth
               margin="dense"
               size="small"
-              inputProps={{ step: 'any', min: 1 }}
+              min={1}
+              defaultValue={1}
             />
           )}
 
           {limit === 'stat' && (
             <>
-              <TextField
+              <NumericTextField
                 label="Stat Target (Individual)"
-                type="number"
-                value={statTarget ?? ''}
-                onChange={(e) =>
-                  onUpdate({
-                    edvdJumpStatTarget:
-                      e.target.value === '' ? 140000 : Math.max(0, Number(e.target.value)),
-                  })
-                }
+                value={statTarget}
+                onChange={(value) => onUpdate({ edvdJumpStatTarget: value })}
                 fullWidth
                 margin="dense"
                 size="small"
-                inputProps={{ step: 'any', min: 0 }}
+                min={0}
+                defaultValue={140000}
                 helperText="Recommended: Stop at 140k per stat"
               />
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>

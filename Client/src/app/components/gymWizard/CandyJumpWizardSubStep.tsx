@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  TextField,
   FormControl,
   InputLabel,
   Select,
@@ -13,8 +12,8 @@ import {
   Alert,
   Switch,
 } from '@mui/material';
+import { NumericTextField } from '../../../lib/components';
 import { CANDY_ITEM_IDS, DEFAULT_CANDY_QUANTITY } from '../../../lib/constants/gymConstants';
-import { validateNumericInput } from '../../../lib/utils/jumpHelpers';
 
 /**
  * CandyJumpWizardSubStep Component
@@ -131,13 +130,14 @@ export default function CandyJumpWizardSubStep({ mode = 'current' }: CandyJumpWi
         <Typography variant="body2" color="text.secondary" paragraph>
           Most users do it every day, but some do it every 2-3 days due to funding issues.
         </Typography>
-        <TextField
-          type="number"
+        <NumericTextField
           value={frequencyDays}
-          onChange={(e) => setFrequencyDays(validateNumericInput(e.target.value, 1, 1))}
+          onChange={(value) => setFrequencyDays(value)}
           fullWidth
           size="small"
-          inputProps={{ step: 1, min: 1 }}
+          min={1}
+          step={1}
+          defaultValue={1}
           helperText="Enter number of days between jumps (1 = every day, 2 = every other day, etc.)"
         />
       </Box>
@@ -171,13 +171,15 @@ export default function CandyJumpWizardSubStep({ mode = 'current' }: CandyJumpWi
         <Typography variant="body2" color="text.secondary" paragraph>
           Enter the number of candies you consume each jump (maximum 48 without specialized perks).
         </Typography>
-        <TextField
-          type="number"
+        <NumericTextField
           value={quantity}
-          onChange={(e) => setQuantity(validateNumericInput(e.target.value, DEFAULT_CANDY_QUANTITY, 1, 48))}
+          onChange={(value) => setQuantity(value)}
           fullWidth
           size="small"
-          inputProps={{ step: 1, min: 1, max: 48 }}
+          min={1}
+          max={48}
+          step={1}
+          defaultValue={DEFAULT_CANDY_QUANTITY}
           helperText="Enter a value between 1 and 48"
         />
       </Box>
@@ -191,13 +193,13 @@ export default function CandyJumpWizardSubStep({ mode = 'current' }: CandyJumpWi
           <Typography variant="body2" color="text.secondary" paragraph>
             Some faction perks provide additional percentage bonuses to candy happiness. Enter 0 if you don't have any.
           </Typography>
-          <TextField
-            type="number"
+          <NumericTextField
             value={factionBenefit}
-            onChange={(e) => setFactionBenefit(validateNumericInput(e.target.value, 0, 0))}
+            onChange={(value) => setFactionBenefit(value)}
             fullWidth
             size="small"
-            inputProps={{ step: 1, min: 0 }}
+            min={0}
+            step={1}
             helperText="Enter percentage bonus (e.g., 10 for 10% bonus)"
           />
         </Box>

@@ -1,7 +1,6 @@
 import {
   FormControlLabel,
   Switch,
-  TextField,
   FormControl,
   InputLabel,
   Select,
@@ -12,6 +11,7 @@ import {
   Box,
   Alert,
 } from '@mui/material';
+import { NumericTextField } from '../../../lib/components';
 import {
   CANDY_ITEM_IDS,
   DEFAULT_CANDY_QUANTITY,
@@ -95,19 +95,16 @@ export default function CandyJumpConfig({
             </Typography>
           </Alert>
 
-          <TextField
+          <NumericTextField
             label="Jump Frequency (every X days)"
-            type="number"
             value={frequencyDays}
-            onChange={(e) =>
-              onUpdate({
-                candyJumpFrequencyDays: Math.max(1, Number(e.target.value) || 1),
-              })
-            }
+            onChange={(value) => onUpdate({ candyJumpFrequencyDays: value })}
             fullWidth
             margin="dense"
             size="small"
-            inputProps={{ step: 1, min: 1 }}
+            min={1}
+            defaultValue={1}
+            step={1}
             helperText="How often you perform this jump (1 = every day, 2 = every other day, etc.)"
           />
 
@@ -126,36 +123,25 @@ export default function CandyJumpConfig({
             </Select>
           </FormControl>
 
-          <TextField
+          <NumericTextField
             label="Candies per Jump"
-            type="number"
-            value={quantity ?? ''}
-            onChange={(e) =>
-              onUpdate({
-                candyJumpQuantity:
-                  e.target.value === '' ? DEFAULT_CANDY_QUANTITY : Math.max(1, Number(e.target.value)),
-              })
-            }
+            value={quantity}
+            onChange={(value) => onUpdate({ candyJumpQuantity: value })}
             fullWidth
             margin="dense"
             size="small"
-            inputProps={{ step: 'any', min: 1 }}
+            min={1}
+            defaultValue={DEFAULT_CANDY_QUANTITY}
           />
 
-          <TextField
+          <NumericTextField
             label="Faction Perk % (Increase in Happiness)"
-            type="number"
-            value={factionBenefit ?? ''}
-            onChange={(e) =>
-              onUpdate({
-                candyJumpFactionBenefit:
-                  e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)),
-              })
-            }
+            value={factionBenefit}
+            onChange={(value) => onUpdate({ candyJumpFactionBenefit: value })}
             fullWidth
             margin="dense"
             size="small"
-            inputProps={{ step: 'any', min: 0 }}
+            min={0}
             helperText="Faction perk percentage that boosts happiness from candies"
           />
 

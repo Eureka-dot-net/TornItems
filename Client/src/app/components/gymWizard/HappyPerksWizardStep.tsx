@@ -10,6 +10,7 @@ import {
   Collapse,
   Checkbox,
 } from '@mui/material';
+import { NumericTextField } from '../../../lib/components';
 import { fetchGymStatsFromTorn, calculatePerkPercentages } from '../../../lib/utils/tornApiHelpers';
 
 /**
@@ -280,14 +281,15 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
           </Alert>
         )}
 
-        <TextField
+        <NumericTextField
           label="Base Happy"
-          type="number"
-          value={baseHappy || ''}
-          onChange={(e) => setBaseHappy(Math.max(0, Math.min(99999, Number(e.target.value))))}
+          value={baseHappy}
+          onChange={(value) => setBaseHappy(value)}
           fullWidth
           size="small"
-          inputProps={{ min: 0, max: 99999, step: 1 }}
+          min={0}
+          max={99999}
+          step={1}
           helperText={isComparison 
             ? "Enter the base happy value for your comparison scenario"
             : "Enter your base happy value (typically ranges from 0 to 5025)"
@@ -314,42 +316,77 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
           </Typography>
 
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mt: 2 }}>
-            <TextField
-              label="Strength Perk %"
-              type="number"
-              value={perkPercs.strength.toFixed(1)}
-              InputProps={{ readOnly: !isComparison }}
-              onChange={isComparison ? (e) => setPerkPercs({ ...perkPercs, strength: Math.max(0, Number(e.target.value)) }) : undefined}
-              size="small"
-              helperText={isComparison ? "Enter comparison value" : "Auto-calculated from API"}
-            />
-            <TextField
-              label="Speed Perk %"
-              type="number"
-              value={perkPercs.speed.toFixed(1)}
-              InputProps={{ readOnly: !isComparison }}
-              onChange={isComparison ? (e) => setPerkPercs({ ...perkPercs, speed: Math.max(0, Number(e.target.value)) }) : undefined}
-              size="small"
-              helperText={isComparison ? "Enter comparison value" : "Auto-calculated from API"}
-            />
-            <TextField
-              label="Defense Perk %"
-              type="number"
-              value={perkPercs.defense.toFixed(1)}
-              InputProps={{ readOnly: !isComparison }}
-              onChange={isComparison ? (e) => setPerkPercs({ ...perkPercs, defense: Math.max(0, Number(e.target.value)) }) : undefined}
-              size="small"
-              helperText={isComparison ? "Enter comparison value" : "Auto-calculated from API"}
-            />
-            <TextField
-              label="Dexterity Perk %"
-              type="number"
-              value={perkPercs.dexterity.toFixed(1)}
-              InputProps={{ readOnly: !isComparison }}
-              onChange={isComparison ? (e) => setPerkPercs({ ...perkPercs, dexterity: Math.max(0, Number(e.target.value)) }) : undefined}
-              size="small"
-              helperText={isComparison ? "Enter comparison value" : "Auto-calculated from API"}
-            />
+            {isComparison ? (
+              <>
+                <NumericTextField
+                  label="Strength Perk %"
+                  value={perkPercs.strength}
+                  onChange={(value) => setPerkPercs({ ...perkPercs, strength: value })}
+                  size="small"
+                  min={0}
+                  helperText="Enter comparison value"
+                />
+                <NumericTextField
+                  label="Speed Perk %"
+                  value={perkPercs.speed}
+                  onChange={(value) => setPerkPercs({ ...perkPercs, speed: value })}
+                  size="small"
+                  min={0}
+                  helperText="Enter comparison value"
+                />
+                <NumericTextField
+                  label="Defense Perk %"
+                  value={perkPercs.defense}
+                  onChange={(value) => setPerkPercs({ ...perkPercs, defense: value })}
+                  size="small"
+                  min={0}
+                  helperText="Enter comparison value"
+                />
+                <NumericTextField
+                  label="Dexterity Perk %"
+                  value={perkPercs.dexterity}
+                  onChange={(value) => setPerkPercs({ ...perkPercs, dexterity: value })}
+                  size="small"
+                  min={0}
+                  helperText="Enter comparison value"
+                />
+              </>
+            ) : (
+              <>
+                <TextField
+                  label="Strength Perk %"
+                  type="number"
+                  value={perkPercs.strength.toFixed(1)}
+                  InputProps={{ readOnly: true }}
+                  size="small"
+                  helperText="Auto-calculated from API"
+                />
+                <TextField
+                  label="Speed Perk %"
+                  type="number"
+                  value={perkPercs.speed.toFixed(1)}
+                  InputProps={{ readOnly: true }}
+                  size="small"
+                  helperText="Auto-calculated from API"
+                />
+                <TextField
+                  label="Defense Perk %"
+                  type="number"
+                  value={perkPercs.defense.toFixed(1)}
+                  InputProps={{ readOnly: true }}
+                  size="small"
+                  helperText="Auto-calculated from API"
+                />
+                <TextField
+                  label="Dexterity Perk %"
+                  type="number"
+                  value={perkPercs.dexterity.toFixed(1)}
+                  InputProps={{ readOnly: true }}
+                  size="small"
+                  helperText="Auto-calculated from API"
+                />
+              </>
+            )}
           </Box>
 
           <Alert severity={isComparison ? 'warning' : 'success'} sx={{ mt: 2 }}>
@@ -412,49 +449,37 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
                   }
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
-                  <TextField
+                  <NumericTextField
                     label="Strength Perk %"
-                    type="number"
                     value={perkPercs.strength}
-                    onChange={(e) => setPerkPercs({
-                      ...perkPercs,
-                      strength: Math.max(0, Number(e.target.value))
-                    })}
+                    onChange={(value) => setPerkPercs({ ...perkPercs, strength: value })}
                     size="small"
-                    inputProps={{ min: 0, step: 0.1 }}
+                    min={0}
+                    step={0.1}
                   />
-                  <TextField
+                  <NumericTextField
                     label="Speed Perk %"
-                    type="number"
                     value={perkPercs.speed}
-                    onChange={(e) => setPerkPercs({
-                      ...perkPercs,
-                      speed: Math.max(0, Number(e.target.value))
-                    })}
+                    onChange={(value) => setPerkPercs({ ...perkPercs, speed: value })}
                     size="small"
-                    inputProps={{ min: 0, step: 0.1 }}
+                    min={0}
+                    step={0.1}
                   />
-                  <TextField
+                  <NumericTextField
                     label="Defense Perk %"
-                    type="number"
                     value={perkPercs.defense}
-                    onChange={(e) => setPerkPercs({
-                      ...perkPercs,
-                      defense: Math.max(0, Number(e.target.value))
-                    })}
+                    onChange={(value) => setPerkPercs({ ...perkPercs, defense: value })}
                     size="small"
-                    inputProps={{ min: 0, step: 0.1 }}
+                    min={0}
+                    step={0.1}
                   />
-                  <TextField
+                  <NumericTextField
                     label="Dexterity Perk %"
-                    type="number"
                     value={perkPercs.dexterity}
-                    onChange={(e) => setPerkPercs({
-                      ...perkPercs,
-                      dexterity: Math.max(0, Number(e.target.value))
-                    })}
+                    onChange={(value) => setPerkPercs({ ...perkPercs, dexterity: value })}
                     size="small"
-                    inputProps={{ min: 0, step: 0.1 }}
+                    min={0}
+                    step={0.1}
                   />
                 </Box>
               </Box>
@@ -500,49 +525,37 @@ export default function HappyPerksWizardStep({ mode = 'current' }: HappyPerksWiz
 
               <Collapse in={hasFactionSteadfast === 'yes'} timeout="auto">
                 <Box sx={{ mt: 2, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
-                  <TextField
+                  <NumericTextField
                     label="Strength Bonus (%)"
-                    type="number"
                     value={steadfastBonuses.strength}
-                    onChange={(e) => setSteadfastBonuses({
-                      ...steadfastBonuses,
-                      strength: Math.max(0, Number(e.target.value))
-                    })}
+                    onChange={(value) => setSteadfastBonuses({ ...steadfastBonuses, strength: value })}
                     size="small"
-                    inputProps={{ min: 0, step: 1 }}
+                    min={0}
+                    step={1}
                   />
-                  <TextField
+                  <NumericTextField
                     label="Speed Bonus (%)"
-                    type="number"
                     value={steadfastBonuses.speed}
-                    onChange={(e) => setSteadfastBonuses({
-                      ...steadfastBonuses,
-                      speed: Math.max(0, Number(e.target.value))
-                    })}
+                    onChange={(value) => setSteadfastBonuses({ ...steadfastBonuses, speed: value })}
                     size="small"
-                    inputProps={{ min: 0, step: 1 }}
+                    min={0}
+                    step={1}
                   />
-                  <TextField
+                  <NumericTextField
                     label="Defense Bonus (%)"
-                    type="number"
                     value={steadfastBonuses.defense}
-                    onChange={(e) => setSteadfastBonuses({
-                      ...steadfastBonuses,
-                      defense: Math.max(0, Number(e.target.value))
-                    })}
+                    onChange={(value) => setSteadfastBonuses({ ...steadfastBonuses, defense: value })}
                     size="small"
-                    inputProps={{ min: 0, step: 1 }}
+                    min={0}
+                    step={1}
                   />
-                  <TextField
+                  <NumericTextField
                     label="Dexterity Bonus (%)"
-                    type="number"
                     value={steadfastBonuses.dexterity}
-                    onChange={(e) => setSteadfastBonuses({
-                      ...steadfastBonuses,
-                      dexterity: Math.max(0, Number(e.target.value))
-                    })}
+                    onChange={(value) => setSteadfastBonuses({ ...steadfastBonuses, dexterity: value })}
                     size="small"
-                    inputProps={{ min: 0, step: 1 }}
+                    min={0}
+                    step={1}
                   />
                 </Box>
               </Collapse>

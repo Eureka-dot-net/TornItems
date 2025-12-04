@@ -8,6 +8,7 @@ import HistoricalDataConfig from './HistoricalDataConfig';
 import { type HistoricalStat } from '../../../lib/hooks/useHistoricalStats';
 import axios from 'axios';
 import { fetchUserProfile } from '../../../lib/utils/tornApiHelpers';
+import { NumericTextField } from '../../../lib/components';
 
 interface Stats {
   strength: number;
@@ -300,47 +301,43 @@ export default function PlayerStatsSection({
       {/* Starting Stats - Four fields in one row */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid size={{ xs: 6, md: 3 }}>
-          <TextField 
+          <NumericTextField 
             label="Strength" 
-            type="number" 
-            value={initialStats.strength ?? ''} 
-            onChange={(e) => setInitialStats({ ...initialStats, strength: e.target.value === '' ? 0 : Number(e.target.value) })} 
+            value={initialStats.strength} 
+            onChange={(value) => setInitialStats({ ...initialStats, strength: value })} 
             size="small" 
             fullWidth
-            inputProps={{ step: 'any', min: 0 }} 
+            min={0}
           />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <TextField 
+          <NumericTextField 
             label="Speed" 
-            type="number" 
-            value={initialStats.speed ?? ''} 
-            onChange={(e) => setInitialStats({ ...initialStats, speed: e.target.value === '' ? 0 : Number(e.target.value) })} 
+            value={initialStats.speed} 
+            onChange={(value) => setInitialStats({ ...initialStats, speed: value })} 
             size="small" 
             fullWidth
-            inputProps={{ step: 'any', min: 0 }} 
+            min={0}
           />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <TextField 
+          <NumericTextField 
             label="Defense" 
-            type="number" 
-            value={initialStats.defense ?? ''} 
-            onChange={(e) => setInitialStats({ ...initialStats, defense: e.target.value === '' ? 0 : Number(e.target.value) })} 
+            value={initialStats.defense} 
+            onChange={(value) => setInitialStats({ ...initialStats, defense: value })} 
             size="small" 
             fullWidth
-            inputProps={{ step: 'any', min: 0 }} 
+            min={0}
           />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
-          <TextField 
+          <NumericTextField 
             label="Dexterity" 
-            type="number" 
-            value={initialStats.dexterity ?? ''} 
-            onChange={(e) => setInitialStats({ ...initialStats, dexterity: e.target.value === '' ? 0 : Number(e.target.value) })} 
+            value={initialStats.dexterity} 
+            onChange={(value) => setInitialStats({ ...initialStats, dexterity: value })} 
             size="small" 
             fullWidth
-            inputProps={{ step: 'any', min: 0 }} 
+            min={0}
           />
         </Grid>
       </Grid>
@@ -348,18 +345,17 @@ export default function PlayerStatsSection({
       {/* Other Options - Duration, Starting Gym, and Gym Progress */}
       <Grid container spacing={2}>
         <Grid size={{ xs: 6, md: 3 }}>
-          <TextField 
+          <NumericTextField 
             label={`Duration (${durationUnit})`}
-            type="number" 
-            value={displayValue ?? ''} 
-            onChange={(e) => {
-              const inputValue = e.target.value === '' ? 1 : Number(e.target.value);
-              const monthsValue = convertToMonths(inputValue, durationUnit);
+            value={displayValue} 
+            onChange={(value) => {
+              const monthsValue = convertToMonths(value, durationUnit);
               setMonths(monthsValue);
             }}
             size="small" 
             fullWidth
-            inputProps={{ step: 'any', min: 1 }} 
+            min={1}
+            defaultValue={1}
           />
         </Grid>
         {setDurationUnit && (
@@ -386,18 +382,14 @@ export default function PlayerStatsSection({
         </Grid>
         {gymProgressPercent !== undefined && setGymProgressPercent && (
           <Grid size={{ xs: 6, md: 3 }}>
-            <TextField 
+            <NumericTextField 
               label="Gym Progress (%)" 
-              type="number" 
               value={gymProgressPercent} 
-              onChange={(e) => {
-                const numValue = Number(e.target.value);
-                const value = e.target.value === '' || isNaN(numValue) ? 0 : numValue;
-                setGymProgressPercent(Math.max(0, Math.min(100, value)));
-              }}
+              onChange={(value) => setGymProgressPercent(value)}
               size="small" 
               fullWidth
-              inputProps={{ step: 'any', min: 0, max: 100 }}
+              min={0}
+              max={100}
               helperText="Progress toward next gym (0-100%)"
             />
           </Grid>

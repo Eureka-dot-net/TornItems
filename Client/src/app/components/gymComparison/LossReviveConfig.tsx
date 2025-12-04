@@ -1,9 +1,9 @@
 import {
   FormControlLabel,
   Switch,
-  TextField,
   Typography,
 } from '@mui/material';
+import { NumericTextField } from '../../../lib/components';
 import {
   DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY,
   DEFAULT_LOSS_REVIVE_ENERGY_COST,
@@ -52,77 +52,49 @@ export default function LossReviveConfig({
 
       {enabled && (
         <>
-          <TextField
+          <NumericTextField
             label="Number per Day"
-            type="number"
-            value={numberPerDay ?? ''}
-            onChange={(e) =>
-              onUpdate({
-                lossReviveNumberPerDay:
-                  e.target.value === ''
-                    ? DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY
-                    : Math.max(1, Number(e.target.value)),
-              })
-            }
+            value={numberPerDay}
+            onChange={(value) => onUpdate({ lossReviveNumberPerDay: value })}
             fullWidth
             margin="dense"
             size="small"
-            inputProps={{ step: 'any', min: 1 }}
+            min={1}
+            defaultValue={DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY}
           />
 
-          <TextField
+          <NumericTextField
             label="Energy Cost per Loss/Revive"
-            type="number"
-            value={energyCost ?? ''}
-            onChange={(e) =>
-              onUpdate({
-                lossReviveEnergyCost:
-                  e.target.value === ''
-                    ? DEFAULT_LOSS_REVIVE_ENERGY_COST
-                    : Math.max(1, Number(e.target.value)),
-              })
-            }
+            value={energyCost}
+            onChange={(value) => onUpdate({ lossReviveEnergyCost: value })}
             fullWidth
             margin="dense"
             size="small"
-            inputProps={{ step: 'any', min: 1 }}
+            min={1}
+            defaultValue={DEFAULT_LOSS_REVIVE_ENERGY_COST}
           />
 
-          <TextField
+          <NumericTextField
             label="Days Between"
-            type="number"
-            value={daysBetween ?? ''}
-            onChange={(e) =>
-              onUpdate({
-                lossReviveDaysBetween:
-                  e.target.value === ''
-                    ? DEFAULT_LOSS_REVIVE_DAYS_BETWEEN
-                    : Math.max(1, Number(e.target.value)),
-              })
-            }
+            value={daysBetween}
+            onChange={(value) => onUpdate({ lossReviveDaysBetween: value })}
             fullWidth
             margin="dense"
             size="small"
-            inputProps={{ step: 'any', min: 1 }}
+            min={1}
+            defaultValue={DEFAULT_LOSS_REVIVE_DAYS_BETWEEN}
           />
 
           {showCosts && (
-            <TextField
+            <NumericTextField
               label="Price per Loss/Revive"
-              type="number"
-              value={pricePerLoss ?? ''}
-              onChange={(e) =>
-                onUpdate({
-                  lossRevivePricePerLoss:
-                    e.target.value === ''
-                      ? DEFAULT_LOSS_REVIVE_PRICE
-                      : Math.max(0, Number(e.target.value)),
-                })
-              }
+              value={pricePerLoss}
+              onChange={(value) => onUpdate({ lossRevivePricePerLoss: value })}
               fullWidth
               margin="dense"
               size="small"
-              inputProps={{ step: 'any', min: 0 }}
+              min={0}
+              defaultValue={DEFAULT_LOSS_REVIVE_PRICE}
             />
           )}
 

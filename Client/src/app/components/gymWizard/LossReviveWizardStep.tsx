@@ -5,10 +5,10 @@ import {
   RadioGroup,
   FormControlLabel,
   Radio,
-  TextField,
   Alert,
   Collapse,
 } from '@mui/material';
+import { NumericTextField } from '../../../lib/components';
 import {
   DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY,
   DEFAULT_LOSS_REVIVE_ENERGY_COST,
@@ -203,16 +203,14 @@ export default function LossReviveWizardStep({ mode = 'current' }: LossReviveWiz
             <Typography variant="body2" color="text.secondary" paragraph>
               This is the number of losses or revivals you provide each time you sell them.
             </Typography>
-            <TextField
-              type="number"
+            <NumericTextField
               value={lossReviveNumberPerDay}
-              onChange={(e) => {
-                const value = Number(e.target.value);
-                setLossReviveNumberPerDay(Math.max(1, value));
-              }}
+              onChange={(value) => setLossReviveNumberPerDay(value)}
               fullWidth
               size="small"
-              inputProps={{ min: 1, step: 1 }}
+              min={1}
+              step={1}
+              defaultValue={DEFAULT_LOSS_REVIVE_NUMBER_PER_DAY}
               helperText="Enter at least 1"
             />
           </Box>
@@ -229,16 +227,14 @@ export default function LossReviveWizardStep({ mode = 'current' }: LossReviveWiz
               The energy spent per loss for attacking or reviving. Typically 25 energy for losses, 
               or more for revivals depending on faction benefits.
             </Typography>
-            <TextField
-              type="number"
+            <NumericTextField
               value={lossReviveEnergyCost}
-              onChange={(e) => {
-                const value = Number(e.target.value);
-                setLossReviveEnergyCost(Math.max(1, value));
-              }}
+              onChange={(value) => setLossReviveEnergyCost(value)}
               fullWidth
               size="small"
-              inputProps={{ min: 1, step: 1 }}
+              min={1}
+              step={1}
+              defaultValue={DEFAULT_LOSS_REVIVE_ENERGY_COST}
               helperText="Energy per loss/revive (typically 25 for losses)"
             />
           </Box>
@@ -254,16 +250,14 @@ export default function LossReviveWizardStep({ mode = 'current' }: LossReviveWiz
             <Typography variant="body2" color="text.secondary" paragraph>
               How many days between each selling session. Enter 1 for daily, 7 for weekly, etc.
             </Typography>
-            <TextField
-              type="number"
+            <NumericTextField
               value={lossReviveDaysBetween}
-              onChange={(e) => {
-                const value = Number(e.target.value);
-                setLossReviveDaysBetween(Math.max(1, value));
-              }}
+              onChange={(value) => setLossReviveDaysBetween(value)}
               fullWidth
               size="small"
-              inputProps={{ min: 1, step: 1 }}
+              min={1}
+              step={1}
+              defaultValue={DEFAULT_LOSS_REVIVE_DAYS_BETWEEN}
               helperText="Days between selling (e.g., 7 for weekly)"
             />
           </Box>
@@ -280,16 +274,14 @@ export default function LossReviveWizardStep({ mode = 'current' }: LossReviveWiz
               The amount you receive for each loss or revive you sell. This is used for income calculations 
               when cost estimates are enabled.
             </Typography>
-            <TextField
-              type="number"
+            <NumericTextField
               value={lossRevivePricePerLoss}
-              onChange={(e) => {
-                const value = Number(e.target.value);
-                setLossRevivePricePerLoss(Math.max(0, value));
-              }}
+              onChange={(value) => setLossRevivePricePerLoss(value)}
               fullWidth
               size="small"
-              inputProps={{ min: 0, step: 1000000 }}
+              min={0}
+              step={1000000}
+              defaultValue={DEFAULT_LOSS_REVIVE_PRICE}
               helperText={`Enter price per loss/revive (current: ${formatCurrency(lossRevivePricePerLoss)})`}
             />
           </Box>
