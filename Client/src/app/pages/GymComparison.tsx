@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Button,
-  Grid,
   FormControlLabel,
   Switch,
   Alert,
@@ -56,9 +55,7 @@ import { GYMS } from '../../lib/data/gyms';
 // All gyms are available - specialty gyms will be filtered by their requirements
 const AVAILABLE_GYMS = GYMS;
 
-import BuyMeXanaxCard from '../components/gymComparison/BuyMeXanaxCard';
-import ThankYouCard from '../components/gymComparison/ThankYouCard';
-import ReportProblemCard from '../components/gymComparison/ReportProblemCard';
+import SupportCardsSection from '../components/shared/SupportCardsSection';
 import LoadSettingsButton from '../components/gymComparison/LoadSettingsButton';
 import SaveConfigurationButton from '../components/gymComparison/SaveConfigurationButton';
 import LoadConfigurationButton from '../components/gymComparison/LoadConfigurationButton';
@@ -1438,17 +1435,7 @@ export default function GymComparison() {
       )}
       
       {/* Support and Problem Report Cards */}
-      <Grid container spacing={2} sx={{ mt: 8 }}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <BuyMeXanaxCard />
-        </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <ReportProblemCard getCurrentSettings={getCurrentSettings} />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <ThankYouCard />
-        </Grid>
-      </Grid>
+      <SupportCardsSection getCurrentSettings={getCurrentSettings} />
     </Box>
   );
 }
