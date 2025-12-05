@@ -10,7 +10,7 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: ChatInputCommandInteraction) {
   const discordId = interaction.user.id;
 
-  await interaction.reply({ content: '📊 Fetching daily task status...' });
+  await interaction.reply({ content: '📊 Fetching daily task status...', ephemeral: true });
 
   try {
     logInfo('Fetching minmax stats via bot command', { discordId });
