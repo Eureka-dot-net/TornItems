@@ -59,7 +59,8 @@ export async function checkMinMaxSubscriptions() {
         if (!status.cityItemsBought.completed) {
           incompleteTasks.push(`❌ **City Items:** ${status.cityItemsBought.current}/${status.cityItemsBought.target}`);
         }
-        if (!status.energyRefill.completed) {
+        // Energy refill is now optional
+        if (subscription.notifyEnergyRefill && !status.energyRefill.completed) {
           incompleteTasks.push(`❌ **Energy Refill:** ${status.energyRefill.current}/${status.energyRefill.target}`);
         }
         

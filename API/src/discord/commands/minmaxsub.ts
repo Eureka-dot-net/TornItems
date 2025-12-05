@@ -61,6 +61,12 @@ export const data = new SlashCommandBuilder()
       .setName('notifyskimmers')
       .setDescription('Notify if not having 20 skimmers active (default: true)')
       .setRequired(false)
+  )
+  .addBooleanOption(option =>
+    option
+      .setName('notifyenergyrefill')
+      .setDescription('Notify if energy refill not used (default: true)')
+      .setRequired(false)
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -73,6 +79,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const notifyWheelMediocre = interaction.options.getBoolean('notifywheelmediocre');
   const notifyWheelAwesomeness = interaction.options.getBoolean('notifywheelawesomeness');
   const notifySkimmers = interaction.options.getBoolean('notifyskimmers');
+  const notifyEnergyRefill = interaction.options.getBoolean('notifyenergyrefill');
   const discordUserId = interaction.user.id;
   const channelId = interaction.channelId;
 
@@ -100,6 +107,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const effectiveNotifyWheelMediocre = notifyWheelMediocre !== null ? notifyWheelMediocre : false;
     const effectiveNotifyWheelAwesomeness = notifyWheelAwesomeness !== null ? notifyWheelAwesomeness : false;
     const effectiveNotifySkimmers = notifySkimmers !== null ? notifySkimmers : false;
+    const effectiveNotifyEnergyRefill = notifyEnergyRefill !== null ? notifyEnergyRefill : false;
 
     if (subscription) {
       // Update existing subscription
@@ -113,6 +121,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       subscription.notifyWheelMediocre = effectiveNotifyWheelMediocre;
       subscription.notifyWheelAwesomeness = effectiveNotifyWheelAwesomeness;
       subscription.notifySkimmers = effectiveNotifySkimmers;
+      subscription.notifyEnergyRefill = effectiveNotifyEnergyRefill;
       subscription.enabled = true;
       subscription.lastNotificationSent = null; // Reset to ensure notification is sent
       await subscription.save();
@@ -128,7 +137,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         notifyWheelLame: effectiveNotifyWheelLame,
         notifyWheelMediocre: effectiveNotifyWheelMediocre,
         notifyWheelAwesomeness: effectiveNotifyWheelAwesomeness,
-        notifySkimmers: effectiveNotifySkimmers
+        notifySkimmers: effectiveNotifySkimmers,
+        notifyEnergyRefill: effectiveNotifyEnergyRefill
       });
     } else {
       // Create new subscription
@@ -144,6 +154,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         notifyWheelMediocre: effectiveNotifyWheelMediocre,
         notifyWheelAwesomeness: effectiveNotifyWheelAwesomeness,
         notifySkimmers: effectiveNotifySkimmers,
+        notifyEnergyRefill: effectiveNotifyEnergyRefill,
         enabled: true,
         lastNotificationSent: null
       });
@@ -160,7 +171,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         notifyWheelLame: effectiveNotifyWheelLame,
         notifyWheelMediocre: effectiveNotifyWheelMediocre,
         notifyWheelAwesomeness: effectiveNotifyWheelAwesomeness,
-        notifySkimmers: effectiveNotifySkimmers
+        notifySkimmers: effectiveNotifySkimmers,
+        notifyEnergyRefill: effectiveNotifyEnergyRefill
       });
     }
 
@@ -193,6 +205,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     if (effectiveNotifyWheelMediocre) notificationSettings.push('Wheel of Mediocrity');
     if (effectiveNotifyWheelAwesomeness) notificationSettings.push('Wheel of Awesomeness');
     if (effectiveNotifySkimmers) notificationSettings.push('Skimmers');
+    if (effectiveNotifyEnergyRefill) notificationSettings.push('Energy Refill');
 
     const embed = new EmbedBuilder()
       .setTitle('✅ Minmax Subscription Active')
@@ -206,7 +219,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           name: 'What we’ll check',
           value: [
             '• ✅ City items bought (100/day)',
-            '• ✅ Energy refills (1/day)',
             '• ✅ Casino tickets (75/day) - requires full API key',
             notificationSettings.length > 0 ? `• ✅ Optional: ${notificationSettings.join(', ')}` : ''
           ].filter(Boolean).join('\n')

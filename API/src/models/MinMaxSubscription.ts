@@ -16,6 +16,7 @@ export interface IMinMaxSubscription extends Document {
   notifyWheelMediocre: boolean; // Whether to notify about Wheel of Mediocrity not spun
   notifyWheelAwesomeness: boolean; // Whether to notify about Wheel of Awesomeness not spun
   notifySkimmers: boolean; // Whether to notify if not having 20 skimmers
+  notifyEnergyRefill: boolean; // Whether to notify if energy refill not used
   lastNotificationSent?: Date | null; // Track when last notification was sent (date only, no time)
   enabled: boolean;
   createdAt: Date;
@@ -34,6 +35,7 @@ const MinMaxSubscriptionSchema = new Schema<IMinMaxSubscription>({
   notifyWheelMediocre: { type: Boolean, default: true },
   notifyWheelAwesomeness: { type: Boolean, default: true },
   notifySkimmers: { type: Boolean, default: true },
+  notifyEnergyRefill: { type: Boolean, default: true },
   lastNotificationSent: { type: Date, default: null },
   enabled: { type: Boolean, default: true, index: true },
 }, {
