@@ -114,12 +114,12 @@ export async function checkMinMaxSubscriptions() {
           
           // Use findOneAndUpdate with a condition to atomically claim this notification.
           // This ensures only one instance of the job can send the notification.
-          // We only update if lastNotificationSent is still the old value (or null).
+          // We check that lastNotificationSent is before today to avoid race conditions.
           const updateResult = await MinMaxSubscription.findOneAndUpdate(
             { 
               _id: subscription._id,
               $or: [
-                { lastNotificationSent: subscription.lastNotificationSent },
+                { lastNotificationSent: { $lt: currentDateUTC } },
                 { lastNotificationSent: null }
               ]
             },
