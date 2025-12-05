@@ -35,7 +35,7 @@ const MinMaxSubscriptionSchema = new Schema<IMinMaxSubscription>({
   notifyWheelMediocre: { type: Boolean, default: true },
   notifyWheelAwesomeness: { type: Boolean, default: true },
   notifySkimmers: { type: Boolean, default: true },
-  notifyEnergyRefill: { type: Boolean, default: true },
+  notifyEnergyRefill: { type: Boolean, default: false },
   lastNotificationSent: { type: Date, default: null },
   enabled: { type: Boolean, default: true, index: true },
 }, {

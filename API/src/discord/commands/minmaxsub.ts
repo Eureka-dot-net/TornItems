@@ -65,7 +65,7 @@ export const data = new SlashCommandBuilder()
   .addBooleanOption(option =>
     option
       .setName('notifyenergyrefill')
-      .setDescription('Notify if energy refill not used (default: true)')
+      .setDescription('Notify if energy refill not used (default: false)')
       .setRequired(false)
   );
 
