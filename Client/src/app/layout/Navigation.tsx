@@ -69,7 +69,9 @@ export default function Navigation() {
       window.removeEventListener('storage', handleStorageChange);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [location.pathname]); // Re-run when path changes to pick up auth changes
+    // Note: location.pathname is included to ensure nav updates after same-tab auth changes
+    // (storage event only fires in other tabs, not the current one)
+  }, [location.pathname]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);

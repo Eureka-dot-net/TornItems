@@ -113,7 +113,8 @@ router.get('/auth/training/verify', async (req: Request, res: Response): Promise
         name: authorizedUser.name
       }
     });
-  } catch {
+  } catch (err: unknown) {
+    console.log('Token verification failed:', err instanceof Error ? err.message : 'Unknown error');
     res.status(401).json({ valid: false, error: 'Invalid or expired token' });
   }
 });
