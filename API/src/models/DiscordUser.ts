@@ -8,8 +8,8 @@ export interface IDiscordUser extends Document {
   apiKeyType?: 'full' | 'limited'; // Type of API key (full allows log access, limited does not)
   level: number;
   factionId?: number; // User's faction ID
-  hasPrivateIsland: boolean; // Global setting for travel notifications
-  itemsToBuy: number; // Global setting for travel notifications
+  hasPrivateIsland: boolean; // @deprecated - was used for travel notifications (removed)
+  itemsToBuy: number; // @deprecated - was used for travel notifications (removed)
   createdAt: Date;
   updatedAt: Date;
 }
