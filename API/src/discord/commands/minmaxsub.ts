@@ -83,7 +83,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const discordUserId = interaction.user.id;
   const channelId = interaction.channelId;
 
-  await interaction.deferReply();
+  await interaction.deferReply({ ephemeral: true });
 
   try {
     // Check if user has registered their API key
