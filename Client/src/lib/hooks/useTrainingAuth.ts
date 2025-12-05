@@ -38,33 +38,13 @@ export function useTrainingAuth() {
     };
   });
 
-  const authenticateWithApiKey = useCallback(async (apiKey: string): Promise<boolean> => {
-    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
-
+  /**
+   * Authenticate user with their Torn user ID and name
+   * This is called from GymComparison/Wizard when user fetches their stats
+   */
+  const authenticateWithUserInfo = useCallback(async (tornUserId: number, tornUserName: string): Promise<boolean> => {
     try {
-      // First, fetch user info from Torn API
-      const tornResponse = await fetch(
-        `https://api.torn.com/v2/user/basic?striptags=true&key=${apiKey}`
-      );
-
-      if (!tornResponse.ok) {
-        throw new Error('Failed to fetch user information from Torn API');
-      }
-
-      const tornData = await tornResponse.json();
-
-      if (tornData.error) {
-        throw new Error(tornData.error.error || 'Invalid API key');
-      }
-
-      const tornUserId = tornData.profile?.id;
-      const tornUserName = tornData.profile?.name;
-
-      if (!tornUserId) {
-        throw new Error('Could not retrieve user ID from Torn API');
-      }
-
-      // Now authenticate with our API
+      // Authenticate with our API
       const authResponse = await agent.post('/auth/training', {
         tornUserId,
         tornUserName,
@@ -83,26 +63,11 @@ export function useTrainingAuth() {
         });
 
         return true;
-      } else {
-        throw new Error('User is not authorized for training recommendations');
       }
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error 
-        ? err.message 
-        : 'Authentication failed';
-      
-      // Check if it's an axios error with response data
-      const axiosError = err as { response?: { data?: { error?: string } } };
-      const apiError = axiosError?.response?.data?.error;
-
-      setAuthState({
-        isAuthorized: false,
-        isLoading: false,
-        user: null,
-        token: null,
-        error: apiError || errorMessage,
-      });
-
+      // User not authorized - don't set error, just return false
+      return false;
+    } catch {
+      // User not authorized or API error - silently fail
       return false;
     }
   }, []);
@@ -166,10 +131,18 @@ export function useTrainingAuth() {
     });
   }, []);
 
+  /**
+   * Check if user is authorized (from localStorage)
+   */
+  const isAuthorizedFromStorage = useCallback((): boolean => {
+    return !!localStorage.getItem(TRAINING_TOKEN_KEY);
+  }, []);
+
   return {
     ...authState,
-    authenticateWithApiKey,
+    authenticateWithUserInfo,
     verifyToken,
     logout,
+    isAuthorizedFromStorage,
   };
 }

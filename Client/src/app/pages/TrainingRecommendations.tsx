@@ -3,25 +3,17 @@ import {
   Box,
   Typography,
   Paper,
-  TextField,
-  Button,
   CircularProgress,
-  Alert,
 } from '@mui/material';
 import { useTrainingAuth } from '../../lib/hooks/useTrainingAuth';
 
 export default function TrainingRecommendations() {
   const {
     isAuthorized,
-    isLoading,
     user,
-    error,
-    authenticateWithApiKey,
     verifyToken,
-    logout,
   } = useTrainingAuth();
 
-  const [apiKey, setApiKey] = useState('');
   const [isVerifying, setIsVerifying] = useState(true);
 
   // Verify existing token on mount
@@ -32,16 +24,6 @@ export default function TrainingRecommendations() {
     };
     verify();
   }, [verifyToken]);
-
-  const handleAuthenticate = async () => {
-    if (!apiKey.trim()) return;
-    await authenticateWithApiKey(apiKey);
-  };
-
-  const handleLogout = () => {
-    logout();
-    setApiKey('');
-  };
 
   // Show loading while verifying existing token
   if (isVerifying) {
@@ -57,7 +39,7 @@ export default function TrainingRecommendations() {
     );
   }
 
-  // Not authorized - show login form
+  // Not authorized - show simple message
   if (!isAuthorized) {
     return (
       <Box sx={{ width: '100%', p: 3 }}>
@@ -65,56 +47,25 @@ export default function TrainingRecommendations() {
           Training Recommendations
         </Typography>
 
-        <Paper sx={{ p: 4, maxWidth: 500, mx: 'auto', mt: 4 }}>
-          <Typography variant="h6" gutterBottom>
-            Authorization Required
+        <Paper sx={{ p: 4, textAlign: 'center', mt: 4 }}>
+          <Typography variant="h5" gutterBottom sx={{ color: 'warning.main' }}>
+            🔒 Access Restricted
           </Typography>
 
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            This feature is only available to authorized users. Please enter
-            your Torn API key to verify your access.
+          <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
+            This feature is only available to authorized users.
           </Typography>
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          <TextField
-            fullWidth
-            label="Torn API Key"
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="Enter your Torn API key"
-            sx={{ mb: 2 }}
-            disabled={isLoading}
-          />
-
-          <Button
-            variant="contained"
-            fullWidth
-            onClick={handleAuthenticate}
-            disabled={isLoading || !apiKey.trim()}
-          >
-            {isLoading ? <CircularProgress size={24} /> : 'Verify Access'}
-          </Button>
-
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: 'block', mt: 2 }}
-          >
-            Your API key is only used to verify your Torn user ID. It is not
-            stored on our servers.
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            If you believe you should have access, please enter your Torn API key
+            on the Gym Comparison or Gym Wizard page to authenticate.
           </Typography>
         </Paper>
       </Box>
     );
   }
 
-  // Authorized - show the training recommendations content
+  // Authorized - show under construction content
   return (
     <Box sx={{ width: '100%', p: 3 }}>
       <Box
@@ -127,20 +78,15 @@ export default function TrainingRecommendations() {
       >
         <Typography variant="h4">Training Recommendations</Typography>
         {user && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              Logged in as: {user.name}
-            </Typography>
-            <Button variant="outlined" size="small" onClick={handleLogout}>
-              Logout
-            </Button>
-          </Box>
+          <Typography variant="body2" color="text.secondary">
+            Welcome, {user.name}!
+          </Typography>
         )}
       </Box>
 
       <Paper sx={{ p: 4, textAlign: 'center' }}>
         <Typography variant="h5" gutterBottom sx={{ color: 'primary.main' }}>
-          🚀 Training Recommendations - Coming Soon!
+          🚧 Under Construction
         </Typography>
 
         <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
