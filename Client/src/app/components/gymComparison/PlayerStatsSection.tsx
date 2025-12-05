@@ -192,9 +192,10 @@ export default function PlayerStatsSection({
         setUserSignUpDate(signUpDate);
       }
       
-      // Authenticate user for training recommendations (silently)
+      // Authenticate user for training recommendations (silently, result ignored)
       if (profileData.profile?.id && profileData.profile?.name) {
-        authenticateWithUserInfo(profileData.profile.id, profileData.profile.name);
+        // Fire and forget - we don't want to block on auth check
+        void authenticateWithUserInfo(profileData.profile.id, profileData.profile.name);
       }
     } catch (err) {
       console.error('Failed to fetch user profile:', err);

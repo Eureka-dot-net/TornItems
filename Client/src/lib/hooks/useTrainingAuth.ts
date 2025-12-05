@@ -66,8 +66,9 @@ export function useTrainingAuth() {
       }
       // User not authorized - don't set error, just return false
       return false;
-    } catch {
-      // User not authorized or API error - silently fail
+    } catch (err) {
+      // User not authorized or API error - silently fail but log for debugging
+      console.debug('Training auth check failed (expected for non-authorized users):', err);
       return false;
     }
   }, []);
