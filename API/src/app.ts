@@ -6,6 +6,7 @@ import stocks from './routes/stocks';
 import discord from './routes/discord';
 import gym from './routes/gym';
 import items from './routes/items';
+import auth from './routes/auth';
 import { aggregateMarketHistory } from './jobs/aggregateMarketHistory';
 
 export const app = express();
@@ -40,4 +41,5 @@ app.use('/api', stocks);
 app.use('/api', discord);
 app.use('/api/gym', gym);
 app.use('/api/items', items);
+app.use('/api', auth);
 

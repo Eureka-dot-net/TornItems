@@ -7,6 +7,7 @@ import StockProfit from "../pages/StockProfit";
 import GymComparison from "../pages/GymComparison";
 import GymWizard from "../pages/GymWizard";
 import TrainingBreakdown from "../pages/TrainingBreakdown";
+import TrainingRecommendations from "../pages/TrainingRecommendations";
 
 const router = createBrowserRouter([
     {
@@ -19,6 +20,7 @@ const router = createBrowserRouter([
             { path: "/gymComparison", element: <GymComparison /> },
             { path: "/gymWizard", element: <GymWizard /> },
             { path: "/trainingBreakdown", element: <TrainingBreakdown /> },
+            { path: "/trainingRecommendations", element: <TrainingRecommendations /> },
             { path: "*", element: <UnderConstruction /> },
         ],
     },
