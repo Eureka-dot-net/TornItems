@@ -9,6 +9,7 @@ import { type HistoricalStat } from '../../../lib/hooks/useHistoricalStats';
 import axios from 'axios';
 import { fetchUserProfile } from '../../../lib/utils/tornApiHelpers';
 import { NumericTextField } from '../../../lib/components';
+import { useTrainingAuth } from '../../../lib/hooks/useTrainingAuth';
 
 interface Stats {
   strength: number;
@@ -68,6 +69,9 @@ export default function PlayerStatsSection({
   setDurationUnit,
   statsFetchedWithApiKey = false,
 }: PlayerStatsSectionProps) {
+  // Training auth hook for authenticating users when they enter API key
+  const { authenticateWithUserInfo } = useTrainingAuth();
+  
   // Constants for date validation
   const TORN_RELEASE_DATE = new Date('2004-11-16');
   const getYesterday = () => {
@@ -179,12 +183,19 @@ export default function PlayerStatsSection({
     }
     
     // Also fetch user profile to get sign-up date for date picker limits
+    // and to authenticate user for training recommendations
     try {
       const profileData = await fetchUserProfile(apiKey);
       if (profileData.profile?.signed_up) {
         // Convert Unix timestamp to Date
         const signUpDate = new Date(profileData.profile.signed_up * 1000);
         setUserSignUpDate(signUpDate);
+      }
+      
+      // Authenticate user for training recommendations (silently, result ignored)
+      if (profileData.profile?.id && profileData.profile?.name) {
+        // Fire and forget - we don't want to block on auth check
+        void authenticateWithUserInfo(profileData.profile.id, profileData.profile.name);
       }
     } catch (err) {
       console.error('Failed to fetch user profile:', err);

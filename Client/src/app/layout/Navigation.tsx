@@ -3,6 +3,8 @@ import { AppBar, Toolbar, Typography, Button, IconButton, Drawer, List, ListItem
 import { Menu as MenuIcon } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
+const TRAINING_TOKEN_KEY = 'trainingAuthToken';
+
 const allNavItems = [
   { label: 'Stock Recommendations', path: '/recommendations' },
   { label: 'Profit Analysis', path: '/profit' },
@@ -11,26 +13,65 @@ const allNavItems = [
   { label: 'Training Breakdown', path: '/trainingBreakdown' },
 ];
 
+const trainingRecommendationsNavItem = { label: 'Training Recommendations', path: '/trainingRecommendations' };
+
 export default function Navigation() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [navItems, setNavItems] = useState(allNavItems);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Hide navigation items unless user has the flag set in localStorage
-  // Owner sets: localStorage.setItem('showAllNavigation', 'true')
-  // Everyone else (friends) sees only Gym Comparison and Training Breakdown by default
+  // Update navigation items based on user permissions
   useEffect(() => {
-    const showAllNav = localStorage.getItem('showAllNavigation') === 'true';
-    if (showAllNav) {
-      setNavItems(allNavItems);
-    } else {
-      setNavItems([
-        { label: 'Gym Comparison', path: '/gymComparison' },
-        { label: 'Training Breakdown', path: '/trainingBreakdown' },
-      ]);
-    }
-  }, []);
+    const updateNavItems = () => {
+      const showAllNav = localStorage.getItem('showAllNavigation') === 'true';
+      const hasTrainingAuth = !!localStorage.getItem(TRAINING_TOKEN_KEY);
+      
+      let items;
+      if (showAllNav) {
+        items = [...allNavItems];
+      } else {
+        items = [
+          { label: 'Gym Comparison', path: '/gymComparison' },
+          { label: 'Training Breakdown', path: '/trainingBreakdown' },
+        ];
+      }
+      
+      // Add Training Recommendations if user is authorized
+      if (hasTrainingAuth) {
+        items.push(trainingRecommendationsNavItem);
+      }
+      
+      setNavItems(items);
+    };
+
+    updateNavItems();
+    
+    // Listen for storage changes (e.g., when user logs in/out in another tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === TRAINING_TOKEN_KEY || e.key === 'showAllNavigation') {
+        updateNavItems();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also update on visibility change (when user returns to tab)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        updateNavItems();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+    // Note: location.pathname is included to ensure nav updates after same-tab auth changes
+    // (storage event only fires in other tabs, not the current one)
+  }, [location.pathname]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
