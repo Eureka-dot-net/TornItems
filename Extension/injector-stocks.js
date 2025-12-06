@@ -6,7 +6,7 @@
   const sellAmount = url.searchParams.get("sellamount");
   if (!stockId) return;
 
-  console.log(`[TornStockAutoTab] Preparing to open stock ${stockId} (${targetTab})`);
+  console.log(`[TornStockHighlight] Preparing to locate stock ${stockId}`);
 
   // Wait until Torn has rendered at least one stock entry
   const waitForRender = () =>
@@ -23,13 +23,13 @@
 
   await waitForRender();
 
-  // Wait for browser idle
+  // Let page stabilize
   await new Promise((resolve) => {
     if ("requestIdleCallback" in window) requestIdleCallback(resolve, { timeout: 2000 });
     else setTimeout(resolve, 1200);
   });
 
-  console.log(`[TornStockAutoTab] Page settled; searching for stock ${stockId}`);
+  console.log(`[TornStockHighlight] Page settled; searching for stock ${stockId}`);
 
   const findStock = async () => {
     for (let i = 0; i < 80; i++) {
@@ -42,82 +42,25 @@
 
   const stockList = await findStock();
   if (!stockList) {
-    console.warn(`[TornStockAutoTab] Could not locate stock ${stockId}`);
+    console.warn(`[TornStockHighlight] Could not locate stock ${stockId}`);
     return;
   }
 
-  // Gentle scroll into view
+  // 🔽 Gentle scroll into view (kept)
   stockList.scrollIntoView({ behavior: "smooth", block: "center" });
-  console.log(`[TornStockAutoTab] Scrolled to stock ${stockId}`);
+  console.log(`[TornStockHighlight] Scrolled to stock ${stockId}`);
 
+  // Small delay to let scroll finish
   await new Promise((r) => setTimeout(r, 1000));
 
-  // Click stock header to expand
-  const header = stockList.querySelector('li[role="tab"]');
-  if (header) {
-    header.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    console.log(`[TornStockAutoTab] Expanded stock ${stockId}`);
-  }
+  // 🟡 NEW: Highlight instead of selecting — PERMANENT
+  stockList.style.outline = "2px solid gold";
+  stockList.style.boxShadow = "0 0 12px rgba(255, 215, 0, 0.8)";
+  console.log(`[TornStockHighlight] Highlighted stock ${stockId}`);
 
-  // Wait for tabs to appear
-  const waitForTabs = async () => {
-    for (let i = 0; i < 30; i++) {
-      const tab = stockList.querySelector(`[data-name="${targetTab}"]`);
-      if (tab) return tab;
-      await new Promise((r) => setTimeout(r, 200));
-    }
-    return null;
-  };
+  // ❌ REMOVED: automatic header click
+  // ❌ REMOVED: automatic tab click
+  // ❌ REMOVED: automatic value typing
+  // (We keep everything else intact)
 
-  const tabEl = await waitForTabs();
-  if (tabEl) {
-    tabEl.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    console.log(`[TornStockAutoTab] Switched to "${targetTab}"`);
-  } else {
-    console.warn(`[TornStockAutoTab] Could not find tab "${targetTab}"`);
-  }
-
-  // If we’re on the Owned tab and have a sell amount, try to pre-fill
-  if (targetTab === "ownedTab" && sellAmount) {
-    console.log(`[TornStockAutoTab] Will pre-fill sell amount: ${sellAmount}`);
-
-    // Wait for the sell block anywhere on the page (Torn mounts it globally)
-    const waitForSellBlock = async () => {
-      for (let i = 0; i < 80; i++) {
-        const block = document.querySelector('.sellBlock___A_yTW');
-        if (block) return block;
-        await new Promise((r) => setTimeout(r, 200));
-      }
-      return null;
-    };
-
-    const sellBlock = await waitForSellBlock();
-    if (!sellBlock) {
-      console.warn(`[TornStockAutoTab] Could not find sell block (even globally)`);
-      return;
-    }
-
-    // Find the visible editable input (ignore hidden ones)
-    const inputs = Array.from(sellBlock.querySelectorAll('.input-money'));
-    const input = inputs.find(inp => inp.type !== "hidden") || inputs[0];
-
-    if (input) {
-      // Ensure it's visible before editing (React sometimes hasn't bound it yet)
-      await new Promise(r => setTimeout(r, 300));
-
-      input.focus();
-      input.value = sellAmount;
-      input.setAttribute("value", sellAmount); // ensure both attributes updated
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-
-      console.log(`[TornStockAutoTab] Pre-filled sell input with ${sellAmount}`);
-
-      // Highlight visually
-      input.style.outline = "2px solid gold";
-      setTimeout(() => (input.style.outline = ""), 1200);
-    } else {
-      console.warn(`[TornStockAutoTab] Still no editable sell input found`);
-    }
-  }
 })();

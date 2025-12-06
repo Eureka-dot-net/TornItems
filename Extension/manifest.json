@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Torn Helper Tools",
-  "version": "1.4",
-  "description": "Auto-opens Torn stocks and shop items for convenience, plus checks for $1 items on Weaver's page.",
+  "version": "1.5",
+  "description": "Auto-opens Torn stocks and shop items for convenience, plus checks for $1 items on Weaver's page and Torn bazaars.",
+  
   "permissions": [
     "tabs",
     "notifications",
@@ -10,90 +11,61 @@
     "scripting",
     "storage"
   ],
+
   "host_permissions": [
     "https://www.torn.com/*",
     "https://weav3r.dev/dollar-items"
   ],
+
   "content_scripts": [
     {
-      "matches": [
-        "https://www.torn.com/page.php?sid=stocks*"
-      ],
-      "js": [
-        "injector-stocks.js"
-      ],
+      "matches": ["https://www.torn.com/page.php?sid=stocks*"],
+      "js": ["injector-stocks.js"],
       "run_at": "document_idle"
     },
     {
-      "matches": [
-        "https://www.torn.com/page.php?sid=travel*"
-      ],
-      "js": [
-        "injector-travel.js"
-      ],
+      "matches": ["https://www.torn.com/page.php?sid=travel*"],
+      "js": ["injector-travel.js"],
       "run_at": "document_idle"
     },
     {
-      "matches": [
-        "https://www.torn.com/index.php*"
-      ],
-      "js": [
-        "injector-flyshop.js"
-      ],
+      "matches": ["https://www.torn.com/index.php*"],
+      "js": ["injector-flyshop.js"],
       "run_at": "document_idle"
     },
     {
-      "matches": [
-        "https://www.torn.com/*"
-      ],
-      "js": [
-        "injector-dashboard.js"
-      ],
+      "matches": ["https://www.torn.com/*"],
+      "js": ["injector-dashboard.js"],
       "run_at": "document_idle"
     },
     {
-      "matches": [
-        "https://weav3r.dev/dollar-items"
-      ],
-      "js": [
-        "content.js"
-      ],
+      "matches": ["https://weav3r.dev/dollar-items"],
+      "js": ["content.js"],
       "run_at": "document_idle"
     },
     {
-      "matches": [
-        "*://www.torn.com/page.php?sid=racing*"
-      ],
-      "js": [
-        "content-racing-skill.js"
-      ]
-    },
-    {
-      "matches": [
-        "https://weav3r.dev/categories?cat=Energy+Drink*"
-      ],
-      "js": [
-        "injector-weaver-bazaar.js"
-      ],
+      "matches": ["*://www.torn.com/page.php?sid=racing*"],
+      "js": ["content-racing-skill.js"],
       "run_at": "document_idle"
     },
     {
-      "matches": [
-        "https://weav3r.dev/item/*"
-      ],
-      "js": [
-        "injector-weaver-bazaar.js"
-      ],
+      "matches": ["https://weav3r.dev/categories?cat=Energy+Drink*"],
+      "js": ["injector-weaver-bazaar.js"],
       "run_at": "document_idle"
     },
-
     {
-      "matches": [
-        "https://www.torn.com/page.php?sid=ItemMarket*"
-      ],
-      "js": [
-        "market-watch.js"
-      ],
+      "matches": ["https://weav3r.dev/item/*"],
+      "js": ["injector-weaver-bazaar.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.torn.com/page.php?sid=ItemMarket*"],
+      "js": ["market-watch.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.torn.com/bazaar.php*"],
+      "js": ["bazaar-dollar-finder.js"],
       "run_at": "document_idle"
     }
   ],

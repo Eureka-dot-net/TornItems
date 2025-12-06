@@ -1,0 +1,178 @@
+<TaskerData sr="" dvi="1" tv="6.3.1">
+ <Project sr="proj" name="MexicoLoop">
+  <Profile sr="prof" ve="2">
+   <cdate>1732300000</cdate>
+   <edate>1732300000</edate>
+   <Flags>8</Flags>
+   <Name>Mexico Alarm Fired</Name>
+   <Event sr="con">
+    <AlarmClockAlarmDone sr="evt">
+     <Label>Mexico Takeoff</Label>
+    </AlarmClockAlarmDone>
+   </Event>
+   <Task sr="task" ve="2" name="Mexico Alarm Handler">
+    <Action sr="act" ve="7">
+     <code>548</code>
+     <Str sr="arg">Takeoff %NEXTTO</Str>
+     <Str sr="arg"/>
+     <Int sr="arg">0</Int>
+     <Int sr="arg">0</Int>
+     <Int sr="arg">0</Int>
+     <Int sr="arg">0</Int>
+    </Action>
+
+    <!-- %TAKEOFF = previous %NEXTTO -->
+    <Action sr="act" ve="7">
+     <code>547</code>
+     <Str sr="arg">%TAKEOFF</Str>
+     <Str sr="arg">%NEXTTO</Str>
+    </Action>
+
+    <!-- Recalculate cycle -->
+    <!-- %LANDHOME = %TAKEOFF + 2160 -->
+    <Action sr="act" ve="7">
+     <code>547</code>
+     <Str sr="arg">%LANDHOME</Str>
+     <Str sr="arg">%TAKEOFF + 2160</Str>
+    </Action>
+
+    <!-- %Q = ceil(%LANDHOME / 900) -->
+    <Action sr="act" ve="7">
+     <code>547</code>
+     <Str sr="arg">%Q</Str>
+     <Str sr="arg">ceil(%LANDHOME / 900)</Str>
+    </Action>
+
+    <!-- %LANDMX = %Q * 900 -->
+    <Action sr="act" ve="7">
+     <code>547</code>
+     <Str sr="arg">%LANDMX</Str>
+     <Str sr="arg">%Q * 900</Str>
+    </Action>
+
+    <!-- %NEXTTO = %LANDMX - 1080 -->
+    <Action sr="act" ve="7">
+     <code>547</code>
+     <Str sr="arg">%NEXTTO</Str>
+     <Str sr="arg">%LANDMX - 1080</Str>
+    </Action>
+
+    <!-- %ALERT = %NEXTTO - 30 -->
+    <Action sr="act" ve="7">
+     <code>547</code>
+     <Str sr="arg">%ALERT</Str>
+     <Str sr="arg">%NEXTTO - 30</Str>
+    </Action>
+
+    <!-- Set alarm -->
+    <Action sr="act" ve="7">
+     <code>105</code>
+     <Str sr="arg">Mexico Takeoff</Str>
+     <Int sr="arg">1</Int>
+     <Str sr="arg">%ALERT</Str>
+     <Int sr="arg">0</Int>
+     <Int sr="arg">0</Int>
+    </Action>
+
+   </Task>
+  </Profile>
+
+  <Task sr="task" ve="2" name="Start Mexico Loop">
+   <!-- Start flag -->
+   <Action sr="act" ve="7">
+    <code>547</code>
+    <Str sr="arg">%START</Str>
+    <Str sr="arg">1</Str>
+   </Action>
+
+   <!-- %TAKEOFF = now -->
+   <Action sr="act" ve="7">
+    <code>547</code>
+    <Str sr="arg">%TAKEOFF</Str>
+    <Str sr="arg">%TIMES</Str>
+   </Action>
+
+   <!-- %LANDHOME = now + 2160 -->
+   <Action sr="act" ve="7">
+    <code>547</code>
+    <Str sr="arg">%LANDHOME</Str>
+    <Str sr="arg">%TAKEOFF + 2160</Str>
+   </Action>
+
+   <!-- %Q = ceil(%LANDHOME / 900) -->
+   <Action sr="act" ve="7">
+    <code>547</code>
+    <Str sr="arg">%Q</Str>
+    <Str sr="arg">ceil(%LANDHOME / 900)</Str>
+   </Action>
+
+   <!-- %LANDMX = %Q * 900 -->
+   <Action sr="act" ve="7">
+    <code>547</code>
+    <Str sr="arg">%LANDMX</Str>
+    <Str sr="arg">%Q * 900</Str>
+   </Action>
+
+   <!-- %NEXTTO = %LANDMX - 1080 -->
+   <Action sr="act" ve="7">
+    <code>547</code>
+    <Str sr="arg">%NEXTTO</Str>
+    <Str sr="arg">%LANDMX - 1080</Str>
+   </Action>
+
+   <!-- %ALERT = %NEXTTO - 30 -->
+   <Action sr="act" ve="7">
+    <code>547</code>
+    <Str sr="arg">%ALERT</Str>
+    <Str sr="arg">%NEXTTO - 30</Str>
+   </Action>
+
+   <!-- Set alarm -->
+   <Action sr="act" ve="7">
+    <code>105</code>
+    <Str sr="arg">Mexico Takeoff</Str>
+    <Int sr="arg">1</Int>
+    <Str sr="arg">%ALERT</Str>
+    <Int sr="arg">0</Int>
+    <Int sr="arg">0</Int>
+   </Action>
+
+   <!-- Display toast so you know it's running -->
+   <Action sr="act" ve="7">
+    <code>548</code>
+    <Str sr="arg">Mexico loop started</Str>
+    <Str sr="arg"/>
+    <Int sr="arg">0</Int>
+    <Int sr="arg">0</Int>
+    <Int sr="arg">0</Int>
+    <Int sr="arg">0</Int>
+   </Action>
+
+  </Task>
+
+  <Task sr="task" ve="2" name="Stop Mexico Loop">
+   <Action sr="act" ve="7">
+    <code>547</code>
+    <Str sr="arg">%START</Str>
+    <Str sr="arg"></Str>
+   </Action>
+
+   <!-- Clear all alarms -->
+   <Action sr="act" ve="7">
+    <code>106</code>
+    <Int sr="arg">1</Int>
+   </Action>
+
+   <Action sr="act" ve="7">
+    <code>548</code>
+    <Str sr="arg">Mexico loop stopped</Str>
+    <Str sr="arg"/>
+    <Int sr="arg">0</Int>
+    <Int sr="arg">0</Int>
+    <Int sr="arg">0</Int>
+    <Int sr="arg">0</Int>
+   </Action>
+  </Task>
+
+ </Project>
+</TaskerData>
