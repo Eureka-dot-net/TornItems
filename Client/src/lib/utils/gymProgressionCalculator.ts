@@ -2219,12 +2219,19 @@ export function simulateGymProgression(
   let candyJumpCosts: { totalDays: number; costPerDay: number; totalCost: number } | undefined;
   let energyJumpCosts: { totalDays: number; costPerDay: number; totalCost: number } | undefined;
   
+  // Track xanax and point refill costs from jumps separately
+  let jumpXanaxCost = 0;
+  let jumpPointRefillCost = 0;
+  
   if (inputs.itemPrices) {
-    // Calculate EDVD jump costs
+    // Calculate EDVD jump costs (DVDs + ecstasy only, xanax tracked separately)
     if (inputs.edvdJump?.enabled && inputs.itemPrices.dvdPrice !== null && 
         inputs.itemPrices.xanaxPrice !== null && inputs.itemPrices.ecstasyPrice !== null) {
+      // eDVD jumps use 4 xanax per jump - track separately for Xanax Cost row
+      jumpXanaxCost += 4 * inputs.itemPrices.xanaxPrice * edvdJumpsPerformed;
+      
+      // EDVD Cost now shows only DVDs + ecstasy (xanax shown in Xanax Cost row)
       const costPerJump = (inputs.edvdJump.dvdsUsed * inputs.itemPrices.dvdPrice) + 
-                          (4 * inputs.itemPrices.xanaxPrice) + 
                           inputs.itemPrices.ecstasyPrice;
       
       edvdJumpCosts = {
@@ -2234,18 +2241,18 @@ export function simulateGymProgression(
       };
     }
     
-    // Calculate Stacked Candy jump costs
+    // Calculate Stacked Candy jump costs (candy + ecstasy only, xanax and point refills tracked separately)
     if (inputs.stackedCandyJump?.enabled && inputs.itemPrices.candyPrices) {
       const candyPrice = inputs.itemPrices.candyPrices[inputs.stackedCandyJump.itemId as keyof typeof inputs.itemPrices.candyPrices];
       
       if (candyPrice !== null && candyPrice !== undefined) {
-        // Calculate candy cost plus xanax and ecstasy costs for the jump
+        // Calculate candy cost plus ecstasy cost for the jump
         let costPerJump = inputs.stackedCandyJump.quantity * candyPrice;
         
-        // Add xanax cost: stacked candy jumps use xanaxStacked (1-4) xanax per jump
+        // Track xanax cost separately: stacked candy jumps use xanaxStacked (1-4) xanax per jump
         const xanaxStacked = inputs.stackedCandyJump.xanaxStacked ?? 4;
         if (inputs.itemPrices.xanaxPrice !== null) {
-          costPerJump += xanaxStacked * inputs.itemPrices.xanaxPrice;
+          jumpXanaxCost += xanaxStacked * inputs.itemPrices.xanaxPrice * stackedCandyJumpsPerformed;
         }
         
         // Add ecstasy cost: 1 ecstasy per jump (uses candyEcstasyPrice like half candy)
@@ -2253,11 +2260,11 @@ export function simulateGymProgression(
           costPerJump += inputs.itemPrices.candyEcstasyPrice;
         }
         
-        // Add point refill cost if user uses point refill for jumps and doesn't have daily point refills
+        // Track point refill cost separately if user uses point refill for jumps and doesn't have daily point refills
         if (inputs.stackedCandyJump.usePointRefill && !inputs.hasPointsRefill && 
             inputs.itemPrices.pointsPrice !== null && inputs.itemPrices.pointsPrice !== undefined) {
           // Point refill costs 30 points per jump
-          costPerJump += inputs.itemPrices.pointsPrice * 30;
+          jumpPointRefillCost += inputs.itemPrices.pointsPrice * 30 * stackedCandyJumpsPerformed;
         }
         
         stackedCandyJumpCosts = {
@@ -2268,22 +2275,29 @@ export function simulateGymProgression(
       }
     }
     
-    // Calculate xanax costs (daily usage, not including EDVD/Stacked Candy jumps)
-    if (inputs.xanaxPerDay > 0 && inputs.itemPrices.xanaxPrice !== null) {
+    // Calculate xanax costs (daily usage + jump usage)
+    const dailyXanaxCost = inputs.xanaxPerDay > 0 && inputs.itemPrices.xanaxPrice !== null
+      ? inputs.itemPrices.xanaxPrice * inputs.xanaxPerDay * totalDays
+      : 0;
+    const totalXanaxCost = dailyXanaxCost + jumpXanaxCost;
+    if (totalXanaxCost > 0) {
       xanaxCosts = {
-        totalCost: inputs.itemPrices.xanaxPrice * inputs.xanaxPerDay * totalDays,
+        totalCost: totalXanaxCost,
       };
     }
     
-    // Calculate points refill costs if enabled and price is available
-    if (inputs.hasPointsRefill && inputs.itemPrices.pointsPrice !== null && inputs.itemPrices.pointsPrice !== undefined) {
-      // Points refill costs 30 points per day
+    // Calculate points refill costs (daily usage + jump usage)
+    const dailyPointsRefillCost = inputs.hasPointsRefill && inputs.itemPrices.pointsPrice !== null && inputs.itemPrices.pointsPrice !== undefined
+      ? inputs.itemPrices.pointsPrice * 30 * totalDays
+      : 0;
+    const totalPointsRefillCost = dailyPointsRefillCost + jumpPointRefillCost;
+    if (totalPointsRefillCost > 0) {
       pointsRefillCosts = {
-        totalCost: inputs.itemPrices.pointsPrice * 30 * totalDays,
+        totalCost: totalPointsRefillCost,
       };
     }
     
-    // Calculate candy jump costs
+    // Calculate candy jump costs (half candy - track xanax and point refill separately)
     if (inputs.candyJump?.enabled && inputs.itemPrices.candyPrices) {
       const itemId = inputs.candyJump.itemId;
       const candyPrice = inputs.itemPrices.candyPrices[itemId as keyof typeof inputs.itemPrices.candyPrices];
@@ -2298,16 +2312,23 @@ export function simulateGymProgression(
           costPerDay += inputs.itemPrices.candyEcstasyPrice;
         }
         
-        // Add xanax cost if using xanax and it's not already counted
+        // Track xanax cost separately if using xanax and it's not already counted in daily usage
         if (inputs.candyJump.drugUsed === 'xanax' && !inputs.candyJump.drugAlreadyIncluded && inputs.itemPrices.xanaxPrice !== null) {
-          costPerDay += inputs.itemPrices.xanaxPrice;
+          // Add half candy xanax to xanaxCosts (which was already computed above)
+          const halfCandyXanaxCost = inputs.itemPrices.xanaxPrice * candyJumpDaysPerformed;
+          xanaxCosts = xanaxCosts 
+            ? { totalCost: xanaxCosts.totalCost + halfCandyXanaxCost }
+            : { totalCost: halfCandyXanaxCost };
         }
         
-        // Add point refill cost if user uses point refill for candy jumps and doesn't have daily point refills
+        // Track point refill cost separately if user uses point refill for candy jumps and doesn't have daily point refills
         if (inputs.candyJump.usePointRefill && !inputs.hasPointsRefill && 
             inputs.itemPrices.pointsPrice !== null && inputs.itemPrices.pointsPrice !== undefined) {
-          // Point refill costs 30 points per candy jump day
-          costPerDay += inputs.itemPrices.pointsPrice * 30;
+          // Add half candy points to pointsRefillCosts (which was already computed above)
+          const halfCandyPointsCost = inputs.itemPrices.pointsPrice * 30 * candyJumpDaysPerformed;
+          pointsRefillCosts = pointsRefillCosts
+            ? { totalCost: pointsRefillCosts.totalCost + halfCandyPointsCost }
+            : { totalCost: halfCandyPointsCost };
         }
         
         candyJumpCosts = {
