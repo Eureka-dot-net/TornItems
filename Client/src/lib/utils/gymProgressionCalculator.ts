@@ -1151,12 +1151,12 @@ export function simulateGymProgression(
       isJumpDay = true;
       
       // Use shared helper for jump energy calculation
-      // eDVD jumps always use 4 xanax, no stacking on natural energy
+      // eDVD jumps always use 4 xanax and always use point refill for optimal jumping
       jumpEnergy = calculateStackedJumpEnergy({
         xanaxStacked: 4,
         maxEnergyValue,
         hasPointsRefill: inputs.hasPointsRefill,
-        usePointRefillForJump: false, // eDVD assumes daily point refill users will use it
+        usePointRefillForJump: true, // eDVD jumps always use point refill
         stackOnNaturalEnergy: false,  // eDVD doesn't stack on natural energy
       });
       
@@ -1174,9 +1174,8 @@ export function simulateGymProgression(
       // Set total energy for today: jump energy + post-jump energy
       energyAvailableToday = jumpEnergy + postJumpEnergy;
       
-      // Add note about eDVD jump
-      const pointRefillNote = inputs.hasPointsRefill ? ' + point refill' : '';
-      dailyNotes.push(`eDVD jump: Used ${inputs.edvdJump.dvdsUsed} DVD${inputs.edvdJump.dvdsUsed > 1 ? 's' : ''}, 1 Ecstasy${inputs.edvdJump.adultNovelties ? ' (with 10★ Adult Novelties)' : ''}${pointRefillNote}`);
+      // Add note about eDVD jump (always includes point refill)
+      dailyNotes.push(`eDVD jump: Used ${inputs.edvdJump.dvdsUsed} DVD${inputs.edvdJump.dvdsUsed > 1 ? 's' : ''}, 1 Ecstasy${inputs.edvdJump.adultNovelties ? ' (with 10★ Adult Novelties)' : ''} + point refill`);
       
       // Increment jump counter and schedule next jump
       edvdJumpsPerformed++;
@@ -2224,13 +2223,19 @@ export function simulateGymProgression(
   let jumpPointRefillCost = 0;
   
   if (inputs.itemPrices) {
-    // Calculate EDVD jump costs (DVDs + ecstasy only, xanax tracked separately)
+    // Calculate EDVD jump costs (DVDs + ecstasy only, xanax and point refills tracked separately)
     if (inputs.edvdJump?.enabled && inputs.itemPrices.dvdPrice !== null && 
         inputs.itemPrices.xanaxPrice !== null && inputs.itemPrices.ecstasyPrice !== null) {
       // eDVD jumps use 4 xanax per jump - track separately for Xanax Cost row
       jumpXanaxCost += 4 * inputs.itemPrices.xanaxPrice * edvdJumpsPerformed;
       
-      // EDVD Cost now shows only DVDs + ecstasy (xanax shown in Xanax Cost row)
+      // eDVD jumps use a point refill per jump - track separately if user doesn't have daily point refills
+      // (if user has daily point refills, the cost is already included in the daily calculation)
+      if (!inputs.hasPointsRefill && inputs.itemPrices.pointsPrice !== null && inputs.itemPrices.pointsPrice !== undefined) {
+        jumpPointRefillCost += inputs.itemPrices.pointsPrice * 30 * edvdJumpsPerformed;
+      }
+      
+      // EDVD Cost now shows only DVDs + ecstasy (xanax and point refills shown in their respective rows)
       const costPerJump = (inputs.edvdJump.dvdsUsed * inputs.itemPrices.dvdPrice) + 
                           inputs.itemPrices.ecstasyPrice;
       
