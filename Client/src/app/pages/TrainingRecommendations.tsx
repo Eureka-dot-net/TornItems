@@ -4,7 +4,12 @@ import {
   Typography,
   Paper,
   CircularProgress,
+  Alert,
+  TextField,
+  Button,
 } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import { useTrainingAuth } from '../../lib/hooks/useTrainingAuth';
 
 export default function TrainingRecommendations() {
@@ -15,6 +20,11 @@ export default function TrainingRecommendations() {
   } = useTrainingAuth();
 
   const [isVerifying, setIsVerifying] = useState(true);
+  const [hasFilledWizard, setHasFilledWizard] = useState(false);
+  const [averageIncomePerDay, setAverageIncomePerDay] = useState<string>(() => {
+    const saved = localStorage.getItem('trainingRecommendations_averageIncomePerDay');
+    return saved || '';
+  });
 
   // Verify existing token on mount
   useEffect(() => {
@@ -24,6 +34,30 @@ export default function TrainingRecommendations() {
     };
     verify();
   }, [verifyToken]);
+
+  // Check if user has filled wizard
+  useEffect(() => {
+    // Check if wizard data exists in localStorage
+    const apiKey = localStorage.getItem('gymWizard_apiKey');
+    const initialStats = localStorage.getItem('gymWizard_initialStats');
+    
+    if (apiKey || initialStats) {
+      setHasFilledWizard(true);
+    }
+  }, []);
+
+  // Save average income to localStorage
+  useEffect(() => {
+    localStorage.setItem('trainingRecommendations_averageIncomePerDay', averageIncomePerDay);
+  }, [averageIncomePerDay]);
+
+  const handleIncomeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    // Allow only numbers and a single decimal point
+    if (value === '' || /^\d*(\.\d*)?$/.test(value)) {
+      setAverageIncomePerDay(value);
+    }
+  };
 
   // Show loading while verifying existing token
   if (isVerifying) {
@@ -65,7 +99,7 @@ export default function TrainingRecommendations() {
     );
   }
 
-  // Authorized - show under construction content
+  // Authorized - show content
   return (
     <Box sx={{ width: '100%', p: 3 }}>
       <Box
@@ -83,6 +117,51 @@ export default function TrainingRecommendations() {
           </Typography>
         )}
       </Box>
+
+      {/* Check if wizard was filled */}
+      {!hasFilledWizard && (
+        <Alert 
+          severity="info" 
+          sx={{ mb: 3 }}
+          action={
+            <Button 
+              component={RouterLink} 
+              to="/gymWizard" 
+              variant="outlined"
+              size="small"
+              startIcon={<AutoFixHighIcon />}
+            >
+              Fill Wizard
+            </Button>
+          }
+        >
+          <Typography variant="body1">
+            <strong>Get Started:</strong> Please fill in the wizard for your current training setup to receive personalized recommendations.
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Daily Income Input */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Daily Income Information
+        </Typography>
+        <Typography variant="body2" color="text.secondary" paragraph>
+          Enter your average income per day to help us provide better recommendations.
+        </Typography>
+        <TextField
+          label="Average Income Per Day"
+          value={averageIncomePerDay}
+          onChange={handleIncomeChange}
+          fullWidth
+          placeholder="e.g., 1000000"
+          helperText="Enter your typical daily income from all sources (crimes, jobs, businesses, etc.)"
+          sx={{ maxWidth: 400 }}
+          InputProps={{
+            startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
+          }}
+        />
+      </Paper>
 
       <Paper sx={{ p: 4, textAlign: 'center' }}>
         <Typography variant="h5" gutterBottom sx={{ color: 'primary.main' }}>

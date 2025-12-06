@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Box, Typography, Paper, Button, Stepper, Step, StepLabel, StepButton, Chip, Stack } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ApiKeyWizardStep from '../components/gymWizard/ApiKeyWizardStep';
@@ -8,8 +8,7 @@ import CompanyBenefitsWizardStep from '../components/gymWizard/CompanyBenefitsWi
 import StatTargetRatiosWizardStep from '../components/gymWizard/StatTargetRatiosWizardStep';
 import TrainingRegimeWizardStep, { type TrainingRegimeSelections } from '../components/gymWizard/TrainingRegimeWizardStep';
 import LossReviveWizardStep from '../components/gymWizard/LossReviveWizardStep';
-// NOTE: ComparisonOptionsWizardStep is intentionally kept but not shown in the stepper - will be used for future recommendations feature
-import type { ComparisonOptionType } from '../components/gymWizard/ComparisonOptionsWizardStep';
+import ComparisonOptionsWizardStep, { type ComparisonOptionType } from '../components/gymWizard/ComparisonOptionsWizardStep';
 import ComparisonSelectionWizardStep, { type ComparisonPageSelections, type ComparisonMode } from '../components/gymWizard/ComparisonSelectionWizardStep';
 import EdvdJumpWizardSubStep from '../components/gymWizard/EdvdJumpWizardSubStep';
 import CandyJumpWizardSubStep from '../components/gymWizard/CandyJumpWizardSubStep';
@@ -21,6 +20,7 @@ import {
   convertTrainByPerksToStatDrift,
   convertBalanceAfterGymToGymIndex 
 } from '../../lib/utils/wizardHelpers';
+import { useTrainingAuth } from '../../lib/hooks/useTrainingAuth';
 
 /**
  * GymWizard Container Component
@@ -32,8 +32,10 @@ import {
  * making it easier for new users to understand and use the tool.
  * 
  * The wizard has two phases:
- * 1. Current regime configuration (steps 0-5)
- * 2. Comparison configuration (steps 6+) - shown after user completes current regime
+ * 1. Current regime configuration (steps 0-6)
+ * 2. Comparison configuration (steps 7+) - shown after user completes current regime
+ *    - For authorized users, step 7 is ComparisonOptionsWizardStep (recommendations vs manual)
+ *    - For non-authorized users, skip directly to ComparisonSelectionWizardStep
  */
 
 const baseWizardSteps = [
@@ -44,19 +46,24 @@ const baseWizardSteps = [
   { label: 'Stat Target Ratios', description: 'Configure your stat training strategy' },
   { label: 'Training Regime', description: 'Configure your training methods' },
   { label: 'Loss/Revive', description: 'Configure selling losses/revivals' },
-  // NOTE: "Comparison Options" step is intentionally skipped but the component is kept for future use
-  // See ComparisonOptionsWizardStep.tsx for details
+  // ComparisonOptions step is conditionally shown based on authorization
   { label: 'Select Areas', description: 'Select comparison areas' },
 ];
 
 // Step indices for navigation
 const TRAINING_REGIME_STEP = 5;
 const LOSS_REVIVE_STEP = 6;
-const SELECT_AREAS_STEP = 7;
-const COMPARISON_PHASE_START_STEP = 8;
+const COMPARISON_OPTIONS_STEP = 7; // Only for authorized users
+const SELECT_AREAS_STEP_AUTH = 8; // For authorized users (after comparison options)
+const SELECT_AREAS_STEP_NON_AUTH = 7; // For non-authorized users (skip comparison options)
+const COMPARISON_PHASE_START_STEP_AUTH = 9; // For authorized users
+const COMPARISON_PHASE_START_STEP_NON_AUTH = 8; // For non-authorized users
 
 export default function GymWizard() {
   const navigate = useNavigate();
+  const { isAuthorizedFromStorage } = useTrainingAuth();
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  
   const [activeStep, setActiveStep] = useState(0);
   const [subStepIndex, setSubStepIndex] = useState(0);
   const [hasEnteredCurrentTrainingSubSteps, setHasEnteredCurrentTrainingSubSteps] = useState(false);
@@ -69,8 +76,7 @@ export default function GymWizard() {
   });
   
   // Comparison phase state
-  // Note: comparisonOption state is not used directly but setComparisonOption is used in handleStartOver
-  const [, setComparisonOption] = useState<ComparisonOptionType>(null);
+  const [comparisonOption, setComparisonOption] = useState<ComparisonOptionType>(null);
   const [comparisonPageSelections, setComparisonPageSelections] = useState<ComparisonPageSelections>({
     energySources: false,
     happyPerks: false,
@@ -89,6 +95,21 @@ export default function GymWizard() {
     energy: false,
     fhc: false,
   });
+
+  // Check authorization on mount
+  useEffect(() => {
+    setIsAuthorized(isAuthorizedFromStorage());
+  }, [isAuthorizedFromStorage]);
+
+  // Define step indices based on authorization using useMemo
+  const SELECT_AREAS_STEP = useMemo(() => 
+    isAuthorized ? SELECT_AREAS_STEP_AUTH : SELECT_AREAS_STEP_NON_AUTH, 
+    [isAuthorized]
+  );
+  const COMPARISON_PHASE_START_STEP = useMemo(() => 
+    isAuthorized ? COMPARISON_PHASE_START_STEP_AUTH : COMPARISON_PHASE_START_STEP_NON_AUTH, 
+    [isAuthorized]
+  );
 
   // Load training selections from localStorage on mount
   useEffect(() => {
@@ -468,8 +489,28 @@ export default function GymWizard() {
     
     // Handle Loss/Revive step
     if (activeStep === LOSS_REVIVE_STEP) {
-      // Move to Select Areas
-      setActiveStep(SELECT_AREAS_STEP);
+      // Move to ComparisonOptions step if authorized, otherwise Select Areas
+      if (isAuthorized) {
+        setActiveStep(COMPARISON_OPTIONS_STEP);
+      } else {
+        setActiveStep(SELECT_AREAS_STEP);
+      }
+      return;
+    }
+    
+    // Handle ComparisonOptions step (only for authorized users)
+    if (isAuthorized && activeStep === COMPARISON_OPTIONS_STEP) {
+      if (comparisonOption === 'recommendations') {
+        // Go to recommendations page
+        copyWizardDataToGymComparison();
+        navigate('/trainingRecommendations');
+        return;
+      } else if (comparisonOption === 'manual') {
+        // Move to Select Areas
+        setActiveStep(SELECT_AREAS_STEP);
+        return;
+      }
+      // If no option selected yet, don't allow moving forward
       return;
     }
     
@@ -523,6 +564,23 @@ export default function GymWizard() {
         setComparisonSubStepIndex(0);
         setHasEnteredComparisonTrainingSubSteps(false);
       }
+      return;
+    }
+    
+    // Handle Select Areas back navigation
+    if (activeStep === SELECT_AREAS_STEP) {
+      // Go back to ComparisonOptions if authorized, otherwise Loss/Revive
+      if (isAuthorized) {
+        setActiveStep(COMPARISON_OPTIONS_STEP);
+      } else {
+        setActiveStep(LOSS_REVIVE_STEP);
+      }
+      return;
+    }
+    
+    // Handle ComparisonOptions back navigation (only for authorized users)
+    if (isAuthorized && activeStep === COMPARISON_OPTIONS_STEP) {
+      setActiveStep(LOSS_REVIVE_STEP);
       return;
     }
     
@@ -612,8 +670,9 @@ export default function GymWizard() {
     setTrainingSelections(selections);
   }, []);
 
-  // NOTE: handleComparisonOptionChange is intentionally removed as ComparisonOptionsWizardStep is not shown in stepper
-  // It will be re-added when the recommendations feature is implemented
+  const handleComparisonOptionChange = useCallback((option: ComparisonOptionType) => {
+    setComparisonOption(option);
+  }, []);
 
   const handleComparisonSelectionsChange = useCallback((selections: ComparisonPageSelections) => {
     setComparisonPageSelections(selections);
@@ -623,9 +682,20 @@ export default function GymWizard() {
     setComparisonMode(mode);
   }, []);
 
-  // Build the stepper steps dynamically based on comparison selections
+  // Build the stepper steps dynamically based on authorization and comparison selections
   const buildStepperSteps = () => {
     const steps = [...baseWizardSteps];
+    
+    // Insert ComparisonOptions step for authorized users
+    if (isAuthorized) {
+      // Insert after Loss/Revive step, before Select Areas
+      // Find the index position to insert (after Loss/Revive which is at LOSS_REVIVE_STEP)
+      const insertIndex = LOSS_REVIVE_STEP + 1;
+      steps.splice(insertIndex, 0, {
+        label: 'Comparison Options',
+        description: 'Choose recommendation or manual comparison',
+      });
+    }
     
     // Add dynamic comparison page steps if we have any selected
     if (comparisonPageSteps.length > 0) {
@@ -806,6 +876,11 @@ export default function GymWizard() {
         
         {/* Loss/Revive step */}
         {activeStep === LOSS_REVIVE_STEP && <LossReviveWizardStep mode="current" />}
+        
+        {/* ComparisonOptions step (only for authorized users) */}
+        {isAuthorized && activeStep === COMPARISON_OPTIONS_STEP && (
+          <ComparisonOptionsWizardStep onOptionChange={handleComparisonOptionChange} />
+        )}
         
         {/* Comparison selection step */}
         {activeStep === SELECT_AREAS_STEP && (
