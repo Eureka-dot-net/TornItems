@@ -688,8 +688,10 @@ export default function GymWizard() {
     
     // Insert ComparisonOptions step for authorized users
     if (isAuthorized) {
-      // Insert after Loss/Revive (index 7), before Select Areas
-      steps.splice(7, 0, {
+      // Insert after Loss/Revive step, before Select Areas
+      // Find the index position to insert (after Loss/Revive which is at LOSS_REVIVE_STEP)
+      const insertIndex = LOSS_REVIVE_STEP + 1;
+      steps.splice(insertIndex, 0, {
         label: 'Comparison Options',
         description: 'Choose recommendation or manual comparison',
       });
