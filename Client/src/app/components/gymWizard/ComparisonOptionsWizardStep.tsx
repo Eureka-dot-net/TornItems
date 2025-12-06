@@ -6,7 +6,6 @@ import {
   FormControlLabel,
   Radio,
   Alert,
-  Chip,
 } from '@mui/material';
 
 /**
@@ -15,12 +14,10 @@ import {
  * This wizard step appears after all current regime configuration is complete.
  * It asks users what they want to compare: recommendations or manual comparison.
  * 
- * NOTE: This step is currently SKIPPED in the wizard flow but MUST NOT BE REMOVED.
- * It will be used in the future when the "Get Personalized Recommendations" feature
- * is implemented. The wizard currently skips directly from Training Regime to 
- * Select Areas (ComparisonSelectionWizardStep).
+ * This step is shown ONLY for authorized users. Non-authorized users skip directly
+ * to the ComparisonSelectionWizardStep.
  * 
- * @see GymWizard.tsx - handleNext function for the skip logic
+ * @see GymWizard.tsx - handleNext function for the conditional display logic
  */
 
 export type ComparisonOptionType = 'recommendations' | 'manual' | null;
@@ -54,10 +51,7 @@ export default function ComparisonOptionsWizardStep({ onOptionChange }: Comparis
 
   const handleOptionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value as ComparisonOptionType;
-    // Only allow 'manual' since 'recommendations' is coming soon
-    if (value === 'manual') {
-      setSelectedOption(value);
-    }
+    setSelectedOption(value);
   };
 
   return (
@@ -85,26 +79,17 @@ export default function ComparisonOptionsWizardStep({ onOptionChange }: Comparis
       >
         <FormControlLabel
           value="recommendations"
-          control={<Radio disabled />}
+          control={<Radio />}
           label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Box>
-                <Typography variant="body1" sx={{ color: 'text.disabled' }}>
-                  Get Personalized Recommendations
-                </Typography>
-                <Typography variant="caption" color="text.disabled">
-                  Let us analyze your setup and suggest optimal training improvements
-                </Typography>
-              </Box>
-              <Chip 
-                label="Coming Soon" 
-                size="small" 
-                color="info" 
-                variant="outlined"
-              />
+            <Box>
+              <Typography variant="body1">
+                Get Personalized Recommendations
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Let us analyze your setup and suggest optimal training improvements
+              </Typography>
             </Box>
           }
-          disabled
         />
 
         <FormControlLabel
@@ -122,6 +107,16 @@ export default function ComparisonOptionsWizardStep({ onOptionChange }: Comparis
           }
         />
       </RadioGroup>
+
+      {selectedOption === 'recommendations' && (
+        <Alert severity="info" sx={{ mt: 3 }}>
+          <Typography variant="body2">
+            We'll analyze your current setup and suggest personalized improvements to help you 
+            maximize your gym gains. You'll be taken to the recommendations page where you can 
+            review our suggestions.
+          </Typography>
+        </Alert>
+      )}
 
       {selectedOption === 'manual' && (
         <Alert severity="info" sx={{ mt: 3 }}>
