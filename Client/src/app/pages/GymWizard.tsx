@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Box, Typography, Paper, Button, Stepper, Step, StepLabel, StepButton, Chip, Stack } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ApiKeyWizardStep from '../components/gymWizard/ApiKeyWizardStep';
@@ -101,9 +101,15 @@ export default function GymWizard() {
     setIsAuthorized(isAuthorizedFromStorage());
   }, [isAuthorizedFromStorage]);
 
-  // Define step indices based on authorization
-  const SELECT_AREAS_STEP = isAuthorized ? SELECT_AREAS_STEP_AUTH : SELECT_AREAS_STEP_NON_AUTH;
-  const COMPARISON_PHASE_START_STEP = isAuthorized ? COMPARISON_PHASE_START_STEP_AUTH : COMPARISON_PHASE_START_STEP_NON_AUTH;
+  // Define step indices based on authorization using useMemo
+  const SELECT_AREAS_STEP = useMemo(() => 
+    isAuthorized ? SELECT_AREAS_STEP_AUTH : SELECT_AREAS_STEP_NON_AUTH, 
+    [isAuthorized]
+  );
+  const COMPARISON_PHASE_START_STEP = useMemo(() => 
+    isAuthorized ? COMPARISON_PHASE_START_STEP_AUTH : COMPARISON_PHASE_START_STEP_NON_AUTH, 
+    [isAuthorized]
+  );
 
   // Load training selections from localStorage on mount
   useEffect(() => {

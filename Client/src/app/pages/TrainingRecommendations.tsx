@@ -22,12 +22,8 @@ export default function TrainingRecommendations() {
   const [isVerifying, setIsVerifying] = useState(true);
   const [hasFilledWizard, setHasFilledWizard] = useState(false);
   const [averageIncomePerDay, setAverageIncomePerDay] = useState<string>(() => {
-    try {
-      const saved = localStorage.getItem('trainingRecommendations_averageIncomePerDay');
-      return saved ? JSON.parse(saved) : '';
-    } catch {
-      return '';
-    }
+    const saved = localStorage.getItem('trainingRecommendations_averageIncomePerDay');
+    return saved || '';
   });
 
   // Verify existing token on mount
@@ -52,13 +48,13 @@ export default function TrainingRecommendations() {
 
   // Save average income to localStorage
   useEffect(() => {
-    localStorage.setItem('trainingRecommendations_averageIncomePerDay', JSON.stringify(averageIncomePerDay));
+    localStorage.setItem('trainingRecommendations_averageIncomePerDay', averageIncomePerDay);
   }, [averageIncomePerDay]);
 
   const handleIncomeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
-    // Allow only numbers and decimals
-    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+    // Allow only numbers and a single decimal point
+    if (value === '' || /^\d*(\.\d*)?$/.test(value)) {
       setAverageIncomePerDay(value);
     }
   };
